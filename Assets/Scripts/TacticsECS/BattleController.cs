@@ -29,6 +29,14 @@ namespace TacticsECS
         [Tooltip("데모 편성 외에 팀당 추가로 스폰할 유닛 수. 100+ 오브젝트 성능 확인용.")]
         [SerializeField] private int stressTestExtraUnitsPerTeam = 0;
 
+        [Header("Camera (Isometric)")]
+        [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
+        [SerializeField] private float isoYawDegrees = 45f;
+        [Tooltip("X축(피치) 회전. 35.264도가 수학적으로 정확한 isometric 각도(atan(1/sqrt(2))).")]
+        [SerializeField] private float isoPitchDegrees = 35.264f;
+        [Tooltip("그리드를 화면에 얼마나 꽉 채울지. 값이 작을수록 확대된다.")]
+        [SerializeField] private float isoZoom = 0.62f;
+
         private GridWorld _grid;
         private UnitWorld _units;
         private TurnManager _turnManager;
@@ -134,12 +142,22 @@ namespace TacticsECS
             _viewsById[view.UnitId] = view;
         }
 
+        /// <summary>
+        /// 카메라를 정통 isometric 구도(대각선 45도 + 피치 35.264도)로 배치한다.
+        /// 원근 대신 orthographic을 사용해 거리에 따른 크기 왜곡이 없도록 한다.
+        /// </summary>
         private void PositionCamera()
         {
             var center = _grid.GridToWorld(new Vector2Int(gridWidth / 2, gridHeight / 2));
-            float dist = Mathf.Max(gridWidth, gridHeight) * tileSize * 1.1f;
-            _cam.transform.position = center + new Vector3(0, dist, -dist * 0.6f);
-            _cam.transform.LookAt(center);
+            float span = Mathf.Max(gridWidth, gridHeight) * tileSize;
+
+            var rotation = Quaternion.Euler(isoPitchDegrees, isoYawDegrees, 0f);
+            float dist = span * 1.5f;
+            _cam.transform.rotation = rotation;
+            _cam.transform.position = center - rotation * Vector3.forward * dist;
+
+            _cam.orthographic = true;
+            _cam.orthographicSize = span * isoZoom;
         }
 
         // ---------- Turn flow ----------

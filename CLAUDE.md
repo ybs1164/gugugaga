@@ -5,6 +5,9 @@
 ## 1. Unity CLI 사용
 Unity 관련 작업(빌드, 테스트 실행, 패키지 갱신 등)은 Unity 에디터 GUI를 직접 조작하지 말고
 Unity CLI(`unity -projectPath ... -batchmode ...` 형태의 명령어)를 사용한다.
+Unity 에디터(GUI)를 직접 실행하지 않는다 — 배치모드 CLI 명령이라도 같은 프로젝트가 이미 에디터로
+열려 있으면 "another Unity instance is running" 오류로 실패하므로, CLI 실행 전 사용자에게 에디터가
+열려 있는지 먼저 확인/종료를 요청한다.
 
 ## 2. Data는 값만 가진다
 `Data`/`Core` 계층(예: `Assets/Scripts/TacticsECS/Data`, `Assets/Scripts/TacticsECS/Core`)의 타입은

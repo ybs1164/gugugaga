@@ -45,11 +45,11 @@ namespace TacticsECS
             return true;
         }
 
-        /// <summary>Guard 타입 전용 행동: 공격 대신 방어 태세로 전환해 이번 턴 받는 피해를 줄인다.</summary>
+        /// <summary>CanGuard 유닛 전용 행동: 공격 대신 방어 태세로 전환해 이번 턴 받는 피해를 줄인다.</summary>
         public static bool TryDefend(UnitWorld units, int unitId)
         {
             var unit = units.Get(unitId);
-            if (!unit.IsAlive || unit.HasActed || unit.Type != UnitType.Guard) return false;
+            if (!unit.IsAlive || unit.HasActed || !unit.CanGuard) return false;
 
             unit.IsGuarding = true;
             unit.HasActed = true;

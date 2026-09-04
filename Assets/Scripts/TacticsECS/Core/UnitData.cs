@@ -5,13 +5,13 @@ namespace TacticsECS
     /// <summary>
     /// 유닛 하나의 "컴포넌트 데이터". GameObject가 아니라 UnitWorld 내부 리스트의 한 칸.
     /// 전투 로직(Systems)은 전부 이 struct를 값 복사해서 읽고, 수정한 뒤 UnitWorld.Set으로 다시 써넣는 방식으로 동작한다.
+    /// 타입별 분기는 갖지 않는다 — 스폰 시 유닛 프리팹의 UnitDefinition.Stats 값을 그대로 복사해 채운다.
     /// </summary>
     [System.Serializable]
     public struct UnitData
     {
         public int Id;
         public Team Team;
-        public UnitType Type;
 
         public Vector2Int GridPos;
 
@@ -23,40 +23,36 @@ namespace TacticsECS
         public int MoveRange;
         public int AttackRange;
 
+        public bool CanGuard; // 방어 태세 행동이 가능한 타입인지 (UnitDefinition.Stats에서 복사됨)
+
         public bool HasMoved;
         public bool HasActed;
-        public bool IsGuarding; // Guard 타입 전용: 이번 턴 방어 태세인지
+        public bool IsGuarding; // CanGuard 유닛 전용: 이번 턴 방어 태세인지
 
         public bool IsAlive => Hp > 0;
 
-        public static UnitData Create(int id, Team team, UnitType type, Vector2Int pos)
+        public static UnitData Create(int id, Team team, UnitStats stats, Vector2Int pos)
         {
-            var d = new UnitData
+            return new UnitData
             {
                 Id = id,
                 Team = team,
-                Type = type,
                 GridPos = pos,
+
+                MaxHp = stats.MaxHp,
+                Hp = stats.MaxHp,
+                Attack = stats.Attack,
+                Defense = stats.Defense,
+
+                MoveRange = stats.MoveRange,
+                AttackRange = stats.AttackRange,
+
+                CanGuard = stats.CanGuard,
+
                 IsGuarding = false,
                 HasMoved = false,
                 HasActed = false
             };
-
-            switch (type)
-            {
-                case UnitType.Melee:
-                    d.MaxHp = 12; d.Attack = 5; d.Defense = 1; d.MoveRange = 3; d.AttackRange = 1;
-                    break;
-                case UnitType.Ranged:
-                    d.MaxHp = 8; d.Attack = 4; d.Defense = 0; d.MoveRange = 2; d.AttackRange = 3;
-                    break;
-                case UnitType.Guard:
-                    d.MaxHp = 18; d.Attack = 3; d.Defense = 3; d.MoveRange = 2; d.AttackRange = 1;
-                    break;
-            }
-
-            d.Hp = d.MaxHp;
-            return d;
         }
     }
 }

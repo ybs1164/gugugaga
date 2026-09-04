@@ -25,6 +25,14 @@ namespace TacticsECS
         [SerializeField] private int gridHeight = 8;
         [SerializeField] private float tileSize = 1.2f;
 
+        [Header("Unit Prefabs")]
+        [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
+        [SerializeField] private UnitView meleePrefab;
+        [Tooltip("원거리 유닛 프리팹.")]
+        [SerializeField] private UnitView rangedPrefab;
+        [Tooltip("방어(탱커) 유닛 프리팹.")]
+        [SerializeField] private UnitView guardPrefab;
+
         [Header("Stress Test")]
         [Tooltip("데모 편성 외에 팀당 추가로 스폰할 유닛 수. 100+ 오브젝트 성능 확인용.")]
         [SerializeField] private int stressTestExtraUnitsPerTeam = 0;
@@ -116,15 +124,15 @@ namespace TacticsECS
 
         private void SpawnDemoFormation()
         {
-            SpawnUnit(Team.Player, UnitType.Guard, new Vector2Int(1, 1));
-            SpawnUnit(Team.Player, UnitType.Melee, new Vector2Int(1, 3));
-            SpawnUnit(Team.Player, UnitType.Ranged, new Vector2Int(0, 5));
-            SpawnUnit(Team.Player, UnitType.Melee, new Vector2Int(1, 6));
+            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1));
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3));
+            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5));
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6));
 
-            SpawnUnit(Team.Enemy, UnitType.Guard, new Vector2Int(gridWidth - 2, gridHeight - 2));
-            SpawnUnit(Team.Enemy, UnitType.Melee, new Vector2Int(gridWidth - 2, gridHeight - 4));
-            SpawnUnit(Team.Enemy, UnitType.Ranged, new Vector2Int(gridWidth - 1, gridHeight - 6));
-            SpawnUnit(Team.Enemy, UnitType.Melee, new Vector2Int(gridWidth - 2, gridHeight - 7));
+            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2));
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4));
+            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6));
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7));
 
             if (stressTestExtraUnitsPerTeam > 0)
                 SpawnStressTestUnits(stressTestExtraUnitsPerTeam);
@@ -132,14 +140,16 @@ namespace TacticsECS
 
         private void SpawnStressTestUnits(int perTeam)
         {
+            var prefabs = new[] { meleePrefab, rangedPrefab, guardPrefab };
             var rng = new System.Random(12345);
             for (int i = 0; i < perTeam; i++)
             {
+                var prefab = prefabs[i % prefabs.Length];
                 var p = RandomFreeTile(rng, 0, gridWidth / 2);
-                if (p.HasValue) SpawnUnit(Team.Player, (UnitType)(i % 3), p.Value);
+                if (p.HasValue) SpawnUnit(Team.Player, prefab, p.Value);
 
                 var e = RandomFreeTile(rng, gridWidth / 2, gridWidth);
-                if (e.HasValue) SpawnUnit(Team.Enemy, (UnitType)(i % 3), e.Value);
+                if (e.HasValue) SpawnUnit(Team.Enemy, prefab, e.Value);
             }
         }
 
@@ -153,10 +163,10 @@ namespace TacticsECS
             return null;
         }
 
-        private void SpawnUnit(Team team, UnitType type, Vector2Int pos)
+        private void SpawnUnit(Team team, UnitView prefab, Vector2Int pos)
         {
             if (_grid.IsOccupied(pos)) return;
-            var view = _spawner.Spawn(_grid, _units, team, type, pos);
+            var view = _spawner.Spawn(_grid, _units, team, prefab, pos);
             _viewsById[view.UnitId] = view;
         }
 
@@ -436,7 +446,7 @@ namespace TacticsECS
             if (_state == SelectState.UnitSelected)
             {
                 var unit = _units.Get(_selectedUnitId);
-                if (unit.Type == UnitType.Guard && !unit.HasActed)
+                if (unit.CanGuard && !unit.HasActed)
                 {
                     if (GUI.Button(new Rect(120, 40, 120, 30), "방어 태세"))
                     {

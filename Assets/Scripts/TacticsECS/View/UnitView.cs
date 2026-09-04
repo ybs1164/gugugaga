@@ -6,6 +6,8 @@ namespace TacticsECS
     /// <summary>
     /// 유닛 하나의 화면 표시 전용 컴포넌트.
     /// UnitData를 스스로 들고 있지 않고, Refresh(UnitData)로 받아서 겉모습만 갱신한다 (전투 로직 없음).
+    /// 외형(스케일)은 프리팹 자체에, 팀별 색상/스탯은 같은 GameObject의 UnitDefinition 컴포넌트에 있으므로
+    /// 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다.
     /// 중요: Update()가 없다. 이동할 때만 짧게 코루틴을 돌리므로,
     /// 대기 중인 유닛 100~300개는 프레임당 비용이 사실상 0이다.
     /// </summary>
@@ -17,16 +19,11 @@ namespace TacticsECS
 
         private Renderer _renderer;
         private Material _material;
+        private UnitDefinition _definition;
         private TextMesh _hpText;
         private GridWorld _grid;
         private Coroutine _moveRoutine;
 
-        private static readonly Color PlayerMelee = new Color(0.2f, 0.5f, 1f);
-        private static readonly Color PlayerRanged = new Color(0.2f, 0.8f, 0.5f);
-        private static readonly Color PlayerGuard = new Color(0.1f, 0.3f, 0.7f);
-        private static readonly Color EnemyMelee = new Color(1f, 0.4f, 0.3f);
-        private static readonly Color EnemyRanged = new Color(1f, 0.7f, 0.2f);
-        private static readonly Color EnemyGuard = new Color(0.6f, 0.1f, 0.1f);
         private static readonly Color GuardingColor = Color.yellow;
 
         public void Init(UnitData data, GridWorld grid)
@@ -34,12 +31,9 @@ namespace TacticsECS
             UnitId = data.Id;
             _grid = grid;
             _renderer = GetComponent<Renderer>();
+            _definition = GetComponent<UnitDefinition>();
 
-            transform.localScale = data.Type == UnitType.Guard
-                ? new Vector3(0.7f, 0.6f, 0.7f)
-                : new Vector3(0.5f, 0.5f, 0.5f);
-
-            _material = RuntimeMaterial.CreateColored(ColorFor(data));
+            _material = RuntimeMaterial.CreateColored(_definition.ColorFor(data.Team));
             _renderer.sharedMaterial = _material;
 
             var textGo = new GameObject("HP");
@@ -56,24 +50,6 @@ namespace TacticsECS
             Refresh(data);
         }
 
-        private static Color ColorFor(UnitData d)
-        {
-            if (d.Team == Team.Player)
-                return d.Type switch
-                {
-                    UnitType.Melee => PlayerMelee,
-                    UnitType.Ranged => PlayerRanged,
-                    _ => PlayerGuard
-                };
-
-            return d.Type switch
-            {
-                UnitType.Melee => EnemyMelee,
-                UnitType.Ranged => EnemyRanged,
-                _ => EnemyGuard
-            };
-        }
-
         public void Refresh(UnitData data)
         {
             if (!data.IsAlive)
@@ -83,7 +59,7 @@ namespace TacticsECS
             }
 
             _hpText.text = $"{data.Hp}/{data.MaxHp}";
-            RuntimeMaterial.SetColor(_material, data.IsGuarding ? GuardingColor : ColorFor(data));
+            RuntimeMaterial.SetColor(_material, data.IsGuarding ? GuardingColor : _definition.ColorFor(data.Team));
 
             var targetWorldPos = _grid.GridToWorld(data.GridPos) + Vector3.up * 0.5f;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)

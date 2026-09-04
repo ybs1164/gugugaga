@@ -23,19 +23,34 @@ namespace TacticsECS.EditorTools
             var meleePrefab = CreatePrefab(
                 "Unit_Melee",
                 new Vector3(0.5f, 0.5f, 0.5f),
-                new UnitStats { MaxHp = 12, Attack = 5, Defense = 1, MoveRange = 3, AttackRange = 1, CanGuard = false },
+                new UnitStats
+                {
+                    MaxHp = 12,
+                    Combat = new UnitCombatStats { Attack = 5, Defense = 1, AttackRange = 1, CanGuard = false },
+                    Movement = new UnitMovement { MoveRange = 3, IgnoreTerrain = false, IgnoreUnitBlocking = false, AllowDiagonal = false }
+                },
                 new Color(0.2f, 0.5f, 1f), new Color(1f, 0.4f, 0.3f));
 
             var rangedPrefab = CreatePrefab(
                 "Unit_Ranged",
                 new Vector3(0.5f, 0.5f, 0.5f),
-                new UnitStats { MaxHp = 8, Attack = 4, Defense = 0, MoveRange = 2, AttackRange = 3, CanGuard = false },
+                new UnitStats
+                {
+                    MaxHp = 8,
+                    Combat = new UnitCombatStats { Attack = 4, Defense = 0, AttackRange = 3, CanGuard = false },
+                    Movement = new UnitMovement { MoveRange = 2, IgnoreTerrain = false, IgnoreUnitBlocking = false, AllowDiagonal = false }
+                },
                 new Color(0.2f, 0.8f, 0.5f), new Color(1f, 0.7f, 0.2f));
 
             var guardPrefab = CreatePrefab(
                 "Unit_Guard",
                 new Vector3(0.7f, 0.6f, 0.7f),
-                new UnitStats { MaxHp = 18, Attack = 3, Defense = 3, MoveRange = 2, AttackRange = 1, CanGuard = true },
+                new UnitStats
+                {
+                    MaxHp = 18,
+                    Combat = new UnitCombatStats { Attack = 3, Defense = 3, AttackRange = 1, CanGuard = true },
+                    Movement = new UnitMovement { MoveRange = 2, IgnoreTerrain = false, IgnoreUnitBlocking = false, AllowDiagonal = false }
+                },
                 new Color(0.1f, 0.3f, 0.7f), new Color(0.6f, 0.1f, 0.1f));
 
             AssetDatabase.SaveAssets();

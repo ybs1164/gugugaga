@@ -4,20 +4,28 @@ namespace TacticsECS
 {
     /// <summary>
     /// 공격/방어 판정을 담당하는 시스템.
-    /// 사거리는 맨해튼 거리 기준: 근접(Guard 포함) = 1, 원거리 = 최대 3.
+    /// 사거리는 맨해튼 거리 기준. 공격력/방어력/사거리/방어 태세 가능 여부는 UnitWorld.GetStats(id)의
+    /// UnitCombatStats에서 읽는다 (전투 중 바뀌지 않는 고정 값이므로 UnitData가 아니라 UnitStats에 있다).
     /// </summary>
     public static class CombatSystem
     {
-        public static bool IsInAttackRange(UnitData attacker, UnitData target)
+        public static bool IsInAttackRange(UnitWorld units, int attackerId, int targetId)
         {
+            var attacker = units.Get(attackerId);
+            var target = units.Get(targetId);
             int dist = PathfindingSystem.Distance(attacker.GridPos, target.GridPos);
-            return dist >= 1 && dist <= attacker.AttackRange;
+            int range = units.GetStats(attackerId).Combat.AttackRange;
+            return dist >= 1 && dist <= range;
         }
 
-        public static int CalculateDamage(UnitData attacker, UnitData defender)
+        public static int CalculateDamage(UnitWorld units, int attackerId, int targetId)
         {
-            int guardBonus = defender.IsGuarding ? 2 : 0;
-            int dmg = attacker.Attack - (defender.Defense + guardBonus);
+            var target = units.Get(targetId);
+            var attackerCombat = units.GetStats(attackerId).Combat;
+            var targetCombat = units.GetStats(targetId).Combat;
+
+            int guardBonus = target.TurnState.IsGuarding ? 2 : 0;
+            int dmg = attackerCombat.Attack - (targetCombat.Defense + guardBonus);
             return Mathf.Max(1, dmg);
         }
 
@@ -28,13 +36,13 @@ namespace TacticsECS
             var target = units.Get(targetId);
 
             if (!attacker.IsAlive || !target.IsAlive) return false;
-            if (attacker.HasActed) return false;
+            if (attacker.TurnState.HasActed) return false;
             if (attacker.Team == target.Team) return false;
-            if (!IsInAttackRange(attacker, target)) return false;
+            if (!IsInAttackRange(units, attackerId, targetId)) return false;
 
-            damageDealt = CalculateDamage(attacker, target);
+            damageDealt = CalculateDamage(units, attackerId, targetId);
             target.Hp = Mathf.Max(0, target.Hp - damageDealt);
-            attacker.HasActed = true;
+            attacker.TurnState.HasActed = true;
 
             units.Set(targetId, target);
             units.Set(attackerId, attacker);
@@ -49,10 +57,10 @@ namespace TacticsECS
         public static bool TryDefend(UnitWorld units, int unitId)
         {
             var unit = units.Get(unitId);
-            if (!unit.IsAlive || unit.HasActed || !unit.CanGuard) return false;
+            if (!unit.IsAlive || unit.TurnState.HasActed || !units.GetStats(unitId).Combat.CanGuard) return false;
 
-            unit.IsGuarding = true;
-            unit.HasActed = true;
+            unit.TurnState.IsGuarding = true;
+            unit.TurnState.HasActed = true;
             units.Set(unitId, unit);
             return true;
         }

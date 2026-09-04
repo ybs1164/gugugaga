@@ -23,6 +23,14 @@ namespace TacticsECS
             new Vector2Int(0, 1), new Vector2Int(0, -1)
         };
 
+        private static readonly Vector2Int[] Dir8 =
+        {
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),
+            new Vector2Int(0, 1), new Vector2Int(0, -1),
+            new Vector2Int(1, 1), new Vector2Int(1, -1),
+            new Vector2Int(-1, 1), new Vector2Int(-1, -1)
+        };
+
         public GridWorld(int width, int height, float tileSize = 1f, Vector3 origin = default)
         {
             Width = width;
@@ -68,6 +76,16 @@ namespace TacticsECS
         public IEnumerable<Vector2Int> GetNeighbors4(Vector2Int p)
         {
             foreach (var d in Dir4)
+            {
+                var n = p + d;
+                if (InBounds(n)) yield return n;
+            }
+        }
+
+        /// <summary>allowDiagonal이 true면 8방향, false면 상하좌우 4방향 이웃 타일을 반환한다.</summary>
+        public IEnumerable<Vector2Int> GetNeighbors(Vector2Int p, bool allowDiagonal)
+        {
+            foreach (var d in allowDiagonal ? Dir8 : Dir4)
             {
                 var n = p + d;
                 if (InBounds(n)) yield return n;

@@ -58,8 +58,8 @@ namespace TacticsECS
                 return;
             }
 
-            _hpText.text = $"{data.Hp}/{data.MaxHp}";
-            RuntimeMaterial.SetColor(_material, data.IsGuarding ? GuardingColor : _definition.ColorFor(data.Team));
+            _hpText.text = $"{data.Hp}/{_definition.Stats.MaxHp}";
+            RuntimeMaterial.SetColor(_material, data.TurnState.IsGuarding ? GuardingColor : _definition.ColorFor(data.Team));
 
             var targetWorldPos = _grid.GridToWorld(data.GridPos) + Vector3.up * 0.5f;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)

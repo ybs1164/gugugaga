@@ -42,9 +42,7 @@ namespace TacticsECS
             {
                 var u = _units.Get(i);
                 if (u.Team != team) continue;
-                u.HasMoved = false;
-                u.HasActed = false;
-                u.IsGuarding = false;
+                u.TurnState = default;
                 _units.Set(i, u);
             }
         }

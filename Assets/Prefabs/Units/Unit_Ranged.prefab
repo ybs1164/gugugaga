@@ -143,10 +143,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
   stats:
     MaxHp: 8
-    Attack: 4
-    Defense: 0
-    MoveRange: 2
-    AttackRange: 3
-    CanGuard: 0
+    Combat:
+      Attack: 4
+      Defense: 0
+      AttackRange: 3
+      CanGuard: 0
+    Movement:
+      MoveRange: 2
+      IgnoreTerrain: 0
+      IgnoreUnitBlocking: 0
+      AllowDiagonal: 0
   playerColor: {r: 0.2, g: 0.8, b: 0.5, a: 1}
   enemyColor: {r: 1, g: 0.7, b: 0.2, a: 1}

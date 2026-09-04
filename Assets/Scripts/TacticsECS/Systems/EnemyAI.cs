@@ -29,13 +29,14 @@ namespace TacticsECS
 
                 var nearest = targets.OrderBy(t => PathfindingSystem.Distance(self.GridPos, t.GridPos)).First();
 
-                if (CombatSystem.IsInAttackRange(self, nearest))
+                if (CombatSystem.IsInAttackRange(units, id, nearest.Id))
                 {
                     CombatSystem.TryAttack(grid, units, id, nearest.Id, out _);
                     continue;
                 }
 
-                PathfindingSystem.GetReachable(grid, self.GridPos, self.MoveRange, id, out var reachable);
+                var movement = units.GetStats(id).Movement;
+                PathfindingSystem.GetReachable(grid, self.GridPos, movement, id, out var reachable);
 
                 Vector2Int? best = null;
                 int bestDist = int.MaxValue;
@@ -52,8 +53,7 @@ namespace TacticsECS
                 if (best.HasValue)
                 {
                     MovementSystem.TryMove(grid, units, id, best.Value);
-                    self = units.Get(id);
-                    if (CombatSystem.IsInAttackRange(self, nearest))
+                    if (CombatSystem.IsInAttackRange(units, id, nearest.Id))
                         CombatSystem.TryAttack(grid, units, id, nearest.Id, out _);
                 }
             }

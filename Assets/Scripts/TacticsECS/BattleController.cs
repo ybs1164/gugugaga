@@ -345,7 +345,7 @@ namespace TacticsECS
             }
 
             var unit = _units.Get(unitId);
-            if (unit.Team != Team.Player || !unit.IsAlive || (unit.HasMoved && unit.HasActed))
+            if (unit.Team != Team.Player || !unit.IsAlive || (unit.TurnState.HasMoved && unit.TurnState.HasActed))
             {
                 ClearSelection();
                 return;
@@ -376,21 +376,22 @@ namespace TacticsECS
             var unit = _units.Get(_selectedUnitId);
 
             _reachableTiles = null;
-            if (!unit.HasMoved)
+            if (!unit.TurnState.HasMoved)
             {
-                PathfindingSystem.GetReachable(_grid, unit.GridPos, unit.MoveRange, unit.Id, out var reachable);
+                var movement = _units.GetStats(unit.Id).Movement;
+                PathfindingSystem.GetReachable(_grid, unit.GridPos, movement, unit.Id, out var reachable);
                 reachable.Remove(unit.GridPos);
                 _reachableTiles = reachable;
                 _gridView.HighlightMove(_reachableTiles);
             }
 
             _attackableTargets = new List<int>();
-            if (!unit.HasActed)
+            if (!unit.TurnState.HasActed)
             {
                 foreach (var enemy in AllUnits())
                 {
                     if (!enemy.IsAlive || enemy.Team == unit.Team) continue;
-                    if (CombatSystem.IsInAttackRange(unit, enemy))
+                    if (CombatSystem.IsInAttackRange(_units, unit.Id, enemy.Id))
                         _attackableTargets.Add(enemy.Id);
                 }
                 _gridView.HighlightAttack(_attackableTargets.Select(id => _units.Get(id).GridPos));
@@ -446,7 +447,7 @@ namespace TacticsECS
             if (_state == SelectState.UnitSelected)
             {
                 var unit = _units.Get(_selectedUnitId);
-                if (unit.CanGuard && !unit.HasActed)
+                if (_units.GetStats(_selectedUnitId).Combat.CanGuard && !unit.TurnState.HasActed)
                 {
                     if (GUI.Button(new Rect(120, 40, 120, 30), "방어 태세"))
                     {

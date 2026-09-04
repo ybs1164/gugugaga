@@ -14,8 +14,9 @@ namespace TacticsECS
         public UnitView Spawn(GridWorld grid, UnitWorld units, Team team, UnitView prefab, Vector2Int pos)
         {
             var definition = prefab.GetComponent<UnitDefinition>();
-            var data = UnitData.Create(0, team, definition.Stats, pos);
-            int id = units.Spawn(data);
+            var stats = definition.Stats;
+            var data = UnitData.Create(0, team, pos, stats.MaxHp);
+            int id = units.Spawn(data, stats);
             data = units.Get(id);
 
             grid.PlaceOccupant(pos, id);

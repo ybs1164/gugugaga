@@ -10,7 +10,7 @@ namespace TacticsECS
     /// 전투 전체를 조율하는 단일 진입점. 빈 GameObject에 이 컴포넌트 하나만 붙이면 데모가 돌아간다.
     ///
     /// 구조:
-    /// - GridWorld / UnitWorld  : 실제 게임 데이터 (야매 ECS의 "Component 배열")
+    /// - GridWorld / EntityWorld  : 실제 게임 데이터. EntityWorld는 "유닛"을 모르는 범용 엔티티-컴포넌트 저장소.
     /// - PathfindingSystem / MovementSystem / CombatSystem / EnemyAI : 데이터를 읽고 쓰는 정적 "System"
     /// - GridView / TileView / UnitView : 데이터를 화면에 보여주기만 하는 얇은 "View" (로직 없음)
     /// - BattleController(이 클래스) : 입력을 받아 System을 호출하고, 결과를 View에 반영하는 조율자
@@ -56,7 +56,7 @@ namespace TacticsECS
         [SerializeField] private float maxOrthoSize = 20f;
 
         private GridWorld _grid;
-        private UnitWorld _units;
+        private EntityWorld _world;
         private TurnManager _turnManager;
         private GridView _gridView;
         private UnitSpawner _spawner;
@@ -100,7 +100,7 @@ namespace TacticsECS
         private void SetupBattle()
         {
             _grid = new GridWorld(gridWidth, gridHeight, tileSize);
-            _units = new UnitWorld();
+            _world = new EntityWorld();
 
             var gridViewGo = new GameObject("GridView");
             gridViewGo.transform.SetParent(transform, false);
@@ -117,7 +117,7 @@ namespace TacticsECS
             tmGo.transform.SetParent(transform, false);
             _turnManager = tmGo.AddComponent<TurnManager>();
             _turnManager.OnTurnStart += HandleTurnStart;
-            _turnManager.Init(_units);
+            _turnManager.Init(_world);
 
             PositionCamera();
         }
@@ -166,7 +166,7 @@ namespace TacticsECS
         private void SpawnUnit(Team team, UnitView prefab, Vector2Int pos)
         {
             if (_grid.IsOccupied(pos)) return;
-            var view = _spawner.Spawn(_grid, _units, team, prefab, pos);
+            var view = _spawner.Spawn(_grid, _world, team, prefab, pos);
             _viewsById[view.UnitId] = view;
         }
 
@@ -260,7 +260,7 @@ namespace TacticsECS
         private IEnumerator RunEnemyTurnRoutine()
         {
             yield return new WaitForSeconds(0.3f);
-            EnemyAI.RunTurn(_grid, _units);
+            EnemyAI.RunTurn(_grid, _world);
             RefreshAllViews();
             CheckBattleEnd();
             yield return new WaitForSeconds(0.3f);
@@ -270,17 +270,17 @@ namespace TacticsECS
 
         private void RefreshAllViews()
         {
-            for (int i = 0; i < _units.Count; i++)
+            for (int i = 0; i < _world.EntityCount; i++)
             {
                 if (_viewsById.TryGetValue(i, out var view))
-                    view.Refresh(_units, i);
+                    view.Refresh(_world, i);
             }
         }
 
         private void CheckBattleEnd()
         {
-            bool playerAlive = _units.AnyAlive(Team.Player);
-            bool enemyAlive = _units.AnyAlive(Team.Enemy);
+            bool playerAlive = UnitQueries.AnyAlive(_world, Team.Player);
+            bool enemyAlive = UnitQueries.AnyAlive(_world, Team.Enemy);
             if (!playerAlive || !enemyAlive)
             {
                 _battleOver = true;
@@ -343,8 +343,8 @@ namespace TacticsECS
                 return;
             }
 
-            if (_units.GetTeam(unitId) != Team.Player || !_units.IsAlive(unitId) ||
-                (_units.GetHasMoved(unitId) && _units.GetHasActed(unitId)))
+            if (_world.Get<Team>(unitId) != Team.Player || !UnitQueries.IsAlive(_world, unitId) ||
+                (_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
             {
                 ClearSelection();
                 return;
@@ -375,41 +375,41 @@ namespace TacticsECS
             int unitId = _selectedUnitId;
 
             _reachableTiles = null;
-            if (!_units.GetHasMoved(unitId))
+            if (!_world.Get<HasMoved>(unitId).Value)
             {
-                var selfPos = _units.GetGridPos(unitId);
-                PathfindingSystem.GetReachable(_grid, _units, selfPos, unitId, out var reachable);
+                var selfPos = _world.Get<GridPosition>(unitId).Value;
+                PathfindingSystem.GetReachable(_grid, _world, selfPos, unitId, out var reachable);
                 reachable.Remove(selfPos);
                 _reachableTiles = reachable;
                 _gridView.HighlightMove(_reachableTiles);
             }
 
             _attackableTargets = new List<int>();
-            if (!_units.GetHasActed(unitId))
+            if (!_world.Get<HasActed>(unitId).Value)
             {
-                for (int enemyId = 0; enemyId < _units.Count; enemyId++)
+                for (int enemyId = 0; enemyId < _world.EntityCount; enemyId++)
                 {
-                    if (!_units.IsAlive(enemyId) || _units.GetTeam(enemyId) == _units.GetTeam(unitId)) continue;
-                    if (CombatSystem.IsInAttackRange(_units, unitId, enemyId))
+                    if (!UnitQueries.IsAlive(_world, enemyId) || _world.Get<Team>(enemyId) == _world.Get<Team>(unitId)) continue;
+                    if (CombatSystem.IsInAttackRange(_world, unitId, enemyId))
                         _attackableTargets.Add(enemyId);
                 }
-                _gridView.HighlightAttack(_attackableTargets.Select(id => _units.GetGridPos(id)));
+                _gridView.HighlightAttack(_attackableTargets.Select(id => _world.Get<GridPosition>(id).Value));
             }
         }
 
         private void MoveSelectedUnit(Vector2Int pos)
         {
-            if (!MovementSystem.TryMove(_grid, _units, _selectedUnitId, pos)) return;
-            _viewsById[_selectedUnitId].Refresh(_units, _selectedUnitId);
+            if (!MovementSystem.TryMove(_grid, _world, _selectedUnitId, pos)) return;
+            _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             RecomputeHighlights();
         }
 
         private void TryAttack(int attackerId, int targetId)
         {
-            if (!CombatSystem.TryAttack(_grid, _units, attackerId, targetId, out int dmg)) return;
+            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int dmg)) return;
 
-            _viewsById[attackerId].Refresh(_units, attackerId);
-            _viewsById[targetId].Refresh(_units, targetId);
+            _viewsById[attackerId].Refresh(_world, attackerId);
+            _viewsById[targetId].Refresh(_world, targetId);
 
             _statusMessage = $"유닛 {attackerId} -> 유닛 {targetId}: {dmg} 피해";
             CheckBattleEnd();
@@ -439,12 +439,12 @@ namespace TacticsECS
 
             if (_state == SelectState.UnitSelected)
             {
-                if (_units.GetCanGuard(_selectedUnitId) && !_units.GetHasActed(_selectedUnitId))
+                if (_world.Get<CanGuard>(_selectedUnitId).Value && !_world.Get<HasActed>(_selectedUnitId).Value)
                 {
                     if (GUI.Button(new Rect(120, 40, 120, 30), "방어 태세"))
                     {
-                        CombatSystem.TryDefend(_units, _selectedUnitId);
-                        _viewsById[_selectedUnitId].Refresh(_units, _selectedUnitId);
+                        CombatSystem.TryDefend(_world, _selectedUnitId);
+                        _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
                         ClearSelection();
                     }
                 }

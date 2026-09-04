@@ -10,38 +10,38 @@ namespace TacticsECS
     /// </summary>
     public static class EnemyAI
     {
-        public static void RunTurn(GridWorld grid, UnitWorld units)
+        public static void RunTurn(GridWorld grid, EntityWorld world)
         {
             var enemyIds = new List<int>();
-            for (int i = 0; i < units.Count; i++)
-                if (units.IsAlive(i) && units.GetTeam(i) == Team.Enemy) enemyIds.Add(i);
+            for (int i = 0; i < world.EntityCount; i++)
+                if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == Team.Enemy) enemyIds.Add(i);
 
             foreach (var id in enemyIds)
             {
-                if (!units.IsAlive(id)) continue;
+                if (!UnitQueries.IsAlive(world, id)) continue;
 
                 var targetIds = new List<int>();
-                for (int i = 0; i < units.Count; i++)
-                    if (units.IsAlive(i) && units.GetTeam(i) == Team.Player) targetIds.Add(i);
+                for (int i = 0; i < world.EntityCount; i++)
+                    if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == Team.Player) targetIds.Add(i);
                 if (targetIds.Count == 0) return;
 
                 int nearestId = targetIds
-                    .OrderBy(t => PathfindingSystem.Distance(units.GetGridPos(id), units.GetGridPos(t)))
+                    .OrderBy(t => PathfindingSystem.Distance(world.Get<GridPosition>(id).Value, world.Get<GridPosition>(t).Value))
                     .First();
 
-                if (CombatSystem.IsInAttackRange(units, id, nearestId))
+                if (CombatSystem.IsInAttackRange(world, id, nearestId))
                 {
-                    CombatSystem.TryAttack(grid, units, id, nearestId, out _);
+                    CombatSystem.TryAttack(grid, world, id, nearestId, out _);
                     continue;
                 }
 
-                PathfindingSystem.GetReachable(grid, units, units.GetGridPos(id), id, out var reachable);
+                PathfindingSystem.GetReachable(grid, world, world.Get<GridPosition>(id).Value, id, out var reachable);
 
                 Vector2Int? best = null;
                 int bestDist = int.MaxValue;
                 foreach (var tile in reachable)
                 {
-                    int d = PathfindingSystem.Distance(tile, units.GetGridPos(nearestId));
+                    int d = PathfindingSystem.Distance(tile, world.Get<GridPosition>(nearestId).Value);
                     if (d < bestDist && d >= 1)
                     {
                         bestDist = d;
@@ -51,9 +51,9 @@ namespace TacticsECS
 
                 if (best.HasValue)
                 {
-                    MovementSystem.TryMove(grid, units, id, best.Value);
-                    if (CombatSystem.IsInAttackRange(units, id, nearestId))
-                        CombatSystem.TryAttack(grid, units, id, nearestId, out _);
+                    MovementSystem.TryMove(grid, world, id, best.Value);
+                    if (CombatSystem.IsInAttackRange(world, id, nearestId))
+                        CombatSystem.TryAttack(grid, world, id, nearestId, out _);
                 }
             }
         }

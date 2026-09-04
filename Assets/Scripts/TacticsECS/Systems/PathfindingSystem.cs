@@ -4,8 +4,8 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 순수 함수 형태의 시스템(정적 클래스). GridWorld/UnitWorld 데이터만 읽어서 결과를 계산하고,
-    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 이동하는 유닛의 개별 속성(MoveRange/IgnoreTerrain/
+    /// 순수 함수 형태의 시스템(정적 클래스). GridWorld/EntityWorld 데이터만 읽어서 결과를 계산하고,
+    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 이동하는 엔티티의 개별 컴포넌트(MoveRange/IgnoreTerrain/
     /// IgnoreUnitBlocking/AllowDiagonal)에 따라 대각선 이동/지형 무시/유닛 무시 여부가 달라진다.
     /// </summary>
     public static class PathfindingSystem
@@ -18,13 +18,13 @@ namespace TacticsECS
         /// 반환값은 각 타일의 직전 타일(경로 역추적용), reachableSet은 도달 가능한 타일 전체.
         /// </summary>
         public static Dictionary<Vector2Int, Vector2Int> GetReachable(
-            GridWorld grid, UnitWorld units, Vector2Int start, int selfUnitId,
+            GridWorld grid, EntityWorld world, Vector2Int start, int selfUnitId,
             out HashSet<Vector2Int> reachableSet)
         {
-            int moveRange = units.GetMoveRange(selfUnitId);
-            bool ignoreTerrain = units.GetIgnoreTerrain(selfUnitId);
-            bool ignoreUnitBlocking = units.GetIgnoreUnitBlocking(selfUnitId);
-            bool allowDiagonal = units.GetAllowDiagonal(selfUnitId);
+            int moveRange = world.Get<MoveRange>(selfUnitId).Value;
+            bool ignoreTerrain = world.Get<IgnoreTerrain>(selfUnitId).Value;
+            bool ignoreUnitBlocking = world.Get<IgnoreUnitBlocking>(selfUnitId).Value;
+            bool allowDiagonal = world.Get<AllowDiagonal>(selfUnitId).Value;
 
             var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
             var dist = new Dictionary<Vector2Int, int> { [start] = 0 };

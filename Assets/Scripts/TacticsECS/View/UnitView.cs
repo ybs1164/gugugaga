@@ -5,8 +5,8 @@ namespace TacticsECS
 {
     /// <summary>
     /// 유닛 하나의 화면 표시 전용 컴포넌트.
-    /// 값을 스스로 들고 있지 않고, Init/Refresh(UnitWorld, id)로 받을 때마다 UnitWorld의 개별 속성을
-    /// 그때그때 읽어서 겉모습만 갱신한다 (전투 로직 없음).
+    /// 값을 스스로 들고 있지 않고, Init/Refresh(EntityWorld, id)로 받을 때마다 그 엔티티의 컴포넌트를
+    /// 그때그때 조회해서 겉모습만 갱신한다 (전투 로직 없음).
     /// 외형(스케일)은 프리팹 자체에, 팀별 색상/MaxHp는 같은 GameObject의 UnitDefinition 컴포넌트에 있으므로
     /// 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다.
     /// 중요: Update()가 없다. 이동할 때만 짧게 코루틴을 돌리므로,
@@ -27,14 +27,14 @@ namespace TacticsECS
 
         private static readonly Color GuardingColor = Color.yellow;
 
-        public void Init(UnitWorld units, int id, GridWorld grid)
+        public void Init(EntityWorld world, int id, GridWorld grid)
         {
             UnitId = id;
             _grid = grid;
             _renderer = GetComponent<Renderer>();
             _definition = GetComponent<UnitDefinition>();
 
-            _material = RuntimeMaterial.CreateColored(_definition.ColorFor(units.GetTeam(id)));
+            _material = RuntimeMaterial.CreateColored(_definition.ColorFor(world.Get<Team>(id)));
             _renderer.sharedMaterial = _material;
 
             var textGo = new GameObject("HP");
@@ -47,22 +47,22 @@ namespace TacticsECS
             _hpText.fontSize = 48;
             _hpText.color = Color.white;
 
-            transform.position = _grid.GridToWorld(units.GetGridPos(id)) + Vector3.up * 0.5f;
-            Refresh(units, id);
+            transform.position = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * 0.5f;
+            Refresh(world, id);
         }
 
-        public void Refresh(UnitWorld units, int id)
+        public void Refresh(EntityWorld world, int id)
         {
-            if (!units.IsAlive(id))
+            if (!UnitQueries.IsAlive(world, id))
             {
                 gameObject.SetActive(false);
                 return;
             }
 
-            _hpText.text = $"{units.GetHp(id)}/{_definition.MaxHp}";
-            RuntimeMaterial.SetColor(_material, units.GetIsGuarding(id) ? GuardingColor : _definition.ColorFor(units.GetTeam(id)));
+            _hpText.text = $"{world.Get<Hp>(id).Value}/{_definition.MaxHp}";
+            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : _definition.ColorFor(world.Get<Team>(id)));
 
-            var targetWorldPos = _grid.GridToWorld(units.GetGridPos(id)) + Vector3.up * 0.5f;
+            var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * 0.5f;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)
             {
                 if (_moveRoutine != null) StopCoroutine(_moveRoutine);

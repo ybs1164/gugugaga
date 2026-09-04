@@ -4,7 +4,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ## 구조 (야매 ECS)
 
-- `Assets/Scripts/TacticsECS/Core`, `Data`: 순수 데이터 (struct/필드만). 로직 없음.
+- `Assets/Scripts/TacticsECS/Core`, `Data`: 순수 데이터 (struct/필드만). 로직 없음. [`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs)가 범용 엔티티-컴포넌트 저장소, [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)가 그 안에 저장되는 컴포넌트 타입들(아래 참고).
 - `Assets/Scripts/TacticsECS/Systems`: 정적 클래스. `Data`를 읽고 써서 판정/이동/전투/AI를 처리. 자체 상태 없음.
 - `Assets/Scripts/TacticsECS/View`: 화면 표시 전용 MonoBehaviour. 로직 없음.
 - `Assets/Scripts/TacticsECS/BattleController.cs`: 입력을 받아 System을 호출하고 View에 반영하는 조율자. `Assets/Scenes/SampleScene.unity`에 배치되어 있음.
@@ -17,15 +17,25 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 유닛 타입은 코드의 enum 분기가 아니라 **프리팹**으로 관리한다. `Assets/Prefabs/Units`의 각 프리팹은
 [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 팀별 색상을 인스펙터 값으로
 들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
-`UnitSpawner`/`UnitView`/`UnitWorld.Spawn` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
+`UnitSpawner.Spawn`/`UnitView`/`UnitDefinition` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
 
-[`UnitWorld`](Assets/Scripts/TacticsECS/Data/UnitWorld.cs)는 유닛을 하나의 struct로 묶어 담지 않고,
-**속성 하나당 리스트 하나**로 나눠 보관한다(Structure of Arrays) — 같은 id가 모든 리스트에서 같은 인덱스를 가리키는
-방식으로 유닛 하나를 구성한다. `Team`/`GridPos`/`Hp`/`HasMoved`/`HasActed`/`IsGuarding`(런타임, 매 턴 바뀜)과
-`MaxHp`/`Attack`/`Defense`/`AttackRange`/`CanGuard`/`MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`
-(고정 스탯, 스폰 후 불변)이 각각 독립된 리스트이며, `GetXxx(id)`/`SetXxx(id, value)` 형태의 접근자로만 읽고 쓴다.
-Systems/View는 이 접근자만 사용하고, 필드를 묶은 struct를 주고받지 않는다.
+### 데이터 저장 방식 (Entity-Component)
+
+유닛 전용 저장소를 따로 두지 않고, **"유닛"이라는 개념을 전혀 모르는 범용 엔티티-컴포넌트 저장소**
+[`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs) 위에 유닛을 구현한다.
+
+- **엔티티**는 데이터를 하나도 갖지 않는 정수 id일 뿐이다 (`world.CreateEntity()`로 발급).
+- **컴포넌트**는 [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)에 정의된, 값 하나만 담는
+  독립된 타입들이다 — `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`, `Attack`/`Defense`/`AttackRange`/`CanGuard`(전투),
+  `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태).
+- `EntityWorld`는 `Set<T>(id, value)` / `Get<T>(id)`만 제공하고, 각 컴포넌트 타입마다 내부적으로 완전히 분리된
+  리스트에 저장한다(Structure of Arrays) — 새 컴포넌트 타입을 추가해도 `EntityWorld` 자체는 손댈 필요가 없다.
+- "살아있는지"(`Hp > 0`) 같은 유닛 전용 해석은 `EntityWorld`가 아니라
+  [`UnitQueries`](Assets/Scripts/TacticsECS/Systems/UnitQueries.cs)(System)가 담당한다 — 저장소는 의미를 모르고,
+  의미를 아는 건 그 값을 읽는 System 쪽이라는 원칙.
+- 지금은 모든 엔티티가 유닛이지만, 이후 유닛이 아닌 다른 엔티티(장애물/투사체/아이템 등)가 필요해져도
+  이 저장소를 그대로 재사용하고 새 컴포넌트 타입만 추가하면 된다.
 
 ### 이동 방식
 
@@ -40,7 +50,7 @@ Systems/View는 이 접근자만 사용하고, 필드를 묶은 struct를 주고
 
 기본 3종 유닛은 모두 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`이 꺼진 평범한 지상 4방향 이동이며,
 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)과
-[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 `UnitWorld`에서 이 값들을
+[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 `EntityWorld`에서 이 컴포넌트들을
 각각 조회해 판정한다.
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
@@ -113,4 +123,12 @@ Systems/View는 이 접근자만 사용하고, 필드를 묶은 struct를 주고
   - [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)도 같은 원칙으로 묶음 없이 필드 하나당 값 하나(`maxHp`/`attack`/`defense`/... 등)만 노출. `UnitSpawner`는 이 값들을 `UnitWorld.Spawn`에 그대로 하나씩 전달.
   - `CombatSystem`/`MovementSystem`/`PathfindingSystem`/`EnemyAI`/`TurnManager`/`BattleController`를 전부 `UnitWorld`의 개별 getter/setter만 사용하도록 다시 작성 (struct를 꺼내 들고 다니는 코드 없음). `GridWorld.GetNeighbors4`(더 이상 안 쓰임)도 함께 정리.
   - `Assets/Editor/UnitPrefabSetup.cs`를 평평해진 `UnitDefinition` 필드에 맞게 갱신하고 Unity CLI 배치모드로 재실행 — 프리팹 3개 재생성, `SampleScene`의 `BattleController` 참조 재연결(같은 GUID/fileID 유지 확인).
+  - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 검증.
+- 2026-09-04: "UnitWorld를 Unit에 국한하지 말고 Entity로 생각하라"는 피드백을 받고, 유닛 전용 저장소를 범용 엔티티-컴포넌트 저장소로 재설계.
+  - **동기**: `UnitWorld`가 `Team`/`Hp`/`MoveRange`... 같은 속성들을 이름 그대로 하드코딩해서 들고 있어, "유닛"이라는 개념에 완전히 종속된 클래스였다는 지적을 받음.
+  - `Assets/Scripts/TacticsECS/Data/UnitWorld.cs` 삭제, 대신 [`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs) 추가 — `CreateEntity()`/`Set<T>(id, value)`/`Get<T>(id)`만 제공하는 완전히 범용적인 저장소. 컴포넌트 타입별로 내부 `Dictionary<Type, List<T>>`에 나눠 저장하며, "유닛"이라는 단어가 이 클래스 안에 전혀 등장하지 않는다 — 새 컴포넌트 타입을 추가해도 이 클래스는 고칠 필요가 없다.
+  - [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 추가: `GridPosition`/`Hp`/`MaxHp`/`Attack`/`Defense`/`AttackRange`/`CanGuard`/`MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`/`HasMoved`/`HasActed`/`IsGuarding` — 값 하나만 담는 독립된 컴포넌트 타입 13종(기존 `Team` enum은 그대로 컴포넌트 타입으로 재사용).
+  - [`UnitQueries`](Assets/Scripts/TacticsECS/Systems/UnitQueries.cs) 추가: `IsAlive`/`AnyAlive`처럼 "유닛"이라는 의미를 해석하는 조회는 `EntityWorld`가 아니라 이 System이 담당 — 저장소는 의미를 모르고, 의미를 아는 건 그 값을 읽는 System 쪽이어야 한다는 원칙.
+  - `CombatSystem`/`MovementSystem`/`PathfindingSystem`/`EnemyAI`/`TurnManager`/`UnitSpawner`/`UnitView`/`BattleController`를 전부 `EntityWorld.Get<T>(id)`/`Set<T>(id, value)` 기반으로 다시 작성. `BattleController`의 `_units` 필드도 `_world`(`EntityWorld`)로 이름을 바꿔 "이건 유닛 전용이 아니다"를 코드에서도 드러냄.
+  - 기본 3종 유닛의 실제 동작/스탯/이동 방식은 이전과 동일 — 이번 변경은 순수하게 저장소 설계(유닛 전용 → 범용 엔티티-컴포넌트)에 관한 것. `UnitDefinition`/프리팹/씬 연결은 변경 없음.
   - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 검증.

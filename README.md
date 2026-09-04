@@ -12,6 +12,40 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 8x8 그리드에 플레이어/적 각 4유닛(Melee/Ranged/Guard)이 배치된 데모. 클릭으로 유닛 선택 → 이동/공격, 턴 종료 버튼으로 턴 전환.
 
+## EntityWorld: 범용 엔티티-컴포넌트 저장소
+
+[`GridWorld`](Assets/Scripts/TacticsECS/Data/GridWorld.cs)가 "타일들의 데이터베이스"라면,
+[`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs)는 이 게임의 진짜 상태(유닛 HP, 위치, 스탯, 턴 상태 등)가
+전부 들어있는 **"엔티티들의 데이터베이스"**다. 유닛은 GameObject/MonoBehaviour가 아니라 이 저장소 위의 값일 뿐이고,
+화면에 보이는 캡슐([`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs))은 그 값을 그려주는 껍데기에 불과하다.
+
+처음에는 이 저장소를 `UnitWorld`라는 이름으로 유닛 전용으로 만들었지만("Id/Team/GridPos/Hp/Attack/..." 같은 필드를
+직접 하드코딩), **"Unit에 국한하지 말고 Entity로 생각하라"**는 피드백에 따라 완전히 범용적인 구조로 다시 설계했다.
+지금 구조는 다음 두 가지 개념으로만 이루어진다:
+
+- **엔티티(Entity)** — 데이터를 하나도 갖지 않는 정수 id일 뿐이다. `world.CreateEntity()`를 부르면 새 id가 하나
+  발급된다. "유닛"이라는 개념은 여기 없다 — 엔티티는 그냥 "무언가가 존재한다"는 표시일 뿐이다.
+- **컴포넌트(Component)** — 엔티티에 붙는 값 하나. [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)에
+  `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`(체력), `Attack`/`Defense`/`AttackRange`/`CanGuard`(전투),
+  `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로
+  정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
+
+`EntityWorld` 자체는 오직 `Set<T>(id, value)` / `Get<T>(id)` 두 메서드만 제공한다. 컴포넌트 타입 `T`마다 내부적으로
+완전히 분리된 리스트를 하나씩 두고(같은 id는 모든 리스트에서 같은 인덱스를 가리킨다), `Get<Hp>(3)`이라고 부르면
+"Hp라는 타입을 저장하는 리스트의 3번 칸"을 돌려준다. 즉 이 클래스의 코드 안에는 `Team`이나 `Hp`, "유닛"이라는
+단어가 **전혀 등장하지 않는다** — 새 컴포넌트 타입을 하나 추가해도 `EntityWorld`는 한 줄도 고칠 필요가 없다.
+
+그럼 "이 엔티티가 살아있는가"(`Hp > 0`) 같은 판단은 누가 하는가? `EntityWorld`가 아니라
+[`UnitQueries`](Assets/Scripts/TacticsECS/Systems/UnitQueries.cs) 같은 System이 한다. **저장소는 값이 무엇을 의미하는지
+모르고, 그 값을 읽어서 의미를 해석하는 건 항상 System 쪽**이라는 원칙이다. `CombatSystem`/`MovementSystem`/
+`PathfindingSystem`/`EnemyAI`/`TurnManager`/`BattleController` 모두 `EntityWorld.Get<T>(id)`/`Set<T>(id, value)`만으로
+동작하고, "유닛 데이터"를 통째로 담은 struct를 주고받지 않는다.
+
+지금은 이 저장소에 있는 엔티티가 전부 유닛이지만, 설계 자체는 유닛에 묶여 있지 않다. 나중에 유닛이 아닌 다른
+엔티티(장애물, 투사체, 함정, 아이템 등)가 필요해져도 `EntityWorld`는 그대로 두고 필요한 컴포넌트 타입만 추가하면
+된다 — 예를 들어 움직이지 않는 장애물이라면 `GridPosition`만 갖고 `MoveRange`/`Attack` 같은 컴포넌트는 아예 없는
+엔티티로 만들 수 있다.
+
 ## 유닛 종류
 
 유닛 타입은 코드의 enum 분기가 아니라 **프리팹**으로 관리한다. `Assets/Prefabs/Units`의 각 프리팹은
@@ -19,23 +53,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
 `UnitSpawner.Spawn`/`UnitView`/`UnitDefinition` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
-
-### 데이터 저장 방식 (Entity-Component)
-
-유닛 전용 저장소를 따로 두지 않고, **"유닛"이라는 개념을 전혀 모르는 범용 엔티티-컴포넌트 저장소**
-[`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs) 위에 유닛을 구현한다.
-
-- **엔티티**는 데이터를 하나도 갖지 않는 정수 id일 뿐이다 (`world.CreateEntity()`로 발급).
-- **컴포넌트**는 [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)에 정의된, 값 하나만 담는
-  독립된 타입들이다 — `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`, `Attack`/`Defense`/`AttackRange`/`CanGuard`(전투),
-  `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태).
-- `EntityWorld`는 `Set<T>(id, value)` / `Get<T>(id)`만 제공하고, 각 컴포넌트 타입마다 내부적으로 완전히 분리된
-  리스트에 저장한다(Structure of Arrays) — 새 컴포넌트 타입을 추가해도 `EntityWorld` 자체는 손댈 필요가 없다.
-- "살아있는지"(`Hp > 0`) 같은 유닛 전용 해석은 `EntityWorld`가 아니라
-  [`UnitQueries`](Assets/Scripts/TacticsECS/Systems/UnitQueries.cs)(System)가 담당한다 — 저장소는 의미를 모르고,
-  의미를 아는 건 그 값을 읽는 System 쪽이라는 원칙.
-- 지금은 모든 엔티티가 유닛이지만, 이후 유닛이 아닌 다른 엔티티(장애물/투사체/아이템 등)가 필요해져도
-  이 저장소를 그대로 재사용하고 새 컴포넌트 타입만 추가하면 된다.
+스폰 시 [`UnitSpawner`](Assets/Scripts/TacticsECS/View/UnitSpawner.cs)가 `UnitDefinition`의 값을 위 컴포넌트들로 하나씩 옮겨 담는다.
 
 ### 이동 방식
 

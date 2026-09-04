@@ -37,12 +37,30 @@ namespace TacticsECS
         [Tooltip("그리드를 화면에 얼마나 꽉 채울지. 값이 작을수록 확대된다.")]
         [SerializeField] private float isoZoom = 0.62f;
 
+        [Header("Camera Control")]
+        [Tooltip("WASD/방향키로 카메라를 이동하는 속도 (월드 단위/초).")]
+        [SerializeField] private float cameraPanSpeed = 10f;
+        [Tooltip("마우스 휠 한 틱당 orthographicSize 변화량. 값이 클수록 휠에 민감하게 줌된다.")]
+        [SerializeField] private float zoomSensitivity = 0.02f;
+        [Tooltip("최대로 확대했을 때의 orthographicSize (값이 작을수록 더 확대됨).")]
+        [SerializeField] private float minOrthoSize = 2f;
+        [Tooltip("최대로 축소했을 때의 orthographicSize.")]
+        [SerializeField] private float maxOrthoSize = 20f;
+
         private GridWorld _grid;
         private UnitWorld _units;
         private TurnManager _turnManager;
         private GridView _gridView;
         private UnitSpawner _spawner;
         private Camera _cam;
+
+        // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
+        // 팬(이동)은 이 focus 점만 옮기고, 매 프레임 여기서 실제 카메라 position을 재계산한다.
+        private Vector3 _cameraFocus;
+        private Quaternion _cameraRotation;
+        private float _cameraDistance;
+        private Vector3 _cameraRight;
+        private Vector3 _cameraForwardFlat;
 
         private readonly Dictionary<int, UnitView> _viewsById = new Dictionary<int, UnitView>();
 
@@ -151,13 +169,71 @@ namespace TacticsECS
             var center = _grid.GridToWorld(new Vector2Int(gridWidth / 2, gridHeight / 2));
             float span = Mathf.Max(gridWidth, gridHeight) * tileSize;
 
-            var rotation = Quaternion.Euler(isoPitchDegrees, isoYawDegrees, 0f);
-            float dist = span * 1.5f;
-            _cam.transform.rotation = rotation;
-            _cam.transform.position = center - rotation * Vector3.forward * dist;
+            _cameraRotation = Quaternion.Euler(isoPitchDegrees, isoYawDegrees, 0f);
+            _cameraDistance = span * 1.5f;
+            _cameraFocus = center;
+            // 카메라가 바라보는 평면(그리드 바닥) 기준 좌/우, 앞/뒤 방향. 팬 입력을 여기에 투영한다.
+            _cameraRight = Vector3.ProjectOnPlane(_cameraRotation * Vector3.right, Vector3.up).normalized;
+            _cameraForwardFlat = Vector3.ProjectOnPlane(_cameraRotation * Vector3.forward, Vector3.up).normalized;
 
             _cam.orthographic = true;
-            _cam.orthographicSize = span * isoZoom;
+            _cam.orthographicSize = Mathf.Clamp(span * isoZoom, minOrthoSize, maxOrthoSize);
+            ApplyCameraTransform();
+        }
+
+        private void ApplyCameraTransform()
+        {
+            _cam.transform.rotation = _cameraRotation;
+            _cam.transform.position = _cameraFocus - _cameraRotation * Vector3.forward * _cameraDistance;
+        }
+
+        /// <summary>
+        /// 카메라 focus를 그리드 영역 주변(여유 마진 포함)으로 제한해 배틀필드를 완전히 벗어나지 않게 한다.
+        /// </summary>
+        private void ClampCameraFocus()
+        {
+            float margin = Mathf.Max(gridWidth, gridHeight) * tileSize * 0.5f;
+            float minX = _grid.Origin.x - margin;
+            float maxX = _grid.Origin.x + (gridWidth - 1) * tileSize + margin;
+            float minZ = _grid.Origin.z - margin;
+            float maxZ = _grid.Origin.z + (gridHeight - 1) * tileSize + margin;
+            _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, minX, maxX);
+            _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, minZ, maxZ);
+        }
+
+        /// <summary>
+        /// 키보드 팬 + 마우스 휠 줌. 턴/전투 상태와 무관하게 항상 동작한다(순수 카메라 뷰 조작이므로).
+        /// </summary>
+        private void HandleCameraControl()
+        {
+            if (Keyboard.current != null)
+            {
+                var move = Vector2.zero;
+                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) move.y += 1f;
+                if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) move.y -= 1f;
+                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) move.x += 1f;
+                if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) move.x -= 1f;
+
+                if (move != Vector2.zero)
+                {
+                    move.Normalize();
+                    var delta = (_cameraRight * move.x + _cameraForwardFlat * move.y) * cameraPanSpeed * Time.deltaTime;
+                    _cameraFocus += delta;
+                    ClampCameraFocus();
+                    ApplyCameraTransform();
+                }
+            }
+
+            if (Mouse.current != null)
+            {
+                float scroll = Mouse.current.scroll.ReadValue().y;
+                if (!Mathf.Approximately(scroll, 0f))
+                {
+                    _cam.orthographicSize = Mathf.Clamp(
+                        _cam.orthographicSize - scroll * zoomSensitivity,
+                        minOrthoSize, maxOrthoSize);
+                }
+            }
         }
 
         // ---------- Turn flow ----------
@@ -208,6 +284,8 @@ namespace TacticsECS
 
         private void Update()
         {
+            HandleCameraControl();
+
             if (_battleOver) return;
             if (_turnManager == null || _turnManager.ActiveTeam != Team.Player) return;
             if (Mouse.current == null) return;
@@ -216,22 +294,36 @@ namespace TacticsECS
                 HandleClick();
         }
 
+        /// <summary>
+        /// 클릭 판정을 3D 콜라이더 레이캐스트 대신 그리드 바닥 평면과의 교차점으로 계산한다.
+        /// 유닛(Capsule)은 타일 위로 솟아 있어서, isometric 각도에서 콜라이더 레이캐스트를 쓰면
+        /// 카메라에 더 가까운(앞쪽) 칸의 유닛이 그 뒤 칸으로 가는 레이를 가로막아 클릭이 씹히는 문제가 있었다.
+        /// 평면 교차 -> 그리드 좌표 역산 -> GridWorld 조회 방식은 화면에 보이는 칸과 항상 일치하고
+        /// 유닛 높이에 의한 가림 문제가 애초에 발생하지 않는다.
+        /// </summary>
         private void HandleClick()
         {
             var screenPos = Mouse.current.position.ReadValue();
             var ray = _cam.ScreenPointToRay(screenPos);
-            if (!Physics.Raycast(ray, out var hit, 200f)) return;
 
-            var unitView = hit.collider.GetComponentInParent<UnitView>();
-            if (unitView != null)
+            var groundPlane = new Plane(Vector3.up, _grid.Origin);
+            if (!groundPlane.Raycast(ray, out float enter)) return;
+
+            var worldPoint = ray.GetPoint(enter);
+            var gridPos = new Vector2Int(
+                Mathf.RoundToInt((worldPoint.x - _grid.Origin.x) / tileSize),
+                Mathf.RoundToInt((worldPoint.z - _grid.Origin.z) / tileSize));
+
+            if (!_grid.InBounds(gridPos)) return;
+
+            int occupantId = _grid.GetOccupant(gridPos);
+            if (occupantId != TileData.NoOccupant)
             {
-                OnUnitClicked(unitView.UnitId);
+                OnUnitClicked(occupantId);
                 return;
             }
 
-            var tileView = hit.collider.GetComponentInParent<TileView>();
-            if (tileView != null)
-                OnTileClicked(tileView.GridPos);
+            OnTileClicked(gridPos);
         }
 
         private void OnUnitClicked(int unitId)

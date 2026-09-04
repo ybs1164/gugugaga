@@ -15,20 +15,23 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 ## 유닛 종류
 
 유닛 타입은 코드의 enum 분기가 아니라 **프리팹**으로 관리한다. `Assets/Prefabs/Units`의 각 프리팹은
-[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯([`UnitStats`](Assets/Scripts/TacticsECS/Core/UnitStats.cs))과
-팀별 색상을 인스펙터 값으로 들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
-`UnitSpawner`/`UnitView`/`UnitData.Create` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
+[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 팀별 색상을 인스펙터 값으로
+들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
+`UnitSpawner`/`UnitView`/`UnitWorld.Spawn` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
 
-전투 중 바뀌는 값과 바뀌지 않는 값은 저장 위치 자체가 분리되어 있다 ([`UnitWorld`](Assets/Scripts/TacticsECS/Data/UnitWorld.cs)가 두 리스트를 나란히 보관):
-- [`UnitData`](Assets/Scripts/TacticsECS/Core/UnitData.cs): 매 턴 바뀌는 런타임 값만 — `Id`/`Team`/`GridPos`/`Hp`/[`UnitTurnState`](Assets/Scripts/TacticsECS/Core/UnitTurnState.cs)(`HasMoved`/`HasActed`/`IsGuarding`).
-- [`UnitStats`](Assets/Scripts/TacticsECS/Core/UnitStats.cs): 스폰 후 바뀌지 않는 고정 스탯 — `MaxHp`, [`UnitCombatStats`](Assets/Scripts/TacticsECS/Core/UnitCombatStats.cs)(`Attack`/`Defense`/`AttackRange`/`CanGuard`), [`UnitMovement`](Assets/Scripts/TacticsECS/Core/UnitMovement.cs)(이동 방식, 아래 참고). `units.GetStats(id)`로 조회한다.
+[`UnitWorld`](Assets/Scripts/TacticsECS/Data/UnitWorld.cs)는 유닛을 하나의 struct로 묶어 담지 않고,
+**속성 하나당 리스트 하나**로 나눠 보관한다(Structure of Arrays) — 같은 id가 모든 리스트에서 같은 인덱스를 가리키는
+방식으로 유닛 하나를 구성한다. `Team`/`GridPos`/`Hp`/`HasMoved`/`HasActed`/`IsGuarding`(런타임, 매 턴 바뀜)과
+`MaxHp`/`Attack`/`Defense`/`AttackRange`/`CanGuard`/`MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`
+(고정 스탯, 스폰 후 불변)이 각각 독립된 리스트이며, `GetXxx(id)`/`SetXxx(id, value)` 형태의 접근자로만 읽고 쓴다.
+Systems/View는 이 접근자만 사용하고, 필드를 묶은 struct를 주고받지 않는다.
 
-### 이동 방식 (`UnitMovement`)
+### 이동 방식
 
-이동은 더 이상 "이동 범위 몇 칸" 하나로만 정해지지 않고, 프리팹의 `UnitDefinition.Stats.Movement` 값으로 세부 지정한다:
+이동은 더 이상 "이동 범위 몇 칸" 하나로만 정해지지 않고, 프리팹의 `UnitDefinition` 값으로 세부 지정한다(각각 독립된 속성):
 
-| 필드 | 의미 |
+| 속성 | 의미 |
 | --- | --- |
 | `MoveRange` | 이동 가능 칸 수 |
 | `IgnoreTerrain` | true면 `Walkable = false`인 지형(벽/장애물)을 무시하고 이동 (비행 유닛 등) |
@@ -37,13 +40,14 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 기본 3종 유닛은 모두 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`이 꺼진 평범한 지상 4방향 이동이며,
 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)과
-[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 이 값을 그대로 읽어 판정한다.
+[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 `UnitWorld`에서 이 값들을
+각각 조회해 판정한다.
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **Melee** (근접, `Unit_Melee.prefab`) | 12 | 5 | 1 | 3칸 | 1칸 | 이동력이 좋고 공격력이 높지만 방어가 약함. 적에게 바로 붙어 때리는 딜러. |
 | **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. |
-| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. `UnitDefinition.Stats.CanGuard = true`인 유닛만 공격 대신 **방어 태세**를 선택할 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
+| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. `UnitDefinition.CanGuard = true`인 유닛만 공격 대신 **방어 태세**를 선택할 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
 
 플레이어 유닛은 파란/청록 계열, 적 유닛은 빨강/주황 계열 색으로 구분되며, 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색상은 각 프리팹의 `UnitDefinition.playerColor`/`enemyColor` 값이며 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 `GetComponent<UnitDefinition>()`으로 읽어서 적용한다. 유닛 머리 위 텍스트는 `현재HP/최대HP`.
 
@@ -102,4 +106,11 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - **이동 방식 세부 설정**: `UnitMovement`에 `MoveRange` 외에 `IgnoreTerrain`(지형 무시, 비행 등), `IgnoreUnitBlocking`(유닛 통과), `AllowDiagonal`(대각선 이동) 3개 옵션 추가. [`GridWorld.GetNeighbors`](Assets/Scripts/TacticsECS/Data/GridWorld.cs)에 대각선 지원 추가, [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)/[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 `int moveRange` 대신 `UnitMovement`를 받아 이 값들을 그대로 반영. 기본 3종 유닛은 전부 지상/4방향 값 그대로 유지해 동작은 이전과 동일.
   - `CombatSystem`(`IsInAttackRange`/`CalculateDamage`/`TryDefend`)이 `UnitData` 값 대신 `UnitWorld`+id를 받아 내부에서 `GetStats`로 전투 스탯을 조회하도록 변경. `EnemyAI`/`BattleController`의 호출부도 함께 갱신.
   - `Assets/Editor/UnitPrefabSetup.cs`를 새 `UnitStats` 구조에 맞게 갱신하고 Unity CLI 배치모드로 재실행 — 기존 프리팹 3개를 새 구조로 재생성하고 `SampleScene`의 `BattleController` 참조를 다시 연결(같은 GUID/fileID 유지 확인).
+  - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 검증.
+- 2026-09-04: 위 분리가 충분하지 않다는 피드백("각 속성마다 나누라고")을 받고, `UnitTurnState`/`UnitCombatStats`/`UnitMovement`/`UnitStats`/`UnitData` 묶음 struct를 전부 없애고 완전한 속성별(Structure of Arrays) 저장으로 재구성.
+  - `Assets/Scripts/TacticsECS/Core/UnitData.cs`/`UnitStats.cs`/`UnitCombatStats.cs`/`UnitMovement.cs`/`UnitTurnState.cs` 전부 삭제. 유닛을 나타내는 struct 자체가 더 이상 없다 — id(리스트 인덱스)만이 유닛의 유일한 식별자.
+  - [`UnitWorld`](Assets/Scripts/TacticsECS/Data/UnitWorld.cs)가 `Team`/`GridPos`/`Hp`/`HasMoved`/`HasActed`/`IsGuarding`/`MaxHp`/`Attack`/`Defense`/`AttackRange`/`CanGuard`/`MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal` — 14개 속성 각각을 독립된 `List<T>`로 보관. `GetXxx(id)`/`SetXxx(id, value)` 접근자만으로 읽고 쓴다. `Spawn(...)`은 이 14개 값을 각각 인자로 받는다.
+  - [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)도 같은 원칙으로 묶음 없이 필드 하나당 값 하나(`maxHp`/`attack`/`defense`/... 등)만 노출. `UnitSpawner`는 이 값들을 `UnitWorld.Spawn`에 그대로 하나씩 전달.
+  - `CombatSystem`/`MovementSystem`/`PathfindingSystem`/`EnemyAI`/`TurnManager`/`BattleController`를 전부 `UnitWorld`의 개별 getter/setter만 사용하도록 다시 작성 (struct를 꺼내 들고 다니는 코드 없음). `GridWorld.GetNeighbors4`(더 이상 안 쓰임)도 함께 정리.
+  - `Assets/Editor/UnitPrefabSetup.cs`를 평평해진 `UnitDefinition` 필드에 맞게 갱신하고 Unity CLI 배치모드로 재실행 — 프리팹 3개 재생성, `SampleScene`의 `BattleController` 참조 재연결(같은 GUID/fileID 유지 확인).
   - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 검증.

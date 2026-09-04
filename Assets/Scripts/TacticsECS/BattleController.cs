@@ -272,9 +272,8 @@ namespace TacticsECS
         {
             for (int i = 0; i < _units.Count; i++)
             {
-                var data = _units.Get(i);
                 if (_viewsById.TryGetValue(i, out var view))
-                    view.Refresh(data);
+                    view.Refresh(_units, i);
             }
         }
 
@@ -344,8 +343,8 @@ namespace TacticsECS
                 return;
             }
 
-            var unit = _units.Get(unitId);
-            if (unit.Team != Team.Player || !unit.IsAlive || (unit.TurnState.HasMoved && unit.TurnState.HasActed))
+            if (_units.GetTeam(unitId) != Team.Player || !_units.IsAlive(unitId) ||
+                (_units.GetHasMoved(unitId) && _units.GetHasActed(unitId)))
             {
                 ClearSelection();
                 return;
@@ -373,41 +372,35 @@ namespace TacticsECS
         private void RecomputeHighlights()
         {
             _gridView.ClearHighlights();
-            var unit = _units.Get(_selectedUnitId);
+            int unitId = _selectedUnitId;
 
             _reachableTiles = null;
-            if (!unit.TurnState.HasMoved)
+            if (!_units.GetHasMoved(unitId))
             {
-                var movement = _units.GetStats(unit.Id).Movement;
-                PathfindingSystem.GetReachable(_grid, unit.GridPos, movement, unit.Id, out var reachable);
-                reachable.Remove(unit.GridPos);
+                var selfPos = _units.GetGridPos(unitId);
+                PathfindingSystem.GetReachable(_grid, _units, selfPos, unitId, out var reachable);
+                reachable.Remove(selfPos);
                 _reachableTiles = reachable;
                 _gridView.HighlightMove(_reachableTiles);
             }
 
             _attackableTargets = new List<int>();
-            if (!unit.TurnState.HasActed)
+            if (!_units.GetHasActed(unitId))
             {
-                foreach (var enemy in AllUnits())
+                for (int enemyId = 0; enemyId < _units.Count; enemyId++)
                 {
-                    if (!enemy.IsAlive || enemy.Team == unit.Team) continue;
-                    if (CombatSystem.IsInAttackRange(_units, unit.Id, enemy.Id))
-                        _attackableTargets.Add(enemy.Id);
+                    if (!_units.IsAlive(enemyId) || _units.GetTeam(enemyId) == _units.GetTeam(unitId)) continue;
+                    if (CombatSystem.IsInAttackRange(_units, unitId, enemyId))
+                        _attackableTargets.Add(enemyId);
                 }
-                _gridView.HighlightAttack(_attackableTargets.Select(id => _units.Get(id).GridPos));
+                _gridView.HighlightAttack(_attackableTargets.Select(id => _units.GetGridPos(id)));
             }
-        }
-
-        private IEnumerable<UnitData> AllUnits()
-        {
-            for (int i = 0; i < _units.Count; i++)
-                yield return _units.Get(i);
         }
 
         private void MoveSelectedUnit(Vector2Int pos)
         {
             if (!MovementSystem.TryMove(_grid, _units, _selectedUnitId, pos)) return;
-            _viewsById[_selectedUnitId].Refresh(_units.Get(_selectedUnitId));
+            _viewsById[_selectedUnitId].Refresh(_units, _selectedUnitId);
             RecomputeHighlights();
         }
 
@@ -415,8 +408,8 @@ namespace TacticsECS
         {
             if (!CombatSystem.TryAttack(_grid, _units, attackerId, targetId, out int dmg)) return;
 
-            _viewsById[attackerId].Refresh(_units.Get(attackerId));
-            _viewsById[targetId].Refresh(_units.Get(targetId));
+            _viewsById[attackerId].Refresh(_units, attackerId);
+            _viewsById[targetId].Refresh(_units, targetId);
 
             _statusMessage = $"유닛 {attackerId} -> 유닛 {targetId}: {dmg} 피해";
             CheckBattleEnd();
@@ -446,13 +439,12 @@ namespace TacticsECS
 
             if (_state == SelectState.UnitSelected)
             {
-                var unit = _units.Get(_selectedUnitId);
-                if (_units.GetStats(_selectedUnitId).Combat.CanGuard && !unit.TurnState.HasActed)
+                if (_units.GetCanGuard(_selectedUnitId) && !_units.GetHasActed(_selectedUnitId))
                 {
                     if (GUI.Button(new Rect(120, 40, 120, 30), "방어 태세"))
                     {
                         CombatSystem.TryDefend(_units, _selectedUnitId);
-                        _viewsById[_selectedUnitId].Refresh(_units.Get(_selectedUnitId));
+                        _viewsById[_selectedUnitId].Refresh(_units, _selectedUnitId);
                         ClearSelection();
                     }
                 }

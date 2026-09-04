@@ -4,23 +4,28 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 순수 함수 형태의 시스템(정적 클래스). GridWorld 데이터만 읽어서 결과를 계산하고,
-    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 UnitMovement 값에 따라 대각선 이동/지형 무시/
-    /// 유닛 무시 여부가 달라진다.
+    /// 순수 함수 형태의 시스템(정적 클래스). GridWorld/UnitWorld 데이터만 읽어서 결과를 계산하고,
+    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 이동하는 유닛의 개별 속성(MoveRange/IgnoreTerrain/
+    /// IgnoreUnitBlocking/AllowDiagonal)에 따라 대각선 이동/지형 무시/유닛 무시 여부가 달라진다.
     /// </summary>
     public static class PathfindingSystem
     {
         /// <summary>
-        /// start에서 movement.MoveRange 이내로 이동 가능한 모든 타일을 계산한다.
-        /// movement.IgnoreTerrain이 false면 Walkable=false인 타일을 지나갈 수 없고,
-        /// movement.IgnoreUnitBlocking이 false면 다른 유닛이 서 있는 타일은 통과/정지 모두 불가(자기 자신은 예외),
-        /// movement.AllowDiagonal이 true면 8방향, 아니면 4방향으로 탐색한다.
+        /// start에서 selfUnitId의 MoveRange 이내로 이동 가능한 모든 타일을 계산한다.
+        /// IgnoreTerrain이 false면 Walkable=false인 타일을 지나갈 수 없고,
+        /// IgnoreUnitBlocking이 false면 다른 유닛이 서 있는 타일은 통과/정지 모두 불가(자기 자신은 예외),
+        /// AllowDiagonal이 true면 8방향, 아니면 4방향으로 탐색한다.
         /// 반환값은 각 타일의 직전 타일(경로 역추적용), reachableSet은 도달 가능한 타일 전체.
         /// </summary>
         public static Dictionary<Vector2Int, Vector2Int> GetReachable(
-            GridWorld grid, Vector2Int start, UnitMovement movement, int selfUnitId,
+            GridWorld grid, UnitWorld units, Vector2Int start, int selfUnitId,
             out HashSet<Vector2Int> reachableSet)
         {
+            int moveRange = units.GetMoveRange(selfUnitId);
+            bool ignoreTerrain = units.GetIgnoreTerrain(selfUnitId);
+            bool ignoreUnitBlocking = units.GetIgnoreUnitBlocking(selfUnitId);
+            bool allowDiagonal = units.GetAllowDiagonal(selfUnitId);
+
             var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
             var dist = new Dictionary<Vector2Int, int> { [start] = 0 };
             var frontier = new Queue<Vector2Int>();
@@ -30,15 +35,15 @@ namespace TacticsECS
             {
                 var cur = frontier.Dequeue();
                 int curDist = dist[cur];
-                if (curDist >= movement.MoveRange) continue;
+                if (curDist >= moveRange) continue;
 
-                foreach (var next in grid.GetNeighbors(cur, movement.AllowDiagonal))
+                foreach (var next in grid.GetNeighbors(cur, allowDiagonal))
                 {
                     if (dist.ContainsKey(next)) continue;
-                    if (!movement.IgnoreTerrain && !grid.IsWalkable(next)) continue;
+                    if (!ignoreTerrain && !grid.IsWalkable(next)) continue;
 
                     int occ = grid.GetOccupant(next);
-                    if (!movement.IgnoreUnitBlocking && occ != TileData.NoOccupant && occ != selfUnitId) continue;
+                    if (!ignoreUnitBlocking && occ != TileData.NoOccupant && occ != selfUnitId) continue;
 
                     dist[next] = curDist + 1;
                     cameFrom[next] = cur;

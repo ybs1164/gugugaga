@@ -141,17 +141,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbd155d3b21ae8d49a7136402ee079ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
-  stats:
-    MaxHp: 18
-    Combat:
-      Attack: 3
-      Defense: 3
-      AttackRange: 1
-      CanGuard: 1
-    Movement:
-      MoveRange: 2
-      IgnoreTerrain: 0
-      IgnoreUnitBlocking: 0
-      AllowDiagonal: 0
+  maxHp: 18
+  attack: 3
+  defense: 3
+  attackRange: 1
+  canGuard: 1
+  moveRange: 2
+  ignoreTerrain: 0
+  ignoreUnitBlocking: 0
+  allowDiagonal: 0
   playerColor: {r: 0.1, g: 0.3, b: 0.7, a: 1}
   enemyColor: {r: 0.6, g: 0.1, b: 0.1, a: 1}

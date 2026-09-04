@@ -40,10 +40,10 @@ namespace TacticsECS
         {
             for (int i = 0; i < _units.Count; i++)
             {
-                var u = _units.Get(i);
-                if (u.Team != team) continue;
-                u.TurnState = default;
-                _units.Set(i, u);
+                if (_units.GetTeam(i) != team) continue;
+                _units.SetHasMoved(i, false);
+                _units.SetHasActed(i, false);
+                _units.SetIsGuarding(i, false);
             }
         }
     }

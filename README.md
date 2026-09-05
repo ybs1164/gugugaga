@@ -17,7 +17,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 [`GridWorld`](Assets/Scripts/TacticsECS/Data/GridWorld.cs)가 "타일들의 데이터베이스"라면,
 [`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs)는 이 게임의 진짜 상태(유닛 HP, 위치, 스탯, 턴 상태 등)가
 전부 들어있는 **"엔티티들의 데이터베이스"**다. 유닛은 GameObject/MonoBehaviour가 아니라 이 저장소 위의 값일 뿐이고,
-화면에 보이는 캡슐([`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs))은 그 값을 그려주는 껍데기에 불과하다.
+화면에 보이는 로우폴리 캐릭터 모델([`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs))은 그 값을 그려주는 껍데기에 불과하다.
 
 처음에는 이 저장소를 `UnitWorld`라는 이름으로 유닛 전용으로 만들었지만("Id/Team/GridPos/Hp/Attack/..." 같은 필드를
 직접 하드코딩), **"Unit에 국한하지 말고 Entity로 생각하라"**는 피드백에 따라 완전히 범용적인 구조로 다시 설계했다.
@@ -49,8 +49,8 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 ## 유닛 종류
 
 유닛 타입은 코드의 enum 분기가 아니라 **프리팹**으로 관리한다. `Assets/Prefabs/Units`의 각 프리팹은
-[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 팀별 색상을 인스펙터 값으로
-들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
+[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 팀별 색상·모델 겉감 텍스처를
+인스펙터 값으로 들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
 `UnitSpawner.Spawn`/`UnitView`/`UnitDefinition` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
 스폰 시 [`UnitSpawner`](Assets/Scripts/TacticsECS/View/UnitSpawner.cs)가 `UnitDefinition`의 값을 위 컴포넌트들로 하나씩 옮겨 담는다.
@@ -77,7 +77,11 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 | **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. |
 | **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. `UnitDefinition.CanGuard = true`인 유닛만 공격 대신 **방어 태세**를 선택할 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
 
-플레이어 유닛은 파란/청록 계열, 적 유닛은 빨강/주황 계열 색으로 구분되며, 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색상은 각 프리팹의 `UnitDefinition.playerColor`/`enemyColor` 값이며 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 `GetComponent<UnitDefinition>()`으로 읽어서 적용한다. 유닛 머리 위 텍스트는 `현재HP/최대HP`.
+### 겉모습 (3D 모델)
+
+유닛 모델은 [KayKit - Adventurers Character Pack](https://kaylousberg.itch.io/kaykit-adventurers)(Kay Lousberg 제작, CC0 — 저작자 표시 의무 없음)의 로우폴리 캐릭터를 `Assets/Art/KayKit/Characters`에 받아 사용한다. 라이선스 원문은 [`Assets/Art/KayKit/LICENSE.txt`](Assets/Art/KayKit/LICENSE.txt). 세 유닛에 실루엣이 뚜렷이 구분되도록 매칭했다: **Melee**=Barbarian(양손 도끼), **Ranged**=Rogue(석궁), **Guard**=Knight(한손검 + 사각 방패). 캐릭터 FBX 하나에 무기/방패 변형이 전부 함께 들어있어(예: Knight는 방패 4종 + 검 2종을 전부 포함), [`UnitPrefabSetup`](Assets/Editor/UnitPrefabSetup.cs)이 타입에 맞는 것만 자식 이름으로 찾아 켜고 나머지는 `SetActive(false)`로 꺼서 정리한다. 모델의 기본 정면은 카메라 반대쪽(뒤)을 보고 있어서, 고정 isometric 카메라에 얼굴/무기가 보이도록 프리팹에서 180도 돌려 붙였다.
+
+플레이어 유닛은 파란/청록 계열, 적 유닛은 빨강/주황 계열 색으로 구분되며, 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 스폰 시 만드는 유닛별 런타임 머티리얼에서 `UnitDefinition.playerColor`/`enemyColor` 값을 모델의 겉감 텍스처(`UnitDefinition.bodyTexture`) 위에 곱해 틴트하는 방식이라, 모델의 음영/디테일은 남기면서 팀 색을 입힌다(캐릭터의 몸통/팔다리/망토/무기 등 여러 Renderer가 이 머티리얼 하나를 공유). 유닛 머리 위 텍스트는 `현재HP/최대HP`.
 
 데미지 공식은 `max(1, 공격자 공격력 - (대상 방어력 + 방어 태세 보너스))`.
 
@@ -150,3 +154,9 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - `CombatSystem`/`MovementSystem`/`PathfindingSystem`/`EnemyAI`/`TurnManager`/`UnitSpawner`/`UnitView`/`BattleController`를 전부 `EntityWorld.Get<T>(id)`/`Set<T>(id, value)` 기반으로 다시 작성. `BattleController`의 `_units` 필드도 `_world`(`EntityWorld`)로 이름을 바꿔 "이건 유닛 전용이 아니다"를 코드에서도 드러냄.
   - 기본 3종 유닛의 실제 동작/스탯/이동 방식은 이전과 동일 — 이번 변경은 순수하게 저장소 설계(유닛 전용 → 범용 엔티티-컴포넌트)에 관한 것. `UnitDefinition`/프리팹/씬 연결은 변경 없음.
   - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 검증.
+- 2026-09-05: 유닛 겉모습을 프리미티브 캡슐에서 무료 3D 로우폴리 에셋으로 교체.
+  - **동기**: "간단한 3D 로우폴리 무료 에셋 찾아서 현재 유닛들에 알맞게 적용해달라"는 요청을 받음.
+  - **에셋 선정**: [KayKit - Adventurers Character Pack](https://kaylousberg.itch.io/kaykit-adventurers)(Kay Lousberg 제작, CC0 — 상업적 이용 자유·저작자 표시 불필요)을 GitHub 미러(`KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`)에서 받아 사용. Barbarian/Knight/Rogue 세 캐릭터가 각각 근접/방어/원거리 실루엣과 잘 맞아 선택했고, 다운로드 전 사용자에게 에셋 후보·라이선스·용량을 확인받음. `Barbarian.fbx`/`Knight.fbx`/`Rogue.fbx` + 캐릭터별 텍스처(1024px 그라디언트 아틀라스 1장씩)를 `Assets/Art/KayKit/Characters`에 추가(라이선스 원문 [`Assets/Art/KayKit/LICENSE.txt`](Assets/Art/KayKit/LICENSE.txt)). 캐릭터 FBX 하나에 무기/방패 변형 25종 이상이 손 소켓(`handslot.l`/`.r`) 아래 전부 함께 들어있어, 별도 무기 에셋을 따로 받을 필요는 없었음. 캐릭터별 애니메이션 75개가 프레임 단위로 구워져 있어 파일당 용량이 약 20MB(3개 합계 약 60MB)로 예상보다 컸지만, 그대로 사용하기로 확인받음.
+  - **프리팹 재구성**: [`UnitPrefabSetup.cs`](Assets/Editor/UnitPrefabSetup.cs)의 `CreatePrefab`을 `GameObject.CreatePrimitive(Capsule)` 대신 해당 캐릭터 모델을 자식으로 인스턴스화하도록 재작성. 루트에는 더 이상 MeshFilter/MeshRenderer/Collider를 두지 않고 `UnitView`/`UnitDefinition`만 남긴다 — 기존 `CapsuleCollider`는 (클릭 판정이 이미 그리드 평면 교차 방식이라) 실제로 쓰인 적이 없었음을 재확인한 뒤 제거. 캐릭터별로 손 소켓 아래 무기/방패 변형 중 하나만 남기고 나머지는 자식 이름으로 찾아 `SetActive(false)`: Melee=Barbarian+`2H_Axe`, Ranged=Rogue+`2H_Crossbow`, Guard=Knight+`1H_Sword`+`Rectangle_Shield`.
+  - **팀 색 틴트 유지**: [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)에 `bodyTexture` 필드를, [`RuntimeMaterial`](Assets/Scripts/TacticsECS/View/RuntimeMaterial.cs)에 텍스처 지정 기능(`SetTexture`)을 추가. [`UnitView.Init`](Assets/Scripts/TacticsECS/View/UnitView.cs)이 `GetComponent<Renderer>()`(단일) 대신 `GetComponentsInChildren<Renderer>()`(복수)로 캐릭터의 몸통/팔다리/망토/무기 Renderer 전부에 같은 런타임 머티리얼 하나를 공유시켜, 기존과 동일한 "팀 색 틴트 + 방어 태세 시 노란색" 로직(`RuntimeMaterial.SetColor`)이 텍스처 있는 모델에도 그대로 적용되게 함(그라디언트 텍스처 위에 팀 색을 곱해 음영/디테일은 유지). 모델 원점이 캡슐과 달리 발밑에 있어 스폰/이동 목표 위치의 Y 오프셋(0.5 → 0.05, 타일 표면 높이)과 HP 텍스트 높이(1.2 → 1.5)도 새 모델 비례에 맞게 조정.
+  - **검증**: CLAUDE.md 규칙에 따라 Unity Editor GUI는 쓰지 않고 Unity CLI 배치모드(`unity run . -- -executeMethod ...`)로만 작업. 본 계층·머티리얼·텍스처 연결을 확인하는 1회성 조사 스크립트로 각 캐릭터의 Renderer/본 이름을 덤프해 정확한 손 소켓·무기 이름을 확보했고, 1회성 스크린샷 스크립트로 `UnitView.Init`까지 실제 런타임 경로를 태워 렌더링한 이미지를 직접 눈으로 확인하며 검증(이 과정에서 모델 기본 정면이 고정 isometric 카메라 반대쪽을 보고 있던 문제를 발견해 프리팹에서 모델을 180도 회전시켜 수정). 두 조사/검증용 스크립트와 렌더링 결과물은 확인 후 삭제(최종 산출물 아님). Unity CLI 실행 로그에 컴파일 에러/예외 없음.

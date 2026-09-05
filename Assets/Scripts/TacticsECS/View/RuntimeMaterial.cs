@@ -20,11 +20,12 @@ namespace TacticsECS
             _resolved = true;
         }
 
-        public static Material CreateColored(Color color)
+        public static Material CreateColored(Color color, Texture texture = null)
         {
             Resolve();
             var mat = new Material(_shader);
             SetColor(mat, color);
+            if (texture != null) SetTexture(mat, texture);
             return mat;
         }
 
@@ -32,6 +33,13 @@ namespace TacticsECS
         {
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
             else if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
+        }
+
+        /// <summary>유닛 모델의 겉감(바디 텍스처)을 한 번 지정한다. 색상(SetColor)은 이 텍스처 위에 곱해져 팀 색으로 틴트된다.</summary>
+        public static void SetTexture(Material mat, Texture texture)
+        {
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
+            else if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
         }
     }
 }

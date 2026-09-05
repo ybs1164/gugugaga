@@ -32,6 +32,8 @@ namespace TacticsECS
         [Header("Appearance")]
         [SerializeField] private Color playerColor = Color.white;
         [SerializeField] private Color enemyColor = Color.white;
+        [Tooltip("유닛 모델의 겉감 텍스처. UnitView가 팀 색과 함께 런타임 머티리얼에 입힌다.")]
+        [SerializeField] private Texture2D bodyTexture;
 
         public int MaxHp => maxHp;
 
@@ -46,5 +48,6 @@ namespace TacticsECS
         public bool AllowDiagonal => allowDiagonal;
 
         public Color ColorFor(Team team) => team == Team.Player ? playerColor : enemyColor;
+        public Texture2D BodyTexture => bodyTexture;
     }
 }

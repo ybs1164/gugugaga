@@ -19,6 +19,7 @@ namespace TacticsECS
         public int UnitId { get; private set; }
 
         [SerializeField] private float moveSpeed = 6f;
+        [SerializeField] private float turnSpeedDegrees = 720f;
 
         private Renderer[] _renderers;
         private Material _material;
@@ -31,6 +32,12 @@ namespace TacticsECS
 
         /// <summary>모델 원점(발밑)이 타일 바닥면 위에 오도록 하는 높이 보정.</summary>
         private const float GroundOffset = 0.05f;
+
+        /// <summary>
+        /// KayKit 모델의 정면은 로컬 -Z를 향한다(UnitPrefabSetup이 자식을 180도 돌려 붙인 것과 같은 보정).
+        /// 그래서 "이 방향을 바라보게" 회전시킬 때는 LookRotation 뒤에 이 보정을 한 번 더 곱해야 한다.
+        /// </summary>
+        private static readonly Quaternion ModelFacingCorrection = Quaternion.Euler(0f, 180f, 0f);
 
         public void Init(EntityWorld world, int id, GridWorld grid)
         {
@@ -75,14 +82,34 @@ namespace TacticsECS
             }
         }
 
+        /// <summary>공격처럼 자리는 그대로인 채 특정 지점 쪽을 바로 바라보게 한다.</summary>
+        public void FaceTowards(Vector3 worldPosition)
+        {
+            var rot = FacingRotation(worldPosition - transform.position);
+            if (rot.HasValue) transform.rotation = rot.Value;
+        }
+
+        /// <summary>수평(XZ) 방향을 바라보는 회전. 방향이 거의 0이면(제자리) null.</summary>
+        private static Quaternion? FacingRotation(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return null;
+            return Quaternion.LookRotation(direction.normalized) * ModelFacingCorrection;
+        }
+
         private IEnumerator MoveRoutine(Vector3 worldPos)
         {
+            // 이동 방향을 목적 회전으로 미리 구해두고, 이동하는 동안 위치와 함께 부드럽게 돌아간다.
+            var targetRot = FacingRotation(worldPos - transform.position) ?? transform.rotation;
+
             while ((transform.position - worldPos).sqrMagnitude > 0.0001f)
             {
                 transform.position = Vector3.MoveTowards(transform.position, worldPos, moveSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeedDegrees * Time.deltaTime);
                 yield return null;
             }
             transform.position = worldPos;
+            transform.rotation = targetRot;
             _moveRoutine = null;
         }
     }

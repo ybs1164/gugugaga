@@ -10,8 +10,15 @@ namespace TacticsECS
     /// </summary>
     public static class EnemyAI
     {
-        public static void RunTurn(GridWorld grid, EntityWorld world)
+        /// <summary>
+        /// 이번 턴 실제로 성사된 공격들을 (공격자 id, 대상 id) 목록으로 돌려준다.
+        /// EnemyAI 자신은 View를 전혀 모르지만(Systems는 View/MonoBehaviour를 몰라야 함),
+        /// 이 값을 받은 BattleController가 공격자 View를 대상 쪽으로 바라보게 하는 데 쓴다.
+        /// </summary>
+        public static List<(int AttackerId, int TargetId)> RunTurn(GridWorld grid, EntityWorld world)
         {
+            var attacks = new List<(int, int)>();
+
             var enemyIds = new List<int>();
             for (int i = 0; i < world.EntityCount; i++)
                 if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == Team.Enemy) enemyIds.Add(i);
@@ -23,7 +30,7 @@ namespace TacticsECS
                 var targetIds = new List<int>();
                 for (int i = 0; i < world.EntityCount; i++)
                     if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == Team.Player) targetIds.Add(i);
-                if (targetIds.Count == 0) return;
+                if (targetIds.Count == 0) return attacks;
 
                 int nearestId = targetIds
                     .OrderBy(t => PathfindingSystem.Distance(world.Get<GridPosition>(id).Value, world.Get<GridPosition>(t).Value))
@@ -31,7 +38,8 @@ namespace TacticsECS
 
                 if (CombatSystem.IsInAttackRange(world, id, nearestId))
                 {
-                    CombatSystem.TryAttack(grid, world, id, nearestId, out _);
+                    if (CombatSystem.TryAttack(grid, world, id, nearestId, out _))
+                        attacks.Add((id, nearestId));
                     continue;
                 }
 
@@ -53,9 +61,14 @@ namespace TacticsECS
                 {
                     MovementSystem.TryMove(grid, world, id, best.Value);
                     if (CombatSystem.IsInAttackRange(world, id, nearestId))
-                        CombatSystem.TryAttack(grid, world, id, nearestId, out _);
+                    {
+                        if (CombatSystem.TryAttack(grid, world, id, nearestId, out _))
+                            attacks.Add((id, nearestId));
+                    }
                 }
             }
+
+            return attacks;
         }
     }
 }

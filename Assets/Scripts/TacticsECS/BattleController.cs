@@ -260,8 +260,10 @@ namespace TacticsECS
         private IEnumerator RunEnemyTurnRoutine()
         {
             yield return new WaitForSeconds(0.3f);
-            EnemyAI.RunTurn(_grid, _world);
+            var attacks = EnemyAI.RunTurn(_grid, _world);
             RefreshAllViews();
+            foreach (var (attackerId, targetId) in attacks)
+                _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
             CheckBattleEnd();
             yield return new WaitForSeconds(0.3f);
             if (!_battleOver)
@@ -410,6 +412,7 @@ namespace TacticsECS
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
+            _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
 
             _statusMessage = $"유닛 {attackerId} -> 유닛 {targetId}: {dmg} 피해";
             CheckBattleEnd();

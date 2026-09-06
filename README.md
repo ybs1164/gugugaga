@@ -38,7 +38,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 그럼 "이 엔티티가 살아있는가"(`Hp > 0`) 같은 판단은 누가 하는가? `EntityWorld`가 아니라
 [`UnitQueries`](Assets/Scripts/TacticsECS/Systems/UnitQueries.cs) 같은 System이 한다. **저장소는 값이 무엇을 의미하는지
 모르고, 그 값을 읽어서 의미를 해석하는 건 항상 System 쪽**이라는 원칙이다. `CombatSystem`/`MovementSystem`/
-`PathfindingSystem`/`EnemyAI`/`TurnManager`/`BattleController` 모두 `EntityWorld.Get<T>(id)`/`Set<T>(id, value)`만으로
+`PathfindingSystem`/`EnemyAI`/`TurnSystem`/`BattleController` 모두 `EntityWorld.Get<T>(id)`/`Set<T>(id, value)`만으로
 동작하고, "유닛 데이터"를 통째로 담은 struct를 주고받지 않는다.
 
 지금은 이 저장소에 있는 엔티티가 전부 유닛이지만, 설계 자체는 유닛에 묶여 있지 않다. 나중에 유닛이 아닌 다른
@@ -174,4 +174,10 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - **스크린샷 검증 중 발견한 버그 2건과 수정**: `-executeMethod`로 Play Mode에 진입해도 메서드가 리턴하는 즉시 `unity run` 래퍼가 배치를 종료해버려(Play Mode 진입은 비동기라 미처 시작되기도 전에 꺼짐) 애초에 계획한 "실제 플레이 경로" 검증이 불가능했다 — 대신 빈 씬에서 `BattleHud`/`UnitView`를 코드로 직접 생성해 동기적으로 렌더링하는 1회성 스크립트(`Assets/Editor/HudScreenshotVerify.cs`, 확인 후 삭제)로 우회.
     1. 유닛 머리 위 체력 막대/숫자가 유닛 회전(이동·공격 시 몸이 도는 것)에 따라 카메라 반대쪽을 보면 평면(Quad)이라 실처럼 가늘어져 사라지거나(막대), 좌우가 뒤집혀 보이는(TextMesh 숫자) 문제를 스크린샷으로 실제 확인. `UnitView`에 `HpBillboardRotation()`을 추가해 체력 표시 그룹만 몸통과 별개로 항상 카메라를 보게 고정(스폰/이동 중/공격 시점마다 재적용, 매 프레임 갱신은 아니라 유휴 유닛 비용은 그대로 0). 평면 Quad에는 [`RuntimeMaterial.SetDoubleSided`](Assets/Scripts/TacticsECS/View/RuntimeMaterial.cs)로 컬링도 꺼서 이중으로 안전하게 함.
     2. 위 수정이 제대로 동작하려면 스폰 시점에 `Camera.main`이 이미 최종 isometric 각도로 배치돼 있어야 하는데, `BattleController.SetupBattle`이 유닛을 먼저 스폰하고 카메라를 나중에 배치하고 있었다 — 순서를 카메라 배치 → 스폰으로 바꿔 해결.
+  - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 확인.
+- 2026-09-06: CLAUDE.md 규칙에 맞춰 프로젝트 전체 재점검, `Systems`가 상태를 갖던 위반 1건 수정.
+  - **점검 범위**: `Data`/`Core`/`Systems` 아래 모든 타입을 CLAUDE.md 규칙 2("Data는 값만")/3("Systems는 상태를 갖지 않는다") 기준으로 재검토.
+  - **발견한 위반**: [`TurnManager`](Assets/Scripts/TacticsECS/Systems/TurnManager.cs)(옛 파일, 삭제됨)가 `Systems` 폴더에 있으면서도 `MonoBehaviour`로서 `ActiveTeam`/`TurnNumber`/`_world`를 자체 필드로 들고 있었음 — 다른 System(`CombatSystem`/`MovementSystem`/`PathfindingSystem`/`EnemyAI`/`UnitQueries`)은 전부 상태 없는 정적 클래스인데 이 타입만 예외였다.
+  - **수정**: 턴 상태를 값 하나로 뽑아 [`TurnState`](Assets/Scripts/TacticsECS/Core/TurnState.cs)(`ActiveTeam`/`TurnNumber`, Core 계층 순수 struct) 신설. `TurnManager`를 삭제하고 [`TurnSystem`](Assets/Scripts/TacticsECS/Systems/TurnSystem.cs)(정적, 무상태)으로 교체 — `StartTurn(world, team, turnNumber)`/`EndTurn(world, current)`이 `TurnState`를 인자로 받아 다음 `TurnState`를 계산해 반환할 뿐, 자기 자신은 아무 값도 보관하지 않는다. 실제 `TurnState` 보관은 오케스트레이터인 `BattleController`의 필드(`_turnState`)로 옮김 — `BattleController`는 System이 아니라 조율자이므로 상태를 가져도 규칙 위반이 아니다. `TurnManager` 전용 `GameObject`도 더 이상 필요 없어져 제거.
+  - **그 외 항목**: `GridWorld`/`EntityWorld`(`Data` 계층)는 함수(접근자 메서드)를 갖고 있지만, 둘 다 "유닛" 같은 도메인 개념을 전혀 모르는 범용 저장소(리스트/배열 인덱싱 수준의 Get/Set)이고 게임 규칙(이동 가능 여부, 공격 판정 등)은 여전히 전부 `Systems`에 있어 규칙 2의 취지(도메인 로직을 Data에 두지 않는다)를 벗어나지 않는다고 판단, 손대지 않음. 나머지 `Systems`(정적 클래스들)와 `Core`(struct들)는 규칙 위반 없음.
   - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 확인.

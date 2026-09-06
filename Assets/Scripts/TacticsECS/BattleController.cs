@@ -12,9 +12,10 @@ namespace TacticsECS
     ///
     /// 구조:
     /// - GridWorld / EntityWorld  : 실제 게임 데이터. EntityWorld는 "유닛"을 모르는 범용 엔티티-컴포넌트 저장소.
-    /// - PathfindingSystem / MovementSystem / CombatSystem / EnemyAI : 데이터를 읽고 쓰는 정적 "System"
+    /// - PathfindingSystem / MovementSystem / CombatSystem / TurnSystem / EnemyAI : 데이터를 읽고 쓰는 정적 "System"
     /// - GridView / TileView / UnitView : 데이터를 화면에 보여주기만 하는 얇은 "View" (로직 없음)
-    /// - BattleController(이 클래스) : 입력을 받아 System을 호출하고, 결과를 View에 반영하는 조율자
+    /// - BattleController(이 클래스) : 입력을 받아 System을 호출하고, 결과를 View에 반영하는 조율자.
+    ///   TurnState(현재 턴/차례) 같은 상태도 System이 아니라 여기(오케스트레이터)가 필드로 들고 있는다.
     ///
     /// 입력은 새 Input System 기준, 프레임당 클릭 시 1회 레이캐스트로만 처리한다
     /// (타일/유닛마다 OnMouseDown 등을 걸지 않음 -> 오브젝트 수가 늘어나도 입력 비용은 그대로).
@@ -58,7 +59,7 @@ namespace TacticsECS
 
         private GridWorld _grid;
         private EntityWorld _world;
-        private TurnManager _turnManager;
+        private TurnState _turnState;
         private GridView _gridView;
         private UnitSpawner _spawner;
         private BattleHud _hud;
@@ -126,12 +127,18 @@ namespace TacticsECS
 
             SpawnDemoFormation();
 
-            var tmGo = new GameObject("TurnManager");
-            tmGo.transform.SetParent(transform, false);
-            _turnManager = tmGo.AddComponent<TurnManager>();
-            _turnManager.OnTurnStart += HandleTurnStart;
-            _hud.OnEndTurnClicked += _turnManager.EndTurn;
-            _turnManager.Init(_world); // 첫 HandleTurnStart를 바로 이 호출 중에 동기로 쏘므로, 그 전에 _hud가 준비돼 있어야 한다.
+            _hud.OnEndTurnClicked += EndTurn;
+            // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
+            // 그 전에 _hud가 준비돼 있어야 한다.
+            _turnState = TurnSystem.StartTurn(_world, Team.Player, 1);
+            HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
+        }
+
+        /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.</summary>
+        private void EndTurn()
+        {
+            _turnState = TurnSystem.EndTurn(_world, _turnState);
+            HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
         }
 
         private void SpawnDemoFormation()
@@ -280,7 +287,7 @@ namespace TacticsECS
             CheckBattleEnd();
             yield return new WaitForSeconds(0.3f);
             if (!_battleOver)
-                _turnManager.EndTurn();
+                EndTurn();
         }
 
         private void RefreshAllViews()
@@ -312,7 +319,7 @@ namespace TacticsECS
             HandleCameraControl();
 
             if (_battleOver) return;
-            if (_turnManager == null || _turnManager.ActiveTeam != Team.Player) return;
+            if (_turnState.ActiveTeam != Team.Player) return;
             if (Mouse.current == null) return;
             // HUD 버튼(BattleHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;

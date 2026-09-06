@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace TacticsECS
@@ -60,6 +61,7 @@ namespace TacticsECS
         private TurnManager _turnManager;
         private GridView _gridView;
         private UnitSpawner _spawner;
+        private BattleHud _hud;
         private Camera _cam;
 
         // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
@@ -79,7 +81,6 @@ namespace TacticsECS
         private List<int> _attackableTargets;
 
         private bool _battleOver;
-        private string _statusMessage = "";
 
         private void Awake()
         {
@@ -107,6 +108,18 @@ namespace TacticsECS
             _gridView = gridViewGo.AddComponent<GridView>();
             _gridView.Build(_grid);
 
+            var hudGo = new GameObject("BattleHud");
+            hudGo.transform.SetParent(transform, false);
+            _hud = hudGo.AddComponent<BattleHud>();
+            _hud.Init();
+            _hud.OnDefendClicked += HandleDefendClicked;
+            _hud.OnDeselectClicked += ClearSelection;
+
+            // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
+            // Camera.main 방향으로 맞추는데(HpBillboardRotation), 그때 카메라가 아직 기본 회전값이면
+            // 잘못된 각도로 굳어버린다(이후 이동/공격 전까지는 다시 계산하지 않으므로).
+            PositionCamera();
+
             var spawnerGo = new GameObject("UnitSpawner");
             spawnerGo.transform.SetParent(transform, false);
             _spawner = spawnerGo.AddComponent<UnitSpawner>();
@@ -117,9 +130,8 @@ namespace TacticsECS
             tmGo.transform.SetParent(transform, false);
             _turnManager = tmGo.AddComponent<TurnManager>();
             _turnManager.OnTurnStart += HandleTurnStart;
-            _turnManager.Init(_world);
-
-            PositionCamera();
+            _hud.OnEndTurnClicked += _turnManager.EndTurn;
+            _turnManager.Init(_world); // 첫 HandleTurnStart를 바로 이 호출 중에 동기로 쏘므로, 그 전에 _hud가 준비돼 있어야 한다.
         }
 
         private void SpawnDemoFormation()
@@ -250,7 +262,8 @@ namespace TacticsECS
 
         private void HandleTurnStart(Team team, int turnNumber)
         {
-            _statusMessage = $"{turnNumber}턴 - {(team == Team.Player ? "플레이어" : "적")} 턴";
+            _hud.SetTurn(team, turnNumber);
+            _hud.SetEndTurnVisible(team == Team.Player && !_battleOver);
             ClearSelection();
 
             if (team == Team.Enemy && !_battleOver)
@@ -286,8 +299,9 @@ namespace TacticsECS
             if (!playerAlive || !enemyAlive)
             {
                 _battleOver = true;
-                _statusMessage = !playerAlive ? "패배..." : "승리!";
                 ClearSelection();
+                _hud.SetEndTurnVisible(false);
+                _hud.ShowBattleEnd(playerWon: playerAlive);
             }
         }
 
@@ -300,6 +314,8 @@ namespace TacticsECS
             if (_battleOver) return;
             if (_turnManager == null || _turnManager.ActiveTeam != Team.Player) return;
             if (Mouse.current == null) return;
+            // HUD 버튼(BattleHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
                 HandleClick();
@@ -397,6 +413,10 @@ namespace TacticsECS
                 }
                 _gridView.HighlightAttack(_attackableTargets.Select(id => _world.Get<GridPosition>(id).Value));
             }
+
+            _hud.ShowUnitPanel(_world, unitId);
+            _hud.SetDeselectVisible(true);
+            _hud.SetDefendVisible(_world.Get<CanGuard>(unitId).Value && !_world.Get<HasActed>(unitId).Value);
         }
 
         private void MoveSelectedUnit(Vector2Int pos)
@@ -408,14 +428,23 @@ namespace TacticsECS
 
         private void TryAttack(int attackerId, int targetId)
         {
-            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int dmg)) return;
+            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out _)) return;
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
             _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
 
-            _statusMessage = $"유닛 {attackerId} -> 유닛 {targetId}: {dmg} 피해";
             CheckBattleEnd();
+            ClearSelection();
+        }
+
+        /// <summary>BattleHud의 방어 태세 버튼 클릭 이벤트 핸들러.</summary>
+        private void HandleDefendClicked()
+        {
+            if (_state != SelectState.UnitSelected) return;
+            if (!CombatSystem.TryDefend(_world, _selectedUnitId)) return;
+
+            _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             ClearSelection();
         }
 
@@ -426,34 +455,11 @@ namespace TacticsECS
             _reachableTiles = null;
             _attackableTargets = null;
             if (_gridView != null) _gridView.ClearHighlights();
-        }
-
-        // ---------- Minimal UI (Canvas 불필요) ----------
-
-        private void OnGUI()
-        {
-            GUI.Label(new Rect(10, 10, 500, 24), _statusMessage);
-
-            if (_battleOver) return;
-            if (_turnManager == null || _turnManager.ActiveTeam != Team.Player) return;
-
-            if (GUI.Button(new Rect(10, 40, 100, 30), "턴 종료"))
-                _turnManager.EndTurn();
-
-            if (_state == SelectState.UnitSelected)
+            if (_hud != null)
             {
-                if (_world.Get<CanGuard>(_selectedUnitId).Value && !_world.Get<HasActed>(_selectedUnitId).Value)
-                {
-                    if (GUI.Button(new Rect(120, 40, 120, 30), "방어 태세"))
-                    {
-                        CombatSystem.TryDefend(_world, _selectedUnitId);
-                        _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
-                        ClearSelection();
-                    }
-                }
-
-                if (GUI.Button(new Rect(250, 40, 100, 30), "선택 해제"))
-                    ClearSelection();
+                _hud.HideUnitPanel();
+                _hud.SetDeselectVisible(false);
+                _hud.SetDefendVisible(false);
             }
         }
     }

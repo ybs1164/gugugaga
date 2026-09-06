@@ -1,0 +1,22 @@
+game-icons.net icons used in this project
+==========================================
+
+Source: https://game-icons.net
+License: Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+         https://creativecommons.org/licenses/by/3.0/
+
+Icons used (Assets/Art/GameIcons/Resources/Icons):
+
+  hp.png       "Hearts"             by Skoll        https://game-icons.net/1x1/skoll/hearts.html
+  attack.png   "Broadsword"         by Lorc         https://game-icons.net/1x1/lorc/broadsword.html
+  defense.png  "Shield"             by Sbed         https://game-icons.net/1x1/sbed/shield.html
+  move.png     "Footprint"          by Lorc         https://game-icons.net/1x1/lorc/footprint.html
+  range.png    "Crosshair"          by Delapouite   https://game-icons.net/1x1/delapouite/crosshair.html
+  guard.png    "Shield echoes"      by Lorc         https://game-icons.net/1x1/lorc/shield-echoes.html
+  deselect.png "Cancel"             by Sbed         https://game-icons.net/1x1/sbed/cancel.html
+  turn.png     "Hourglass"          by Lorc         https://game-icons.net/1x1/lorc/hourglass.html
+  victory.png  "Trophy"             by Lorc         https://game-icons.net/1x1/lorc/trophy.html
+  defeat.png   "Skull-crossed bones" by Lorc        https://game-icons.net/1x1/lorc/skull-crossed-bones.html
+
+Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
+https://game-icons.net, under CC BY 3.0.

@@ -41,5 +41,15 @@ namespace TacticsECS
             if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
             else if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", texture);
         }
+
+        /// <summary>
+        /// 평면 하나로 만든 표시물(체력바 Quad 등)용. 유닛은 이동/공격 방향에 맞춰 계속 회전하는데,
+        /// Quad는 한쪽 면에만 그려지는 게 기본이라 그대로 두면 카메라 반대쪽을 보는 순간 사라진다.
+        /// 컬링을 꺼서 어느 방향을 보고 있어도 항상 보이게 한다.
+        /// </summary>
+        public static void SetDoubleSided(Material mat)
+        {
+            if (mat.HasProperty("_Cull")) mat.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+        }
     }
 }

@@ -18,7 +18,16 @@ namespace TacticsECS
         [SerializeField] private int attack;
         [SerializeField] private int defense;
         [SerializeField] private int attackRange;
-        [SerializeField] private bool canGuard;
+
+        [Header("Heal")]
+        [Tooltip("치유 행동(ActionType.Heal)을 가진 유닛이 회복시키는 체력량.")]
+        [SerializeField] private int healAmount;
+        [Tooltip("치유가 닿는 사거리(맨해튼 거리). 사거리 내의 모든 아군(자신 제외)이 대상이 된다.")]
+        [SerializeField] private int healRange;
+
+        [Header("Actions")]
+        [Tooltip("이 유닛 타입이 실제로 쓸 수 있는 행동 조합. 여기서 고른 것만 BattleHud 행동 버튼에 나타난다.")]
+        [SerializeField] private ActionType availableActions = ActionType.Move | ActionType.Attack;
 
         [Header("Movement")]
         [SerializeField] private int moveRange;
@@ -40,7 +49,11 @@ namespace TacticsECS
         public int Attack => attack;
         public int Defense => defense;
         public int AttackRange => attackRange;
-        public bool CanGuard => canGuard;
+
+        public int HealAmount => healAmount;
+        public int HealRange => healRange;
+
+        public ActionType AvailableActions => availableActions;
 
         public int MoveRange => moveRange;
         public bool IgnoreTerrain => ignoreTerrain;

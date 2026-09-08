@@ -26,7 +26,8 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 - **엔티티(Entity)** — 데이터를 하나도 갖지 않는 정수 id일 뿐이다. `world.CreateEntity()`를 부르면 새 id가 하나
   발급된다. "유닛"이라는 개념은 여기 없다 — 엔티티는 그냥 "무언가가 존재한다"는 표시일 뿐이다.
 - **컴포넌트(Component)** — 엔티티에 붙는 값 하나. [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)에
-  `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`(체력), `Attack`/`Defense`/`AttackRange`/`CanGuard`(전투),
+  `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`(체력), `Attack`/`Defense`/`AttackRange`(전투), `HealAmount`/`HealRange`(치유),
+  `AvailableActions`([`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 — 이 유닛이 실제로 쓸 수 있는 행동 조합),
   `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로
   정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
 
@@ -73,9 +74,20 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Melee** (근접, `Unit_Melee.prefab`) | 12 | 5 | 1 | 3칸 | 1칸 | 이동력이 좋고 공격력이 높지만 방어가 약함. 적에게 바로 붙어 때리는 딜러. |
-| **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. |
-| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. `UnitDefinition.CanGuard = true`인 유닛만 공격 대신 **방어 태세**를 선택할 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
+| **Melee** (근접, `Unit_Melee.prefab`) | 12 | 5 | 1 | 3칸 | 1칸 | 이동력이 좋고 공격력이 높지만 방어가 약함. 적에게 바로 붙어 때리는 딜러. 이동/공격 외에 **자폭**을 쓸 수 있다. |
+| **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. 이동/공격 외에 **치유**(회복량 4, 사거리 2)를 쓸 수 있다. |
+| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
+
+### 사용 가능 행동 (ActionType)
+
+어떤 유닛이 이동/공격/방어/치유/자폭 중 무엇을 쓸 수 있는지는 더 이상 `CanGuard` 같은 개별 bool이 아니라,
+[`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 하나(`AvailableActions` 컴포넌트)로 통합해서 관리한다.
+프리팹의 `UnitDefinition.availableActions` 인스펙터 필드(다중 선택 드롭다운)에서 유닛 타입별로 직접 조합해 지정하며,
+`MovementSystem`/`CombatSystem`/`AbilitySystem`(행동 실행 판정)과 `BattleHud`(행동 버튼 목록 표시) 양쪽이 모두
+이 값 하나만 보고 판단한다 — 새 유닛 타입에 어떤 행동을 줄지 코드를 고치지 않고 프리팹 값만으로 정할 수 있다.
+
+- **치유**([`AbilitySystem.TryHeal`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 사거리(`HealRange`) 내의 모든 아군(자신 제외)의 체력을 `HealAmount`만큼 회복시킨다. 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용되는 자기 중심 광역 행동.
+- **자폭**([`AbilitySystem.TrySelfDestruct`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 행동 유닛을 즉시 제거하고, 주위 1칸(맨해튼 거리) 내의 모든 적에게 제거되는 시점의 남은 체력만큼 피해를 입힌다.
 
 ### 겉모습 (3D 모델)
 
@@ -90,7 +102,8 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 - **유닛 선택**: 자기 팀(플레이어) 유닛을 좌클릭. 이미 이동+행동을 모두 마친 유닛이나 적/빈 타일을 클릭하면 선택이 풀린다.
 - **이동**: 유닛 선택 시 파란색으로 하이라이트된 타일이 이동 가능 범위. 그 타일을 클릭하면 이동한다 (턴당 1회).
 - **공격**: 하이라이트된 빨간 타일 위의 적 유닛을 클릭하면 공격한다 (턴당 1회, 이동 여부와 무관하게 가능).
-- **방어 태세** 버튼(화면 좌상단): Guard 타입 유닛을 선택하고 아직 행동하지 않았을 때만 나타난다. 공격 대신 방어력을 올리고 턴을 소모한다.
+- **행동 버튼**(화면 우하단): 선택한 유닛의 `AvailableActions`에 있는 행동만, 아직 행동하지 않았을 때만 나타난다 — 방어 태세(Guard), 치유(Ranged), 자폭(Melee)은 모두 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용된다.
+- **행동 설명 툴팁**: 행동 버튼(방어/치유/자폭/선택 해제/턴 종료) 위에 마우스를 올리면, 버튼 줄 바로 위 한 구역에 그 행동에 대한 설명이 뜬다.
 - **선택 해제** 버튼: 현재 선택을 취소한다.
 - **턴 종료** 버튼: 플레이어 턴을 마치고 적 턴으로 넘긴다. 적 턴은 [`EnemyAI`](Assets/Scripts/TacticsECS/Systems/EnemyAI.cs)가 자동으로 진행하며 별도 입력이 필요 없다.
 - 한쪽 팀 유닛이 전멸하면 자동으로 전투가 종료되고 좌상단에 "승리!"/"패배..." 메시지가 표시된다.
@@ -181,3 +194,10 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - **수정**: 턴 상태를 값 하나로 뽑아 [`TurnState`](Assets/Scripts/TacticsECS/Core/TurnState.cs)(`ActiveTeam`/`TurnNumber`, Core 계층 순수 struct) 신설. `TurnManager`를 삭제하고 [`TurnSystem`](Assets/Scripts/TacticsECS/Systems/TurnSystem.cs)(정적, 무상태)으로 교체 — `StartTurn(world, team, turnNumber)`/`EndTurn(world, current)`이 `TurnState`를 인자로 받아 다음 `TurnState`를 계산해 반환할 뿐, 자기 자신은 아무 값도 보관하지 않는다. 실제 `TurnState` 보관은 오케스트레이터인 `BattleController`의 필드(`_turnState`)로 옮김 — `BattleController`는 System이 아니라 조율자이므로 상태를 가져도 규칙 위반이 아니다. `TurnManager` 전용 `GameObject`도 더 이상 필요 없어져 제거.
   - **그 외 항목**: `GridWorld`/`EntityWorld`(`Data` 계층)는 함수(접근자 메서드)를 갖고 있지만, 둘 다 "유닛" 같은 도메인 개념을 전혀 모르는 범용 저장소(리스트/배열 인덱싱 수준의 Get/Set)이고 게임 규칙(이동 가능 여부, 공격 판정 등)은 여전히 전부 `Systems`에 있어 규칙 2의 취지(도메인 로직을 Data에 두지 않는다)를 벗어나지 않는다고 판단, 손대지 않음. 나머지 `Systems`(정적 클래스들)와 `Core`(struct들)는 규칙 위반 없음.
   - Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러/예외 없음 확인.
+- 2026-09-08: 유닛별 "사용 가능 행동"을 직접 지정할 수 있게 하고, 새 행동(치유/자폭)을 추가해 UI에 노출.
+  - **동기**: "유닛의 사용 가능 행동을 내가 직접 지정할 수 있어야 한다"는 요청 — 지금까지는 방어 태세만 `UnitDefinition.CanGuard`라는 전용 bool로 개별 관리되고 있어, 행동을 추가할 때마다 비슷한 bool을 하나씩 늘려야 하는 구조였다.
+  - **행동 목록의 단일 기준점 도입**: [`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs)(`Move`/`Attack`/`Defend`/`Heal`/`SelfDestruct` 플래그) 신설, `Core/UnitComponents.cs`의 `CanGuard`를 제거하고 `AvailableActions`(`ActionType` 값) 컴포넌트로 교체. `UnitDefinition.availableActions` 인스펙터 필드(다중 선택 드롭다운) 하나로 유닛 타입별 행동 조합을 직접 고를 수 있고, `UnitSpawner`가 그 값을 그대로 `EntityWorld`에 옮긴다. `MovementSystem.TryMove`/`CombatSystem.TryAttack`/`TryDefend`가 전부 이 값 하나로 판정하도록 정리.
+  - **새 행동 구현**: [`AbilitySystem`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)(정적, 무상태) 신설. `TryHeal`은 사거리(`HealRange`) 내 모든 아군(자신 제외)을 `HealAmount`만큼 회복, `TrySelfDestruct`는 유닛을 즉시 제거하고 주위 1칸(맨해튼 거리)의 모든 적에게 제거 시점의 남은 체력만큼 피해를 입힌다. 새 컴포넌트 `HealAmount`/`HealRange` 추가. 데모 3종에 배분: Guard=방어, Ranged=치유(회복 4/사거리 2), Melee=자폭.
+  - **UI**: [`BattleHud`](Assets/Scripts/TacticsECS/View/BattleHud.cs)의 고정 3버튼(선택해제/방어/턴종료) 구조를 데이터 기반으로 재구성 — 방어/치유/자폭을 `(ActionType, 아이콘, 툴팁)` 표 하나로 정의하고, 선택된 유닛의 `AvailableActions`(그리고 `HasActed`)에 따라 보여줄 버튼만 동적으로 배치(`SetUnitActions`)한다. 행동 버튼(방어/치유/자폭/선택해제/턴종료) 각각에 마우스 진입/이탈 시 설명을 보여주는 툴팁을 붙였고, 풍선말 대신 버튼 줄 바로 위 고정된 한 구역(`BuildTooltip`)에 표시되게 해서 isometric 3D 화면과 겹쳐 가려지는 문제를 피했다.
+  - **아이콘**: 기존 GameIcons 세트와 같은 출처인 [game-icons.net](https://game-icons.net)(CC BY 3.0)에서 치유="Health potion"(Delapouite), 자폭="Grenade"(Lorc) 2종을 새로 받아 `Assets/Art/GameIcons/Resources/Icons`에 추가하고 `LICENSE.txt`에 출처를 기록 — 기존 10종과 같은 512x512 검정 실루엣/투명 배경 스타일.
+  - **검증**: Unity CLI 배치모드(`-executeMethod UnityEditor.SyncVS.SyncSolution`)로 전체 스크립트 재컴파일 — 에러 없음, 새 아이콘 2장 정상 임포트 확인.

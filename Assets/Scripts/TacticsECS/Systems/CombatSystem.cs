@@ -4,8 +4,9 @@ namespace TacticsECS
 {
     /// <summary>
     /// 공격/방어 판정을 담당하는 시스템.
-    /// 사거리는 맨해튼 거리 기준. 공격력/방어력/사거리/방어 태세 가능 여부는 EntityWorld에서
-    /// 해당 컴포넌트(Attack/Defense/AttackRange/CanGuard)를 조회해서 읽는다.
+    /// 사거리는 맨해튼 거리 기준. 공격력/방어력/사거리는 EntityWorld에서 해당 컴포넌트
+    /// (Attack/Defense/AttackRange)를 조회해서 읽고, 공격/방어를 실제로 쓸 수 있는지는
+    /// AvailableActions(ActionType.Attack/Defend 플래그)로 판단한다.
     /// </summary>
     public static class CombatSystem
     {
@@ -41,6 +42,7 @@ namespace TacticsECS
 
             if (!UnitQueries.IsAlive(world, attackerId) || !UnitQueries.IsAlive(world, targetId)) return false;
             if (world.Get<HasActed>(attackerId).Value) return false;
+            if (!world.Get<AvailableActions>(attackerId).Value.HasFlag(ActionType.Attack)) return false;
             if (world.Get<Team>(attackerId) == world.Get<Team>(targetId)) return false;
             if (!IsInAttackRange(world, attackerId, targetId)) return false;
 
@@ -56,10 +58,11 @@ namespace TacticsECS
             return true;
         }
 
-        /// <summary>CanGuard 유닛 전용 행동: 공격 대신 방어 태세로 전환해 이번 턴 받는 피해를 줄인다.</summary>
+        /// <summary>ActionType.Defend를 가진 유닛 전용 행동: 공격 대신 방어 태세로 전환해 이번 턴 받는 피해를 줄인다.</summary>
         public static bool TryDefend(EntityWorld world, int unitId)
         {
-            if (!UnitQueries.IsAlive(world, unitId) || world.Get<HasActed>(unitId).Value || !world.Get<CanGuard>(unitId).Value)
+            if (!UnitQueries.IsAlive(world, unitId) || world.Get<HasActed>(unitId).Value ||
+                !world.Get<AvailableActions>(unitId).Value.HasFlag(ActionType.Defend))
                 return false;
 
             world.Set(unitId, new IsGuarding { Value = true });

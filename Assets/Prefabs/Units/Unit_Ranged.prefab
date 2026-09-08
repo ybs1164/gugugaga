@@ -63,7 +63,9 @@ MonoBehaviour:
   attack: 4
   defense: 0
   attackRange: 3
-  canGuard: 0
+  healAmount: 4
+  healRange: 2
+  availableActions: 11
   moveRange: 2
   ignoreTerrain: 0
   ignoreUnitBlocking: 0

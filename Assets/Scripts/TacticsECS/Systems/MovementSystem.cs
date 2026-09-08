@@ -11,6 +11,7 @@ namespace TacticsECS
         public static bool TryMove(GridWorld grid, EntityWorld world, int unitId, Vector2Int destination)
         {
             if (!UnitQueries.IsAlive(world, unitId) || world.Get<HasMoved>(unitId).Value) return false;
+            if (!world.Get<AvailableActions>(unitId).Value.HasFlag(ActionType.Move)) return false;
             if (!grid.InBounds(destination)) return false;
 
             if (!world.Get<IgnoreTerrain>(unitId).Value && !grid.IsWalkable(destination)) return false;

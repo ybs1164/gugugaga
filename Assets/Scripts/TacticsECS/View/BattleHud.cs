@@ -16,6 +16,8 @@ namespace TacticsECS
     {
         public event Action OnEndTurnClicked;
         public event Action OnDefendClicked;
+        public event Action OnHealClicked;
+        public event Action OnSelfDestructClicked;
         public event Action OnDeselectClicked;
 
         private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
@@ -38,9 +40,22 @@ namespace TacticsECS
         private Text _moveText;
         private Text _rangeText;
 
+        /// <summary>유닛별로 있을 수도, 없을 수도 있는 행동 버튼 하나. Flag가 선택된 유닛의
+        /// AvailableActions에 있을 때만 화면에 나타난다(LayoutActionBar).</summary>
+        private struct OptionalActionButton
+        {
+            public ActionType Flag;
+            public Button Button;
+            public RectTransform Rect;
+        }
+
         private Button _endTurnButton;
-        private Button _defendButton;
         private Button _deselectButton;
+        private RectTransform _deselectRect;
+        private OptionalActionButton[] _optionalActions;
+
+        private GameObject _tooltipPanel;
+        private Text _tooltipText;
 
         private GameObject _battleEndPanel;
         private Image _battleEndIcon;
@@ -66,10 +81,11 @@ namespace TacticsECS
             BuildTurnBadge(root);
             BuildUnitPanel(root);
             BuildActionButtons(root);
+            BuildTooltip(root);
             BuildBattleEndPanel(root);
 
             HideUnitPanel();
-            SetDefendVisible(false);
+            SetUnitActions(ActionType.None, hasActed: true);
             SetDeselectVisible(false);
         }
 
@@ -250,29 +266,52 @@ namespace TacticsECS
 
         // ---------- 행동 버튼 (우하단, 아이콘만) ----------
 
+        private const float ActionButtonSize = 52f;
+        private const float ActionButtonGap = 8f;
+
+        /// <summary>방어/치유/자폭처럼 "이 유닛이 가지고 있을 수도, 없을 수도 있는" 행동 버튼을
+        /// 어떤 순서로 나열할지 + 아이콘 + 툴팁 설명을 한곳에 모아둔 표. 새 행동을 추가할 때
+        /// (예: 향후 다른 특수 행동) 이 배열에 한 줄만 추가하면 되고, BattleController는 몰라도 된다.</summary>
+        private static readonly (ActionType Flag, string Icon, string Tooltip)[] OptionalActionDefs =
+        {
+            (ActionType.Defend, "guard", "방어 태세: 받는 피해를 줄입니다. (방어력 +" + CombatSystem.GuardDefenseBonus + ")"),
+            (ActionType.Heal, "heal", "치유: 사거리 내의 모든 아군 유닛(자신 제외)의 체력을 회복시킵니다."),
+            (ActionType.SelfDestruct, "selfdestruct", "자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다."),
+        };
+
         private void BuildActionButtons(Transform root)
         {
-            const float buttonSize = 52f;
-            const float gap = 8f;
-
             // 항상 뜨는 "턴 종료"를 구석(코너) 자리에 고정해서, 선택이 없을 때도 버튼이 화면 끝에서
-            // 붕 뜨지 않게 한다. 선택 시에만 나타나는 방어/선택해제는 그 왼쪽으로 자리를 넓혀간다.
-            _deselectButton = CreateIconButton(root, "DeselectButton", "deselect", new Vector2(-16f - (buttonSize + gap) * 2f, 16f), buttonSize, ButtonIdle);
-            _deselectButton.onClick.AddListener(() => OnDeselectClicked?.Invoke());
-
-            _defendButton = CreateIconButton(root, "DefendButton", "guard", new Vector2(-16f - (buttonSize + gap), 16f), buttonSize, ButtonIdle);
-            _defendButton.onClick.AddListener(() => OnDefendClicked?.Invoke());
-
-            _endTurnButton = CreateIconButton(root, "EndTurnButton", "turn", new Vector2(-16f, 16f), buttonSize, ButtonIdle);
+            // 붕 뜨지 않게 한다. 선택 시에만 나타나는 행동 버튼/선택해제는 LayoutActionBar가 그 왼쪽으로
+            // 자리를 동적으로 배치한다(유닛마다 쓸 수 있는 행동 개수가 다르므로).
+            _endTurnButton = CreateIconButton(root, "EndTurnButton", "turn", new Vector2(-16f, 16f), ButtonIdle, "턴 종료: 현재 팀의 턴을 마칩니다.");
             _endTurnButton.onClick.AddListener(() => OnEndTurnClicked?.Invoke());
+
+            _optionalActions = new OptionalActionButton[OptionalActionDefs.Length];
+            for (int i = 0; i < OptionalActionDefs.Length; i++)
+            {
+                var def = OptionalActionDefs[i];
+                var button = CreateIconButton(root, def.Flag + "Button", def.Icon, Vector2.zero, ButtonIdle, def.Tooltip);
+                switch (def.Flag)
+                {
+                    case ActionType.Defend: button.onClick.AddListener(() => OnDefendClicked?.Invoke()); break;
+                    case ActionType.Heal: button.onClick.AddListener(() => OnHealClicked?.Invoke()); break;
+                    case ActionType.SelfDestruct: button.onClick.AddListener(() => OnSelfDestructClicked?.Invoke()); break;
+                }
+                _optionalActions[i] = new OptionalActionButton { Flag = def.Flag, Button = button, Rect = (RectTransform)button.transform };
+            }
+
+            _deselectButton = CreateIconButton(root, "DeselectButton", "deselect", Vector2.zero, ButtonIdle, "선택 해제: 유닛 선택을 취소합니다.");
+            _deselectRect = (RectTransform)_deselectButton.transform;
+            _deselectButton.onClick.AddListener(() => OnDeselectClicked?.Invoke());
         }
 
-        private static Button CreateIconButton(Transform root, string name, string iconName, Vector2 anchoredPosFromBottomRight, float size, Color bg)
+        private Button CreateIconButton(Transform root, string name, string iconName, Vector2 anchoredPosFromBottomRight, Color bg, string tooltip)
         {
             var rect = CreateRect(name, root);
             rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
             rect.pivot = new Vector2(1f, 0f);
-            rect.sizeDelta = new Vector2(size, size);
+            rect.sizeDelta = new Vector2(ActionButtonSize, ActionButtonSize);
             rect.anchoredPosition = anchoredPosFromBottomRight;
 
             var bgImage = CreatePanelImage(rect, bg);
@@ -289,11 +328,85 @@ namespace TacticsECS
             icon.preserveAspect = true;
             icon.raycastTarget = false;
 
+            var trigger = rect.gameObject.AddComponent<TooltipTrigger>();
+            trigger.Text = tooltip;
+            trigger.OnEnter = ShowTooltip;
+            trigger.OnExit = HideTooltip;
+
             return button;
         }
 
-        public void SetDefendVisible(bool visible) => _defendButton.gameObject.SetActive(visible);
+        /// <summary>선택된 유닛이 실제로 쓸 수 있는 행동(hasActed면 전부 숨김)만 화면에 나타나게 하고,
+        /// 보이는 만큼만 자리를 차지하도록 다시 배치한다. "유닛의 사용 가능 행동 목록을 UI로 보여준다"는
+        /// 요구사항의 핵심 진입점 — BattleController는 AvailableActions 값만 넘기면 된다.</summary>
+        public void SetUnitActions(ActionType available, bool hasActed)
+        {
+            var visible = hasActed ? ActionType.None : available;
+
+            float x = -16f - (ActionButtonSize + ActionButtonGap);
+            foreach (var action in _optionalActions)
+            {
+                bool show = (visible & action.Flag) != 0;
+                action.Button.gameObject.SetActive(show);
+                if (!show) continue;
+                action.Rect.anchoredPosition = new Vector2(x, 16f);
+                x -= ActionButtonSize + ActionButtonGap;
+            }
+
+            _deselectRect.anchoredPosition = new Vector2(x, 16f);
+        }
+
         public void SetDeselectVisible(bool visible) => _deselectButton.gameObject.SetActive(visible);
+
+        // ---------- 툴팁 (행동 버튼 바로 위 한 구역에 고정) ----------
+
+        /// <summary>버튼에 올라간 마우스 진입/이탈만 BattleHud로 전달하는 얇은 컴포넌트.
+        /// 어떤 텍스트를 보여줄지, 실제로 어떻게 보여줄지는 전혀 모른다(로직 없는 View 보조 도구).</summary>
+        private class TooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+        {
+            public string Text;
+            public Action<string> OnEnter;
+            public Action OnExit;
+            public void OnPointerEnter(PointerEventData eventData) => OnEnter?.Invoke(Text);
+            public void OnPointerExit(PointerEventData eventData) => OnExit?.Invoke();
+        }
+
+        /// <summary>행동 버튼 하나에 대응하는 설명 하나만, 항상 같은 자리(행동 버튼 줄 바로 위)에 띄운다.
+        /// 버튼마다 개별 풍선말을 띄우는 대신 화면 한 구역에 모아두는 이유는, isometric 3D 화면 위에서
+        /// 버튼 근처에 즉석으로 말풍선을 붙이면 카메라/그리드와 겹쳐 가려지기 쉽기 때문이다.</summary>
+        private void BuildTooltip(Transform root)
+        {
+            var panel = CreateRect("Tooltip", root);
+            panel.anchorMin = panel.anchorMax = new Vector2(1f, 0f);
+            panel.pivot = new Vector2(1f, 0f);
+            panel.anchoredPosition = new Vector2(-16f, 16f + ActionButtonSize + 10f);
+            panel.sizeDelta = new Vector2(360f, 56f);
+            CreatePanelImage(panel, PanelBackground);
+            _tooltipPanel = panel.gameObject;
+
+            var textRect = CreateRect("Text", panel);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(10f, 4f);
+            textRect.offsetMax = new Vector2(-10f, -4f);
+            _tooltipText = textRect.gameObject.AddComponent<Text>();
+            _tooltipText.font = _font;
+            _tooltipText.fontSize = 15;
+            _tooltipText.alignment = TextAnchor.MiddleRight;
+            _tooltipText.color = Color.white;
+            _tooltipText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _tooltipText.verticalOverflow = VerticalWrapMode.Overflow;
+
+            _tooltipPanel.SetActive(false);
+        }
+
+        private void ShowTooltip(string text)
+        {
+            _tooltipText.text = text;
+            _tooltipPanel.SetActive(true);
+        }
+
+        private void HideTooltip() => _tooltipPanel.SetActive(false);
 
         // ---------- 승/패 오버레이 ----------
 

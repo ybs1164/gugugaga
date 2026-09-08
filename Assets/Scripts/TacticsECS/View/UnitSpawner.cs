@@ -30,7 +30,11 @@ namespace TacticsECS
             world.Set(id, new Attack { Value = definition.Attack });
             world.Set(id, new Defense { Value = definition.Defense });
             world.Set(id, new AttackRange { Value = definition.AttackRange });
-            world.Set(id, new CanGuard { Value = definition.CanGuard });
+
+            world.Set(id, new HealAmount { Value = definition.HealAmount });
+            world.Set(id, new HealRange { Value = definition.HealRange });
+
+            world.Set(id, new AvailableActions { Value = definition.AvailableActions });
 
             world.Set(id, new MoveRange { Value = definition.MoveRange });
             world.Set(id, new IgnoreTerrain { Value = definition.IgnoreTerrain });

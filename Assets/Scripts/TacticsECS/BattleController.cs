@@ -114,6 +114,8 @@ namespace TacticsECS
             _hud = hudGo.AddComponent<BattleHud>();
             _hud.Init();
             _hud.OnDefendClicked += HandleDefendClicked;
+            _hud.OnHealClicked += HandleHealClicked;
+            _hud.OnSelfDestructClicked += HandleSelfDestructClicked;
             _hud.OnDeselectClicked += ClearSelection;
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
@@ -399,8 +401,10 @@ namespace TacticsECS
             _gridView.ClearHighlights();
             int unitId = _selectedUnitId;
 
+            var available = _world.Get<AvailableActions>(unitId).Value;
+
             _reachableTiles = null;
-            if (!_world.Get<HasMoved>(unitId).Value)
+            if (available.HasFlag(ActionType.Move) && !_world.Get<HasMoved>(unitId).Value)
             {
                 var selfPos = _world.Get<GridPosition>(unitId).Value;
                 PathfindingSystem.GetReachable(_grid, _world, selfPos, unitId, out var reachable);
@@ -410,7 +414,7 @@ namespace TacticsECS
             }
 
             _attackableTargets = new List<int>();
-            if (!_world.Get<HasActed>(unitId).Value)
+            if (available.HasFlag(ActionType.Attack) && !_world.Get<HasActed>(unitId).Value)
             {
                 for (int enemyId = 0; enemyId < _world.EntityCount; enemyId++)
                 {
@@ -423,7 +427,7 @@ namespace TacticsECS
 
             _hud.ShowUnitPanel(_world, unitId);
             _hud.SetDeselectVisible(true);
-            _hud.SetDefendVisible(_world.Get<CanGuard>(unitId).Value && !_world.Get<HasActed>(unitId).Value);
+            _hud.SetUnitActions(available, _world.Get<HasActed>(unitId).Value);
         }
 
         private void MoveSelectedUnit(Vector2Int pos)
@@ -455,6 +459,36 @@ namespace TacticsECS
             ClearSelection();
         }
 
+        /// <summary>BattleHud의 치유 버튼 클릭 이벤트 핸들러. 대상 선택 없이 즉시 사거리 내
+        /// 모든 아군(자신 제외)을 회복시킨다.</summary>
+        private void HandleHealClicked()
+        {
+            if (_state != SelectState.UnitSelected) return;
+            if (!AbilitySystem.TryHeal(_world, _selectedUnitId, out var healedIds)) return;
+
+            _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
+            foreach (var id in healedIds)
+                _viewsById[id].Refresh(_world, id);
+
+            ClearSelection();
+        }
+
+        /// <summary>BattleHud의 자폭 버튼 클릭 이벤트 핸들러. 대상 선택 없이 즉시 자신을 제거하고
+        /// 주위 1칸의 모든 적에게 피해를 입힌다.</summary>
+        private void HandleSelfDestructClicked()
+        {
+            if (_state != SelectState.UnitSelected) return;
+            int unitId = _selectedUnitId;
+            if (!AbilitySystem.TrySelfDestruct(_grid, _world, unitId, out var damagedIds)) return;
+
+            _viewsById[unitId].Refresh(_world, unitId);
+            foreach (var id in damagedIds)
+                _viewsById[id].Refresh(_world, id);
+
+            CheckBattleEnd();
+            ClearSelection();
+        }
+
         private void ClearSelection()
         {
             _state = SelectState.None;
@@ -466,7 +500,7 @@ namespace TacticsECS
             {
                 _hud.HideUnitPanel();
                 _hud.SetDeselectVisible(false);
-                _hud.SetDefendVisible(false);
+                _hud.SetUnitActions(ActionType.None, hasActed: true);
             }
         }
     }

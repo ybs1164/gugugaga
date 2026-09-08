@@ -18,7 +18,15 @@ namespace TacticsECS
     [System.Serializable] public struct Attack { public int Value; }
     [System.Serializable] public struct Defense { public int Value; }
     [System.Serializable] public struct AttackRange { public int Value; }
-    [System.Serializable] public struct CanGuard { public bool Value; }
+
+    // ---- 치유 (스폰 후 불변) ----
+    [System.Serializable] public struct HealAmount { public int Value; }
+    [System.Serializable] public struct HealRange { public int Value; }
+
+    // ---- 사용 가능 행동 (스폰 후 불변) ----
+    // 이동/공격/방어/치유/자폭 중 이 유닛이 실제로 쓸 수 있는 것이 무엇인지는 오직 이 값 하나로 정해진다
+    // (UnitDefinition.availableActions에서 유닛 타입별로 직접 지정 -> 그대로 복사됨).
+    [System.Serializable] public struct AvailableActions { public ActionType Value; }
 
     // ---- 이동 방식 (스폰 후 불변) ----
     [System.Serializable] public struct MoveRange { public int Value; }

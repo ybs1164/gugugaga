@@ -17,6 +17,8 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
   turn.png     "Hourglass"          by Lorc         https://game-icons.net/1x1/lorc/hourglass.html
   victory.png  "Trophy"             by Lorc         https://game-icons.net/1x1/lorc/trophy.html
   defeat.png   "Skull-crossed bones" by Lorc        https://game-icons.net/1x1/lorc/skull-crossed-bones.html
+  heal.png     "Health potion"      by Delapouite   https://game-icons.net/1x1/delapouite/health-potion.html
+  selfdestruct.png "Grenade"        by Lorc         https://game-icons.net/1x1/lorc/grenade.html
 
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
 https://game-icons.net, under CC BY 3.0.

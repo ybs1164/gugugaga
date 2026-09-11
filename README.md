@@ -76,7 +76,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 | --- | --- | --- | --- | --- | --- | --- |
 | **Melee** (근접, `Unit_Melee.prefab`) | 12 | 5 | 1 | 3칸 | 1칸 | 이동력이 좋고 공격력이 높지만 방어가 약함. 적에게 바로 붙어 때리는 딜러. 이동/공격 외에 **자폭**을 쓸 수 있다. |
 | **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. 이동/공격 외에 **치유**(회복량 4, 사거리 2)를 쓸 수 있다. |
-| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). |
+| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). 추가로 **반격** 패시브를 갖고 있어, 자신의 사거리 안에서 공격받으면 자동으로 공격한 대상에게 피해를 되돌려준다. |
 
 ### 사용 가능 행동 (ActionType)
 
@@ -88,6 +88,11 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 - **치유**([`AbilitySystem.TryHeal`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 사거리(`HealRange`) 내의 모든 아군(자신 제외)의 체력을 `HealAmount`만큼 회복시킨다. 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용되는 자기 중심 광역 행동.
 - **자폭**([`AbilitySystem.TrySelfDestruct`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 행동 유닛을 즉시 제거하고, 주위 1칸(맨해튼 거리) 내의 모든 적에게 제거되는 시점의 남은 체력만큼 피해를 입힌다.
+
+`Counter`(반격)만 예외다 — 플레이어가 고르는 "행동"이 아니라 **공격을 받았을 때 자동으로 발동하는 패시브**라서
+`BattleHud`의 행동 버튼 목록(`OptionalActionDefs`)이 아니라 별도의 패시브 배지 목록(`PassiveDefs`)에 정의되고,
+클릭할 수 없는 정보 표시용 아이콘으로만 나타난다.
+- **반격**([`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs) 내부의 비공개 `TryCounter`): 공격이 성사되고 대상이 살아남았을 때, 대상이 `ActionType.Counter`를 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(대상 공격력 − 공격자 방어력, 최소 1)를 되돌려준다. 턴 행동이 아니라 패시브라서 `HasActed`는 건드리지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
 
 ### 겉모습 (3D 모델)
 
@@ -201,3 +206,11 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - **UI**: [`BattleHud`](Assets/Scripts/TacticsECS/View/BattleHud.cs)의 고정 3버튼(선택해제/방어/턴종료) 구조를 데이터 기반으로 재구성 — 방어/치유/자폭을 `(ActionType, 아이콘, 툴팁)` 표 하나로 정의하고, 선택된 유닛의 `AvailableActions`(그리고 `HasActed`)에 따라 보여줄 버튼만 동적으로 배치(`SetUnitActions`)한다. 행동 버튼(방어/치유/자폭/선택해제/턴종료) 각각에 마우스 진입/이탈 시 설명을 보여주는 툴팁을 붙였고, 풍선말 대신 버튼 줄 바로 위 고정된 한 구역(`BuildTooltip`)에 표시되게 해서 isometric 3D 화면과 겹쳐 가려지는 문제를 피했다.
   - **아이콘**: 기존 GameIcons 세트와 같은 출처인 [game-icons.net](https://game-icons.net)(CC BY 3.0)에서 치유="Health potion"(Delapouite), 자폭="Grenade"(Lorc) 2종을 새로 받아 `Assets/Art/GameIcons/Resources/Icons`에 추가하고 `LICENSE.txt`에 출처를 기록 — 기존 10종과 같은 512x512 검정 실루엣/투명 배경 스타일.
   - **검증**: Unity CLI 배치모드(`-executeMethod UnityEditor.SyncVS.SyncSolution`)로 전체 스크립트 재컴파일 — 에러 없음, 새 아이콘 2장 정상 임포트 확인.
+- 2026-09-11: 유닛 행동에 **반격**(패시브) 추가, UI에 패시브 전용 배지(동그라미 배경) 도입.
+  - **동기**: "공격을 받았을 때 공격받은 대상에게 데미지를 주는 패시브"를 추가하고, 다른 행동처럼 UI에 아이콘으로 보이되 패시브는 행동 버튼의 네모 배경과 구분되게 동그라미 배경으로 표시해달라는 요청.
+  - [`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs)에 `Counter` 플래그 추가. 다른 플래그와 달리 이 값은 플레이어가 누르는 "행동"이 아니라 항상 자동 발동하는 패시브임을 주석으로 명시.
+  - [`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs)이 공격이 성사되고 대상이 살아남으면 비공개 `TryCounter`를 호출 — 대상이 `Counter`를 갖고 공격자가 대상 사거리 안에 있으면 자동으로 피해를 되돌려주고, 그 반격으로 공격자가 죽으면 그 자리에서 occupant도 제거한다. 반격은 패시브라 `HasActed`를 건드리지 않는다. `TryAttack`이 `counterDamageDealt` out 파라미터를 새로 반환하도록 시그니처가 바뀌어 `BattleController`/`EnemyAI`의 호출부도 함께 갱신.
+  - **UI**: [`BattleHud`](Assets/Scripts/TacticsECS/View/BattleHud.cs)의 좌하단 유닛 패널에 패시브 배지 줄을 새로 추가(`PassiveDefs` 표, 선택된 유닛이 실제로 가진 패시브만 표시). 행동 버튼(`CreateIconButton`, 네모 배경 + `Button`)과 구분하기 위해 배지는 클릭 불가능한 표시 전용(`CreatePassiveBadge`)이고, 배경도 네모 `Image` 대신 런타임에 픽셀을 직접 채워 만든 원형 스프라이트(`CircleSprite`, 텍스처 임포트 설정을 건드리지 않기 위해 `IconLibrary`와 같은 방식으로 코드에서 생성)를 쓰며 색도 행동 버튼과 다른 보라색(`PassiveBadgeBg`)으로 한 번 더 구분했다. 마우스 호버 시 기존 툴팁 구역에 설명이 뜨는 것은 행동 버튼과 동일.
+  - **아이콘**: game-icons.net에 반격 전용 아이콘이 없어, 기존 10여 종과 같은 512x512 흰색 실루엣/투명 배경 스타일로 `counter.png`(되돌아오는 화살표 모양)를 직접 제작 — Unity 에디터 GUI 없이 PowerShell + System.Drawing(GDI+)으로 그려서 저장하고, 기존 아이콘의 `.meta`를 복사해 새 GUID만 교체(CLAUDE.md의 "에디터 직접 조작 금지" 원칙과 동일한 이유). `Assets/Art/GameIcons/LICENSE.txt`에 자체 제작임을 명시.
+  - **데모 배분**: `Unit_Guard.prefab`(탱커)의 `availableActions`에 `Counter`를 추가(7 → 39: Move+Attack+Defend+Counter) — 방어 태세와 궁합이 맞는 역할이라 판단.
+  - **검증**: Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 전체 재컴파일 — 컴파일 에러 없음 확인.

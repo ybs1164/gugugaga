@@ -26,7 +26,8 @@ namespace TacticsECS
         [SerializeField] private int healRange;
 
         [Header("Actions")]
-        [Tooltip("이 유닛 타입이 실제로 쓸 수 있는 행동 조합. 여기서 고른 것만 BattleHud 행동 버튼에 나타난다.")]
+        [Tooltip("이 유닛 타입이 실제로 쓸 수 있는 행동 조합. Move/Attack/Defend/Heal/SelfDestruct는 " +
+            "BattleHud 행동 버튼으로, Counter(반격)는 클릭 버튼이 아니라 자동 발동 패시브 배지로 나타난다.")]
         [SerializeField] private ActionType availableActions = ActionType.Move | ActionType.Attack;
 
         [Header("Movement")]

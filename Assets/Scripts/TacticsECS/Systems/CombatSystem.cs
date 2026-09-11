@@ -7,6 +7,8 @@ namespace TacticsECS
     /// 사거리는 맨해튼 거리 기준. 공격력/방어력/사거리는 EntityWorld에서 해당 컴포넌트
     /// (Attack/Defense/AttackRange)를 조회해서 읽고, 공격/방어를 실제로 쓸 수 있는지는
     /// AvailableActions(ActionType.Attack/Defend 플래그)로 판단한다.
+    /// TryAttack은 공격이 성사되면 대상의 반격 패시브(ActionType.Counter)도 함께 확인한다 —
+    /// 반격은 플레이어가 고르는 행동이 아니라 "공격을 받았을 때" 항상 자동으로 발동하는 패시브다.
     /// </summary>
     public static class CombatSystem
     {
@@ -36,9 +38,12 @@ namespace TacticsECS
             return Mathf.Max(1, dmg);
         }
 
-        public static bool TryAttack(GridWorld grid, EntityWorld world, int attackerId, int targetId, out int damageDealt)
+        /// <summary>공격이 실제로 성사됐는지와 별개로, 대상이 반격(ActionType.Counter)으로 되돌려준
+        /// 피해량을 counterDamageDealt로 함께 돌려준다(반격이 없었으면 0).</summary>
+        public static bool TryAttack(GridWorld grid, EntityWorld world, int attackerId, int targetId, out int damageDealt, out int counterDamageDealt)
         {
             damageDealt = 0;
+            counterDamageDealt = 0;
 
             if (!UnitQueries.IsAlive(world, attackerId) || !UnitQueries.IsAlive(world, targetId)) return false;
             if (world.Get<HasActed>(attackerId).Value) return false;
@@ -54,6 +59,30 @@ namespace TacticsECS
 
             if (!UnitQueries.IsAlive(world, targetId))
                 grid.RemoveOccupant(world.Get<GridPosition>(targetId).Value);
+            else
+                TryCounter(grid, world, defenderId: targetId, attackerId: attackerId, out counterDamageDealt);
+
+            return true;
+        }
+
+        /// <summary>패시브: 공격을 받고 살아남은 대상(defenderId)이 ActionType.Counter를 가지고 있고
+        /// 공격자가 대상 자신의 사거리 안에 있으면, 대상이 자동으로 공격자에게 피해를 되돌려준다.
+        /// 플레이어가 고르는 "행동"이 아니라 공격을 받았을 때 항상 발동하는 패시브라서, 일반 행동과
+        /// 달리 HasActed는 건드리지 않는다(대상이 이미 자기 턴에 행동을 마쳤어도 반격은 그대로 발동).</summary>
+        private static bool TryCounter(GridWorld grid, EntityWorld world, int defenderId, int attackerId, out int counterDamage)
+        {
+            counterDamage = 0;
+
+            if (!world.Get<AvailableActions>(defenderId).Value.HasFlag(ActionType.Counter)) return false;
+            if (!IsInAttackRange(world, defenderId, attackerId)) return false;
+
+            counterDamage = CalculateDamage(world, defenderId, attackerId);
+            var hp = world.Get<Hp>(attackerId);
+            hp.Value = Mathf.Max(0, hp.Value - counterDamage);
+            world.Set(attackerId, hp);
+
+            if (!UnitQueries.IsAlive(world, attackerId))
+                grid.RemoveOccupant(world.Get<GridPosition>(attackerId).Value);
 
             return true;
         }

@@ -25,6 +25,9 @@ namespace TacticsECS
         private static readonly Color PanelBackground = new Color(0.08f, 0.09f, 0.11f, 0.85f);
         private static readonly Color ButtonIdle = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color GuardHighlight = Color.yellow;
+        /// <summary>패시브 배지 전용 배경색. 클릭 가능한 행동 버튼(ButtonIdle, 네모 배경)과 같은 색을 쓰면
+        /// "누를 수 있는 것"처럼 보이므로, 자동 발동 패시브라는 걸 색으로도 한 번 더 구분한다.</summary>
+        private static readonly Color PassiveBadgeBg = new Color(0.42f, 0.24f, 0.55f, 0.95f);
 
         private Font _font;
 
@@ -39,6 +42,17 @@ namespace TacticsECS
         private Text _defenseText;
         private Text _moveText;
         private Text _rangeText;
+
+        /// <summary>유닛이 가진 패시브 하나를 나타내는 배지(동그라미 배경). 행동 버튼과 달리 클릭할 수
+        /// 없고, 선택된 유닛의 AvailableActions에 Flag가 있을 때만 나타난다(ShowUnitPanel).</summary>
+        private struct PassiveBadge
+        {
+            public ActionType Flag;
+            public RectTransform Rect;
+        }
+
+        private PassiveBadge[] _passiveBadges;
+        private float _passiveRowTop;
 
         /// <summary>유닛별로 있을 수도, 없을 수도 있는 행동 버튼 하나. Flag가 선택된 유닛의
         /// AvailableActions에 있을 때만 화면에 나타난다(LayoutActionBar).</summary>
@@ -115,6 +129,40 @@ namespace TacticsECS
             return img;
         }
 
+        private static Sprite _circleSprite;
+
+        /// <summary>가득 찬 흰 원 스프라이트(1개만 만들어 재사용). 패시브 배지의 "동그라미 배경"에 쓴다 —
+        /// 행동 버튼(CreateIconButton)의 네모 배경과 모양으로 구분하기 위해서다. 텍스처 임포트 설정을
+        /// 건드리지 않고(IconLibrary와 같은 이유) 런타임에 픽셀을 직접 채워 만든다.</summary>
+        private static Sprite CircleSprite
+        {
+            get
+            {
+                if (_circleSprite != null) return _circleSprite;
+
+                const int res = 64;
+                var tex = new Texture2D(res, res, TextureFormat.RGBA32, false) { name = "CircleBadge" };
+                var center = new Vector2((res - 1) * 0.5f, (res - 1) * 0.5f);
+                float radius = res * 0.5f;
+                var pixels = new Color32[res * res];
+                for (int y = 0; y < res; y++)
+                {
+                    for (int x = 0; x < res; x++)
+                    {
+                        float dist = Vector2.Distance(new Vector2(x, y), center);
+                        // 가장자리 1px만 부드럽게(anti-alias) 처리해 확대해도 계단 현상이 덜하게 한다.
+                        float alpha = Mathf.Clamp01(radius - dist + 0.5f);
+                        pixels[y * res + x] = new Color(1f, 1f, 1f, alpha);
+                    }
+                }
+                tex.SetPixels32(pixels);
+                tex.Apply();
+
+                _circleSprite = Sprite.Create(tex, new Rect(0f, 0f, res, res), new Vector2(0.5f, 0.5f), 100f);
+                return _circleSprite;
+            }
+        }
+
         /// <summary>parent의 좌상단을 기준으로 놓이는 정사각 아이콘.</summary>
         private static Image CreateIcon(string name, Transform parent, string iconName, float size, Vector2 anchoredPos)
         {
@@ -179,13 +227,20 @@ namespace TacticsECS
 
         // ---------- 선택 유닛 능력치 패널 (좌하단) ----------
 
+        /// <summary>유닛이 가질 수 있는 패시브 전부와, 그 아이콘·툴팁 설명. 새 패시브가 생기면
+        /// (OptionalActionDefs와 마찬가지로) 이 배열에 한 줄만 추가하면 되고 BattleController는 몰라도 된다.</summary>
+        private static readonly (ActionType Flag, string Icon, string Tooltip)[] PassiveDefs =
+        {
+            (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
+        };
+
         private void BuildUnitPanel(Transform root)
         {
             var panel = CreateRect("UnitPanel", root);
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
             panel.pivot = new Vector2(0f, 0f);
             panel.anchoredPosition = new Vector2(16f, 16f);
-            panel.sizeDelta = new Vector2(150f, 168f);
+            panel.sizeDelta = new Vector2(150f, 206f);
             CreatePanelImage(panel, PanelBackground);
             _unitPanel = panel.gameObject;
 
@@ -232,6 +287,51 @@ namespace TacticsECS
             top -= rowH;
             CreateIcon("RangeIcon", panel, "range", 22f, new Vector2(14f, top));
             _rangeText = CreateNumberText("RangeText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
+
+            // ---- 패시브 배지 줄 (동그라미 배경 — 위 능력치 아이콘의 네모 자리와 모양으로 구분) ----
+            top -= rowH;
+            _passiveRowTop = top;
+            _passiveBadges = new PassiveBadge[PassiveDefs.Length];
+            for (int i = 0; i < PassiveDefs.Length; i++)
+            {
+                var def = PassiveDefs[i];
+                var rect = CreatePassiveBadge(panel, def.Icon, def.Tooltip);
+                _passiveBadges[i] = new PassiveBadge { Flag = def.Flag, Rect = rect };
+            }
+        }
+
+        private const float PassiveBadgeSize = 26f;
+        private const float PassiveBadgeGap = 6f;
+
+        /// <summary>패시브 하나를 나타내는 동그라미 배경 배지. 행동 버튼(CreateIconButton, 네모 배경 +
+        /// Button)과 달리 클릭할 수 없는 순수 정보 표시용이라 Button 컴포넌트 없이 호버 시 툴팁만 띄운다.</summary>
+        private RectTransform CreatePassiveBadge(Transform parent, string iconName, string tooltip)
+        {
+            var rect = CreateRect("Passive_" + iconName, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = new Vector2(PassiveBadgeSize, PassiveBadgeSize);
+
+            var bg = rect.gameObject.AddComponent<Image>();
+            bg.sprite = CircleSprite;
+            bg.color = PassiveBadgeBg;
+
+            var iconRect = CreateRect("Icon", rect);
+            iconRect.anchorMin = Vector2.zero;
+            iconRect.anchorMax = Vector2.one;
+            iconRect.offsetMin = new Vector2(4f, 4f);
+            iconRect.offsetMax = new Vector2(-4f, -4f);
+            var icon = iconRect.gameObject.AddComponent<Image>();
+            icon.sprite = IconLibrary.Get(iconName);
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+
+            var trigger = rect.gameObject.AddComponent<TooltipTrigger>();
+            trigger.Text = tooltip;
+            trigger.OnEnter = ShowTooltip;
+            trigger.OnExit = HideTooltip;
+
+            return rect;
         }
 
         /// <summary>선택된 유닛 하나의 능력치를 그대로 읽어서 보여준다. UnitView.Refresh와 같은 방식으로
@@ -260,6 +360,19 @@ namespace TacticsECS
 
             _moveText.text = world.Get<MoveRange>(unitId).Value.ToString();
             _rangeText.text = world.Get<AttackRange>(unitId).Value.ToString();
+
+            // 패시브 배지: 이 유닛이 실제로 가진 것만, 왼쪽부터 빈틈없이 채워서 보여준다
+            // (행동 버튼 줄, SetUnitActions와 같은 방식).
+            var available = world.Get<AvailableActions>(unitId).Value;
+            float px = 14f;
+            foreach (var badge in _passiveBadges)
+            {
+                bool show = (available & badge.Flag) != 0;
+                badge.Rect.gameObject.SetActive(show);
+                if (!show) continue;
+                badge.Rect.anchoredPosition = new Vector2(px, _passiveRowTop);
+                px += PassiveBadgeSize + PassiveBadgeGap;
+            }
         }
 
         public void HideUnitPanel() => _unitPanel.SetActive(false);

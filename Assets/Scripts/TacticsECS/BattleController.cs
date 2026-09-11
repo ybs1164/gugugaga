@@ -439,7 +439,7 @@ namespace TacticsECS
 
         private void TryAttack(int attackerId, int targetId)
         {
-            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out _)) return;
+            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out _, out _)) return;
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);

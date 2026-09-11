@@ -38,7 +38,7 @@ namespace TacticsECS
 
                 if (CombatSystem.IsInAttackRange(world, id, nearestId))
                 {
-                    if (CombatSystem.TryAttack(grid, world, id, nearestId, out _))
+                    if (CombatSystem.TryAttack(grid, world, id, nearestId, out _, out _))
                         attacks.Add((id, nearestId));
                     continue;
                 }
@@ -62,7 +62,7 @@ namespace TacticsECS
                     MovementSystem.TryMove(grid, world, id, best.Value);
                     if (CombatSystem.IsInAttackRange(world, id, nearestId))
                     {
-                        if (CombatSystem.TryAttack(grid, world, id, nearestId, out _))
+                        if (CombatSystem.TryAttack(grid, world, id, nearestId, out _, out _))
                             attacks.Add((id, nearestId));
                     }
                 }

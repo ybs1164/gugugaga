@@ -19,6 +19,8 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
   defeat.png   "Skull-crossed bones" by Lorc        https://game-icons.net/1x1/lorc/skull-crossed-bones.html
   heal.png     "Health potion"      by Delapouite   https://game-icons.net/1x1/delapouite/health-potion.html
   selfdestruct.png "Grenade"        by Lorc         https://game-icons.net/1x1/lorc/grenade.html
+  counter.png  "반격(Counter) - 자체 제작" (game-icons.net 스타일의 흰색 실루엣, 다른 아이콘과
+               동일하게 System.Drawing으로 직접 그린 원본 아이콘. 외부 라이선스 대상 아님)
 
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
-https://game-icons.net, under CC BY 3.0.
+https://game-icons.net, under CC BY 3.0. (counter.png 제외 — 자체 제작)

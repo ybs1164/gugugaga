@@ -2,13 +2,14 @@
 
 CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조합), 그 목록을 인게임에서 불러와 그리드에
 자유 배치한 뒤 실제 턴제 전투로 동작을 확인하는 샌드박스 모드. 새 게임플레이 규칙은 추가하지 않는다 —
-기존 6개 행동(Move/Attack/Defend/Heal/SelfDestruct/Counter)의 조합과 파라미터 값만 CSV로 표현한다.
+기존 8개 행동(Move/Attack/Defend/Heal/SelfDestruct/Counter/Charge/Retreat)의 조합과 파라미터 값만 CSV로
+표현한다.
 
 ## CSV 스키마
 
 한 행 = 유닛 타입 하나. 예시: [`docs/sample_units.csv`](sample_units.csv) — Melee/Ranged/Guard는 실제 게임
 프리팹과 같은 조합(각각 SelfDestruct/Heal/Defend+Counter)으로 6개 행동을 전부 한 번씩 보여주고, Cleric은
-Heal+Defend+Counter를 한 유닛에 합성한 커스텀 예시다.
+Heal+Defend+Counter를, Duelist는 Charge+Retreat를 한 유닛에 합성한 커스텀 예시다.
 
 | 컬럼 | 의미 | 비고 |
 |---|---|---|
@@ -21,7 +22,14 @@ Heal+Defend+Counter를 한 유닛에 합성한 커스텀 예시다.
 | `Attack.Attack` / `Attack.Range` | Attack 파라미터 | `Actions`에 `Attack`이 있을 때만 사용. Counter는 별도 값 없이 이 값을 그대로 재사용 |
 | `Heal.Amount` / `Heal.Range` | Heal 파라미터 | `Actions`에 `Heal`이 있을 때만 사용 |
 
-`Defend` / `SelfDestruct` / `Counter`는 자체 파라미터가 없다 — `Actions`에 이름만 넣으면 된다.
+`Defend` / `SelfDestruct` / `Counter` / `Charge` / `Retreat`는 자체 파라미터가 없다 — `Actions`에 이름만
+넣으면 된다.
+
+**Charge(돌격)/Retreat(대피)**: 기본적으로 유닛은 턴당 이동 또는 공격 중 하나만 할 수 있다(이동하면 그
+턴엔 공격 불가, 공격하면 그 턴엔 이동 불가). `Charge`는 이동한 뒤에도 공격할 수 있게, `Retreat`는 공격한
+뒤에도 이동할 수 있게 그 제약을 풀어주는 예외 패시브다. 둘 다 가지고 있어도 이동/공격은 여전히 턴당
+1회씩으로 제한된다 — 예를 들어 공격 → (Retreat로) 이동까지 한 뒤에는, Charge가 있어도 이미 이번 턴
+공격을 마쳤으므로 다시 공격할 수 없다.
 
 **Actions 컬럼이 세미콜론인 이유**: CSV 컬럼 구분자는 쉼표라서, 한 컬럼 안에 여러 행동 이름을 담으려면
 쉼표와 겹치지 않는 다른 구분자가 필요하다.
@@ -32,6 +40,7 @@ Heal+Defend+Counter를 한 유닛에 합성한 커스텀 예시다.
 - 반격형 탱커: `Move;Attack;Defend;Counter`
 - 서포터: `Move;Heal;Defend` (공격 없이 회복/방어만)
 - 자폭 유닛: `Move;SelfDestruct`
+- 돌격형 듀얼리스트: `Move;Attack;Charge;Retreat` (이동/공격 순서에 상관없이 둘 다 할 수 있는 유닛)
 
 ### 비목표 (v1)
 
@@ -46,8 +55,8 @@ Heal+Defend+Counter를 한 유닛에 합성한 커스텀 예시다.
 2. 좌상단 **불러오기**를 누르면 OS 파일 탐색기(열기 대화상자)가 뜬다 — 불러올 CSV 파일을 고른다.
 3. 팔레트에서 배치할 유닛을, 그 아래 버튼에서 팀(플레이어/적)을 고른다.
 4. 그리드의 빈 칸을 클릭하면 그 자리에 유닛이 놓인다. 이미 유닛이 있는 칸을 클릭하면 치워진다.
-5. 배치가 끝나면 우하단 **전투 시작**을 누른다 — 이후로는 평소와 동일한 턴제 전투(이동/공격/방어/치유/자폭/반격)가
-   그대로 진행된다.
+5. 배치가 끝나면 우하단 **전투 시작**을 누른다 — 이후로는 평소와 동일한 턴제 전투(이동/공격/방어/치유/자폭/반격/
+   돌격/대피)가 그대로 진행된다.
 6. 언제든 **내보내기**를 누르면 OS 파일 탐색기(저장 대화상자)가 뜨고, 고른 경로로 마지막에 불러온 유닛 목록이
    CSV로 저장된다(배치된 유닛의 위치가 아니라, 팔레트로 쓰인 "유닛 정의 목록" 자체를 그대로 내보내는 것 — CSV에서
    값을 조정하고 다시 불러오는 반복 실험용).

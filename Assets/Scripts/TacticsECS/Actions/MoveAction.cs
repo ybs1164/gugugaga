@@ -7,6 +7,8 @@ namespace TacticsECS
     /// 판정과 실제 이동(그리드 occupant 갱신 포함)을 전부 이 클래스가 직접 담당한다 — 예전
     /// MovementSystem.TryMove에 있던 로직이 그대로 이 안으로 옮겨왔다. MovementSystem은 이제
     /// UnitActionQueries로 이 행동을 찾아 Execute를 호출해주는 얇은 진입점일 뿐이다.
+    /// 기본적으로 이번 턴 이미 공격한 유닛은 이동할 수 없다(이동 또는 공격 중 하나만) — 대피
+    /// (RetreatAction)를 가진 유닛만 그 제약의 예외로 공격 후에도 이동할 수 있다.
     /// </summary>
     [System.Serializable]
     public class MoveAction : IMoveAction
@@ -38,7 +40,8 @@ namespace TacticsECS
         public bool AllowDiagonal => allowDiagonal;
 
         public bool CanExecute(EntityWorld world, int unitId) =>
-            UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value;
+            UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value &&
+            (!world.Get<HasActed>(unitId).Value || UnitActionQueries.Find<RetreatAction>(world, unitId) != null);
 
         public bool Execute(GridWorld grid, EntityWorld world, int unitId, Vector2Int destination)
         {

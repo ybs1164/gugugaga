@@ -3,3 +3,4 @@ Melee,12,1,Melee,#3380FF,#FF6633,Move;Attack;SelfDestruct,3,False,False,False,5,
 Ranged,8,0,Ranged,#33CC80,#FFB233,Move;Attack;Heal,2,False,False,False,4,3,4,2
 Guard,9,3,Guard,#19337F,#991919,Move;Attack;Defend;Counter,2,False,False,False,3,1,0,0
 Cleric,10,1,Ranged,#33CC88,#CCAA33,Move;Attack;Heal;Defend;Counter,2,False,False,False,2,1,4,3
+Duelist,9,0,Melee,#CC6633,#33AACC,Move;Attack;Charge;Retreat,3,False,False,False,4,1,0,0

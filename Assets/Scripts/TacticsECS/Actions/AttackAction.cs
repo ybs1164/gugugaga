@@ -7,6 +7,8 @@ namespace TacticsECS
     /// 담당한다 — 예전 CombatSystem.TryAttack 본체 로직이 그대로 이 안으로 옮겨왔다. CombatSystem은
     /// 이제 이 행동을 찾아 실행한 뒤, 대상의 CounterAction을 찾아 이어서 실행해주는 진입점일 뿐이다.
     /// 반격(CounterAction)은 별도 값을 갖지 않고 이 행동의 Attack/AttackRange를 그대로 재사용한다.
+    /// 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다(이동 또는 공격 중 하나만) — 돌격
+    /// (ChargeAction)을 가진 유닛만 그 제약의 예외로 이동 후에도 공격할 수 있다.
     /// </summary>
     [System.Serializable]
     public class AttackAction : ITargetedAction
@@ -24,7 +26,8 @@ namespace TacticsECS
         public int AttackRange => attackRange;
 
         public bool CanExecute(EntityWorld world, int unitId) =>
-            UnitQueries.IsAlive(world, unitId) && !world.Get<HasActed>(unitId).Value;
+            UnitQueries.IsAlive(world, unitId) && !world.Get<HasActed>(unitId).Value &&
+            (!world.Get<HasMoved>(unitId).Value || UnitActionQueries.Find<ChargeAction>(world, unitId) != null);
 
         public bool Execute(GridWorld grid, EntityWorld world, int actorId, int targetId, out int amount)
         {

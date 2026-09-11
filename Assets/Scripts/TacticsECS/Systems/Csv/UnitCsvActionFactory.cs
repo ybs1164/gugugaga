@@ -27,6 +27,10 @@ namespace TacticsECS
                 actions.Add(new SelfDestructAction());
             if ((row.Actions & ActionType.Counter) != 0)
                 actions.Add(new CounterAction());
+            if ((row.Actions & ActionType.Charge) != 0)
+                actions.Add(new ChargeAction());
+            if ((row.Actions & ActionType.Retreat) != 0)
+                actions.Add(new RetreatAction());
 
             return actions;
         }

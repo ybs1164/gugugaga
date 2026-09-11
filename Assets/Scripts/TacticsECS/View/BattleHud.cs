@@ -236,6 +236,8 @@ namespace TacticsECS
         private static readonly (ActionType Flag, string Icon, string Tooltip)[] PassiveDefs =
         {
             (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
+            (ActionType.Charge, "charge", "돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다."),
+            (ActionType.Retreat, "retreat", "대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다."),
         };
 
         private void BuildUnitPanel(Transform root)

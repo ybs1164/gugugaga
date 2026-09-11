@@ -21,6 +21,10 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
   selfdestruct.png "Grenade"        by Lorc         https://game-icons.net/1x1/lorc/grenade.html
   counter.png  "반격(Counter) - 자체 제작" (game-icons.net 스타일의 흰색 실루엣, 다른 아이콘과
                동일하게 System.Drawing으로 직접 그린 원본 아이콘. 외부 라이선스 대상 아님)
+  charge.png   "돌격(Charge) - 자체 제작" (counter.png와 동일한 방식 — 흰색 실루엣, 오른쪽을 향한
+               돌진 화살표(쉐브론) 3개를 겹쳐 그린 원본 아이콘. 외부 라이선스 대상 아님)
+  retreat.png  "대피(Retreat) - 자체 제작" (charge.png를 좌우 반전한 원본 아이콘. 외부 라이선스
+               대상 아님)
 
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
-https://game-icons.net, under CC BY 3.0. (counter.png 제외 — 자체 제작)
+https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png 제외 — 자체 제작)

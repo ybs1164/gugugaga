@@ -83,11 +83,12 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
-어떤 유닛이 이동/공격/방어/치유/자폭/반격 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는
-**값이 아니라 행동 자신**이 정한다. 여섯 행동
+어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을
+하는지는 **값이 아니라 행동 자신**이 정한다. 여덟 행동
 ([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
 [`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
-[`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs))
+[`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs)/
+[`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs)/[`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs))
 은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
 아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
 이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
@@ -114,10 +115,21 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 - **치유**([`HealAction.Execute`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)): 사거리(`HealRange`) 내의 모든 아군(자신 제외)의 체력을 `HealAmount`만큼 회복시킨다. 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용되는 자기 중심 광역 행동.
 - **자폭**([`SelfDestructAction.Execute`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)): 행동 유닛을 즉시 제거하고, 주위 1칸(맨해튼 거리) 내의 모든 적에게 제거되는 시점의 남은 체력만큼 피해를 입힌다.
 
-`Counter`(반격)만 예외다 — 플레이어가 고르는 "행동"이 아니라 **공격을 받았을 때 자동으로 발동하는 패시브**라서
-`BattleHud`의 행동 버튼 목록(`OptionalActionDefs`)이 아니라 별도의 패시브 배지 목록(`PassiveDefs`)에 정의되고,
-클릭할 수 없는 정보 표시용 아이콘으로만 나타난다.
+`Counter`(반격)/`Charge`(돌격)/`Retreat`(대피)는 예외다 — 플레이어가 고르는 "행동"이 아니라 **항상 자동으로
+적용되는 패시브**라서 `BattleHud`의 행동 버튼 목록(`OptionalActionDefs`)이 아니라 별도의 패시브 배지 목록
+(`PassiveDefs`)에 정의되고, 클릭할 수 없는 정보 표시용 아이콘으로만 나타난다.
 - **반격**([`CounterAction.Execute`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs), [`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs)이 공격 성사 후 대상 쪽에서 찾아 호출): 공격이 성사되고 대상이 살아남았을 때, 대상이 `CounterAction`을 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(대상 공격력 − 공격자 방어력, 최소 1)를 되돌려준다. 턴 행동이 아니라 패시브라서 `CanExecute`가 `HasActed`를 보지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
+
+기본적으로 한 턴에 이동 또는 공격 중 하나만 할 수 있다 — 이동하면 그 턴엔 더 이상 공격할 수 없고
+(`AttackAction.CanExecute`가 `HasMoved`를 봄), 공격하면 그 턴엔 더 이상 이동할 수 없다(`MoveAction.CanExecute`가
+`HasActed`를 봄). `Charge`/`Retreat`는 값 없는 순수 마커 패시브로, 그 제약을 한쪽 방향으로만 풀어준다:
+- **돌격**([`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs), `AttackAction.CanExecute`가 `UnitActionQueries.Find`로 보유 여부만 확인): 이번 턴 이미 이동했어도 공격할 수 있다.
+- **대피**([`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs), `MoveAction.CanExecute`가 `UnitActionQueries.Find`로 보유 여부만 확인): 이번 턴 이미 공격했어도 이동할 수 있다.
+
+둘 다 가진 유닛도 이동/공격은 여전히 턴당 1회씩만 가능하다(각각 `HasMoved`/`HasActed`로 제한) — 예를 들어
+공격 → (대피로) 이동까지 마친 뒤에는, 돌격이 있어도 이미 이번 턴 공격을 마쳤으므로("대피로 이동한 뒤 다시
+공격"은 발동하지 않음) 다시 공격할 수 없다. 별도 상태 없이 기존 `HasMoved`/`HasActed` 조합만으로 이 제약이
+자연히 성립한다.
 
 ### 겉모습 (3D 모델)
 
@@ -130,8 +142,8 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 ## 조작법
 
 - **유닛 선택**: 자기 팀(플레이어) 유닛을 좌클릭. 이미 이동+행동을 모두 마친 유닛이나 적/빈 타일을 클릭하면 선택이 풀린다.
-- **이동**: 유닛 선택 시 파란색으로 하이라이트된 타일이 이동 가능 범위. 그 타일을 클릭하면 이동한다 (턴당 1회).
-- **공격**: 하이라이트된 빨간 타일 위의 적 유닛을 클릭하면 공격한다 (턴당 1회, 이동 여부와 무관하게 가능).
+- **이동**: 유닛 선택 시 파란색으로 하이라이트된 타일이 이동 가능 범위. 그 타일을 클릭하면 이동한다 (턴당 1회). 기본적으로 이번 턴 이미 공격한 유닛은 이동할 수 없다 — 대피(Retreat) 패시브가 있으면 예외.
+- **공격**: 하이라이트된 빨간 타일 위의 적 유닛을 클릭하면 공격한다 (턴당 1회). 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다 — 돌격(Charge) 패시브가 있으면 예외.
 - **행동 버튼**(화면 우하단): 선택한 유닛의 `AvailableActions`에 있는 행동만, 아직 행동하지 않았을 때만 나타난다 — 방어 태세(Guard), 치유(Ranged), 자폭(Melee)은 모두 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용된다.
 - **행동 설명 툴팁**: 행동 버튼(방어/치유/자폭/선택 해제/턴 종료) 위에 마우스를 올리면, 버튼 줄 바로 위 한 구역에 그 행동에 대한 설명이 뜬다.
 - **선택 해제** 버튼: 현재 선택을 취소한다.
@@ -165,6 +177,11 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 - 2026-09-04: 유닛 설명/조작법을 README에 정리, 카메라를 정통 isometric 구도(45도/35.264도 + orthographic)로 변경.
   - `BattleController.PositionCamera`가 기존의 임의 각도 원근 카메라 대신 대각선 45도 + 피치 35.264도, orthographic 투영을 사용하도록 수정. 인스펙터에서 각도/줌 조정 가능하도록 `SerializeField` 추가.
   - Unity Editor가 이미 열려 있어 CLI 헤드리스 빌드로는 검증하지 못함(같은 프로젝트 중복 실행 불가) — 표준 Unity API만 사용한 코드 리뷰로 확인.
+- 2026-09-11: 돌격/대피 패시브 추가.
+  - 기본 규칙 변경: 유닛은 턴당 이동 또는 공격 중 하나만 할 수 있다(`AttackAction.CanExecute`가 `HasMoved`를, `MoveAction.CanExecute`가 `HasActed`를 보도록 수정). 기존에는 둘 다 순서 상관없이 자유롭게 가능했다.
+  - 값 없는 순수 마커 패시브 [`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs)(돌격: 이동 후에도 공격 가능)/[`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs)(대피: 공격 후에도 이동 가능) 추가 — `Counter`와 같은 패턴으로 자동 적용되는 배지 패시브. "대피로 이동 후 다시 공격 발동 안 함"은 기존 `HasActed`(공격 턴당 1회 제한) 하나로 자연히 성립해 별도 상태가 필요 없다.
+  - `ActionType.Charge`/`Retreat` 플래그, `UnitCsvActionFactory`/CSV 연동, `BattleHud.PassiveDefs` 배지(자체 제작 아이콘 `charge.png`/`retreat.png` 추가, `Assets/Art/GameIcons/LICENSE.txt` 갱신) 반영.
+  - 검증: Unity CLI 헤드리스 컴파일(`unity run . -- -nographics`) 통과. `MoveAction`/`AttackAction.CanExecute`를 4가지 시나리오(패시브 없음/돌격만/대피만/둘 다)로 직접 호출하는 임시 Edit Mode 스크립트를 `-executeMethod`로 실행해 14개 assertion 전부 통과 확인 후 스크립트 삭제. 기존 CSV 파이프라인 검증 도구(`unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run`)에 `Charge;Retreat` 조합의 `Duelist` 샘플 행([`docs/sample_units.csv`](docs/sample_units.csv))을 추가해 재실행, `ALL PASS` 확인.
 - 2026-09-04: 콘솔 경고 "Missing types referenced from component UniversalRenderPipelineGlobalSettings ... UnityEngine.PathTracing.Core.WorldRenderPipelineResources" 해결.
   - 원인: `UniversalRenderPipelineGlobalSettings.asset`이 GPU Path Tracing 리소스(`WorldRenderPipelineResources`, `Unity.PathTracing.Runtime` 어셈블리)를 참조하는데, 해당 타입을 제공하는 에디터 내장 패키지 `com.unity.path-tracing`이 `Packages/manifest.json`에 누락되어 있었음.
   - 조치: Unity CLI 배치모드(`-executeMethod`로 `UnityEditor.PackageManager.Client.Add("com.unity.path-tracing")` 실행)로 패키지 추가 → 리졸브 확인 후 재검증. 에디터 GUI(Package Manager 창)는 사용하지 않음.

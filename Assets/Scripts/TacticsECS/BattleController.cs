@@ -404,7 +404,8 @@ namespace TacticsECS
             var available = _world.Get<AvailableActions>(unitId).Value;
 
             _reachableTiles = null;
-            if (available.HasFlag(ActionType.Move) && !_world.Get<HasMoved>(unitId).Value)
+            var move = UnitActionQueries.Find<MoveAction>(_world, unitId);
+            if (move != null && move.CanExecute(_world, unitId))
             {
                 var selfPos = _world.Get<GridPosition>(unitId).Value;
                 PathfindingSystem.GetReachable(_grid, _world, selfPos, unitId, out var reachable);
@@ -414,7 +415,8 @@ namespace TacticsECS
             }
 
             _attackableTargets = new List<int>();
-            if (available.HasFlag(ActionType.Attack) && !_world.Get<HasActed>(unitId).Value)
+            var attack = UnitActionQueries.Find<AttackAction>(_world, unitId);
+            if (attack != null && attack.CanExecute(_world, unitId))
             {
                 for (int enemyId = 0; enemyId < _world.EntityCount; enemyId++)
                 {
@@ -453,7 +455,7 @@ namespace TacticsECS
         private void HandleDefendClicked()
         {
             if (_state != SelectState.UnitSelected) return;
-            if (!CombatSystem.TryDefend(_world, _selectedUnitId)) return;
+            if (!CombatSystem.TryDefend(_grid, _world, _selectedUnitId)) return;
 
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             ClearSelection();
@@ -464,7 +466,7 @@ namespace TacticsECS
         private void HandleHealClicked()
         {
             if (_state != SelectState.UnitSelected) return;
-            if (!AbilitySystem.TryHeal(_world, _selectedUnitId, out var healedIds)) return;
+            if (!AbilitySystem.TryHeal(_grid, _world, _selectedUnitId, out var healedIds)) return;
 
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)

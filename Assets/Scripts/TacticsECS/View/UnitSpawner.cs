@@ -35,6 +35,7 @@ namespace TacticsECS
             world.Set(id, new HealRange { Value = definition.HealRange });
 
             world.Set(id, new AvailableActions { Value = definition.AvailableActions });
+            world.Set(id, new UnitActions { Value = definition.Actions });
 
             world.Set(id, new MoveRange { Value = definition.MoveRange });
             world.Set(id, new IgnoreTerrain { Value = definition.IgnoreTerrain });

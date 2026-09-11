@@ -3,28 +3,16 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 이동 판정/적용을 담당하는 시스템. EntityWorld/GridWorld를 읽고 쓸 뿐, 자체 상태는 없다.
-    /// 목적지 통과 가능 여부는 이동하는 엔티티의 IgnoreTerrain/IgnoreUnitBlocking 컴포넌트 값을 따른다.
+    /// 이동의 진입점. 실제 판정(생존/이번 턴 이동 여부/지형/유닛 차단)과 적용(그리드 occupant 갱신
+    /// 포함)은 유닛이 가진 MoveAction(Assets/Scripts/TacticsECS/Actions/MoveAction.cs)이 직접 담당하고,
+    /// 이 System은 UnitActionQueries로 그 행동을 찾아 위임할 뿐이다.
     /// </summary>
     public static class MovementSystem
     {
         public static bool TryMove(GridWorld grid, EntityWorld world, int unitId, Vector2Int destination)
         {
-            if (!UnitQueries.IsAlive(world, unitId) || world.Get<HasMoved>(unitId).Value) return false;
-            if (!world.Get<AvailableActions>(unitId).Value.HasFlag(ActionType.Move)) return false;
-            if (!grid.InBounds(destination)) return false;
-
-            if (!world.Get<IgnoreTerrain>(unitId).Value && !grid.IsWalkable(destination)) return false;
-
-            int occ = grid.GetOccupant(destination);
-            if (!world.Get<IgnoreUnitBlocking>(unitId).Value && occ != TileData.NoOccupant && occ != unitId) return false;
-
-            grid.RemoveOccupant(world.Get<GridPosition>(unitId).Value);
-            world.Set(unitId, new GridPosition { Value = destination });
-            world.Set(unitId, new HasMoved { Value = true });
-            grid.PlaceOccupant(destination, unitId);
-
-            return true;
+            var move = UnitActionQueries.Find<MoveAction>(world, unitId);
+            return move != null && move.Execute(grid, world, unitId, destination);
         }
     }
 }

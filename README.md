@@ -27,9 +27,11 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   발급된다. "유닛"이라는 개념은 여기 없다 — 엔티티는 그냥 "무언가가 존재한다"는 표시일 뿐이다.
 - **컴포넌트(Component)** — 엔티티에 붙는 값 하나. [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)에
   `Team`(팀), `GridPosition`(위치), `Hp`/`MaxHp`(체력), `Attack`/`Defense`/`AttackRange`(전투), `HealAmount`/`HealRange`(치유),
-  `AvailableActions`([`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 — 이 유닛이 실제로 쓸 수 있는 행동 조합),
-  `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로
-  정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
+  `UnitActions`(이 유닛이 실제로 쓸 수 있는 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs) 목록 —
+  실행 가능 여부/효과 판단의 단일 기준점, 자세한 내용은 [사용 가능 행동](#사용-가능-행동-assetsscriptstacticsecsactions) 참고),
+  `AvailableActions`([`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 — 실행 판정에는 관여하지 않는
+  UI/CSV용 플레이스홀더 태그), `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동),
+  `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로 정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
 
 `EntityWorld` 자체는 오직 `Set<T>(id, value)` / `Get<T>(id)` 두 메서드만 제공한다. 컴포넌트 타입 `T`마다 내부적으로
 완전히 분리된 리스트를 하나씩 두고(같은 id는 모든 리스트에서 같은 인덱스를 가리킨다), `Get<Hp>(3)`이라고 부르면
@@ -55,7 +57,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 `UnitSpawner.Spawn`/`UnitView`/`UnitDefinition` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
 스폰 시 [`UnitSpawner`](Assets/Scripts/TacticsECS/View/UnitSpawner.cs)가 `UnitDefinition`의 값을 위 컴포넌트들로 하나씩 옮겨 담는다.
-`UnitDefinition`이 갖는 "행동의 집합"(`actions`)에 대해서는 바로 아래 [사용 가능 행동](#사용-가능-행동-actiontype--iunitaction) 참고.
+`UnitDefinition`이 갖는 "행동의 집합"(`actions`)에 대해서는 바로 아래 [사용 가능 행동](#사용-가능-행동-assetsscriptstacticsecsactions) 참고.
 
 ### 이동 방식
 
@@ -70,8 +72,8 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 기본 3종 유닛은 모두 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`이 꺼진 평범한 지상 4방향 이동이며,
 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)과
-[`MovementSystem.TryMove`](Assets/Scripts/TacticsECS/Systems/MovementSystem.cs)가 `EntityWorld`에서 이 컴포넌트들을
-각각 조회해 판정한다.
+[`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(`MovementSystem.TryMove`가 찾아 호출)가
+`EntityWorld`에서 이 컴포넌트들을 각각 조회해 판정한다.
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -79,31 +81,43 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 | **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. 이동/공격 외에 **치유**(회복량 4, 사거리 2)를 쓸 수 있다. |
 | **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). 추가로 **반격** 패시브를 갖고 있어, 자신의 사거리 안에서 공격받으면 자동으로 공격한 대상에게 피해를 되돌려준다. |
 
-### 사용 가능 행동 (ActionType + IUnitAction)
+### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
-`Data`/`Systems`/`BattleHud` 쪽에서 어떤 유닛이 이동/공격/방어/치유/자폭/반격 중 무엇을 쓸 수 있는지는 여전히
-[`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 하나(`AvailableActions` 컴포넌트)로 통합해서 판단한다 —
-`MovementSystem`/`CombatSystem`/`AbilitySystem`(행동 실행 판정)과 `BattleHud`(행동 버튼 목록 표시) 전부 이 값 하나만 본다.
+어떤 유닛이 이동/공격/방어/치유/자폭/반격 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는
+**값이 아니라 행동 자신**이 정한다. 여섯 행동
+([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
+[`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
+[`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs))
+은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
+아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
+이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
+([`IMoveAction`](Assets/Scripts/TacticsECS/Actions/IMoveAction.cs)(목적지 필요)/
+[`ISelfAction`](Assets/Scripts/TacticsECS/Actions/ISelfAction.cs)(대상 없음 — 방어/치유/자폭)/
+[`ITargetedAction`](Assets/Scripts/TacticsECS/Actions/ITargetedAction.cs)(대상 유닛 필요 — 공격/반격))가 각각
+정의하는 `Execute(...)`(실제 판정 + 효과 적용). 예전에 `MovementSystem`/`CombatSystem`/`AbilitySystem`에 있던
+"이동 가능한가/누구를 때릴 수 있는가/치유·자폭 효과" 로직이 전부 해당 행동 클래스 안으로 옮겨갔고, 저
+System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위임하는 얇은 진입점(`TryMove`/`TryAttack`/
+`TryDefend`/`TryHeal`/`TrySelfDestruct`)일 뿐이다 — 그 조회는
+[`UnitActionQueries.Find<T>`](Assets/Scripts/TacticsECS/Systems/UnitActionQueries.cs)가 담당한다.
 
-다만 그 값을 **프리팹에서 지정하는 방식**은 다중 선택 드롭다운(`availableActions`) 하나가 아니라, 행동별로 나뉜
-개별 스크립트의 **집합**이다. [`IUnitAction`](Assets/Scripts/TacticsECS/View/Actions/IUnitAction.cs) 인터페이스를
-[`MoveAction`](Assets/Scripts/TacticsECS/View/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/View/Actions/AttackAction.cs)/
-[`DefendAction`](Assets/Scripts/TacticsECS/View/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/View/Actions/HealAction.cs)/
-[`SelfDestructAction`](Assets/Scripts/TacticsECS/View/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/View/Actions/CounterAction.cs)
-6개가 각각 구현하고, `UnitDefinition.actions`(`[SerializeReference] List<IUnitAction>`)에 이 중 유닛이 실제로 쓸 수 있는
-항목만 넣는다 — 리스트에 없는 행동은 쓸 수 없고, 그 행동에만 필요한 값(이동 사거리, 회복량 등)도 항목 자신이
-들고 있어서(예: `MoveAction.MoveRange`, `HealAction.HealAmount`) "이 값이 어떤 행동 때문에 존재하는지"가 필드 이름이
-아니라 소속 클래스로 드러난다. `UnitDefinition.AvailableActions`는 이 리스트를 훑어 `ActionType` 비트마스크로 합친
-값이고, `UnitSpawner`는 예전과 동일하게 이 하나의 비트마스크 + `MoveRange`/`Attack`/`HealAmount`... 같은 프로퍼티만
-읽어 `EntityWorld` 컴포넌트로 옮긴다 — 즉 `actions` 리스트라는 존재 자체는 View 계층 밖으로 새어나가지 않는다.
+유닛별로 실제 갖는 행동의 집합은 `UnitDefinition.actions`(`[SerializeReference] List<IUnitAction>`, 프리팹
+인스펙터에서 구성)이고, 그 행동에만 필요한 값(이동 사거리, 회복량 등)도 항목 자신이 들고 있다 — 예:
+`MoveAction.MoveRange`, `HealAction.HealAmount`. `UnitSpawner`가 스폰 시 이 리스트를 그대로 `EntityWorld`의
+[`UnitActions`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트로 옮기고, 위 System들과
+`BattleController`(이동/공격 가능 범위 하이라이트 계산)가 거기서 필요한 행동을 찾아 쓴다.
 
-- **치유**([`AbilitySystem.TryHeal`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 사거리(`HealRange`) 내의 모든 아군(자신 제외)의 체력을 `HealAmount`만큼 회복시킨다. 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용되는 자기 중심 광역 행동.
-- **자폭**([`AbilitySystem.TrySelfDestruct`](Assets/Scripts/TacticsECS/Systems/AbilitySystem.cs)): 행동 유닛을 즉시 제거하고, 주위 1칸(맨해튼 거리) 내의 모든 적에게 제거되는 시점의 남은 체력만큼 피해를 입힌다.
+[`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그(`AvailableActions` 컴포넌트)는 남아있지만
+실행 판정에는 더 이상 관여하지 않는 **플레이스홀더**다 — `IUnitAction.GetActionType()`이 돌려주는 식별
+태그로서, CSV 같은 외부 데이터 연동과 `BattleHud`의 아이콘 매칭(어떤 행동에 어떤 버튼/배지를 보여줄지)
+용도로만 쓰인다.
+
+- **치유**([`HealAction.Execute`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)): 사거리(`HealRange`) 내의 모든 아군(자신 제외)의 체력을 `HealAmount`만큼 회복시킨다. 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용되는 자기 중심 광역 행동.
+- **자폭**([`SelfDestructAction.Execute`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)): 행동 유닛을 즉시 제거하고, 주위 1칸(맨해튼 거리) 내의 모든 적에게 제거되는 시점의 남은 체력만큼 피해를 입힌다.
 
 `Counter`(반격)만 예외다 — 플레이어가 고르는 "행동"이 아니라 **공격을 받았을 때 자동으로 발동하는 패시브**라서
 `BattleHud`의 행동 버튼 목록(`OptionalActionDefs`)이 아니라 별도의 패시브 배지 목록(`PassiveDefs`)에 정의되고,
 클릭할 수 없는 정보 표시용 아이콘으로만 나타난다.
-- **반격**([`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs) 내부의 비공개 `TryCounter`): 공격이 성사되고 대상이 살아남았을 때, 대상이 `ActionType.Counter`를 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(대상 공격력 − 공격자 방어력, 최소 1)를 되돌려준다. 턴 행동이 아니라 패시브라서 `HasActed`는 건드리지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
+- **반격**([`CounterAction.Execute`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs), [`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs)이 공격 성사 후 대상 쪽에서 찾아 호출): 공격이 성사되고 대상이 살아남았을 때, 대상이 `CounterAction`을 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(대상 공격력 − 공격자 방어력, 최소 1)를 되돌려준다. 턴 행동이 아니라 패시브라서 `CanExecute`가 `HasActed`를 보지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
 
 ### 겉모습 (3D 모델)
 
@@ -232,3 +246,10 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   - [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)의 `attack`/`attackRange`/`healAmount`/`healRange`/`availableActions`/`moveRange`/`ignoreTerrain`/`ignoreUnitBlocking`/`allowDiagonal` 개별 필드를 전부 제거하고 `[SerializeReference] private List<IUnitAction> actions`로 교체 — 이 리스트가 곧 "행동의 집합"이다. `AvailableActions`는 리스트를 훑어 `ActionType` 비트마스크로 합친 계산값, `MoveRange`/`Attack`/`HealAmount`... 등은 `actions.OfType<T>().FirstOrDefault()`로 해당 행동을 찾아 값을 읽는 계산값 프로퍼티(없으면 기본값)로 바뀌었다.
   - **프리팹 마이그레이션**: `Assets/Prefabs/Units/Unit_Guard.prefab`/`Unit_Melee.prefab`/`Unit_Ranged.prefab`이 예전 필드에 저장해두고 있던 값(예: Guard의 `availableActions: 39` = Move+Attack+Defend+Counter)을 손실 없이 새 구조로 옮기기 위해, 각 프리팹 YAML의 `UnitDefinition` 블록을 Unity의 managed reference 직렬화 포맷(`actions: [{rid: ...}, ...]` + 같은 블록 하단의 `references: {version: 2, RefIds: [{rid, type: {class, ns, asm}, data: {...}}, ...]}`)에 맞춰 직접 재작성했다(Unity 에디터 GUI 없이).
   - **검증**: Unity CLI 헤드리스 실행(`unity run . -- -nographics`)으로 컴파일 에러 없음 확인. 이어서 1회성 에디터 스크립트(`Assets/Editor/VerifyUnitDefinitionsTemp.cs`, 확인 후 삭제)를 `-executeMethod`로 실행해 세 프리팹을 `AssetDatabase.LoadAssetAtPath`로 로드하고 `UnitDefinition`의 모든 프로퍼티 값을 로그로 출력 — Guard/Melee/Ranged 전부 기존 스탯·행동 조합(`AvailableActions=Move, Attack, Defend, Counter` 등)이 정확히 일치함을 확인해 수기로 작성한 YAML이 올바르게 역직렬화됨을 검증했다.
+- 2026-09-11: 바로 위 `IUnitAction`을 "값보다 행동으로" 다시 설계 — 인터페이스를 메서드 중심으로 바꾸고, 실행 가능 여부/효과 판정 자체를 각 행동 클래스로 옮김. `ActionType`은 실행에 관여하지 않는 순수 플레이스홀더가 됨.
+  - **동기**: "`IUnitAction` 인터페이스는 메서드로 정의해달라, 값보다 행동으로 구분해야 한다, `ActionType`은 그냥 플레이스홀더로 남겨달라(CSV로 써먹을 것)"는 요청. 어느 수준까지 바꿀지(식별만 메서드로 바꾸는 가벼운 안 vs. 행동 자체를 메서드로 구현해 `Systems`의 `HasFlag` 판정을 전부 교체하는 심화 안) 먼저 확인받았고, 심화 쪽으로 진행하기로 합의 — 이전에 합의했던 "`Systems`/`Data`는 그대로 둔다"는 범위를 이번 요청으로 넘어서는 것까지 포함해서.
+  - **인터페이스**: [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)이 `ActionType Type { get; }` 프로퍼티 대신 `GetActionType()`(식별 태그, CSV/UI 용도로만 쓰임)과 `CanExecute(world, unitId)`(생존/이번 턴 이동·행동 여부 등 행동마다 다른 조건을 행동 스스로 판단) 두 메서드를 요구하도록 재정의. 행동마다 실행에 필요한 매개변수 모양이 달라(이동=목적지, 공격/반격=대상, 방어/치유/자폭=자기 자신만) 실제 실행 메서드는 하위 인터페이스 3개로 분리: [`IMoveAction`](Assets/Scripts/TacticsECS/Actions/IMoveAction.cs)/[`ISelfAction`](Assets/Scripts/TacticsECS/Actions/ISelfAction.cs)/[`ITargetedAction`](Assets/Scripts/TacticsECS/Actions/ITargetedAction.cs).
+  - **로직 이전**: `MovementSystem.TryMove`/`CombatSystem.TryAttack`의 비공개 `TryCounter`/`CombatSystem.TryDefend`/`AbilitySystem.TryHeal`/`AbilitySystem.TrySelfDestruct`에 있던 실행 가능 여부 판정(`AvailableActions.HasFlag(...)` 비교)과 효과 적용 로직을 각각 대응하는 행동 클래스의 `Execute`로 그대로 옮김 — `MoveAction`/`AttackAction`/`DefendAction`/`HealAction`/`SelfDestructAction`/`CounterAction`(전부 `Assets/Scripts/TacticsECS/Actions`, `View/Actions`에서 이동) 각자가 이제 "쓸 수 있는가"와 "쓰면 무슨 일이 일어나는가"를 전부 직접 안다. 위 System 5개는 껍데기만 남아 `UnitActionQueries.Find<T>`로 유닛의 행동 목록에서 필요한 타입을 찾아 위임할 뿐이다. `CombatSystem`의 순수 계산 함수(`IsInAttackRange`/`EffectiveDefense`/`CalculateDamage`/`GuardDefenseBonus`)는 여러 행동과 `BattleHud`가 공유하므로 그대로 유지.
+  - **새 컴포넌트**: `Core/UnitComponents.cs`에 `UnitActions { IReadOnlyList<IUnitAction> Value }` 추가 — `UnitDefinition.actions` 리스트가 스폰 시 그대로 옮겨진다. [`UnitActionQueries.Find<T>`](Assets/Scripts/TacticsECS/Systems/UnitActionQueries.cs)(신설, 정적/무상태)가 이 컴포넌트에서 `OfType<T>().FirstOrDefault()`로 원하는 행동을 찾아준다. `AvailableActions`(`ActionType` 비트마스크) 컴포넌트는 삭제하지 않고 남겨뒀지만 이제 실행 판정에는 전혀 쓰이지 않는 태그 — `BattleHud`의 아이콘 매칭(어떤 행동에 어떤 버튼/배지를 보여줄지)과 향후 CSV 내보내기/불러오기 용도로만 남긴다.
+  - **파급**: `AbilitySystem.TryHeal`/`CombatSystem.TryDefend`가 `SelfDestructAction`/`DefendAction`처럼 `GridWorld`가 필요한 행동과 시그니처를 맞추려고 `grid` 매개변수를 새로 받게 됨 — `BattleController`의 두 호출부(`HandleHealClicked`/`HandleDefendClicked`)를 함께 갱신. `BattleController.RecomputeHighlights`의 이동/공격 가능 범위 하이라이트 판정도 `available.HasFlag(...)` 대신 `UnitActionQueries.Find<MoveAction/AttackAction>(...).CanExecute(...)`로 교체해 판정 방식을 전체적으로 일관되게 맞췄다(`BattleHud.SetUnitActions`에 넘기는 `AvailableActions` 값 자체는 순수 표시용이라 그대로 유지). `Actions` 폴더가 `Core`(신설 `UnitActions` 컴포넌트)와 `Systems`(각 System의 위임 호출) 양쪽에서 참조되므로, `View` 밑이 아니라 `Assets/Scripts/TacticsECS/Actions`라는 새 최상위 폴더로 옮겼다 — `Core`가 `View`를 참조하는 방향은 만들지 않으면서도, CLAUDE.md 규칙 2(`Data`/`Core`는 로직 없이 순수 데이터만)는 어기지 않는다: `UnitActions` 구조체 자신은 필드 하나뿐인 순수 데이터이고, 로직(`Execute` 등)은 `Core`/`Data` 바깥인 이 새 폴더의 타입들이 가진다. 프리팹 YAML은 손대지 않았다 — 클래스 이름/네임스페이스/어셈블리가 그대로라 managed reference 직렬화(`type: {class, ns, asm}`)가 그대로 유효하다.
+  - **검증**: Unity CLI 헤드리스 실행으로 컴파일 에러 없음 확인. 이어서 1회성 에디터 스크립트(`Assets/Editor/VerifyActionsRuntimeTemp.cs`, 확인 후 삭제)로 빈 `EntityWorld`/`GridWorld`에 세 프리팹으로 유닛을 직접 스폰해 이동/공격/반격/방어(성공·실패 둘 다)/치유/자폭을 전부 `-executeMethod`로 실제 실행 — 데미지 계산값, `HasActed`/`HasMoved` 갱신, 반격 발동 여부, 치유된 아군 id, 자폭 피해 대상 id까지 기대값과 정확히 일치함을 확인했다(로그 예: `Attack: attacked=True dmg=2`, `Counter: counterDmg2=2`, `Defend(guard, 이미 행동함): defendedGuard=False`).

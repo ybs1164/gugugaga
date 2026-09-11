@@ -10,12 +10,15 @@ namespace TacticsECS
     ///
     /// 이 유닛이 쓸 수 있는 행동은 더 이상 플래그 하나로 직접 지정하지 않는다 — IUnitAction을 구현한
     /// 개별 스크립트(MoveAction/AttackAction/DefendAction/HealAction/SelfDestructAction/CounterAction,
-    /// View/Actions 참고)들의 "집합"인 actions 리스트로 정의한다. 리스트에 들어있는 행동만 이 유닛이
-    /// 쓸 수 있고, 그 행동에만 필요한 값(사거리, 회복량 등)도 각 항목 자신이 들고 있다 — 값이 속성 하나당
-    /// 필드 하나로 흩어져 있던 예전 구조 대신, 값이 그 값을 쓰는 행동 옆에 함께 있다.
-    /// AvailableActions는 이 리스트를 훑어 만든 ActionType 비트마스크이고, UnitSpawner가 스폰 시 이
-    /// 값들을 EntityWorld의 각 컴포넌트(Core/UnitComponents.cs)로 그대로 옮겨 담는다 — EntityWorld는
-    /// 스폰 이후 이 컴포넌트를 다시 참조하지 않는다(Systems는 View/MonoBehaviour를 몰라야 하므로).
+    /// Assets/Scripts/TacticsECS/Actions 참고)들의 "집합"인 actions 리스트로 정의한다. 리스트에 들어있는
+    /// 행동만 이 유닛이 쓸 수 있고, 그 행동에만 필요한 값(사거리, 회복량 등)도 각 항목 자신이 들고 있다.
+    /// 실행 가능 여부/효과도 값(ActionType) 비교가 아니라 각 행동 자신의 메서드(CanExecute/Execute)가
+    /// 판단한다 — UnitSpawner가 스폰 시 이 리스트를 그대로 EntityWorld의 UnitActions 컴포넌트로 옮기고,
+    /// Systems(MovementSystem/CombatSystem/AbilitySystem)는 UnitActionQueries.Find&lt;T&gt;로 그 목록에서
+    /// 필요한 행동을 찾아 위임할 뿐이다.
+    /// AvailableActions는 이 리스트를 ActionType 비트마스크로 합친 값인데, 지금은 실행 판정에 쓰이지
+    /// 않는 플레이스홀더다 — CSV 내보내기/불러오기 같은 외부 데이터 연동과 View(BattleHud 아이콘 매칭)
+    /// 표시 용도로만 남아있다(Core/ActionType.cs 참고).
     /// </summary>
     public class UnitDefinition : MonoBehaviour
     {
@@ -50,15 +53,15 @@ namespace TacticsECS
         /// 곳(예: 커스텀 에디터)에서 쓴다.</summary>
         public IReadOnlyList<IUnitAction> Actions => actions;
 
-        /// <summary>actions 리스트를 ActionType 비트마스크로 합친 값. Systems와 View(BattleHud)는
-        /// 여전히 이 값 하나만 보고 "이 유닛이 어떤 행동을 쓸 수 있는가"를 판단한다.</summary>
+        /// <summary>actions 리스트를 ActionType 비트마스크로 합친 값. 실행 판정에는 쓰이지 않는
+        /// 플레이스홀더 — CSV 연동/BattleHud 아이콘 표시 용도로만 쓰인다.</summary>
         public ActionType AvailableActions
         {
             get
             {
                 var result = ActionType.None;
                 foreach (var action in actions)
-                    if (action != null) result |= action.Type;
+                    if (action != null) result |= action.GetActionType();
                 return result;
             }
         }

@@ -60,19 +60,34 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
   maxHp: 8
-  attack: 4
   defense: 0
-  attackRange: 3
-  healAmount: 4
-  healRange: 2
-  availableActions: 11
-  moveRange: 2
-  ignoreTerrain: 0
-  ignoreUnitBlocking: 0
-  allowDiagonal: 0
+  actions:
+  - rid: 1
+  - rid: 2
+  - rid: 3
   playerColor: {r: 0.2, g: 0.8, b: 0.5, a: 1}
   enemyColor: {r: 1, g: 0.7, b: 0.2, a: 1}
   bodyTexture: {fileID: 2800000, guid: 0badf8d3274f4c3479331ba4641cf262, type: 3}
+  references:
+    version: 2
+    RefIds:
+    - rid: 1
+      type: {class: MoveAction, ns: TacticsECS, asm: Assembly-CSharp}
+      data:
+        moveRange: 2
+        ignoreTerrain: 0
+        ignoreUnitBlocking: 0
+        allowDiagonal: 0
+    - rid: 2
+      type: {class: AttackAction, ns: TacticsECS, asm: Assembly-CSharp}
+      data:
+        attack: 4
+        attackRange: 3
+    - rid: 3
+      type: {class: HealAction, ns: TacticsECS, asm: Assembly-CSharp}
+      data:
+        healAmount: 4
+        healRange: 2
 --- !u!1001 &2262954681271451939
 PrefabInstance:
   m_ObjectHideFlags: 0

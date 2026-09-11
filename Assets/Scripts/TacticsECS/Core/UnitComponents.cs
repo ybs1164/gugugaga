@@ -25,7 +25,8 @@ namespace TacticsECS
 
     // ---- 사용 가능 행동 (스폰 후 불변) ----
     // 이동/공격/방어/치유/자폭 중 이 유닛이 실제로 쓸 수 있는 것이 무엇인지는 오직 이 값 하나로 정해진다
-    // (UnitDefinition.availableActions에서 유닛 타입별로 직접 지정 -> 그대로 복사됨).
+    // (UnitDefinition.actions — 행동별 개별 스크립트의 집합 — 에서 유닛 타입별로 직접 구성 -> 그 집합을
+    // 비트마스크로 합친 AvailableActions가 그대로 복사됨).
     [System.Serializable] public struct AvailableActions { public ActionType Value; }
 
     // ---- 이동 방식 (스폰 후 불변) ----

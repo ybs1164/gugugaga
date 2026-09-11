@@ -148,6 +148,13 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 - **이동**: `WASD`/방향키 입력을 카메라의 isometric 회전 기준 수평 방향(좌/우/앞/뒤)으로 투영해 focus 지점을 옮기고, 그 지점을 기준으로 매 프레임 카메라 위치를 재계산한다. focus는 그리드 영역 주변(여유 마진 포함)으로 제한되어 배틀필드를 완전히 벗어나지 않는다. 속도는 `cameraPanSpeed`로 조정.
 - **줌**: 마우스 휠로 `orthographicSize`를 직접 조절한다. `zoomSensitivity`로 민감도를, `minOrthoSize`/`maxOrthoSize`로 확대/축소 한계를 조정한다.
 
+## CSV 유닛 제작·합성 테스트 툴
+
+프리팹을 만들지 않고도 CSV 한 장으로 유닛(스탯 + 기존 6개 행동의 조합)을 정의하고, 인게임에서 그 CSV를
+불러와 그리드에 자유 배치한 뒤 실제 턴제 전투로 동작을 확인할 수 있는 샌드박스 모드. 스키마/사용법/검증
+방법은 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md)에 정리했다. `Assets/Scenes/Sandbox.unity`(`SampleScene`을
+복제해 `BattleController.sandboxMode`만 켠 씬)에서 Play하면 배치 단계부터 시작한다.
+
 ## 작업 로그
 
 - 2026-09-04: 프로젝트 동작 검증.
@@ -253,3 +260,40 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
   - **새 컴포넌트**: `Core/UnitComponents.cs`에 `UnitActions { IReadOnlyList<IUnitAction> Value }` 추가 — `UnitDefinition.actions` 리스트가 스폰 시 그대로 옮겨진다. [`UnitActionQueries.Find<T>`](Assets/Scripts/TacticsECS/Systems/UnitActionQueries.cs)(신설, 정적/무상태)가 이 컴포넌트에서 `OfType<T>().FirstOrDefault()`로 원하는 행동을 찾아준다. `AvailableActions`(`ActionType` 비트마스크) 컴포넌트는 삭제하지 않고 남겨뒀지만 이제 실행 판정에는 전혀 쓰이지 않는 태그 — `BattleHud`의 아이콘 매칭(어떤 행동에 어떤 버튼/배지를 보여줄지)과 향후 CSV 내보내기/불러오기 용도로만 남긴다.
   - **파급**: `AbilitySystem.TryHeal`/`CombatSystem.TryDefend`가 `SelfDestructAction`/`DefendAction`처럼 `GridWorld`가 필요한 행동과 시그니처를 맞추려고 `grid` 매개변수를 새로 받게 됨 — `BattleController`의 두 호출부(`HandleHealClicked`/`HandleDefendClicked`)를 함께 갱신. `BattleController.RecomputeHighlights`의 이동/공격 가능 범위 하이라이트 판정도 `available.HasFlag(...)` 대신 `UnitActionQueries.Find<MoveAction/AttackAction>(...).CanExecute(...)`로 교체해 판정 방식을 전체적으로 일관되게 맞췄다(`BattleHud.SetUnitActions`에 넘기는 `AvailableActions` 값 자체는 순수 표시용이라 그대로 유지). `Actions` 폴더가 `Core`(신설 `UnitActions` 컴포넌트)와 `Systems`(각 System의 위임 호출) 양쪽에서 참조되므로, `View` 밑이 아니라 `Assets/Scripts/TacticsECS/Actions`라는 새 최상위 폴더로 옮겼다 — `Core`가 `View`를 참조하는 방향은 만들지 않으면서도, CLAUDE.md 규칙 2(`Data`/`Core`는 로직 없이 순수 데이터만)는 어기지 않는다: `UnitActions` 구조체 자신은 필드 하나뿐인 순수 데이터이고, 로직(`Execute` 등)은 `Core`/`Data` 바깥인 이 새 폴더의 타입들이 가진다. 프리팹 YAML은 손대지 않았다 — 클래스 이름/네임스페이스/어셈블리가 그대로라 managed reference 직렬화(`type: {class, ns, asm}`)가 그대로 유효하다.
   - **검증**: Unity CLI 헤드리스 실행으로 컴파일 에러 없음 확인. 이어서 1회성 에디터 스크립트(`Assets/Editor/VerifyActionsRuntimeTemp.cs`, 확인 후 삭제)로 빈 `EntityWorld`/`GridWorld`에 세 프리팹으로 유닛을 직접 스폰해 이동/공격/반격/방어(성공·실패 둘 다)/치유/자폭을 전부 `-executeMethod`로 실제 실행 — 데미지 계산값, `HasActed`/`HasMoved` 갱신, 반격 발동 여부, 치유된 아군 id, 자폭 피해 대상 id까지 기대값과 정확히 일치함을 확인했다(로그 예: `Attack: attacked=True dmg=2`, `Counter: counterDmg2=2`, `Defend(guard, 이미 행동함): defendedGuard=False`).
+- 2026-09-11: CSV로 유닛을 제작·합성해 인게임에서 배치·테스트할 수 있는 샌드박스 모드 추가.
+  - **동기**: "유닛을 CSV에서 제작하고 합성해서 테스트해볼 수 있는 툴"을 요청받음 — 기존 6개 `IUnitAction`의
+    조합만으로 새 유닛 타입을 CSV 값 조정만으로 만들고, 그 목록을 인게임에서 불러와 직접 배치해볼 수 있어야 함.
+  - **CSV 스키마**: `Name`/`MaxHp`/`Defense`/`BaseVisual`(외형을 빌려올 기존 프리팹)/`PlayerColor`/`EnemyColor`/
+    `Actions`(세미콜론 구분 행동 목록, `ActionType` 이름 재사용)와 행동별 파라미터 컬럼(`Move.*`/`Attack.*`/`Heal.*`).
+    값 타입은 [`UnitCsvRow`](Assets/Scripts/TacticsECS/Data/Csv/UnitCsvRow.cs)(Data 계층, 값만). 자세한 표는
+    [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md), 예시는 [`docs/sample_units.csv`](docs/sample_units.csv).
+  - **파싱/변환**: [`UnitCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvSerializer.cs)(Parse/Write, Unity
+    오브젝트 의존 없는 순수 문자열 변환)와 [`UnitCsvActionFactory`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvActionFactory.cs)
+    (CSV 행 ↔ `IUnitAction` 목록 변환) 신설 — 둘 다 `Systems` 규칙대로 무상태 정적 클래스. `MoveAction`/`AttackAction`/
+    `HealAction`에 CSV 파라미터로 인스턴스를 만드는 `FromCsv` 정적 팩토리를 추가해, 리플렉션 없이 같은 클래스 안에서
+    private 필드를 채운다(Inspector용 필드/생성자는 그대로 유지).
+  - **런타임 스폰 연동**: [`UnitDefinition.ApplyCsvOverrides`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 추가 —
+    프리팹 에셋이 아니라 인스턴스 하나에만 CSV 값(스탯/행동/색)을 덮어쓴다(원본 프리팹은 오염되지 않음, 겉모습
+    텍스처는 `BaseVisual` 프리팹 값을 그대로 둠). [`UnitSpawner`](Assets/Scripts/TacticsECS/View/UnitSpawner.cs)의
+    기존 `Spawn`에서 "엔티티 생성 + 컴포넌트 채우기" 공통부를 `FinishSpawn`으로 뽑아내고, 그 위에 CSV 전용
+    `SpawnFromCsv`(베이스 프리팹 인스턴스화 → `ApplyCsvOverrides` → `FinishSpawn` 공유)를 추가 — 기존 `Spawn`
+    동작/시그니처는 그대로라 데모 편성은 변경 없이 계속 동작한다.
+  - **샌드박스 배치 단계**: `BattleController`를 복제하지 않고 재사용 — 새 `sandboxMode` 인스펙터 플래그가 켜져 있으면
+    데모 편성(`SpawnDemoFormation`) 대신 배치 단계로 들어가고, "전투 시작"을 누르면 기존 `TurnSystem.StartTurn`부터
+    이어지는 완전히 동일한 턴제 전투 코드로 넘어간다(카메라/그리드/전투 로직 재사용, 화면 좌표→그리드 좌표 변환도
+    `TryScreenToGridPos`로 공용화). 배치 단계 전용 로직은 [`UnitPlacementController`](Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs)
+    (팔레트에서 고른 CSV 행 + 팀을 "브러시"로 삼아 빈 칸 클릭 시 스폰, 이미 유닛이 있는 칸 클릭 시 제거 — 제거는
+    새 개념 없이 기존 "Hp=0이면 죽은 유닛" 규칙을 그대로 재사용), UI는 `BattleHud`와 같은 패턴의 얇은 View인
+    [`SandboxHud`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)(CSV 경로 입력/불러오기·내보내기 버튼/팔레트/팀
+    토글/전투 시작 버튼)가 맡는다. CSV 파일은 텍스트 경로 입력으로 읽고 쓴다(OS 네이티브 파일 다이얼로그는 v1
+    범위 밖).
+  - **씬 준비**: Unity 에디터 GUI를 직접 열어 씬을 만들지 않고, `Assets/Editor/SandboxSceneSetup.cs`(Editor 전용,
+    `-executeMethod`로만 실행)가 `SampleScene.unity`를 복제해 `Assets/Scenes/Sandbox.unity`를 만들고
+    `BattleController.sandboxMode`를 켠다(리플렉션으로 private 필드 설정 — `UnitPrefabSetup.cs`의 기존 패턴 재사용).
+    기존 Melee/Ranged/Guard 프리팹 참조가 복제된 씬에 그대로 남아있어 추가 연결이 필요 없다.
+  - **검증**: 클릭으로 배치하는 실제 UI 흐름은 상호작용 검증이라 자동화하지 않았지만, CSV 파싱/왕복과 스폰 연동은
+    새 배치모드 스크립트 `Assets/Editor/UnitCsvVerification.cs`(`-executeMethod`)로 검증 — `docs/sample_units.csv`를
+    Parse→Write→재파싱해 값이 보존되는지, `SpawnFromCsv`로 만든 엔티티의 `MaxHp`/`Defense`/`Attack`/`Actions`/그리드
+    occupant가 CSV 행과 일치하는지 확인하고 `[UnitCsvVerification] ALL PASS`를 Console에 남기도록 실행해 확인했다.
+    `unity run . -- -nographics -executeMethod TacticsECS.EditorTools.SandboxSceneSetup.Generate`로 `Sandbox.unity`
+    생성도 에러 없이 확인(Unity Editor가 열려 있지 않음을 먼저 확인한 뒤 CLI로만 실행).

@@ -17,6 +17,10 @@ namespace TacticsECS
 
         public ActionType GetActionType() => ActionType.Heal;
 
+        /// <summary>CSV 행(UnitCsvRow)의 Heal 파라미터로 인스턴스를 만든다.</summary>
+        public static HealAction FromCsv(int healAmount, int healRange) =>
+            new HealAction { healAmount = healAmount, healRange = healRange };
+
         public int HealAmount => healAmount;
         public int HealRange => healRange;
 

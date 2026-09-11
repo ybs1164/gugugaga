@@ -16,6 +16,10 @@ namespace TacticsECS
 
         public ActionType GetActionType() => ActionType.Attack;
 
+        /// <summary>CSV 행(UnitCsvRow)의 Attack 파라미터로 인스턴스를 만든다.</summary>
+        public static AttackAction FromCsv(int attack, int attackRange) =>
+            new AttackAction { attack = attack, attackRange = attackRange };
+
         public int Attack => attack;
         public int AttackRange => attackRange;
 

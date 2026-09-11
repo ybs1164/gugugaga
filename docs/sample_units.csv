@@ -1,0 +1,5 @@
+Name,MaxHp,Defense,BaseVisual,PlayerColor,EnemyColor,Actions,Move.Range,Move.IgnoreTerrain,Move.IgnoreUnitBlocking,Move.AllowDiagonal,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range
+Melee,12,1,Melee,#3380FF,#FF6633,Move;Attack,3,False,False,False,5,1,0,0
+Ranged,8,0,Ranged,#33CC80,#FFB233,Move;Attack,2,False,False,False,4,3,0,0
+Guard,18,3,Guard,#19337F,#991919,Move;Attack;Defend,2,False,False,False,3,1,0,0
+Cleric,10,1,Ranged,#33CC88,#CCAA33,Move;Attack;Heal;Defend;Counter,2,False,False,False,2,1,4,3

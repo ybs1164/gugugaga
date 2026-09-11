@@ -81,5 +81,18 @@ namespace TacticsECS
 
         public Color ColorFor(Team team) => team == Team.Player ? playerColor : enemyColor;
         public Texture2D BodyTexture => bodyTexture;
+
+        /// <summary>CSV 행(UnitCsvRow) 값으로 이 컴포넌트의 필드를 전부 덮어쓴다. 외형(bodyTexture)은
+        /// 건드리지 않는다 — CSV 유닛은 BaseVisual 프리팹의 모델/텍스처를 그대로 빌려 쓰고 스탯/행동/색만
+        /// 갈아끼운다. 반드시 프리팹 에셋이 아니라 Instantiate로 만든 인스턴스에만 호출해야 원본 프리팹이
+        /// 오염되지 않는다(UnitSpawner.SpawnFromCsv 참고).</summary>
+        public void ApplyCsvOverrides(UnitCsvRow row, List<IUnitAction> csvActions)
+        {
+            maxHp = row.MaxHp;
+            defense = row.Defense;
+            actions = csvActions;
+            playerColor = row.PlayerColor;
+            enemyColor = row.EnemyColor;
+        }
     }
 }

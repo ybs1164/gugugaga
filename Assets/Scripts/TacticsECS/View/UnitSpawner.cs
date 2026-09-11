@@ -15,7 +15,25 @@ namespace TacticsECS
 
         public UnitView Spawn(GridWorld grid, EntityWorld world, Team team, UnitView prefab, Vector2Int pos)
         {
-            var definition = prefab.GetComponent<UnitDefinition>();
+            var view = Instantiate(prefab, transform);
+            return FinishSpawn(grid, world, team, view, pos, prefab.name);
+        }
+
+        /// <summary>CSV로 정의한 유닛을 스폰한다. baseVisualPrefab(기존 Melee/Ranged/Guard 중 하나)을 그대로
+        /// 인스턴스화한 뒤, 그 인스턴스의 UnitDefinition에만 CSV 행 값을 덮어써서(원본 프리팹은 그대로 둔 채)
+        /// FinishSpawn을 공유한다 — CSV 유닛도 Spawn과 완전히 같은 방식으로 EntityWorld에 등록된다.</summary>
+        public UnitView SpawnFromCsv(GridWorld grid, EntityWorld world, Team team, UnitView baseVisualPrefab, UnitCsvRow row, Vector2Int pos)
+        {
+            var view = Instantiate(baseVisualPrefab, transform);
+            view.GetComponent<UnitDefinition>().ApplyCsvOverrides(row, UnitCsvActionFactory.BuildActions(row));
+            return FinishSpawn(grid, world, team, view, pos, row.Name);
+        }
+
+        /// <summary>이미 인스턴스화된 view(정의값이 확정된 상태)를 EntityWorld 엔티티로 등록하고 그리드에
+        /// 배치하는 공통 마무리 단계. Spawn/SpawnFromCsv 둘 다 이 메서드로 수렴한다.</summary>
+        private UnitView FinishSpawn(GridWorld grid, EntityWorld world, Team team, UnitView view, Vector2Int pos, string label)
+        {
+            var definition = view.GetComponent<UnitDefinition>();
 
             int id = world.CreateEntity();
 
@@ -44,8 +62,7 @@ namespace TacticsECS
 
             grid.PlaceOccupant(pos, id);
 
-            var view = Instantiate(prefab, transform);
-            view.name = $"Unit_{team}_{prefab.name}_{id}";
+            view.name = $"Unit_{team}_{label}_{id}";
             view.Init(world, id, grid);
             SpawnedViews.Add(view);
             return view;

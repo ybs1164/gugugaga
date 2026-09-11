@@ -21,6 +21,17 @@ namespace TacticsECS
 
         public ActionType GetActionType() => ActionType.Move;
 
+        /// <summary>CSV 행(UnitCsvRow)의 Move 파라미터로 인스턴스를 만든다. 같은 클래스 안이라 private
+        /// 필드에 직접 대입할 수 있어, Inspector용 필드를 리플렉션 없이 그대로 재사용한다.</summary>
+        public static MoveAction FromCsv(int moveRange, bool ignoreTerrain, bool ignoreUnitBlocking, bool allowDiagonal) =>
+            new MoveAction
+            {
+                moveRange = moveRange,
+                ignoreTerrain = ignoreTerrain,
+                ignoreUnitBlocking = ignoreUnitBlocking,
+                allowDiagonal = allowDiagonal
+            };
+
         public int MoveRange => moveRange;
         public bool IgnoreTerrain => ignoreTerrain;
         public bool IgnoreUnitBlocking => ignoreUnitBlocking;

@@ -39,6 +39,13 @@ namespace TacticsECS
         [Tooltip("데모 편성 외에 팀당 추가로 스폰할 유닛 수. 100+ 오브젝트 성능 확인용.")]
         [SerializeField] private int stressTestExtraUnitsPerTeam = 0;
 
+        [Header("Sandbox")]
+        [Tooltip("켜면 데모 편성 대신 CSV로 불러온 유닛을 그리드에 자유 배치하는 단계부터 시작한다. " +
+            "배치 단계에서 SandboxHud의 \"전투 시작\" 버튼을 누르면 지금과 동일한 턴제 전투로 이어진다.")]
+        [SerializeField] private bool sandboxMode;
+        [Tooltip("샌드박스 CSV 경로 입력창에 기본으로 채워둘 경로.")]
+        [SerializeField] private string defaultSandboxCsvPath = "SandboxUnits.csv";
+
         [Header("Camera (Isometric)")]
         [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
         [SerializeField] private float isoYawDegrees = 45f;
@@ -64,6 +71,10 @@ namespace TacticsECS
         private UnitSpawner _spawner;
         private BattleHud _hud;
         private Camera _cam;
+
+        private SandboxHud _sandboxHud;
+        private UnitPlacementController _placementController;
+        private bool _placementActive;
 
         // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
         // 팬(이동)은 이 focus 점만 옮기고, 매 프레임 여기서 실제 카메라 position을 재계산한다.
@@ -127,13 +138,109 @@ namespace TacticsECS
             spawnerGo.transform.SetParent(transform, false);
             _spawner = spawnerGo.AddComponent<UnitSpawner>();
 
-            SpawnDemoFormation();
+            if (sandboxMode)
+                StartPlacementPhase();
+            else
+                BeginDemoBattle();
+        }
 
+        private void BeginDemoBattle()
+        {
+            SpawnDemoFormation();
+            BeginBattle();
+        }
+
+        private void BeginBattle()
+        {
             _hud.OnEndTurnClicked += EndTurn;
             // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
             // 그 전에 _hud가 준비돼 있어야 한다.
             _turnState = TurnSystem.StartTurn(_world, Team.Player, 1);
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
+        }
+
+        // ---------- Sandbox: CSV 배치 단계 ----------
+
+        /// <summary>SpawnDemoFormation 대신 진입하는 배치 단계. CSV를 불러와 팔레트로 삼고, 그리드를
+        /// 클릭해 유닛을 자유 배치한 뒤 SandboxHud의 "전투 시작"을 누르면 BeginBattle로 넘어간다 —
+        /// 카메라/그리드/턴/전투 로직은 데모 모드와 완전히 동일한 코드를 그대로 재사용한다.</summary>
+        private void StartPlacementPhase()
+        {
+            _placementActive = true;
+            _hud.SetEndTurnVisible(false);
+
+            var basePrefabsByName = new Dictionary<string, UnitView>
+            {
+                ["Melee"] = meleePrefab,
+                ["Ranged"] = rangedPrefab,
+                ["Guard"] = guardPrefab
+            };
+            _placementController = new UnitPlacementController(_grid, _world, _spawner, basePrefabsByName, _viewsById);
+
+            var sandboxHudGo = new GameObject("SandboxHud");
+            sandboxHudGo.transform.SetParent(transform, false);
+            _sandboxHud = sandboxHudGo.AddComponent<SandboxHud>();
+            _sandboxHud.Init(defaultSandboxCsvPath);
+            _sandboxHud.OnLoadClicked += HandleSandboxLoad;
+            _sandboxHud.OnExportClicked += HandleSandboxExport;
+            _sandboxHud.OnUnitSelected += HandleSandboxUnitSelected;
+            _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
+            _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
+            _sandboxHud.SetSelectedTeam(Team.Player);
+            _sandboxHud.SetStatus("CSV 경로를 확인하고 \"불러오기\"를 눌러 배치를 시작하세요.");
+        }
+
+        private void HandleSandboxLoad(string path)
+        {
+            try
+            {
+                var csvText = System.IO.File.ReadAllText(path);
+                var rows = UnitCsvSerializer.Parse(csvText);
+                _placementController.SetRows(rows);
+                _sandboxHud.SetPalette(rows);
+                _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
+                _sandboxHud.SetStatus($"{rows.Count}개 유닛을 불러왔습니다. 팔레트에서 골라 빈 칸을 클릭하세요.");
+            }
+            catch (System.Exception e)
+            {
+                _sandboxHud.SetStatus($"불러오기 실패: {e.Message}");
+            }
+        }
+
+        private void HandleSandboxExport(string path)
+        {
+            try
+            {
+                var csvText = UnitCsvSerializer.Write(_placementController.Rows);
+                System.IO.File.WriteAllText(path, csvText);
+                _sandboxHud.SetStatus($"{_placementController.Rows.Count}개 유닛을 {path}에 내보냈습니다.");
+            }
+            catch (System.Exception e)
+            {
+                _sandboxHud.SetStatus($"내보내기 실패: {e.Message}");
+            }
+        }
+
+        private void HandleSandboxUnitSelected(int index)
+        {
+            _placementController.SelectRow(index);
+            _sandboxHud.SetSelectedUnit(index);
+        }
+
+        private void HandleSandboxTeamSelected(Team team)
+        {
+            _placementController.SelectTeam(team);
+            _sandboxHud.SetSelectedTeam(team);
+        }
+
+        private void HandleSandboxStartBattle()
+        {
+            _placementActive = false;
+            Destroy(_sandboxHud.gameObject);
+            _sandboxHud = null;
+            _placementController = null;
+
+            BeginBattle();
         }
 
         /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.</summary>
@@ -320,37 +427,51 @@ namespace TacticsECS
         {
             HandleCameraControl();
 
+            if (Mouse.current == null) return;
+            // HUD 버튼(BattleHud/SandboxHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+
+            if (_placementActive)
+            {
+                if (Mouse.current.leftButton.wasPressedThisFrame && TryScreenToGridPos(Mouse.current.position.ReadValue(), out var placePos))
+                    _placementController.HandleGridClick(placePos);
+                return;
+            }
+
             if (_battleOver) return;
             if (_turnState.ActiveTeam != Team.Player) return;
-            if (Mouse.current == null) return;
-            // HUD 버튼(BattleHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
                 HandleClick();
         }
 
         /// <summary>
-        /// 클릭 판정을 3D 콜라이더 레이캐스트 대신 그리드 바닥 평면과의 교차점으로 계산한다.
-        /// 유닛(Capsule)은 타일 위로 솟아 있어서, isometric 각도에서 콜라이더 레이캐스트를 쓰면
-        /// 카메라에 더 가까운(앞쪽) 칸의 유닛이 그 뒤 칸으로 가는 레이를 가로막아 클릭이 씹히는 문제가 있었다.
-        /// 평면 교차 -> 그리드 좌표 역산 -> GridWorld 조회 방식은 화면에 보이는 칸과 항상 일치하고
-        /// 유닛 높이에 의한 가림 문제가 애초에 발생하지 않는다.
+        /// 화면 좌표를 그리드 좌표로 변환한다. 3D 콜라이더 레이캐스트 대신 그리드 바닥 평면과의 교차점으로
+        /// 계산하는 이유: 유닛(Capsule)은 타일 위로 솟아 있어서, isometric 각도에서 콜라이더 레이캐스트를
+        /// 쓰면 카메라에 더 가까운(앞쪽) 칸의 유닛이 그 뒤 칸으로 가는 레이를 가로막아 클릭이 씹히는 문제가
+        /// 있었다. 평면 교차 -> 그리드 좌표 역산 -> GridWorld 조회 방식은 화면에 보이는 칸과 항상 일치하고
+        /// 유닛 높이에 의한 가림 문제가 애초에 발생하지 않는다. 배치 단계(TryScreenToGridPos)와 전투 단계
+        /// (HandleClick) 둘 다 이 변환을 그대로 재사용한다.
         /// </summary>
-        private void HandleClick()
+        private bool TryScreenToGridPos(Vector2 screenPos, out Vector2Int gridPos)
         {
-            var screenPos = Mouse.current.position.ReadValue();
+            gridPos = default;
             var ray = _cam.ScreenPointToRay(screenPos);
 
             var groundPlane = new Plane(Vector3.up, _grid.Origin);
-            if (!groundPlane.Raycast(ray, out float enter)) return;
+            if (!groundPlane.Raycast(ray, out float enter)) return false;
 
             var worldPoint = ray.GetPoint(enter);
-            var gridPos = new Vector2Int(
+            gridPos = new Vector2Int(
                 Mathf.RoundToInt((worldPoint.x - _grid.Origin.x) / tileSize),
                 Mathf.RoundToInt((worldPoint.z - _grid.Origin.z) / tileSize));
 
-            if (!_grid.InBounds(gridPos)) return;
+            return _grid.InBounds(gridPos);
+        }
+
+        private void HandleClick()
+        {
+            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var gridPos)) return;
 
             int occupantId = _grid.GetOccupant(gridPos);
             if (occupantId != TileData.NoOccupant)

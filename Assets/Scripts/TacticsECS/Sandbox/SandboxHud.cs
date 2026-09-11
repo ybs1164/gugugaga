@@ -25,7 +25,6 @@ namespace TacticsECS
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
 
         private Font _font;
-        private InputField _pathField;
         private Text _statusText;
         private Button _playerButton;
         private Button _enemyButton;
@@ -37,7 +36,7 @@ namespace TacticsECS
         private const float RowH = 30f;
         private const float PanelWidth = 220f;
 
-        public void Init(string defaultCsvPath)
+        public void Init()
         {
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
@@ -52,7 +51,7 @@ namespace TacticsECS
             canvasGo.AddComponent<GraphicRaycaster>();
 
             var root = canvas.transform;
-            BuildToolbar(root, defaultCsvPath);
+            BuildToolbar(root);
             BuildPalette(root);
             BuildStartButton(root);
         }
@@ -101,74 +100,65 @@ namespace TacticsECS
             return button;
         }
 
-        // ---------- 툴바: CSV 경로 + 불러오기/내보내기 + 상태 텍스트 ----------
+        // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------
 
-        private void BuildToolbar(Transform root, string defaultCsvPath)
+        private void BuildToolbar(Transform root)
         {
             var panel = CreateRect("Toolbar", root);
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(PanelWidth, 130f);
+            panel.sizeDelta = new Vector2(PanelWidth, 96f);
             CreatePanelImage(panel, PanelBackground);
 
-            var fieldRect = CreateRect("PathField", panel);
-            fieldRect.anchorMin = fieldRect.anchorMax = new Vector2(0f, 1f);
-            fieldRect.pivot = new Vector2(0f, 1f);
-            fieldRect.anchoredPosition = new Vector2(8f, -8f);
-            fieldRect.sizeDelta = new Vector2(PanelWidth - 16f, 26f);
-            CreatePanelImage(fieldRect, new Color(1f, 1f, 1f, 0.12f));
-            _pathField = fieldRect.gameObject.AddComponent<InputField>();
+            var loadButton = CreateTextButton(panel, "불러오기", new Vector2(8f, -8f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
+            loadButton.onClick.AddListener(HandleLoadClicked);
 
-            var placeholderRect = CreateRect("Placeholder", fieldRect);
-            placeholderRect.anchorMin = Vector2.zero;
-            placeholderRect.anchorMax = Vector2.one;
-            placeholderRect.offsetMin = new Vector2(6f, 2f);
-            placeholderRect.offsetMax = new Vector2(-6f, -2f);
-            var placeholderText = placeholderRect.gameObject.AddComponent<Text>();
-            placeholderText.font = _font;
-            placeholderText.fontSize = 14;
-            placeholderText.fontStyle = FontStyle.Italic;
-            placeholderText.color = new Color(1f, 1f, 1f, 0.4f);
-            placeholderText.text = "CSV 파일 경로";
+            var exportButton = CreateTextButton(panel, "내보내기", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -8f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
+            exportButton.onClick.AddListener(HandleExportClicked);
 
-            var textRect = CreateRect("Text", fieldRect);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(6f, 2f);
-            textRect.offsetMax = new Vector2(-6f, -2f);
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = _font;
-            text.fontSize = 14;
-            text.color = Color.white;
-            text.supportRichText = false;
-
-            _pathField.textComponent = text;
-            _pathField.placeholder = placeholderText;
-            _pathField.text = defaultCsvPath;
-
-            var loadButton = CreateTextButton(panel, "불러오기", new Vector2(8f, -42f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
-            loadButton.onClick.AddListener(() => OnLoadClicked?.Invoke(_pathField.text));
-
-            var exportButton = CreateTextButton(panel, "내보내기", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -42f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
-            exportButton.onClick.AddListener(() => OnExportClicked?.Invoke(_pathField.text));
-
-            _playerButton = CreateTextButton(panel, "플레이어", new Vector2(8f, -78f), new Vector2((PanelWidth - 24f) / 2f, 28f), PlayerAccent, out _playerButtonBg);
+            _playerButton = CreateTextButton(panel, "플레이어", new Vector2(8f, -44f), new Vector2((PanelWidth - 24f) / 2f, 28f), PlayerAccent, out _playerButtonBg);
             _playerButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Player));
 
-            _enemyButton = CreateTextButton(panel, "적", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -78f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _enemyButtonBg);
+            _enemyButton = CreateTextButton(panel, "적", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -44f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _enemyButtonBg);
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
             statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -112f);
+            statusRect.anchoredPosition = new Vector2(8f, -78f);
             statusRect.sizeDelta = new Vector2(PanelWidth - 16f, 18f);
             _statusText = statusRect.gameObject.AddComponent<Text>();
             _statusText.font = _font;
             _statusText.fontSize = 13;
             _statusText.color = new Color(1f, 1f, 1f, 0.75f);
             _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        }
+
+        /// <summary>OS 파일 탐색기(열기 대화상자)로 불러올 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다.
+        /// 에디터 밖(빌드)에서는 이 대화상자를 쓸 수 없어 상태 텍스트로만 안내한다 — 이 툴은 에디터
+        /// Play 모드 전용이라 실사용에는 영향이 없다.</summary>
+        private void HandleLoadClicked()
+        {
+#if UNITY_EDITOR
+            var path = UnityEditor.EditorUtility.OpenFilePanel("불러올 CSV 선택", "", "csv");
+            if (string.IsNullOrEmpty(path)) return;
+            OnLoadClicked?.Invoke(path);
+#else
+            SetStatus("파일 탐색기는 에디터에서만 지원합니다.");
+#endif
+        }
+
+        /// <summary>OS 파일 탐색기(저장 대화상자)로 내보낼 CSV 경로를 고른다.</summary>
+        private void HandleExportClicked()
+        {
+#if UNITY_EDITOR
+            var path = UnityEditor.EditorUtility.SaveFilePanel("CSV로 내보내기", "", "SandboxUnits", "csv");
+            if (string.IsNullOrEmpty(path)) return;
+            OnExportClicked?.Invoke(path);
+#else
+            SetStatus("파일 탐색기는 에디터에서만 지원합니다.");
+#endif
         }
 
         /// <summary>어느 팀에 배치할지 강조 표시만 바꾼다(선택 자체는 BattleController 쪽 상태가 갖고 있음).</summary>
@@ -187,7 +177,7 @@ namespace TacticsECS
             var panel = CreateRect("Palette", root);
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -154f);
+            panel.anchoredPosition = new Vector2(16f, -120f);
             panel.sizeDelta = new Vector2(PanelWidth, 300f);
             CreatePanelImage(panel, PanelBackground);
             _paletteRoot = panel;

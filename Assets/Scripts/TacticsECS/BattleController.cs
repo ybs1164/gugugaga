@@ -43,8 +43,6 @@ namespace TacticsECS
         [Tooltip("켜면 데모 편성 대신 CSV로 불러온 유닛을 그리드에 자유 배치하는 단계부터 시작한다. " +
             "배치 단계에서 SandboxHud의 \"전투 시작\" 버튼을 누르면 지금과 동일한 턴제 전투로 이어진다.")]
         [SerializeField] private bool sandboxMode;
-        [Tooltip("샌드박스 CSV 경로 입력창에 기본으로 채워둘 경로.")]
-        [SerializeField] private string defaultSandboxCsvPath = "SandboxUnits.csv";
 
         [Header("Camera (Isometric)")]
         [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
@@ -180,14 +178,14 @@ namespace TacticsECS
             var sandboxHudGo = new GameObject("SandboxHud");
             sandboxHudGo.transform.SetParent(transform, false);
             _sandboxHud = sandboxHudGo.AddComponent<SandboxHud>();
-            _sandboxHud.Init(defaultSandboxCsvPath);
+            _sandboxHud.Init();
             _sandboxHud.OnLoadClicked += HandleSandboxLoad;
             _sandboxHud.OnExportClicked += HandleSandboxExport;
             _sandboxHud.OnUnitSelected += HandleSandboxUnitSelected;
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.SetSelectedTeam(Team.Player);
-            _sandboxHud.SetStatus("CSV 경로를 확인하고 \"불러오기\"를 눌러 배치를 시작하세요.");
+            _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
         }
 
         private void HandleSandboxLoad(string path)

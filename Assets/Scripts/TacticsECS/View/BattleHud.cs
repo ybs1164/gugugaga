@@ -19,6 +19,10 @@ namespace TacticsECS
         public event Action OnHealClicked;
         public event Action OnSelfDestructClicked;
         public event Action OnDeselectClicked;
+        /// <summary>승/패 화면의 "다시 시작" 버튼. 샌드박스 모드에서는 이 버튼이 곧 배치 화면(커스텀 화면)으로
+        /// 되돌아가는 진입점이고, 데모 모드에서는 데모 편성을 다시 스폰하는 재시작이다 — 어느 쪽이든
+        /// BattleController가 알아서 처리하고, BattleHud는 클릭했다는 사실만 알린다.</summary>
+        public event Action OnRestartClicked;
 
         private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
@@ -551,6 +555,28 @@ namespace TacticsECS
             _battleEndText.fontSize = 36;
             _battleEndText.alignment = TextAnchor.MiddleCenter;
             _battleEndText.color = Color.white;
+
+            var restartRect = CreateRect("RestartButton", panel);
+            restartRect.anchorMin = restartRect.anchorMax = new Vector2(0.5f, 0.5f);
+            restartRect.pivot = new Vector2(0.5f, 1f);
+            restartRect.sizeDelta = new Vector2(180f, 44f);
+            restartRect.anchoredPosition = new Vector2(0f, -60f);
+            var restartBg = CreatePanelImage(restartRect, ButtonIdle);
+            var restartButton = restartRect.gameObject.AddComponent<Button>();
+            restartButton.targetGraphic = restartBg;
+            restartButton.onClick.AddListener(() => OnRestartClicked?.Invoke());
+
+            var restartLabelRect = CreateRect("Label", restartRect);
+            restartLabelRect.anchorMin = Vector2.zero;
+            restartLabelRect.anchorMax = Vector2.one;
+            restartLabelRect.offsetMin = Vector2.zero;
+            restartLabelRect.offsetMax = Vector2.zero;
+            var restartLabel = restartLabelRect.gameObject.AddComponent<Text>();
+            restartLabel.font = _font;
+            restartLabel.fontSize = 18;
+            restartLabel.alignment = TextAnchor.MiddleCenter;
+            restartLabel.color = Color.white;
+            restartLabel.text = "다시 시작";
 
             _battleEndPanel.SetActive(false);
         }

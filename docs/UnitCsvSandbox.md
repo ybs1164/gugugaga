@@ -6,7 +6,9 @@ CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조
 
 ## CSV 스키마
 
-한 행 = 유닛 타입 하나. 예시: [`docs/sample_units.csv`](sample_units.csv).
+한 행 = 유닛 타입 하나. 예시: [`docs/sample_units.csv`](sample_units.csv) — Melee/Ranged/Guard는 실제 게임
+프리팹과 같은 조합(각각 SelfDestruct/Heal/Defend+Counter)으로 6개 행동을 전부 한 번씩 보여주고, Cleric은
+Heal+Defend+Counter를 한 유닛에 합성한 커스텀 예시다.
 
 | 컬럼 | 의미 | 비고 |
 |---|---|---|
@@ -49,6 +51,8 @@ CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조
 6. 언제든 **내보내기**를 누르면 OS 파일 탐색기(저장 대화상자)가 뜨고, 고른 경로로 마지막에 불러온 유닛 목록이
    CSV로 저장된다(배치된 유닛의 위치가 아니라, 팔레트로 쓰인 "유닛 정의 목록" 자체를 그대로 내보내는 것 — CSV에서
    값을 조정하고 다시 불러오는 반복 실험용).
+7. 전투가 끝나면(승리/패배) 화면 중앙에 뜨는 **다시 시작** 버튼으로 배치 화면(커스텀 화면)으로 곧장 되돌아갈 수
+   있다 — CSV를 고쳐 다시 불러오고, 새로 배치해서 곧바로 재시험하는 흐름이 씬을 다시 Play할 필요 없이 이어진다.
 
 **불러오기/내보내기 대화상자는 Unity 에디터 Play 모드에서만 동작한다**(`UnityEditor.EditorUtility.OpenFilePanel`/
 `SaveFilePanel` 사용 — 이 툴은 에디터 전용 테스트 도구라 빌드에서 쓰는 것은 범위 밖).

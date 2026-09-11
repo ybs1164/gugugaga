@@ -297,3 +297,32 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
     occupant가 CSV 행과 일치하는지 확인하고 `[UnitCsvVerification] ALL PASS`를 Console에 남기도록 실행해 확인했다.
     `unity run . -- -nographics -executeMethod TacticsECS.EditorTools.SandboxSceneSetup.Generate`로 `Sandbox.unity`
     생성도 에러 없이 확인(Unity Editor가 열려 있지 않음을 먼저 확인한 뒤 CLI로만 실행).
+- 2026-09-11: 샌드박스 CSV 경로 입력창을 OS 파일 탐색기로 교체.
+  - **동기**: "불러오는 파일 경로를 파일 탐색기를 따로 켜서 진행할 수 있도록 해달라, 이름 input 하는 공간은
+    삭제해달라"는 요청.
+  - [`SandboxHud`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)의 CSV 경로 `InputField`를 완전히 제거하고,
+    **불러오기**/**내보내기** 버튼이 각각 `UnityEditor.EditorUtility.OpenFilePanel`/`SaveFilePanel`(에디터 전용
+    네이티브 파일 탐색기)로 경로를 직접 고르도록 변경(`#if UNITY_EDITOR`로 감싸 빌드에서는 안내 문구만 남김).
+    `BattleController`의 더 이상 쓰이지 않는 `defaultSandboxCsvPath` 필드도 함께 제거.
+  - **검증**: `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run` 재실행 — 컴파일
+    에러 없음, `ALL PASS` 확인.
+- 2026-09-11: `docs/sample_units.csv`에 Defend/SelfDestruct/Counter 예시를 반영하고, 전투 종료 화면에 배치
+  단계(커스텀 화면)로 되돌아가는 "다시 시작" 버튼 추가.
+  - **동기**: "기존 Defend, SelfDestruct, Counter의 예시도 이 CSV 방식에 적용해주고, 게임 종료 시 커스텀
+    화면으로 되돌아갈 수 있도록 만들어달라"는 요청.
+  - **CSV 예시 갱신**: `docs/sample_units.csv`의 Melee/Ranged/Guard 행이 실제 게임 프리팹과 같은 행동 조합을
+    갖도록 맞췄다 — Melee에 `SelfDestruct`, Ranged에 `Heal`(회복 4/사거리 2), Guard에 `Counter`를 추가해
+    (Guard는 사용자가 이미 `MaxHp`를 9로 직접 조정해둔 값 그대로 유지) 6개 행동이 예시 4행에 전부 한 번씩
+    나타나게 했다. `docs/UnitCsvSandbox.md`에 이 대응 관계를 설명하는 문장 추가.
+  - **"다시 시작" 버튼**: [`BattleHud`](Assets/Scripts/TacticsECS/View/BattleHud.cs)의 승/패 오버레이
+    (`BuildBattleEndPanel`)에 버튼을 추가하고 `OnRestartClicked` 이벤트로 클릭을 알린다.
+    [`BattleController.HandleReturnToSetup`](Assets/Scripts/TacticsECS/BattleController.cs)이 이 이벤트를 받아
+    지금 전투에 쓰인 모든 자식 오브젝트(`GridView`/`BattleHud`/`UnitSpawner`와 그 아래 스폰된 유닛들, 샌드박스
+    모드라면 `SandboxHud`까지)를 `Destroy`하고 선택/전투 상태 필드를 초기화한 뒤 `SetupBattle()`을 처음부터
+    다시 호출한다 — 샌드박스 모드에서는 이 재시작이 곧 배치 화면(커스텀 화면)으로 되돌아가는 것이고, 데모
+    모드에서는 데모 편성을 다시 스폰하는 것과 같다. `Camera.main`(Awake에서 한 번만 확보)과
+    `EventSystem`(`BattleHud.EnsureEventSystem`이 `transform` 밖에 만듦)은 자식 파괴 대상이 아니라 그대로
+    재사용된다.
+  - **검증**: `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run` 재실행 — 컴파일
+    에러 없음, 갱신된 `sample_units.csv`로도 `ALL PASS` 확인. 전투를 실제로 승/패까지 진행해 "다시 시작" 버튼을
+    눌러보는 상호작용 흐름 자체는 자동화하지 않았다 — 에디터에서 Play로 직접 확인 필요.

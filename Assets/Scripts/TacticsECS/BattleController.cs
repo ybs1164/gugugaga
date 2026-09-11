@@ -126,6 +126,7 @@ namespace TacticsECS
             _hud.OnHealClicked += HandleHealClicked;
             _hud.OnSelfDestructClicked += HandleSelfDestructClicked;
             _hud.OnDeselectClicked += ClearSelection;
+            _hud.OnRestartClicked += HandleReturnToSetup;
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
             // Camera.main 방향으로 맞추는데(HpBillboardRotation), 그때 카메라가 아직 기본 회전값이면
@@ -155,6 +156,30 @@ namespace TacticsECS
             // 그 전에 _hud가 준비돼 있어야 한다.
             _turnState = TurnSystem.StartTurn(_world, Team.Player, 1);
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
+        }
+
+        /// <summary>승/패 화면의 "다시 시작" 버튼 핸들러. 이번 전투에 쓰인 자식 오브젝트(GridView/BattleHud/
+        /// UnitSpawner와 그 아래 스폰된 유닛들, 샌드박스 모드라면 SandboxHud까지)를 전부 지우고
+        /// SetupBattle을 처음부터 다시 호출한다 — 샌드박스 모드에서는 이 재시작이 곧 배치 화면(커스텀
+        /// 화면)으로 되돌아가는 것이고, 데모 모드에서는 데모 편성을 다시 스폰하는 것과 같다. Camera.main
+        /// (Awake에서 한 번만 찾거나 만듦)과 EventSystem(BattleHud.EnsureEventSystem, transform 밖에 생성됨)은
+        /// 이 자식 파괴 대상이 아니라 그대로 재사용된다.</summary>
+        private void HandleReturnToSetup()
+        {
+            for (int i = transform.childCount - 1; i >= 0; i--)
+                Destroy(transform.GetChild(i).gameObject);
+
+            _viewsById.Clear();
+            _battleOver = false;
+            _state = SelectState.None;
+            _selectedUnitId = -1;
+            _reachableTiles = null;
+            _attackableTargets = null;
+            _placementActive = false;
+            _sandboxHud = null;
+            _placementController = null;
+
+            SetupBattle();
         }
 
         // ---------- Sandbox: CSV 배치 단계 ----------

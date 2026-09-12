@@ -35,6 +35,14 @@ namespace TacticsECS
         [Tooltip("방어(탱커) 유닛 프리팹.")]
         [SerializeField] private UnitView guardPrefab;
 
+        [Header("Sandbox Extra Visuals")]
+        [Tooltip("샌드박스 CSV 전용 추가 BaseVisual 프리팹 — 데모 편성(SpawnDemoFormation)에는 쓰이지 않고, " +
+            "CSV의 BaseVisual 값과 이름이 일치하는 것만 UnitPlacementController의 팔레트 렌더링에 쓰인다.")]
+        [SerializeField] private UnitView rogueHoodedPrefab;
+        [SerializeField] private UnitView magePrefab;
+        [SerializeField] private UnitView skeletonWarriorPrefab;
+        [SerializeField] private UnitView skeletonMagePrefab;
+
         [Header("Stress Test")]
         [Tooltip("데모 편성 외에 팀당 추가로 스폰할 유닛 수. 100+ 오브젝트 성능 확인용.")]
         [SerializeField] private int stressTestExtraUnitsPerTeam = 0;
@@ -196,7 +204,11 @@ namespace TacticsECS
             {
                 ["Melee"] = meleePrefab,
                 ["Ranged"] = rangedPrefab,
-                ["Guard"] = guardPrefab
+                ["Guard"] = guardPrefab,
+                ["RogueHooded"] = rogueHoodedPrefab,
+                ["Mage"] = magePrefab,
+                ["SkeletonWarrior"] = skeletonWarriorPrefab,
+                ["SkeletonMage"] = skeletonMagePrefab
             };
             _placementController = new UnitPlacementController(_grid, _world, _spawner, basePrefabsByName, _viewsById);
 

@@ -65,7 +65,7 @@ namespace TacticsECS
 
             if (!_basePrefabsByName.TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
             {
-                Debug.LogWarning($"[UnitPlacementController] BaseVisual '{row.BaseVisual}'에 대응하는 프리팹을 찾지 못했다 (유닛: {row.Name}). Melee/Ranged/Guard 중 하나로 CSV를 수정하세요.");
+                Debug.LogWarning($"[UnitPlacementController] BaseVisual '{row.BaseVisual}'에 대응하는 프리팹을 찾지 못했다 (유닛: {row.Name}). Melee/Ranged/Guard/RogueHooded/Mage/SkeletonWarrior/SkeletonMage 중 하나로 CSV를 수정하세요.");
                 return;
             }
 

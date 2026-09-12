@@ -177,6 +177,14 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 
 유닛 모델은 [KayKit - Adventurers Character Pack](https://kaylousberg.itch.io/kaykit-adventurers)(Kay Lousberg 제작, CC0 — 저작자 표시 의무 없음)의 로우폴리 캐릭터를 `Assets/Art/KayKit/Characters`에 받아 사용한다. 라이선스 원문은 [`Assets/Art/KayKit/LICENSE.txt`](Assets/Art/KayKit/LICENSE.txt). 세 유닛에 실루엣이 뚜렷이 구분되도록 매칭했다: **Melee**=Barbarian(양손 도끼), **Ranged**=Rogue(석궁), **Guard**=Knight(한손검 + 사각 방패). 캐릭터 FBX 하나에 무기/방패 변형이 전부 함께 들어있어(예: Knight는 방패 4종 + 검 2종을 전부 포함), [`UnitPrefabSetup`](Assets/Editor/UnitPrefabSetup.cs)이 타입에 맞는 것만 자식 이름으로 찾아 켜고 나머지는 `SetActive(false)`로 꺼서 정리한다. 모델의 기본 정면은 카메라 반대쪽(뒤)을 보고 있어서, 고정 isometric 카메라에 얼굴/무기가 보이도록 프리팹에서 180도 돌려 붙였다. 가만히 서 있을 때뿐 아니라 이동할 때는 이동 방향으로, 공격할 때는 대상 쪽으로 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 자동으로 회전시킨다(`FaceTowards`/`MoveRoutine`).
 
+샌드박스 CSV 전용으로 겉모습 4종을 추가했다 — 같은 Adventurers 팩의 `RogueHooded`/`Mage`, 그리고 자매 팩
+[KayKit - Character Pack: Skeletons](https://kaylousberg.itch.io/kaykit-skeletons)(역시 Kay Lousberg 제작, CC0)의
+`SkeletonWarrior`/`SkeletonMage`(`Assets/Art/KayKitSkeletons/Characters`, 라이선스
+[`Assets/Art/KayKitSkeletons/LICENSE.txt`](Assets/Art/KayKitSkeletons/LICENSE.txt)). 데모 편성(`SpawnDemoFormation`)의
+Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Assets/Editor/ExtraCharacterPrefabSetup.cs)이 만든
+`Unit_RogueHooded`/`Unit_Mage`/`Unit_SkeletonWarrior`/`Unit_SkeletonMage` 프리팹을 CSV의 `BaseVisual` 값으로만
+골라 쓴다(자세한 배정은 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 참고).
+
 플레이어 유닛은 파란/청록 계열, 적 유닛은 빨강/주황 계열 색으로 구분되며, 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 스폰 시 만드는 유닛별 런타임 머티리얼에서 `UnitDefinition.playerColor`/`enemyColor` 값을 모델의 겉감 텍스처(`UnitDefinition.bodyTexture`) 위에 곱해 틴트하는 방식이라, 모델의 음영/디테일은 남기면서 팀 색을 입힌다(캐릭터의 몸통/팔다리/망토/무기 등 여러 Renderer가 이 머티리얼 하나를 공유). 유닛 머리 위 텍스트는 `현재HP/최대HP`.
 
 데미지 공식은 `max(1, 공격자 공격력 - (대상 방어력 + 방어 태세 보너스))`.
@@ -471,3 +479,51 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
     경로를 막아버림", 실제 게임 로직 버그가 아니라 테스트 시나리오의 좌표 설계 실수)를 찾아 위치를
     수정한 뒤 재실행해 `ALL PASS (45)` 확인. `UnitCsvVerification`도 재실행해 회귀 없음 확인 후 스크립트
     삭제. 코드 변경 없이 검증만 강화된 커밋.
+
+- 2026-09-12: 샌드박스 팔레트에 스크롤 레이아웃 적용, CSV 예시 유닛의 겉모습 중복을 줄이기 위해 캐릭터
+  모델 4종 추가.
+  - **동기**: "샌드박스 씬 왼쪽 개체 정보가 크기를 넘어설 때를 위해 스크롤 레이아웃을 적용해달라"와 "예시
+    CSV에 있는 개체들과 중복되는 캐릭터 3D 모델링이 너무 많으니 로우폴리 무료 모델을 찾아 적용해달라"는
+    요청. 후자는 다운로드가 필요해 사용자에게 후보(파일/출처/용량)를 먼저 확인받았다.
+  - **스크롤 레이아웃**: [`SandboxHud`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)의 팔레트 패널을
+    표준 UGUI `ScrollRect`(Viewport+`RectMask2D` / Content / 얇은 세로 `Scrollbar`) 구조로 교체. 팔레트
+    행 수에 맞춰 Content 높이가 늘어나고, 패널 높이(300px)를 넘으면 스크롤되며, `SetPalette` 호출마다
+    스크롤 위치를 맨 위로 리셋한다. 기존엔 목록이 넘치면 아래쪽이 그냥 잘려 안 보였음(문서에 v1 비목표로
+    남아있던 부분).
+  - **모델 중복 문제**: `Assets/Art/KayKit/Characters`에는 Barbarian/Knight/Rogue 3종뿐이라
+    [`docs/sample_units.csv`](docs/sample_units.csv)의 13개 유닛이 전부 이 3개(Melee 계열 5유닛/Ranged
+    계열 6유닛/Guard 계열 2유닛)로만 표시되고 있었다.
+  - **에셋 선정**: 새 팩을 새로 검토하는 대신, 이미 라이선스를 확인해둔 KayKit Adventurers 팩(CC0) 안에서
+    아직 안 쓴 `RogueHooded.fbx`/`Mage.fbx`(+`mage_texture.png`, 텍스처는 GitHub 미러
+    `KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`에서 총 약 37MB)를 우선 추가하고, 사용자가
+    "추가 팩까지 검토"를 선택해 같은 작가(Kay Lousberg)의 CC0 자매 팩
+    [KayKit Skeletons](https://kaylousberg.itch.io/kaykit-skeletons)에서 `Skeleton_Warrior.fbx`/
+    `Skeleton_Mage.fbx`(+공유 `skeleton_texture.png`, 미러 `KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0`에서
+    약 43MB)도 추가— 총 새 다운로드 약 80MB, 6파일. `Assets/Art/KayKitSkeletons/`에 별도 폴더 및
+    `LICENSE.txt` 신설. 다운로드 전 파일명/출처/용량을 사용자에게 확인받았고, GitHub 트리 API로 받은
+    파일 크기가 실제 다운로드 크기와 정확히 일치함을 확인.
+  - **프리팹 생성**: 기존 [`UnitPrefabSetup`](Assets/Editor/UnitPrefabSetup.cs)은 `UnitDefinition`이
+    `canGuard`/`attack`/`moveRange` 등을 직접 필드로 가지던 예전 버전 기준으로 작성돼 있어 지금 다시
+    실행하면(그 필드들이 지금은 `actions` 리스트 안으로 옮겨가 존재하지 않아 리플렉션이 예외를 던짐)
+    즉시 중단되고, 무엇보다 Guard 프리팹은 이후 사용자가 `MaxHp`를 9로 직접 조정해둔 값이 있어 재실행 시
+    되돌아가 버린다 — 기존 3개(Melee/Ranged/Guard)는 건드리지 않고, 새 4개만 만드는 별도 도구
+    [`ExtraCharacterPrefabSetup`](Assets/Editor/ExtraCharacterPrefabSetup.cs)을 신설(`MoveAction.FromCsv`/
+    `AttackAction.FromCsv`로 `actions` 리스트를 직접 구성해 현재 `UnitDefinition` API와 맞춤). 손 소켓 아래
+    무기/방패 변형을 정리하는 `hideNames`는 새로 받은 4개 FBX의 자식 Transform 이름을 1회성 조사
+    스크립트로 덤프해 확보(RogueHooded는 기존 Rogue와 동일 리그라 같은 값 재사용, Mage는 지팡이+스펠북만
+    남기고 완드/펼친책 숨김, Skeleton 두 종은 손 소켓이 아예 비어있어 맨손 그대로). `Assets/Scenes/
+    Sandbox.unity`는 `SandboxSceneSetup`이 `SampleScene`을 복제해 만든 별도 파일이라 새 필드가 자동으로
+    따라오지 않아, `ExtraCharacterPrefabSetup`이 두 씬 모두에 새 프리팹 4개를 연결하도록 처리.
+  - **BaseVisual 재배정**: [`BattleController`](Assets/Scripts/TacticsECS/BattleController.cs)에 새 프리팹
+    필드 4개와 샌드박스 팔레트용 `basePrefabsByName` 항목을 추가. `docs/sample_units.csv`의 BaseVisual을
+    유닛 컨셉에 맞게 재배정(Duelist/Assassin→RogueHooded, Cleric/IceMage→Mage, Shaman/Cultist→
+    SkeletonMage, Golem→SkeletonWarrior, 나머지는 기존 3종 유지) — 결과적으로 13개 유닛이 7종 모델에
+    2~3개씩만 겹치도록 분산됨. [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md)의 `BaseVisual` 컬럼
+    설명과 [`UnitPlacementController`](Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs)의
+    안내 경고 문구도 새 7종 목록으로 갱신.
+  - **검증**: Unity CLI 헤드리스 컴파일(`unity run . -- -nographics`) 통과. 새 프리팹 4개는 1회성 스크린샷
+    스크립트로(`-nographics` 없이 실행해야 실제 렌더링됨 — `-nographics`는 널 그래픽스 디바이스라 빈
+    회색 이미지만 나옴) 게임과 같은 isometric 각도로 렌더링해 텍스처/포즈/무기 정리가 올바른지 직접
+    확인(스크립트는 확인 후 삭제). `unity run . -- -executeMethod TacticsECS.EditorTools.
+    UnitCsvVerification.Run` 재실행 — 새 BaseVisual 매핑을 포함해 `round-trip PASS (13 rows)`/
+    `spawn PASS (13 rows)`/`ALL PASS` 확인.

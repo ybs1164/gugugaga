@@ -31,10 +31,15 @@ namespace TacticsECS
         private Image _playerButtonBg;
         private Image _enemyButtonBg;
         private RectTransform _paletteRoot;
+        private RectTransform _paletteContent;
+        private ScrollRect _paletteScrollRect;
         private readonly List<(Button Button, Image Bg)> _paletteButtons = new List<(Button, Image)>();
 
         private const float RowH = 30f;
         private const float PanelWidth = 220f;
+        private const float PaletteHeight = 300f;
+        private const float ScrollbarWidth = 6f;
+        private const float ScrollbarGutter = ScrollbarWidth + 2f;
 
         public void Init()
         {
@@ -172,33 +177,83 @@ namespace TacticsECS
 
         // ---------- 팔레트: 불러온 유닛 목록 ----------
 
+        /// <summary>목록이 패널 높이를 넘으면 ScrollRect(세로 전용, 얇은 스크롤바 포함)로 스크롤한다 —
+        /// 표준 Unity UGUI 구성: Palette(패널+ScrollRect) &gt; Viewport(RectMask2D) &gt; Content(버튼들이
+        /// 실제로 붙는 곳, 행 수에 맞춰 높이가 늘어남), Palette 오른쪽 가장자리에 얇은 세로 Scrollbar.</summary>
         private void BuildPalette(Transform root)
         {
             var panel = CreateRect("Palette", root);
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -120f);
-            panel.sizeDelta = new Vector2(PanelWidth, 300f);
+            panel.sizeDelta = new Vector2(PanelWidth, PaletteHeight);
             CreatePanelImage(panel, PanelBackground);
+
+            var viewport = CreateRect("Viewport", panel);
+            viewport.anchorMin = Vector2.zero;
+            viewport.anchorMax = Vector2.one;
+            viewport.offsetMin = Vector2.zero;
+            viewport.offsetMax = new Vector2(-ScrollbarGutter, 0f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            var content = CreateRect("Content", viewport);
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = Vector2.one;
+            content.pivot = new Vector2(0.5f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(0f, PaletteHeight);
+
+            var scrollbarTrack = CreateRect("Scrollbar", panel);
+            scrollbarTrack.anchorMin = new Vector2(1f, 0f);
+            scrollbarTrack.anchorMax = Vector2.one;
+            scrollbarTrack.pivot = new Vector2(1f, 0.5f);
+            scrollbarTrack.sizeDelta = new Vector2(ScrollbarWidth, 0f);
+            scrollbarTrack.anchoredPosition = Vector2.zero;
+            CreatePanelImage(scrollbarTrack, new Color(1f, 1f, 1f, 0.08f));
+
+            var handle = CreateRect("Handle", scrollbarTrack);
+            var handleImage = CreatePanelImage(handle, new Color(1f, 1f, 1f, 0.35f));
+
+            var scrollbar = scrollbarTrack.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.handleRect = handle;
+
+            _paletteScrollRect = panel.gameObject.AddComponent<ScrollRect>();
+            _paletteScrollRect.viewport = viewport;
+            _paletteScrollRect.content = content;
+            _paletteScrollRect.horizontal = false;
+            _paletteScrollRect.vertical = true;
+            _paletteScrollRect.movementType = ScrollRect.MovementType.Clamped;
+            _paletteScrollRect.verticalScrollbar = scrollbar;
+            _paletteScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
             _paletteRoot = panel;
+            _paletteContent = content;
         }
 
-        /// <summary>불러온 CSV 행 목록으로 팔레트 버튼을 다시 만든다. 목록이 패널 높이를 넘으면 아래쪽은
-        /// 잘려 보이지 않는다(스크롤은 v1 범위 밖 — 문서의 비목표 참고).</summary>
+        /// <summary>불러온 CSV 행 목록으로 팔레트 버튼을 다시 만든다. Content 높이를 행 수에 맞게 늘려
+        /// 패널 높이를 넘으면 ScrollRect로 스크롤해서 볼 수 있게 한다.</summary>
         public void SetPalette(IReadOnlyList<UnitCsvRow> rows)
         {
             foreach (var (button, _) in _paletteButtons) Destroy(button.gameObject);
             _paletteButtons.Clear();
 
+            float buttonWidth = PanelWidth - ScrollbarGutter - 16f;
             for (int i = 0; i < rows.Count; i++)
             {
                 int index = i;
                 var row = rows[i];
                 var label = $"{row.Name} (HP{row.MaxHp}/{row.BaseVisual})";
-                var button = CreateTextButton(_paletteRoot, label, new Vector2(8f, -8f - i * (RowH + 4f)), new Vector2(PanelWidth - 16f, RowH), ButtonIdle, out var bg);
+                var button = CreateTextButton(_paletteContent, label, new Vector2(8f, -8f - i * (RowH + 4f)), new Vector2(buttonWidth, RowH), ButtonIdle, out var bg);
                 button.onClick.AddListener(() => OnUnitSelected?.Invoke(index));
                 _paletteButtons.Add((button, bg));
             }
+
+            float contentHeight = rows.Count * (RowH + 4f) + 8f;
+            _paletteContent.sizeDelta = new Vector2(0f, Mathf.Max(contentHeight, PaletteHeight));
+            _paletteContent.anchoredPosition = Vector2.zero;
+            _paletteScrollRect.verticalNormalizedPosition = 1f;
         }
 
         public void SetSelectedUnit(int index)

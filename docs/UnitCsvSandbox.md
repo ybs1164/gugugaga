@@ -11,11 +11,18 @@ CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조
 프리팹과 같은 조합(각각 SelfDestruct/Heal/Defend+Counter)으로 6개 행동을 전부 한 번씩 보여주고, Cleric은
 Heal+Defend+Counter를, Duelist는 Charge+Retreat를 한 유닛에 합성한 커스텀 예시다.
 
+`BaseVisual`은 원래 3종(Melee/Ranged/Guard)뿐이라 13개 예시 유닛이 전부 그 3개 모델만 재사용해 겉모습이
+많이 겹쳤다 — 같은 KayKit(Kay Lousberg, CC0) Adventurers 팩에서 아직 안 쓴 `RogueHooded`/`Mage`, 그리고
+자매 팩인 KayKit Skeletons(역시 CC0)의 `SkeletonWarrior`/`SkeletonMage`를 추가로 받아 총 7종으로 늘리고
+`sample_units.csv`의 BaseVisual을 유닛 컨셉에 맞게 재배정했다(예: Duelist/Assassin→RogueHooded,
+Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 라이선스 원문은
+[`Assets/Art/KayKit/LICENSE.txt`](../Assets/Art/KayKit/LICENSE.txt) / [`Assets/Art/KayKitSkeletons/LICENSE.txt`](../Assets/Art/KayKitSkeletons/LICENSE.txt).
+
 | 컬럼 | 의미 | 비고 |
 |---|---|---|
 | `Name` | 유닛 이름(표시/구분용) | |
 | `MaxHp`, `Defense` | 기본 스탯 | |
-| `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` 중 하나 |
+| `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나 — `Assets/Prefabs/Units/Unit_<값>.prefab`을 찾는 키(대소문자 그대로 일치해야 함) |
 | `PlayerColor`, `EnemyColor` | 팀별 틴트 색 | `#RRGGBB` 형식 |
 | `Actions` | 이 유닛이 가진 행동 목록 | 세미콜론(`;`)으로 구분, 예: `Move;Attack;Counter` |
 | `Move.Range` / `Move.IgnoreTerrain` / `Move.IgnoreUnitBlocking` / `Move.AllowDiagonal` | Move 파라미터 | `Actions`에 `Move`가 있을 때만 사용 |

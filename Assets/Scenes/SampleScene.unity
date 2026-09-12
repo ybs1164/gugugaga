@@ -467,7 +467,12 @@ MonoBehaviour:
   meleePrefab: {fileID: 3471446425503980103, guid: d8194f771098d1b439fa576e372b0dea, type: 3}
   rangedPrefab: {fileID: 3193695033754148919, guid: 782917be00c5a4a41b9a6f9291fef2fd, type: 3}
   guardPrefab: {fileID: 7992524672913923911, guid: b6826f38ee08ecc418c04b11fe6aade3, type: 3}
+  rogueHoodedPrefab: {fileID: 557327008147899301, guid: ae7ffdbf415171d4d9d32fb654bb9422, type: 3}
+  magePrefab: {fileID: 7326235962022027239, guid: 5a8f53bd689a64c40b1528dfa413b033, type: 3}
+  skeletonWarriorPrefab: {fileID: 3613992866087804277, guid: 23fc74f500bd1cc4bb62733b14b49b21, type: 3}
+  skeletonMagePrefab: {fileID: 7618103252866758234, guid: b1388736d97c61148b01a1298cf990df, type: 3}
   stressTestExtraUnitsPerTeam: 0
+  sandboxMode: 0
   isoYawDegrees: 45
   isoPitchDegrees: 35.264
   isoZoom: 0.62

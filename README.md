@@ -527,3 +527,7 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     확인(스크립트는 확인 후 삭제). `unity run . -- -executeMethod TacticsECS.EditorTools.
     UnitCsvVerification.Run` 재실행 — 새 BaseVisual 매핑을 포함해 `round-trip PASS (13 rows)`/
     `spawn PASS (13 rows)`/`ALL PASS` 확인.
+- 2026-09-13: 저장소 루트의 `SandboxUnits.csv`(불러오기 없이 바로 쓸 수 있는 샌드박스용 사본)를 현재까지
+  구현된 17개 행동(Move/Attack/Defend/Heal/SelfDestruct/Counter/Charge/Retreat/Ambush/Infiltrate/Herd/
+  Convert/Combo/Scout/Splash/Stiff/Freeze)을 전부 반영한 [`docs/sample_units.csv`](docs/sample_units.csv)와
+  동일한 13개 유닛 내용으로 채움. `docs/sample_units.csv` 자체는 5a5522b 시점에 이미 최신 상태라 변경 없음.

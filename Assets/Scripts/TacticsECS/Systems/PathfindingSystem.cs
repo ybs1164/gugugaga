@@ -5,13 +5,15 @@ namespace TacticsECS
 {
     /// <summary>
     /// 순수 함수 형태의 시스템(정적 클래스). GridWorld/EntityWorld 데이터만 읽어서 결과를 계산하고,
-    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 이동하는 엔티티의 개별 컴포넌트(MoveRange/IgnoreTerrain/
-    /// IgnoreUnitBlocking/AllowDiagonal)에 따라 대각선 이동/지형 무시/유닛 무시 여부가 달라진다.
+    /// 상태는 전혀 들고 있지 않는다. BFS 기반이며 이동하는 엔티티의 개별 컴포넌트(MoveRange/Accelerated/
+    /// IgnoreTerrain/IgnoreUnitBlocking/AllowDiagonal)와 보유 패시브(InfiltrateAction)에 따라 실효 이동
+    /// 거리/대각선 이동/지형 무시/유닛 무시 여부가 달라진다.
     /// </summary>
     public static class PathfindingSystem
     {
         /// <summary>
-        /// start에서 selfUnitId의 MoveRange 이내로 이동 가능한 모든 타일을 계산한다.
+        /// start에서 selfUnitId의 실효 이동 거리(MovementSystem.EffectiveMoveRange — 가속 보너스 포함)
+        /// 이내로 이동 가능한 모든 타일을 계산한다.
         /// IgnoreTerrain이 false면 Walkable=false인 타일을 지나갈 수 없고,
         /// IgnoreUnitBlocking이 false면 다른 유닛이 서 있는 타일은 통과/정지 모두 불가(자기 자신은 예외),
         /// AllowDiagonal이 true면 8방향, 아니면 4방향으로 탐색한다.
@@ -21,7 +23,7 @@ namespace TacticsECS
             GridWorld grid, EntityWorld world, Vector2Int start, int selfUnitId,
             out HashSet<Vector2Int> reachableSet)
         {
-            int moveRange = world.Get<MoveRange>(selfUnitId).Value;
+            int moveRange = MovementSystem.EffectiveMoveRange(world, selfUnitId);
             bool ignoreTerrain = world.Get<IgnoreTerrain>(selfUnitId).Value;
             bool ignoreUnitBlocking = world.Get<IgnoreUnitBlocking>(selfUnitId).Value;
             bool allowDiagonal = world.Get<AllowDiagonal>(selfUnitId).Value;
@@ -41,9 +43,7 @@ namespace TacticsECS
                 {
                     if (dist.ContainsKey(next)) continue;
                     if (!ignoreTerrain && !grid.IsWalkable(next)) continue;
-
-                    int occ = grid.GetOccupant(next);
-                    if (!ignoreUnitBlocking && occ != TileData.NoOccupant && occ != selfUnitId) continue;
+                    if (IsBlockedByOccupant(grid, world, selfUnitId, next, ignoreUnitBlocking)) continue;
 
                     dist[next] = curDist + 1;
                     cameFrom[next] = cur;
@@ -57,5 +57,20 @@ namespace TacticsECS
 
         public static int Distance(Vector2Int a, Vector2Int b) =>
             Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+
+        /// <summary>tile의 점유자가 selfUnitId의 이동을 막는지 판정한다(빈 타일/자기 자신은 막지 않음).
+        /// ignoreUnitBlocking이 true면 점유자가 누구든 무시하고, 그렇지 않아도 selfUnitId가 잠입
+        /// (InfiltrateAction)을 가졌으면 적 팀 점유자에 의한 차단만 추가로 무시한다 — 아군에 의한
+        /// 차단은 잠입으로도 무시되지 않는다. GetReachable(경로 탐색)과 MoveAction.Execute(실제 이동)가
+        /// 이 판정을 공유한다.</summary>
+        public static bool IsBlockedByOccupant(GridWorld grid, EntityWorld world, int selfUnitId, Vector2Int tile, bool ignoreUnitBlocking)
+        {
+            int occ = grid.GetOccupant(tile);
+            if (occ == TileData.NoOccupant || occ == selfUnitId) return false;
+            if (ignoreUnitBlocking) return false;
+            if (world.Get<Team>(occ) != world.Get<Team>(selfUnitId) &&
+                UnitActionQueries.Find<InfiltrateAction>(world, selfUnitId) != null) return false;
+            return true;
+        }
     }
 }

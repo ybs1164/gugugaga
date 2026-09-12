@@ -31,6 +31,18 @@ namespace TacticsECS
                 actions.Add(new ChargeAction());
             if ((row.Actions & ActionType.Retreat) != 0)
                 actions.Add(new RetreatAction());
+            if ((row.Actions & ActionType.Ambush) != 0)
+                actions.Add(new AmbushAction());
+            if ((row.Actions & ActionType.Infiltrate) != 0)
+                actions.Add(new InfiltrateAction());
+            if ((row.Actions & ActionType.Herd) != 0)
+                actions.Add(new HerdAction());
+            if ((row.Actions & ActionType.Convert) != 0)
+                actions.Add(new ConvertAction());
+            if ((row.Actions & ActionType.Combo) != 0)
+                actions.Add(new ComboAction());
+            if ((row.Actions & ActionType.Scout) != 0)
+                actions.Add(new ScoutAction());
 
             return actions;
         }

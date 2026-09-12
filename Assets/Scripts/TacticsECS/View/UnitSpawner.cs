@@ -43,6 +43,10 @@ namespace TacticsECS
             world.Set(id, new HasMoved { Value = false });
             world.Set(id, new HasActed { Value = false });
             world.Set(id, new IsGuarding { Value = false });
+            world.Set(id, new Accelerated { Value = false });
+
+            // 정찰 플레이스홀더: 아직 시야 시스템이 없어 기본값 0으로만 채워둔다(Core/UnitComponents.cs 참고).
+            world.Set(id, new VisionRange { Value = 0 });
 
             world.Set(id, new MaxHp { Value = definition.MaxHp });
             world.Set(id, new Attack { Value = definition.Attack });

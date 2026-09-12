@@ -38,10 +38,11 @@ namespace TacticsECS
             return Mathf.Max(1, dmg);
         }
 
-        /// <summary>공격 행동(AttackAction)을 찾아 실행하고, 공격이 성사되어 대상이 살아남았으면 대상의
-        /// 반격 행동(CounterAction)을 찾아 이어서 실행한다. 공격이 실제로 성사됐는지와 별개로, 대상이
-        /// 반격으로 되돌려준 피해량을 counterDamageDealt로 함께 돌려준다(반격이 없었거나 발동하지
-        /// 않았으면 0).</summary>
+        /// <summary>공격 행동(AttackAction)을 찾아 실행하고, 공격이 성사되어 대상이 살아남았으면 전향
+        /// (ConvertAction) 여부를 먼저 반영한 뒤 대상의 반격 행동(CounterAction)을 찾아 이어서 실행한다.
+        /// 공격자가 기습(AmbushAction)을 가졌으면 반격 자체를 건너뛴다. 공격이 실제로 성사됐는지와
+        /// 별개로, 대상이 반격으로 되돌려준 피해량을 counterDamageDealt로 함께 돌려준다(반격이 없었거나
+        /// 발동하지 않았으면 0).</summary>
         public static bool TryAttack(GridWorld grid, EntityWorld world, int attackerId, int targetId, out int damageDealt, out int counterDamageDealt)
         {
             damageDealt = 0;
@@ -52,8 +53,16 @@ namespace TacticsECS
 
             if (UnitQueries.IsAlive(world, targetId))
             {
-                var counter = UnitActionQueries.Find<CounterAction>(world, targetId);
-                counter?.Execute(grid, world, targetId, attackerId, out counterDamageDealt);
+                // 전향: 공격자가 가졌으면 반격 판정보다 먼저 대상의 팀을 공격자 팀으로 바꾼다 — 그래야
+                // 뒤이은 반격이 (이미 팀이 같아진) CounterAction.Execute의 팀 체크로 걸러진다.
+                if (UnitActionQueries.Find<ConvertAction>(world, attackerId) != null)
+                    world.Set(targetId, world.Get<Team>(attackerId));
+
+                if (UnitActionQueries.Find<AmbushAction>(world, attackerId) == null)
+                {
+                    var counter = UnitActionQueries.Find<CounterAction>(world, targetId);
+                    counter?.Execute(grid, world, targetId, attackerId, out counterDamageDealt);
+                }
             }
 
             return true;

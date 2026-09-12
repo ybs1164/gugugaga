@@ -83,12 +83,15 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
-어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을
-하는지는 **값이 아니라 행동 자신**이 정한다. 여덟 행동
+어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰 중 무엇을 쓸 수 있는지,
+그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라 행동 자신**이 정한다. 열네 행동
 ([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
 [`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
 [`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs)/
-[`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs)/[`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs))
+[`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs)/[`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs)/
+[`AmbushAction`](Assets/Scripts/TacticsECS/Actions/AmbushAction.cs)/[`InfiltrateAction`](Assets/Scripts/TacticsECS/Actions/InfiltrateAction.cs)/
+[`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs)/[`ConvertAction`](Assets/Scripts/TacticsECS/Actions/ConvertAction.cs)/
+[`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)/[`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs))
 은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
 아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
 이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
@@ -130,6 +133,30 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 공격 → (대피로) 이동까지 마친 뒤에는, 돌격이 있어도 이미 이번 턴 공격을 마쳤으므로("대피로 이동한 뒤 다시
 공격"은 발동하지 않음) 다시 공격할 수 없다. 별도 상태 없이 기존 `HasMoved`/`HasActed` 조합만으로 이 제약이
 자연히 성립한다.
+
+**기습**/**잠입**/**무리**/**전향**/**연타**/**정찰**도 값 없는 순수 마커 패시브로, 각각 다른 지점에 훅을 건다:
+- **기습**([`AmbushAction`](Assets/Scripts/TacticsECS/Actions/AmbushAction.cs), `CombatSystem.TryAttack`이 공격자 쪽에서
+  보유 여부만 확인): 공격이 성사되면, 대상이 반격(`CounterAction`)을 갖고 있어도 발동시키지 않는다.
+- **잠입**([`InfiltrateAction`](Assets/Scripts/TacticsECS/Actions/InfiltrateAction.cs), `PathfindingSystem.IsBlockedByOccupant`가
+  경로 탐색/실제 이동 양쪽에서 공유해 참조): 적 유닛에 의한 이동 방해만 무시한다. 모든 유닛(아군 포함)을
+  무시하는 `MoveAction.IgnoreUnitBlocking`과 달리 아군에 의한 차단은 그대로 적용된다.
+- **무리**([`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs),
+  [`PassiveAuraSystem.RefreshHerdAura`](Assets/Scripts/TacticsECS/Systems/PassiveAuraSystem.cs)가 유닛 이동 직후와 매 턴
+  시작 시 다시 계산): 주변 1블록 내 아군(자신 제외)에게 **가속**(`Accelerated` 컴포넌트) 상태를 부여한다. 가속은
+  이동 거리 +1 효과가 있고(`MovementSystem.EffectiveMoveRange`로 계산, `PathfindingSystem.GetReachable`/유닛 패널
+  이동력 표시가 이 값을 씀), 무리 유닛이 범위를 벗어나도 유지되며 오직 **피격 시**(공격/반격/자폭으로 데미지를
+  받는 시점) 해제된다.
+- **전향**([`ConvertAction`](Assets/Scripts/TacticsECS/Actions/ConvertAction.cs), `CombatSystem.TryAttack`이 공격 성사 +
+  대상 생존을 확인한 뒤 반격 판정보다 먼저 처리): 공격한 적 유닛의 팀을 공격자 팀으로 바꿔 아군으로 만든다.
+  이 처리가 반격보다 먼저 일어나므로, 전향된 대상은 더 이상 반격하지 않는다(`CounterAction.Execute`에 팀이
+  같으면 실패하는 방어 로직도 이번에 함께 추가 — 기존에는 팀 체크 자체가 없었다).
+- **연타**([`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs), `AttackAction.Execute`가 처치 성공 시
+  보유 여부만 확인): 공격으로 대상을 처치하면 방금 세운 `HasActed`를 되돌려, 같은 턴에 추가로 공격할 수 있다.
+  연속으로 처치하는 한 계속 이어질 수 있다.
+- **정찰**([`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)): 시야 +1을 의도한 패시브이지만, 아직
+  시야/포그오브워 시스템 자체가 프로젝트에 없어 지금은 실제 게임플레이 효과가 없는 **플레이스홀더**다.
+  `VisionRange`(`Core/UnitComponents.cs`, 기본값 0) 컴포넌트만 미리 준비해뒀고, 나중에 시야 시스템이 생기면
+  이 패시브 보유 여부로 `VisionRange + 1`을 계산해 쓰면 된다.
 
 ### 겉모습 (3D 모델)
 
@@ -343,3 +370,41 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
   - **검증**: `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run` 재실행 — 컴파일
     에러 없음, 갱신된 `sample_units.csv`로도 `ALL PASS` 확인. 전투를 실제로 승/패까지 진행해 "다시 시작" 버튼을
     눌러보는 상호작용 흐름 자체는 자동화하지 않았다 — 에디터에서 Play로 직접 확인 필요.
+- 2026-09-12: 기습/잠입/무리/전향/연타/정찰 패시브 6종 추가.
+  - **기습**([`AmbushAction`](Assets/Scripts/TacticsECS/Actions/AmbushAction.cs)): `CombatSystem.TryAttack`이 공격
+    성사 후 대상의 반격(`CounterAction`)을 발동시키기 전에 공격자 보유 여부를 확인해 건너뛴다.
+  - **잠입**([`InfiltrateAction`](Assets/Scripts/TacticsECS/Actions/InfiltrateAction.cs)): 이동 차단 판정을
+    `PathfindingSystem.IsBlockedByOccupant`로 뽑아내 `GetReachable`(경로 탐색)과 `MoveAction.Execute`(실제 이동)가
+    공유하도록 리팩터링 — 기존에는 두 곳에 같은 판정이 중복돼 있었다. 이 헬퍼가 잠입 보유 시 "적 팀 점유자에
+    의한 차단만" 무시하도록(아군 차단은 그대로 유지) 판정한다.
+  - **무리 + 가속**([`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs)): 턴 리셋과 별개로 유지되는
+    지속 상태가 필요해 새 컴포넌트 `Accelerated`(`Core/UnitComponents.cs`)를 추가했다. 새 시스템
+    [`PassiveAuraSystem.RefreshHerdAura`](Assets/Scripts/TacticsECS/Systems/PassiveAuraSystem.cs)가 무리 유닛 주변
+    1블록 내 아군에게 가속을 부여하며, `MovementSystem.TryMove` 성공 직후와 `TurnSystem.StartTurn`에서 호출해
+    배치 변화를 반영한다. 해제는 피격 시점(`AttackAction`/`CounterAction`/`SelfDestructAction`의 데미지 적용 지점)
+    에서 처리. 이동 거리 +1 보너스는 `MoveRange`를 직접 고치지 않고 새 헬퍼 `MovementSystem.EffectiveMoveRange`로
+    계산해 `PathfindingSystem.GetReachable`과 유닛 패널 이동력 표시(`BattleHud.ShowUnitPanel`, 기존에는 raw
+    `MoveRange`를 그대로 표시하고 있었다)에 반영했다.
+  - **전향**([`ConvertAction`](Assets/Scripts/TacticsECS/Actions/ConvertAction.cs)): `CombatSystem.TryAttack`이 공격
+    성사 + 대상 생존을 확인한 뒤, 반격 판정보다 먼저 대상의 `Team`을 공격자 팀으로 바꾼다. 이 순서 때문에
+    `CounterAction.Execute`가 팀이 같으면 실패하도록 방어 로직을 추가해야 했다(기존에는 반격에 팀 체크 자체가
+    없어서 잠재 버그였다 — 계획 검토 시 확인해 함께 수정).
+  - **연타**([`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)): `AttackAction.Execute`가 처치를
+    확인하면 방금 세운 `HasActed`를 다시 `false`로 되돌려 같은 턴 추가 공격을 허용한다.
+  - **정찰**([`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)): 시야/포그오브워 시스템 자체가
+    프로젝트에 없어 실제 효과 없는 플레이스홀더로만 추가 — 새 컴포넌트 `VisionRange`(기본값 0)만 준비.
+  - **공통 배선**: `ActionType`에 6개 플래그 추가, `UnitCsvActionFactory.BuildActions`/`BattleHud.PassiveDefs`에
+    각각 한 줄씩 반영, `docs/sample_units.csv`에 6개 패시브를 하나씩 쓰는 예시 유닛(Assassin/Shaman/Cultist/
+    Berserker/Ranger) 추가. 아이콘 6종(`ambush`/`infiltrate`/`herd`/`convert`/`combo`/`scout`)은 기존
+    `counter`/`charge`/`retreat`와 같은 방식(흰색 실루엣, 자체 제작)으로 새로 그려 `Assets/Art/GameIcons/Resources/Icons`에
+    추가하고 `LICENSE.txt`에 출처를 기록했다.
+  - **검증**: Unity 에디터가 닫혀 있음을 사용자에게 확인받은 뒤 CLI로 검증. `unity run . -- -nographics`
+    헤드리스 컴파일 통과. `docs/sample_units.csv`가 6행에서 10행으로 늘며 `UnitCsvVerification`의
+    `VerifySpawnFromCsv`가 8칸 그리드 폭을 넘는 8/9번째 행에서 `GridWorld.InBounds` 밖으로 나가 occupant
+    조회가 항상 실패하던 기존 버그를 노출시켜, [`UnitCsvVerification.cs`](Assets/Editor/UnitCsvVerification.cs)의
+    배치 좌표를 `new Vector2Int(i, 0)`에서 `new Vector2Int(i % grid.Width, i / grid.Width)`로 수정(행 수가
+    늘어도 안전) — 재실행 후 `ALL PASS (10 rows)` 확인. 6개 패시브 전용으로는 임시 배치모드 스크립트
+    `Assets/Editor/PassiveSkillsVerification.cs`(`-executeMethod`)를 작성해 기습(반격 무효화)/잠입(적 차단만
+    무시, 아군 차단 유지)/무리+가속(인접 아군 이동 거리 +1, 피격 시 해제)/전향(팀 전환 + 전환 후 반격 없음)/
+    연타(처치 후 추가 공격)/정찰(플레이스홀더 컴포넌트 존재) 총 19개 assertion을 확인 — `ALL PASS (19)` 확인
+    후 스크립트 삭제.

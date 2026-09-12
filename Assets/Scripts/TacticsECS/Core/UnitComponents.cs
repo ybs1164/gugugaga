@@ -46,6 +46,17 @@ namespace TacticsECS
     [System.Serializable] public struct HasActed { public bool Value; }
     [System.Serializable] public struct IsGuarding { public bool Value; }
 
+    // ---- 지속 상태 (턴이 아니라 특정 조건으로 갱신/해제) ----
+    // 가속: 무리(HerdAction) 보유 유닛 주변 1블록 내 아군에게 매 이동/턴 시작마다 다시 부여되고
+    // (PassiveAuraSystem.RefreshHerdAura), 피격 시(AttackAction/CounterAction/SelfDestructAction의 데미지
+    // 적용 지점에서) 해제된다. 이동 거리 +1 효과는 MovementSystem.EffectiveMoveRange로 계산한다.
+    [System.Serializable] public struct Accelerated { public bool Value; }
+
+    // ---- 정찰 플레이스홀더 (스폰 후 불변) ----
+    // 아직 시야/포그오브워 시스템이 없어 지금은 값만 들고 있을 뿐 실제 게임플레이 효과는 없다.
+    // Scout(ActionType)을 가진 유닛의 실효 시야는 나중에 시야 시스템이 생기면 이 값 + 1로 계산하면 된다.
+    [System.Serializable] public struct VisionRange { public int Value; }
+
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이
     // 그 자체로 컴포넌트 타입("팀 소속")으로 재사용한다.
 }

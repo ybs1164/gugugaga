@@ -107,7 +107,8 @@ namespace TacticsECS.EditorTools
                         continue;
                     }
 
-                    var pos = new Vector2Int(i, 0);
+                    // 8x8 그리드 폭을 넘지 않도록 행을 2차원으로 접어 배치한다(CSV 행이 늘어나도 안전).
+                    var pos = new Vector2Int(i % grid.Width, i / grid.Width);
                     var view = spawner.SpawnFromCsv(grid, world, Team.Player, prefab, row, pos);
 
                     if (world.Get<MaxHp>(view.UnitId).Value != row.MaxHp) { Debug.LogError($"[UnitCsvVerification] MaxHp mismatch for {row.Name}"); ok = false; }

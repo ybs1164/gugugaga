@@ -12,7 +12,18 @@ namespace TacticsECS
         public static bool TryMove(GridWorld grid, EntityWorld world, int unitId, Vector2Int destination)
         {
             var move = UnitActionQueries.Find<MoveAction>(world, unitId);
-            return move != null && move.Execute(grid, world, unitId, destination);
+            if (move == null || !move.Execute(grid, world, unitId, destination)) return false;
+
+            // 무리: 이동으로 인접 관계가 바뀌었을 수 있으니 가속 부여를 다시 계산한다.
+            PassiveAuraSystem.RefreshHerdAura(world);
+            return true;
+        }
+
+        /// <summary>MoveRange에 가속(Accelerated) 보너스(+1)까지 합산한 실제 이동 거리.</summary>
+        public static int EffectiveMoveRange(EntityWorld world, int unitId)
+        {
+            int bonus = world.Get<Accelerated>(unitId).Value ? 1 : 0;
+            return world.Get<MoveRange>(unitId).Value + bonus;
         }
     }
 }

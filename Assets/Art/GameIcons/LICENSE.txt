@@ -25,6 +25,19 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
                돌진 화살표(쉐브론) 3개를 겹쳐 그린 원본 아이콘. 외부 라이선스 대상 아님)
   retreat.png  "대피(Retreat) - 자체 제작" (charge.png를 좌우 반전한 원본 아이콘. 외부 라이선스
                대상 아님)
+  ambush.png   "기습(Ambush) - 자체 제작" (흰색 실루엣, 아래를 향한 단검 모양의 원본 아이콘.
+               외부 라이선스 대상 아님)
+  infiltrate.png "잠입(Infiltrate) - 자체 제작" (흰색 실루엣, 초승달 모양의 원본 아이콘. 외부
+               라이선스 대상 아님)
+  herd.png     "무리(Herd) - 자체 제작" (흰색 실루엣, 겹친 원 3개로 이루어진 원본 아이콘. 외부
+               라이선스 대상 아님)
+  convert.png  "전향(Convert) - 자체 제작" (흰색 실루엣, 서로 반대 방향을 도는 화살표 2개로
+               이루어진 원본 아이콘. 외부 라이선스 대상 아님)
+  combo.png    "연타(Combo) - 자체 제작" (흰색 실루엣, 대각선 타격 표시 3개를 겹쳐 그린 원본
+               아이콘. 외부 라이선스 대상 아님)
+  scout.png    "정찰(Scout) - 자체 제작" (흰색 실루엣, 눈 모양의 원본 아이콘. 외부 라이선스
+               대상 아님)
 
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
-https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png 제외 — 자체 제작)
+https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png/ambush.png/
+infiltrate.png/herd.png/convert.png/combo.png/scout.png 제외 — 자체 제작)

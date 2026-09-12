@@ -41,10 +41,18 @@ namespace TacticsECS
             var hp = world.Get<Hp>(targetId);
             hp.Value = Mathf.Max(0, hp.Value - amount);
             world.Set(targetId, hp);
+            world.Set(targetId, new Accelerated { Value = false });
             world.Set(actorId, new HasActed { Value = true });
 
             if (!UnitQueries.IsAlive(world, targetId))
+            {
                 grid.RemoveOccupant(world.Get<GridPosition>(targetId).Value);
+
+                // 연타: 처치했고 공격자가 이 패시브를 가졌다면, 방금 세운 HasActed를 되돌려 같은 턴에
+                // 추가 공격을 허용한다.
+                if (UnitActionQueries.Find<ComboAction>(world, actorId) != null)
+                    world.Set(actorId, new HasActed { Value = false });
+            }
 
             return true;
         }

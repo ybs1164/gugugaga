@@ -16,7 +16,8 @@ namespace TacticsECS
         [SerializeField] private int moveRange;
         [Tooltip("true면 지형(Walkable=false인 타일, 예: 벽/장애물)을 무시하고 이동할 수 있다. 비행 유닛 등에 사용.")]
         [SerializeField] private bool ignoreTerrain;
-        [Tooltip("true면 다른 유닛이 있는 타일도 지나가거나 멈출 수 있다. 유령/투명체 등에 사용.")]
+        [Tooltip("true면 다른 유닛(아군/적군 모두)이 있는 타일도 지나가거나 멈출 수 있다. 유령/투명체 등에 " +
+                 "사용. 적 유닛에 의한 차단만 무시하고 싶다면 이 필드 대신 잠입(InfiltrateAction) 패시브를 쓴다.")]
         [SerializeField] private bool ignoreUnitBlocking;
         [Tooltip("대각선 방향(8방향) 이동을 허용할지 여부. false면 상하좌우 4방향만 이동 가능.")]
         [SerializeField] private bool allowDiagonal;
@@ -48,9 +49,7 @@ namespace TacticsECS
             if (!CanExecute(world, unitId)) return false;
             if (!grid.InBounds(destination)) return false;
             if (!world.Get<IgnoreTerrain>(unitId).Value && !grid.IsWalkable(destination)) return false;
-
-            int occ = grid.GetOccupant(destination);
-            if (!world.Get<IgnoreUnitBlocking>(unitId).Value && occ != TileData.NoOccupant && occ != unitId) return false;
+            if (PathfindingSystem.IsBlockedByOccupant(grid, world, unitId, destination, world.Get<IgnoreUnitBlocking>(unitId).Value)) return false;
 
             grid.RemoveOccupant(world.Get<GridPosition>(unitId).Value);
             world.Set(unitId, new GridPosition { Value = destination });

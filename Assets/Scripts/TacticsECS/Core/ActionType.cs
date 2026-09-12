@@ -35,5 +35,24 @@ namespace TacticsECS
         /// 여전히 턴당 1회로 제한되므로("대피로 이동 후 다시 공격"은 발동하지 않음) 별도 처리가 필요 없다.
         /// </summary>
         Retreat = 1 << 7,
+        /// <summary>기습: 공격 시 대상의 반격(CounterAction)을 발동시키지 않는 패시브(CombatSystem.TryAttack이
+        /// 참조). 값을 갖지 않는 순수 마커 — Actions/AmbushAction.cs 참고.</summary>
+        Ambush = 1 << 8,
+        /// <summary>잠입: 적 유닛에 의한 이동 방해만 무시하는 패시브(PathfindingSystem.GetReachable/
+        /// MoveAction.CanEnter가 참조). 아군에 의한 차단은 그대로 적용된다는 점에서 모든 유닛을 무시하는
+        /// MoveAction.IgnoreUnitBlocking과 다르다. 값을 갖지 않는 순수 마커 — Actions/InfiltrateAction.cs 참고.</summary>
+        Infiltrate = 1 << 9,
+        /// <summary>무리: 주변 1블록 내 아군에게 가속(Accelerated) 상태를 부여하는 패시브
+        /// (PassiveAuraSystem.RefreshHerdAura가 참조). 값을 갖지 않는 순수 마커 — Actions/HerdAction.cs 참고.</summary>
+        Herd = 1 << 10,
+        /// <summary>전향: 공격이 성사되고 대상이 살아남으면 그 대상을 아군으로 전환하는 패시브
+        /// (CombatSystem.TryAttack이 참조). 값을 갖지 않는 순수 마커 — Actions/ConvertAction.cs 참고.</summary>
+        Convert = 1 << 11,
+        /// <summary>연타: 공격으로 대상을 처치하면 같은 턴에 추가로 공격할 수 있게 해주는 패시브
+        /// (AttackAction.Execute가 참조). 값을 갖지 않는 순수 마커 — Actions/ComboAction.cs 참고.</summary>
+        Combo = 1 << 12,
+        /// <summary>정찰: 시야 +1. 아직 시야/포그오브워 시스템 자체가 없어 지금은 실제 게임플레이 효과가
+        /// 없는 플레이스홀더 마커다(VisionRange 컴포넌트만 준비) — Actions/ScoutAction.cs 참고.</summary>
+        Scout = 1 << 13,
     }
 }

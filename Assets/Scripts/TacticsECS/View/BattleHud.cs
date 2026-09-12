@@ -238,6 +238,12 @@ namespace TacticsECS
             (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
             (ActionType.Charge, "charge", "돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다."),
             (ActionType.Retreat, "retreat", "대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다."),
+            (ActionType.Ambush, "ambush", "기습(패시브): 공격 시 대상의 반격을 발동시키지 않습니다."),
+            (ActionType.Infiltrate, "infiltrate", "잠입(패시브): 적 유닛에 의한 이동 방해 페널티가 없습니다."),
+            (ActionType.Herd, "herd", "무리(패시브): 주변 1블록 내 아군에게 가속을 부여합니다(이동 거리 +1, 피격 시 해제)."),
+            (ActionType.Convert, "convert", "전향(패시브): 공격한 적 유닛을 아군으로 전환합니다."),
+            (ActionType.Combo, "combo", "연타(패시브): 적을 처치하면 같은 턴에 추가로 공격할 수 있습니다."),
+            (ActionType.Scout, "scout", "정찰(패시브): 시야 +1."),
         };
 
         private void BuildUnitPanel(Transform root)
@@ -364,7 +370,7 @@ namespace TacticsECS
             _defenseText.text = CombatSystem.EffectiveDefense(world, unitId).ToString();
             _defenseText.color = guarding ? GuardHighlight : Color.white;
 
-            _moveText.text = world.Get<MoveRange>(unitId).Value.ToString();
+            _moveText.text = MovementSystem.EffectiveMoveRange(world, unitId).ToString();
             _rangeText.text = world.Get<AttackRange>(unitId).Value.ToString();
 
             // 패시브 배지: 이 유닛이 실제로 가진 것만, 왼쪽부터 빈틈없이 채워서 보여준다

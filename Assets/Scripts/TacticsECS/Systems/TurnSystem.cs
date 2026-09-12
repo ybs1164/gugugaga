@@ -2,7 +2,9 @@ namespace TacticsECS
 {
     /// <summary>
     /// 턴 순서(플레이어 -> 적 -> 플레이어 ...) 계산과, 새 턴 시작 시 해당 팀 유닛들의
-    /// HasMoved/HasActed/IsGuarding 컴포넌트 초기화를 담당하는 순수 함수형 시스템.
+    /// HasMoved/HasActed/IsGuarding 컴포넌트 초기화를 담당하는 순수 함수형 시스템. 턴 시작마다 무리
+    /// (HerdAction) 오라도 함께 갱신한다(PassiveAuraSystem.RefreshHerdAura) — 턴 사이에 죽거나 배치가
+    /// 바뀐 유닛을 반영하기 위함.
     /// 다른 System과 마찬가지로 자체 상태는 없다 — 현재 턴이 누구 차례인지는 항상 TurnState를
     /// 인자로 받아 다음 TurnState를 계산해 반환할 뿐이고, 실제 보관은 호출자(BattleController) 몫이다.
     /// </summary>
@@ -11,6 +13,7 @@ namespace TacticsECS
         public static TurnState StartTurn(EntityWorld world, Team team, int turnNumber)
         {
             ResetUnitStates(world, team);
+            PassiveAuraSystem.RefreshHerdAura(world);
             return new TurnState { ActiveTeam = team, TurnNumber = turnNumber };
         }
 

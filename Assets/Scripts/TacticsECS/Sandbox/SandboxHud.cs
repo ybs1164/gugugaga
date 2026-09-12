@@ -211,7 +211,15 @@ namespace TacticsECS
             scrollbarTrack.anchoredPosition = Vector2.zero;
             CreatePanelImage(scrollbarTrack, new Color(1f, 1f, 1f, 0.08f));
 
+            // Scrollbar 컴포넌트는 스크롤 방향 축(세로, BottomToTop이면 anchorMin.y/anchorMax.y)의 크기만
+            // 콘텐츠 비율에 맞춰 자동으로 조절한다 — 가로 축은 직접 트랙 전체 폭으로 채워야 하는데, 이걸
+            // 빠뜨리면 새 RectTransform 기본값(앵커 (0,0)-(0,0), 크기 0)이 그대로 남아 손잡이 가로폭이
+            // 0으로 찌그러진다.
             var handle = CreateRect("Handle", scrollbarTrack);
+            handle.anchorMin = Vector2.zero;
+            handle.anchorMax = Vector2.one;
+            handle.sizeDelta = Vector2.zero;
+            handle.anchoredPosition = Vector2.zero;
             var handleImage = CreatePanelImage(handle, new Color(1f, 1f, 1f, 0.35f));
 
             var scrollbar = scrollbarTrack.gameObject.AddComponent<Scrollbar>();

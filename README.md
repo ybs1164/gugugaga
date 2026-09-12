@@ -531,3 +531,21 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   구현된 17개 행동(Move/Attack/Defend/Heal/SelfDestruct/Counter/Charge/Retreat/Ambush/Infiltrate/Herd/
   Convert/Combo/Scout/Splash/Stiff/Freeze)을 전부 반영한 [`docs/sample_units.csv`](docs/sample_units.csv)와
   동일한 13개 유닛 내용으로 채움. `docs/sample_units.csv` 자체는 5a5522b 시점에 이미 최신 상태라 변경 없음.
+
+- 2026-09-13: 샌드박스 팔레트 스크롤바 손잡이 가로 크기 버그 수정.
+  - **동기**: "스크롤 가로 크기 이상해"라는 피드백. 이 HUD는 씬/프리팹에 미리 배치된 오브젝트가 아니라
+    `SandboxHud.Init()`이 Play 시점에 전부 코드로 생성하는 구조라(직전 커밋 참고) 씬이나 프리팹을 직접
+    편집해 고칠 대상이 없고, CLI에도 이런 런타임 UI 레이아웃을 편집하는 별도 기능은 없어 코드로 수정.
+  - **원인**: [`SandboxHud.BuildPalette`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)에서 스크롤바
+    "Handle"(손잡이) `RectTransform`에 anchor/size를 전혀 설정하지 않아 새 RectTransform 기본값(앵커
+    (0,0)-(0,0), 크기 0)이 그대로 남아있었다. `Scrollbar` 컴포넌트는 스크롤 방향 축(세로)의 크기만
+    콘텐츠 비율에 맞춰 자동 조절하고 가로 축은 직접 트랙 폭에 맞춰 앵커를 잡아줘야 하는데, 그게
+    빠져 손잡이 가로폭이 사실상 0으로 찌그러져 있었다.
+  - **수정**: Handle의 `anchorMin`/`anchorMax`를 (0,0)-(1,1)로 채워 트랙 전체 폭에 맞춘 뒤, `sizeDelta`를
+    0으로 둬서 세로 크기 조절(Scrollbar가 자동으로 처리)만 남기고 가로는 항상 트랙 폭 그대로 유지되게
+    했다.
+  - **검증**: 캐릭터 모델 검증 때와 같은 방식(Unity CLI + Play Mode 없이 동기 렌더링)으로, `SandboxHud`를
+    코드로 직접 생성해 팔레트에 20개 더미 행을 채운 뒤 Canvas를 `ScreenSpaceCamera`로 바꿔 `RenderTexture`에
+    렌더링 — 스크롤바 손잡이가 트랙 폭 그대로 채워진 세로 막대로 정상 표시됨을 눈으로 확인(스크립트는 확인
+    후 삭제). `unity run . -- -nographics` 헤드리스 컴파일과 `UnitCsvVerification.Run`(`ALL PASS`) 재검증
+    통과.

@@ -37,7 +37,14 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
                아이콘. 외부 라이선스 대상 아님)
   scout.png    "정찰(Scout) - 자체 제작" (흰색 실루엣, 눈 모양의 원본 아이콘. 외부 라이선스
                대상 아님)
+  splash.png   "스플래시(Splash) - 자체 제작" (흰색 실루엣, 중심 원 + 8방향 스파이크로 이루어진
+               폭발/광역 모양의 원본 아이콘. 외부 라이선스 대상 아님)
+  stiff.png    "뻣뻣함(Stiff) - 자체 제작" (흰색 실루엣, 금지 표시(고리 + 대각선 바) 모양의
+               원본 아이콘. 외부 라이선스 대상 아님)
+  freeze.png   "빙결(Freeze) - 자체 제작" (흰색 실루엣, 눈 결정(6방향 십자 + 곁가지) 모양의
+               원본 아이콘. 외부 라이선스 대상 아님)
 
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
 https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png/ambush.png/
-infiltrate.png/herd.png/convert.png/combo.png/scout.png 제외 — 자체 제작)
+infiltrate.png/herd.png/convert.png/combo.png/scout.png/splash.png/stiff.png/freeze.png
+제외 — 자체 제작)

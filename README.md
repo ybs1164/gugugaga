@@ -83,15 +83,18 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
-어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰 중 무엇을 쓸 수 있는지,
-그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라 행동 자신**이 정한다. 열네 행동
+어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰/스플래시/뻣뻣함/빙결
+중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라 행동 자신**이 정한다.
+열일곱 행동
 ([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
 [`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
 [`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs)/
 [`ChargeAction`](Assets/Scripts/TacticsECS/Actions/ChargeAction.cs)/[`RetreatAction`](Assets/Scripts/TacticsECS/Actions/RetreatAction.cs)/
 [`AmbushAction`](Assets/Scripts/TacticsECS/Actions/AmbushAction.cs)/[`InfiltrateAction`](Assets/Scripts/TacticsECS/Actions/InfiltrateAction.cs)/
 [`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs)/[`ConvertAction`](Assets/Scripts/TacticsECS/Actions/ConvertAction.cs)/
-[`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)/[`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs))
+[`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)/[`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)/
+[`SplashAction`](Assets/Scripts/TacticsECS/Actions/SplashAction.cs)/[`StiffAction`](Assets/Scripts/TacticsECS/Actions/StiffAction.cs)/
+[`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs))
 은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
 아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
 이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
@@ -157,6 +160,18 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
   시야/포그오브워 시스템 자체가 프로젝트에 없어 지금은 실제 게임플레이 효과가 없는 **플레이스홀더**다.
   `VisionRange`(`Core/UnitComponents.cs`, 기본값 0) 컴포넌트만 미리 준비해뒀고, 나중에 시야 시스템이 생기면
   이 패시브 보유 여부로 `VisionRange + 1`을 계산해 쓰면 된다.
+- **스플래시**([`SplashAction`](Assets/Scripts/TacticsECS/Actions/SplashAction.cs), `AttackAction.Execute`가 직접
+  공격 처리 직후 보유 여부만 확인): 공격이 성사되면 대상(생사 무관, 마지막 위치 기준) 주변 1블록(맨해튼
+  거리) 내의 다른 적 유닛(공격자 기준, 대상 자신 제외)에게도 `CombatSystem.CalculateDamage`로 계산한 피해를
+  추가로 입힌다.
+- **뻣뻣함**([`StiffAction`](Assets/Scripts/TacticsECS/Actions/StiffAction.cs), `CombatSystem.TryAttack`이 반격
+  판정 직전 대상(피격자) 쪽에서 보유 여부만 확인): 공격받았을 때 반격(`CounterAction`)을 갖고 있어도
+  발동시키지 않는다. 기습이 공격자 쪽에서 반격을 막는 것과 대칭이되, 이쪽은 피격자 스스로의 특성이다.
+- **빙결**([`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs), `AttackAction.Execute`가 대상 생존
+  시 보유 여부만 확인): 공격이 성사되고 대상이 살아남으면 대상에게 `Frozen`(`Core/UnitComponents.cs`) 상태를
+  건다. `Frozen`은 그 유닛의 다음 자기 팀 턴이 시작될 때(`TurnSystem.ResetUnitStates`) 그 턴의
+  `HasMoved`/`HasActed`를 오히려 강제로 true로 세워 통째로 건너뛰게 만들고, 그 즉시 해제된다 — 정확히
+  "1턴간 행동불능".
 
 ### 겉모습 (3D 모델)
 
@@ -408,3 +423,26 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
     무시, 아군 차단 유지)/무리+가속(인접 아군 이동 거리 +1, 피격 시 해제)/전향(팀 전환 + 전환 후 반격 없음)/
     연타(처치 후 추가 공격)/정찰(플레이스홀더 컴포넌트 존재) 총 19개 assertion을 확인 — `ALL PASS (19)` 확인
     후 스크립트 삭제.
+- 2026-09-12: 스플래시/뻣뻣함/빙결 패시브 3종 추가.
+  - **스플래시**([`SplashAction`](Assets/Scripts/TacticsECS/Actions/SplashAction.cs)): `AttackAction.Execute`가
+    직접 피해 적용 후 보유 여부를 확인해 새 private 메서드 `ApplySplashDamage`로 대상 주변 1블록 내 다른
+    적(공격자 기준)에게도 `CombatSystem.CalculateDamage`로 피해를 입힌다. 대상이 그 직접 공격으로 죽었어도
+    (occupant는 제거됐지만 `GridPosition` 값은 남아있어) 그 위치를 중심으로 그대로 적용된다.
+  - **뻣뻣함**([`StiffAction`](Assets/Scripts/TacticsECS/Actions/StiffAction.cs)): `CombatSystem.TryAttack`의
+    반격 발동 조건에 공격자의 기습(`AmbushAction`) 체크와 나란히 대상(피격자)의 `StiffAction` 보유 여부
+    체크를 추가 — 대상이 반격을 갖고 있어도 발동하지 않는다.
+  - **빙결**([`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs)): 턴 리셋과 무관하게 걸렸다가
+    다음 자기 턴 시작 시 소모되는 지속 상태가 필요해 새 컴포넌트 `Frozen`(`Core/UnitComponents.cs`) 추가.
+    `AttackAction.Execute`가 공격 성사 + 대상 생존 시 공격자의 보유 여부를 확인해 대상에게 건다.
+    [`TurnSystem.ResetUnitStates`](Assets/Scripts/TacticsECS/Systems/TurnSystem.cs)가 매 턴 시작마다
+    `Frozen`인 유닛만 그 턴의 `HasMoved`/`HasActed`를 (false 대신) true로 세워 행동불능으로 만들고 그
+    즉시 `Frozen`을 해제 — 정확히 한 턴만 건너뛴다.
+  - **공통 배선**: `ActionType`에 3개 플래그 추가, `UnitCsvActionFactory.BuildActions`/`BattleHud.PassiveDefs`/
+    `UnitSpawner.FinishSpawn`(`Frozen` 초기값)에 각각 반영. `docs/sample_units.csv`에 3개 패시브를 하나씩
+    쓰는 예시 유닛(Catapult/Golem/IceMage) 추가. 아이콘 3종(`splash`=폭발 스파이크, `stiff`=금지 표시,
+    `freeze`=눈 결정)도 기존과 같은 방식(흰색 실루엣, 자체 제작)으로 그려 추가하고 `LICENSE.txt` 갱신.
+  - **검증**: `unity run . -- -nographics` 헤드리스 컴파일 통과. `UnitCsvVerification` 재실행 —
+    `docs/sample_units.csv`가 14행으로 늘어난 채로도 `ALL PASS`. 3개 패시브 전용 임시 배치모드 스크립트
+    `Assets/Editor/PassiveSkillsVerification2.cs`(`-executeMethod`)로 스플래시(인접 적만 광역 피해, 아군은
+    무시)/뻣뻣함(반격 미발동)/빙결(얼어붙은 턴엔 강제 행동불능, 그다음 턴엔 정상 복귀) 총 13개 assertion
+    전부 통과 확인 후 스크립트 삭제.

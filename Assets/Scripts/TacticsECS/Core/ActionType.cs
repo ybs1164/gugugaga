@@ -54,5 +54,15 @@ namespace TacticsECS
         /// <summary>정찰: 시야 +1. 아직 시야/포그오브워 시스템 자체가 없어 지금은 실제 게임플레이 효과가
         /// 없는 플레이스홀더 마커다(VisionRange 컴포넌트만 준비) — Actions/ScoutAction.cs 참고.</summary>
         Scout = 1 << 13,
+        /// <summary>스플래시: 공격이 성사되면 대상 주변 1블록 내 적 유닛(공격자 기준)에게도 광역 피해를
+        /// 입히는 패시브(AttackAction.Execute가 참조). 값을 갖지 않는 순수 마커 — Actions/SplashAction.cs 참고.</summary>
+        Splash = 1 << 14,
+        /// <summary>뻣뻣함: 이 유닛이 공격받았을 때, 반격(CounterAction)을 갖고 있어도 발동시키지 않는
+        /// 패시브(CombatSystem.TryAttack이 대상 쪽에서 참조). 값을 갖지 않는 순수 마커 — Actions/StiffAction.cs 참고.</summary>
+        Stiff = 1 << 15,
+        /// <summary>빙결: 공격이 성사되고 대상이 살아남으면, 대상을 다음 자기 턴 하나를 통째로 행동불능으로
+        /// 만드는 패시브(AttackAction.Execute가 Frozen 컴포넌트를 세팅, TurnSystem.ResetUnitStates가 그 턴에
+        /// HasMoved/HasActed를 강제로 true로 만들고 소모). 값을 갖지 않는 순수 마커 — Actions/FreezeAction.cs 참고.</summary>
+        Freeze = 1 << 16,
     }
 }

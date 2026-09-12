@@ -52,6 +52,11 @@ namespace TacticsECS
     // 적용 지점에서) 해제된다. 이동 거리 +1 효과는 MovementSystem.EffectiveMoveRange로 계산한다.
     [System.Serializable] public struct Accelerated { public bool Value; }
 
+    // 빙결: 빙결(FreezeAction) 보유 유닛의 공격을 맞으면 대상에게 세워진다(AttackAction.Execute). 그 유닛의
+    // 다음 자기 팀 턴이 시작될 때 TurnSystem.ResetUnitStates가 그 턴의 HasMoved/HasActed를 강제로 true로
+    // 만들어 소모시키고 즉시 해제한다 — "1턴간 행동불능".
+    [System.Serializable] public struct Frozen { public bool Value; }
+
     // ---- 정찰 플레이스홀더 (스폰 후 불변) ----
     // 아직 시야/포그오브워 시스템이 없어 지금은 값만 들고 있을 뿐 실제 게임플레이 효과는 없다.
     // Scout(ActionType)을 가진 유닛의 실효 시야는 나중에 시야 시스템이 생기면 이 값 + 1로 계산하면 된다.

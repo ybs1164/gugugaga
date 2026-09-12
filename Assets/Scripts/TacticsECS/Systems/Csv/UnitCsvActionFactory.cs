@@ -43,6 +43,12 @@ namespace TacticsECS
                 actions.Add(new ComboAction());
             if ((row.Actions & ActionType.Scout) != 0)
                 actions.Add(new ScoutAction());
+            if ((row.Actions & ActionType.Splash) != 0)
+                actions.Add(new SplashAction());
+            if ((row.Actions & ActionType.Stiff) != 0)
+                actions.Add(new StiffAction());
+            if ((row.Actions & ActionType.Freeze) != 0)
+                actions.Add(new FreezeAction());
 
             return actions;
         }

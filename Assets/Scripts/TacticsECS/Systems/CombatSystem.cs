@@ -40,9 +40,9 @@ namespace TacticsECS
 
         /// <summary>공격 행동(AttackAction)을 찾아 실행하고, 공격이 성사되어 대상이 살아남았으면 전향
         /// (ConvertAction) 여부를 먼저 반영한 뒤 대상의 반격 행동(CounterAction)을 찾아 이어서 실행한다.
-        /// 공격자가 기습(AmbushAction)을 가졌으면 반격 자체를 건너뛴다. 공격이 실제로 성사됐는지와
-        /// 별개로, 대상이 반격으로 되돌려준 피해량을 counterDamageDealt로 함께 돌려준다(반격이 없었거나
-        /// 발동하지 않았으면 0).</summary>
+        /// 공격자가 기습(AmbushAction)을 가졌거나 대상이 뻣뻣함(StiffAction)을 가졌으면 반격 자체를
+        /// 건너뛴다. 공격이 실제로 성사됐는지와 별개로, 대상이 반격으로 되돌려준 피해량을
+        /// counterDamageDealt로 함께 돌려준다(반격이 없었거나 발동하지 않았으면 0).</summary>
         public static bool TryAttack(GridWorld grid, EntityWorld world, int attackerId, int targetId, out int damageDealt, out int counterDamageDealt)
         {
             damageDealt = 0;
@@ -58,7 +58,8 @@ namespace TacticsECS
                 if (UnitActionQueries.Find<ConvertAction>(world, attackerId) != null)
                     world.Set(targetId, world.Get<Team>(attackerId));
 
-                if (UnitActionQueries.Find<AmbushAction>(world, attackerId) == null)
+                if (UnitActionQueries.Find<AmbushAction>(world, attackerId) == null &&
+                    UnitActionQueries.Find<StiffAction>(world, targetId) == null)
                 {
                     var counter = UnitActionQueries.Find<CounterAction>(world, targetId);
                     counter?.Execute(grid, world, targetId, attackerId, out counterDamageDealt);

@@ -53,8 +53,41 @@ namespace TacticsECS
                 if (UnitActionQueries.Find<ComboAction>(world, actorId) != null)
                     world.Set(actorId, new HasActed { Value = false });
             }
+            else if (UnitActionQueries.Find<FreezeAction>(world, actorId) != null)
+            {
+                // 빙결: 대상이 살아남았고 공격자가 이 패시브를 가졌다면, 대상의 다음 자기 턴 하나를
+                // 통째로 행동불능으로 만든다(TurnSystem.ResetUnitStates가 소모).
+                world.Set(targetId, new Frozen { Value = true });
+            }
+
+            // 스플래시: 공격자가 이 패시브를 가졌다면, 대상(생사 무관 — 마지막 위치 기준) 주변 1블록 내의
+            // 다른 적 유닛(공격자 기준)에게도 같은 방식으로 피해를 입힌다.
+            if (UnitActionQueries.Find<SplashAction>(world, actorId) != null)
+                ApplySplashDamage(grid, world, actorId, targetId);
 
             return true;
+        }
+
+        private static void ApplySplashDamage(GridWorld grid, EntityWorld world, int actorId, int primaryTargetId)
+        {
+            var center = world.Get<GridPosition>(primaryTargetId).Value;
+            var attackerTeam = world.Get<Team>(actorId);
+
+            for (int i = 0; i < world.EntityCount; i++)
+            {
+                if (i == primaryTargetId || !UnitQueries.IsAlive(world, i)) continue;
+                if (world.Get<Team>(i) == attackerTeam) continue;
+                if (PathfindingSystem.Distance(center, world.Get<GridPosition>(i).Value) > 1) continue;
+
+                int splashDamage = CombatSystem.CalculateDamage(world, actorId, i);
+                var splashHp = world.Get<Hp>(i);
+                splashHp.Value = Mathf.Max(0, splashHp.Value - splashDamage);
+                world.Set(i, splashHp);
+                world.Set(i, new Accelerated { Value = false });
+
+                if (!UnitQueries.IsAlive(world, i))
+                    grid.RemoveOccupant(world.Get<GridPosition>(i).Value);
+            }
         }
     }
 }

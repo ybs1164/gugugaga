@@ -47,6 +47,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitView
   moveSpeed: 6
+  turnSpeedDegrees: 720
+  hpDisplayPrefab: {fileID: 8538403207368219818, guid: e70f3bf3996da75498569986440695ca, type: 3}
 --- !u!114 &4771178760629799982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86,10 +88,10 @@ MonoBehaviour:
         attackRange: 1
     - rid: 3
       type: {class: DefendAction, ns: TacticsECS, asm: Assembly-CSharp}
-      data: {}
+      data: 
     - rid: 4
       type: {class: CounterAction, ns: TacticsECS, asm: Assembly-CSharp}
-      data: {}
+      data: 
 --- !u!1001 &1775646175608050509
 PrefabInstance:
   m_ObjectHideFlags: 0

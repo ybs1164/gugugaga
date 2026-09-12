@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace TacticsECS
@@ -11,6 +10,12 @@ namespace TacticsECS
     /// BattleController가 넘겨주는 값을 그대로 그리기만 하는 View — 능력치를 문장 대신
     /// 아이콘(Assets/Art/GameIcons, IconLibrary 참고, 출처는 GameIcons/LICENSE.txt)으로 표현해서
     /// 한눈에 읽히게 하는 것이 목적이다. 값을 스스로 판단하지 않고, 버튼 클릭은 이벤트로만 밖에 알린다.
+    ///
+    /// 화면 구조(Canvas 이하 전체 계층 — TurnBadge/UnitPanel/행동 버튼/Tooltip/BattleEnd)는 더 이상 이
+    /// 스크립트가 코드로 만들지 않는다. Assets/Prefabs/UI/BattleHud.prefab(UIPrefabSetup.GenerateBattleHud
+    /// 참고, Unity CLI -executeMethod로만 생성)에 이미 만들어져 있고, 이 컴포넌트는 그 프리팹의 루트에
+    /// 붙어 인스턴스화된다 — Init()은 그 안에서 필요한 자식을 이름으로 찾아(Wire*) 참조를 캐싱하고,
+    /// 아이콘 스프라이트 지정/버튼 클릭 이벤트 연결처럼 "코드로만 가능한" 부분만 마저 채운다.
     /// </summary>
     public class BattleHud : MonoBehaviour
     {
@@ -24,16 +29,13 @@ namespace TacticsECS
         /// BattleController가 알아서 처리하고, BattleHud는 클릭했다는 사실만 알린다.</summary>
         public event Action OnRestartClicked;
 
+        [Tooltip("uGUI 클릭 입력에 필요한 EventSystem 프리팹(EventSystem + InputSystemUIInputModule). " +
+            "씬에 EventSystem이 이미 있으면 쓰이지 않는다. Assets/Prefabs/UI/EventSystem.prefab.")]
+        [SerializeField] private GameObject eventSystemPrefab;
+
         private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
-        private static readonly Color PanelBackground = new Color(0.08f, 0.09f, 0.11f, 0.85f);
-        private static readonly Color ButtonIdle = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color GuardHighlight = Color.yellow;
-        /// <summary>패시브 배지 전용 배경색. 클릭 가능한 행동 버튼(ButtonIdle, 네모 배경)과 같은 색을 쓰면
-        /// "누를 수 있는 것"처럼 보이므로, 자동 발동 패시브라는 걸 색으로도 한 번 더 구분한다.</summary>
-        private static readonly Color PassiveBadgeBg = new Color(0.42f, 0.24f, 0.55f, 0.95f);
-
-        private Font _font;
 
         private Image _turnBadgeBg;
         private Text _turnText;
@@ -56,7 +58,9 @@ namespace TacticsECS
         }
 
         private PassiveBadge[] _passiveBadges;
-        private float _passiveRowTop;
+        /// <summary>패시브 배지 줄의 anchoredPosition.y. UnitPanel 프리팹 레이아웃(능력치 4줄 + 여백)에서
+        /// 계산되는 고정값이라 UIPrefabSetup.GenerateBattleHud와 이 값이 서로 어긋나지 않게 상수로 고정한다.</summary>
+        private const float PassiveRowTop = -168f;
 
         /// <summary>유닛별로 있을 수도, 없을 수도 있는 행동 버튼 하나. Flag가 선택된 유닛의
         /// AvailableActions에 있을 때만 화면에 나타난다(LayoutActionBar).</summary>
@@ -79,28 +83,24 @@ namespace TacticsECS
         private Image _battleEndIcon;
         private Text _battleEndText;
 
+        private static Sprite _circleSprite;
+
         public void Init()
         {
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
             EnsureEventSystem();
 
-            var canvasGo = new GameObject("Canvas");
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280f, 720f);
-            scaler.matchWidthOrHeight = 0.5f;
-            canvasGo.AddComponent<GraphicRaycaster>();
+            var canvas = transform.Find("Canvas");
+            if (canvas == null)
+            {
+                Debug.LogError($"[BattleHud] {name}: Canvas 자식이 없습니다. Assets/Prefabs/UI/BattleHud.prefab을 통해 인스턴스화하세요.");
+                return;
+            }
 
-            var root = canvas.transform;
-            BuildTurnBadge(root);
-            BuildUnitPanel(root);
-            BuildActionButtons(root);
-            BuildTooltip(root);
-            BuildBattleEndPanel(root);
+            WireTurnBadge(canvas);
+            WireUnitPanel(canvas);
+            WireActionButtons(canvas);
+            WireTooltip(canvas);
+            WireBattleEndPanel(canvas);
 
             HideUnitPanel();
             SetUnitActions(ActionType.None, hasActed: true);
@@ -109,35 +109,22 @@ namespace TacticsECS
 
         /// <summary>새 Input System 기준(activeInputHandler=Input System Package)이라 uGUI 클릭을
         /// 받으려면 레거시 StandaloneInputModule이 아니라 InputSystemUIInputModule이 필요하다.</summary>
-        private static void EnsureEventSystem()
+        private void EnsureEventSystem()
         {
             if (EventSystem.current != null) return;
-            var go = new GameObject("EventSystem");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
+            if (eventSystemPrefab == null)
+            {
+                Debug.LogError($"[BattleHud] {name}: eventSystemPrefab이 비어있습니다. Assets/Prefabs/UI/EventSystem.prefab을 연결하세요.");
+                return;
+            }
+            var go = Instantiate(eventSystemPrefab);
+            go.name = "EventSystem";
         }
 
-        // ---------- 공용 빌딩 블록 ----------
-
-        private static RectTransform CreateRect(string name, Transform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
-        }
-
-        private static Image CreatePanelImage(RectTransform rect, Color color)
-        {
-            var img = rect.gameObject.AddComponent<Image>();
-            img.color = color;
-            return img;
-        }
-
-        private static Sprite _circleSprite;
-
-        /// <summary>가득 찬 흰 원 스프라이트(1개만 만들어 재사용). 패시브 배지의 "동그라미 배경"에 쓴다 —
-        /// 행동 버튼(CreateIconButton)의 네모 배경과 모양으로 구분하기 위해서다. 텍스처 임포트 설정을
-        /// 건드리지 않고(IconLibrary와 같은 이유) 런타임에 픽셀을 직접 채워 만든다.</summary>
+        /// <summary>가득 찬 흰 원 스프라이트(1개만 만들어 재사용). 패시브 배지의 "동그라미 배경"에 쓴다.
+        /// 텍스처 임포트 설정을 건드리지 않고(IconLibrary와 같은 이유) 런타임에 픽셀을 직접 채워 만든다 —
+        /// 프리팹에 미리 구워둘 수 없는 이유도 같다: Sprite.Create 결과는 디스크에 저장된 에셋이 아니라서,
+        /// 프리팹 저장 시 별도 서브에셋으로 붙이지 않는 한 참조가 유지되지 않는다.</summary>
         private static Sprite CircleSprite
         {
             get
@@ -167,56 +154,14 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>parent의 좌상단을 기준으로 놓이는 정사각 아이콘.</summary>
-        private static Image CreateIcon(string name, Transform parent, string iconName, float size, Vector2 anchoredPos)
-        {
-            var rect = CreateRect(name, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = new Vector2(size, size);
-            rect.anchoredPosition = anchoredPos;
-
-            var img = rect.gameObject.AddComponent<Image>();
-            img.sprite = IconLibrary.Get(iconName);
-            img.preserveAspect = true;
-            return img;
-        }
-
-        /// <summary>parent의 좌상단을 기준으로 놓이는 텍스트. 능력치는 숫자만 담당하고, 무엇에 대한
-        /// 숫자인지는 항상 옆의 아이콘이 말해준다 — 라벨 문자열은 만들지 않는다.</summary>
-        private Text CreateNumberText(string name, Transform parent, Vector2 anchoredPos, Vector2 size)
-        {
-            var rect = CreateRect(name, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = anchoredPos;
-
-            var text = rect.gameObject.AddComponent<Text>();
-            text.font = _font;
-            text.fontSize = 18;
-            text.alignment = TextAnchor.MiddleLeft;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            return text;
-        }
-
         // ---------- 턴 배지 (좌상단) ----------
 
-        private void BuildTurnBadge(Transform root)
+        private void WireTurnBadge(Transform canvas)
         {
-            var panel = CreateRect("TurnBadge", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(92f, 44f);
-            _turnBadgeBg = CreatePanelImage(panel, PlayerAccent);
-
-            CreateIcon("Icon", panel, "turn", 28f, new Vector2(8f, -8f));
-            _turnText = CreateNumberText("Number", panel, new Vector2(44f, -8f), new Vector2(40f, 32f));
-            _turnText.fontSize = 24;
-            _turnText.alignment = TextAnchor.MiddleCenter;
+            var panel = canvas.Find("TurnBadge");
+            _turnBadgeBg = panel.GetComponent<Image>();
+            panel.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get("turn");
+            _turnText = panel.Find("Number").GetComponent<Text>();
         }
 
         /// <summary>턴 배지 색(플레이어/적)만으로 누구 턴인지 보여준다 — "N턴 - 플레이어 턴" 문장 대신
@@ -232,7 +177,8 @@ namespace TacticsECS
         // ---------- 선택 유닛 능력치 패널 (좌하단) ----------
 
         /// <summary>유닛이 가질 수 있는 패시브 전부와, 그 아이콘·툴팁 설명. 새 패시브가 생기면
-        /// (OptionalActionDefs와 마찬가지로) 이 배열에 한 줄만 추가하면 되고 BattleController는 몰라도 된다.</summary>
+        /// (OptionalActionDefs와 마찬가지로) 이 배열에 한 줄만 추가하고 UIPrefabSetup.GenerateBattleHud로
+        /// 프리팹을 다시 생성하면 된다 — BattleController는 몰라도 된다.</summary>
         private static readonly (ActionType Flag, string Icon, string Tooltip)[] PassiveDefs =
         {
             (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
@@ -249,104 +195,47 @@ namespace TacticsECS
             (ActionType.Freeze, "freeze", "빙결(패시브): 공격 시 대상을 다음 턴 동안 행동불능으로 만듭니다."),
         };
 
-        private void BuildUnitPanel(Transform root)
+        private void WireUnitPanel(Transform canvas)
         {
-            var panel = CreateRect("UnitPanel", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
-            panel.pivot = new Vector2(0f, 0f);
-            panel.anchoredPosition = new Vector2(16f, 16f);
-            panel.sizeDelta = new Vector2(150f, 206f);
-            CreatePanelImage(panel, PanelBackground);
+            var panel = canvas.Find("UnitPanel");
             _unitPanel = panel.gameObject;
+            _unitPanelAccent = panel.Find("Accent").GetComponent<Image>();
 
-            var accent = CreateRect("Accent", panel);
-            accent.anchorMin = new Vector2(0f, 0f);
-            accent.anchorMax = new Vector2(0f, 1f);
-            accent.pivot = new Vector2(0f, 0.5f);
-            accent.sizeDelta = new Vector2(5f, 0f);
-            accent.anchoredPosition = Vector2.zero;
-            _unitPanelAccent = CreatePanelImage(accent, PlayerAccent);
+            panel.Find("HpIcon").GetComponent<Image>().sprite = IconLibrary.Get("hp");
+            _hpText = panel.Find("HpText").GetComponent<Text>();
+            _hpFill = panel.Find("HpBarBg/HpBarFill").GetComponent<Image>();
 
-            const float rowH = 30f;
-            float top = -8f;
+            panel.Find("AttackIcon").GetComponent<Image>().sprite = IconLibrary.Get("attack");
+            _attackText = panel.Find("AttackText").GetComponent<Text>();
 
-            CreateIcon("HpIcon", panel, "hp", 22f, new Vector2(14f, top));
-            _hpText = CreateNumberText("HpText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
+            panel.Find("DefenseIcon").GetComponent<Image>().sprite = IconLibrary.Get("defense");
+            _defenseText = panel.Find("DefenseText").GetComponent<Text>();
 
-            var hpBarBg = CreateRect("HpBarBg", panel);
-            hpBarBg.anchorMin = hpBarBg.anchorMax = new Vector2(0f, 1f);
-            hpBarBg.pivot = new Vector2(0f, 1f);
-            hpBarBg.anchoredPosition = new Vector2(14f, top - 22f);
-            hpBarBg.sizeDelta = new Vector2(122f, 6f);
-            CreatePanelImage(hpBarBg, new Color(1f, 1f, 1f, 0.15f));
+            panel.Find("MoveIcon").GetComponent<Image>().sprite = IconLibrary.Get("move");
+            _moveText = panel.Find("MoveText").GetComponent<Text>();
 
-            var hpBarFill = CreateRect("HpBarFill", hpBarBg);
-            hpBarFill.anchorMin = Vector2.zero;
-            hpBarFill.anchorMax = new Vector2(1f, 1f);
-            hpBarFill.offsetMin = Vector2.zero;
-            hpBarFill.offsetMax = Vector2.zero;
-            _hpFill = CreatePanelImage(hpBarFill, HpColorScale.ForFraction(1f));
+            panel.Find("RangeIcon").GetComponent<Image>().sprite = IconLibrary.Get("range");
+            _rangeText = panel.Find("RangeText").GetComponent<Text>();
 
-            top -= rowH + 10f;
-            CreateIcon("AttackIcon", panel, "attack", 22f, new Vector2(14f, top));
-            _attackText = CreateNumberText("AttackText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIcon("DefenseIcon", panel, "defense", 22f, new Vector2(14f, top));
-            _defenseText = CreateNumberText("DefenseText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIcon("MoveIcon", panel, "move", 22f, new Vector2(14f, top));
-            _moveText = CreateNumberText("MoveText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIcon("RangeIcon", panel, "range", 22f, new Vector2(14f, top));
-            _rangeText = CreateNumberText("RangeText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            // ---- 패시브 배지 줄 (동그라미 배경 — 위 능력치 아이콘의 네모 자리와 모양으로 구분) ----
-            top -= rowH;
-            _passiveRowTop = top;
             _passiveBadges = new PassiveBadge[PassiveDefs.Length];
             for (int i = 0; i < PassiveDefs.Length; i++)
             {
                 var def = PassiveDefs[i];
-                var rect = CreatePassiveBadge(panel, def.Icon, def.Tooltip);
-                _passiveBadges[i] = new PassiveBadge { Flag = def.Flag, Rect = rect };
+                var badge = panel.Find("Passive_" + def.Icon);
+                WirePassiveBadge(badge, def.Icon, def.Tooltip);
+                _passiveBadges[i] = new PassiveBadge { Flag = def.Flag, Rect = (RectTransform)badge };
             }
         }
 
-        private const float PassiveBadgeSize = 26f;
-        private const float PassiveBadgeGap = 6f;
-
-        /// <summary>패시브 하나를 나타내는 동그라미 배경 배지. 행동 버튼(CreateIconButton, 네모 배경 +
-        /// Button)과 달리 클릭할 수 없는 순수 정보 표시용이라 Button 컴포넌트 없이 호버 시 툴팁만 띄운다.</summary>
-        private RectTransform CreatePassiveBadge(Transform parent, string iconName, string tooltip)
+        private void WirePassiveBadge(Transform badge, string iconName, string tooltip)
         {
-            var rect = CreateRect("Passive_" + iconName, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = new Vector2(PassiveBadgeSize, PassiveBadgeSize);
+            badge.GetComponent<Image>().sprite = CircleSprite;
+            badge.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(iconName);
 
-            var bg = rect.gameObject.AddComponent<Image>();
-            bg.sprite = CircleSprite;
-            bg.color = PassiveBadgeBg;
-
-            var iconRect = CreateRect("Icon", rect);
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(4f, 4f);
-            iconRect.offsetMax = new Vector2(-4f, -4f);
-            var icon = iconRect.gameObject.AddComponent<Image>();
-            icon.sprite = IconLibrary.Get(iconName);
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-
-            var trigger = rect.gameObject.AddComponent<TooltipTrigger>();
+            var trigger = badge.GetComponent<TooltipTrigger>();
             trigger.Text = tooltip;
             trigger.OnEnter = ShowTooltip;
             trigger.OnExit = HideTooltip;
-
-            return rect;
         }
 
         /// <summary>선택된 유닛 하나의 능력치를 그대로 읽어서 보여준다. UnitView.Refresh와 같은 방식으로
@@ -385,8 +274,8 @@ namespace TacticsECS
                 bool show = (available & badge.Flag) != 0;
                 badge.Rect.gameObject.SetActive(show);
                 if (!show) continue;
-                badge.Rect.anchoredPosition = new Vector2(px, _passiveRowTop);
-                px += PassiveBadgeSize + PassiveBadgeGap;
+                badge.Rect.anchoredPosition = new Vector2(px, PassiveRowTop);
+                px += 26f + 6f; // PassiveBadgeSize + PassiveBadgeGap (UIPrefabSetup.GenerateBattleHud와 동일)
             }
         }
 
@@ -399,7 +288,8 @@ namespace TacticsECS
 
         /// <summary>방어/치유/자폭처럼 "이 유닛이 가지고 있을 수도, 없을 수도 있는" 행동 버튼을
         /// 어떤 순서로 나열할지 + 아이콘 + 툴팁 설명을 한곳에 모아둔 표. 새 행동을 추가할 때
-        /// (예: 향후 다른 특수 행동) 이 배열에 한 줄만 추가하면 되고, BattleController는 몰라도 된다.</summary>
+        /// (예: 향후 다른 특수 행동) 이 배열에 한 줄만 추가하고 UIPrefabSetup.GenerateBattleHud로 프리팹을
+        /// 다시 생성하면 된다 — BattleController는 몰라도 된다.</summary>
         private static readonly (ActionType Flag, string Icon, string Tooltip)[] OptionalActionDefs =
         {
             (ActionType.Defend, "guard", "방어 태세: 받는 피해를 줄입니다. (방어력 +" + CombatSystem.GuardDefenseBonus + ")"),
@@ -407,61 +297,45 @@ namespace TacticsECS
             (ActionType.SelfDestruct, "selfdestruct", "자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다."),
         };
 
-        private void BuildActionButtons(Transform root)
+        private void WireActionButtons(Transform canvas)
         {
-            // 항상 뜨는 "턴 종료"를 구석(코너) 자리에 고정해서, 선택이 없을 때도 버튼이 화면 끝에서
-            // 붕 뜨지 않게 한다. 선택 시에만 나타나는 행동 버튼/선택해제는 LayoutActionBar가 그 왼쪽으로
-            // 자리를 동적으로 배치한다(유닛마다 쓸 수 있는 행동 개수가 다르므로).
-            _endTurnButton = CreateIconButton(root, "EndTurnButton", "turn", new Vector2(-16f, 16f), ButtonIdle, "턴 종료: 현재 팀의 턴을 마칩니다.");
+            var endTurn = canvas.Find("EndTurnButton");
+            WireIconButton(endTurn, "turn", "턴 종료: 현재 팀의 턴을 마칩니다.");
+            _endTurnButton = endTurn.GetComponent<Button>();
             _endTurnButton.onClick.AddListener(() => OnEndTurnClicked?.Invoke());
 
             _optionalActions = new OptionalActionButton[OptionalActionDefs.Length];
             for (int i = 0; i < OptionalActionDefs.Length; i++)
             {
                 var def = OptionalActionDefs[i];
-                var button = CreateIconButton(root, def.Flag + "Button", def.Icon, Vector2.zero, ButtonIdle, def.Tooltip);
+                var buttonTransform = canvas.Find(def.Flag + "Button");
+                WireIconButton(buttonTransform, def.Icon, def.Tooltip);
+
+                var button = buttonTransform.GetComponent<Button>();
                 switch (def.Flag)
                 {
                     case ActionType.Defend: button.onClick.AddListener(() => OnDefendClicked?.Invoke()); break;
                     case ActionType.Heal: button.onClick.AddListener(() => OnHealClicked?.Invoke()); break;
                     case ActionType.SelfDestruct: button.onClick.AddListener(() => OnSelfDestructClicked?.Invoke()); break;
                 }
-                _optionalActions[i] = new OptionalActionButton { Flag = def.Flag, Button = button, Rect = (RectTransform)button.transform };
+                _optionalActions[i] = new OptionalActionButton { Flag = def.Flag, Button = button, Rect = (RectTransform)buttonTransform };
             }
 
-            _deselectButton = CreateIconButton(root, "DeselectButton", "deselect", Vector2.zero, ButtonIdle, "선택 해제: 유닛 선택을 취소합니다.");
-            _deselectRect = (RectTransform)_deselectButton.transform;
+            var deselect = canvas.Find("DeselectButton");
+            WireIconButton(deselect, "deselect", "선택 해제: 유닛 선택을 취소합니다.");
+            _deselectButton = deselect.GetComponent<Button>();
+            _deselectRect = (RectTransform)deselect;
             _deselectButton.onClick.AddListener(() => OnDeselectClicked?.Invoke());
         }
 
-        private Button CreateIconButton(Transform root, string name, string iconName, Vector2 anchoredPosFromBottomRight, Color bg, string tooltip)
+        private void WireIconButton(Transform button, string iconName, string tooltip)
         {
-            var rect = CreateRect(name, root);
-            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.sizeDelta = new Vector2(ActionButtonSize, ActionButtonSize);
-            rect.anchoredPosition = anchoredPosFromBottomRight;
+            button.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(iconName);
 
-            var bgImage = CreatePanelImage(rect, bg);
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = bgImage;
-
-            var iconRect = CreateRect("Icon", rect);
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(10f, 10f);
-            iconRect.offsetMax = new Vector2(-10f, -10f);
-            var icon = iconRect.gameObject.AddComponent<Image>();
-            icon.sprite = IconLibrary.Get(iconName);
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-
-            var trigger = rect.gameObject.AddComponent<TooltipTrigger>();
+            var trigger = button.GetComponent<TooltipTrigger>();
             trigger.Text = tooltip;
             trigger.OnEnter = ShowTooltip;
             trigger.OnExit = HideTooltip;
-
-            return button;
         }
 
         /// <summary>선택된 유닛이 실제로 쓸 수 있는 행동(hasActed면 전부 숨김)만 화면에 나타나게 하고,
@@ -488,43 +362,11 @@ namespace TacticsECS
 
         // ---------- 툴팁 (행동 버튼 바로 위 한 구역에 고정) ----------
 
-        /// <summary>버튼에 올라간 마우스 진입/이탈만 BattleHud로 전달하는 얇은 컴포넌트.
-        /// 어떤 텍스트를 보여줄지, 실제로 어떻게 보여줄지는 전혀 모른다(로직 없는 View 보조 도구).</summary>
-        private class TooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+        private void WireTooltip(Transform canvas)
         {
-            public string Text;
-            public Action<string> OnEnter;
-            public Action OnExit;
-            public void OnPointerEnter(PointerEventData eventData) => OnEnter?.Invoke(Text);
-            public void OnPointerExit(PointerEventData eventData) => OnExit?.Invoke();
-        }
-
-        /// <summary>행동 버튼 하나에 대응하는 설명 하나만, 항상 같은 자리(행동 버튼 줄 바로 위)에 띄운다.
-        /// 버튼마다 개별 풍선말을 띄우는 대신 화면 한 구역에 모아두는 이유는, isometric 3D 화면 위에서
-        /// 버튼 근처에 즉석으로 말풍선을 붙이면 카메라/그리드와 겹쳐 가려지기 쉽기 때문이다.</summary>
-        private void BuildTooltip(Transform root)
-        {
-            var panel = CreateRect("Tooltip", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(1f, 0f);
-            panel.pivot = new Vector2(1f, 0f);
-            panel.anchoredPosition = new Vector2(-16f, 16f + ActionButtonSize + 10f);
-            panel.sizeDelta = new Vector2(360f, 56f);
-            CreatePanelImage(panel, PanelBackground);
+            var panel = canvas.Find("Tooltip");
             _tooltipPanel = panel.gameObject;
-
-            var textRect = CreateRect("Text", panel);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(10f, 4f);
-            textRect.offsetMax = new Vector2(-10f, -4f);
-            _tooltipText = textRect.gameObject.AddComponent<Text>();
-            _tooltipText.font = _font;
-            _tooltipText.fontSize = 15;
-            _tooltipText.alignment = TextAnchor.MiddleRight;
-            _tooltipText.color = Color.white;
-            _tooltipText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            _tooltipText.verticalOverflow = VerticalWrapMode.Overflow;
-
+            _tooltipText = panel.Find("Text").GetComponent<Text>();
             _tooltipPanel.SetActive(false);
         }
 
@@ -538,56 +380,14 @@ namespace TacticsECS
 
         // ---------- 승/패 오버레이 ----------
 
-        private void BuildBattleEndPanel(Transform root)
+        private void WireBattleEndPanel(Transform canvas)
         {
-            var panel = CreateRect("BattleEnd", root);
-            panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.one;
-            panel.offsetMin = Vector2.zero;
-            panel.offsetMax = Vector2.zero;
-            CreatePanelImage(panel, new Color(0f, 0f, 0f, 0.55f));
+            var panel = canvas.Find("BattleEnd");
             _battleEndPanel = panel.gameObject;
+            _battleEndIcon = panel.Find("Icon").GetComponent<Image>();
+            _battleEndText = panel.Find("Label").GetComponent<Text>();
 
-            var iconRect = CreateRect("Icon", panel);
-            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-            iconRect.pivot = new Vector2(0.5f, 0f);
-            iconRect.sizeDelta = new Vector2(120f, 120f);
-            iconRect.anchoredPosition = new Vector2(0f, 10f);
-            _battleEndIcon = iconRect.gameObject.AddComponent<Image>();
-            _battleEndIcon.preserveAspect = true;
-
-            var textRect = CreateRect("Label", panel);
-            textRect.anchorMin = textRect.anchorMax = new Vector2(0.5f, 0.5f);
-            textRect.pivot = new Vector2(0.5f, 1f);
-            textRect.sizeDelta = new Vector2(400f, 50f);
-            textRect.anchoredPosition = Vector2.zero;
-            _battleEndText = textRect.gameObject.AddComponent<Text>();
-            _battleEndText.font = _font;
-            _battleEndText.fontSize = 36;
-            _battleEndText.alignment = TextAnchor.MiddleCenter;
-            _battleEndText.color = Color.white;
-
-            var restartRect = CreateRect("RestartButton", panel);
-            restartRect.anchorMin = restartRect.anchorMax = new Vector2(0.5f, 0.5f);
-            restartRect.pivot = new Vector2(0.5f, 1f);
-            restartRect.sizeDelta = new Vector2(180f, 44f);
-            restartRect.anchoredPosition = new Vector2(0f, -60f);
-            var restartBg = CreatePanelImage(restartRect, ButtonIdle);
-            var restartButton = restartRect.gameObject.AddComponent<Button>();
-            restartButton.targetGraphic = restartBg;
-            restartButton.onClick.AddListener(() => OnRestartClicked?.Invoke());
-
-            var restartLabelRect = CreateRect("Label", restartRect);
-            restartLabelRect.anchorMin = Vector2.zero;
-            restartLabelRect.anchorMax = Vector2.one;
-            restartLabelRect.offsetMin = Vector2.zero;
-            restartLabelRect.offsetMax = Vector2.zero;
-            var restartLabel = restartLabelRect.gameObject.AddComponent<Text>();
-            restartLabel.font = _font;
-            restartLabel.fontSize = 18;
-            restartLabel.alignment = TextAnchor.MiddleCenter;
-            restartLabel.color = Color.white;
-            restartLabel.text = "다시 시작";
+            panel.Find("RestartButton").GetComponent<Button>().onClick.AddListener(() => OnRestartClicked?.Invoke());
 
             _battleEndPanel.SetActive(false);
         }

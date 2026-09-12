@@ -35,6 +35,12 @@ namespace TacticsECS
         [Tooltip("방어(탱커) 유닛 프리팹.")]
         [SerializeField] private UnitView guardPrefab;
 
+        [Header("HUD Prefabs")]
+        [Tooltip("전투 HUD 프리팹(BattleHud 컴포넌트 + Canvas 이하 전체 UI). Assets/Prefabs/UI/BattleHud.prefab.")]
+        [SerializeField] private BattleHud hudPrefab;
+        [Tooltip("샌드박스 배치 단계 HUD 프리팹. Assets/Prefabs/UI/SandboxHud.prefab.")]
+        [SerializeField] private SandboxHud sandboxHudPrefab;
+
         [Header("Sandbox Extra Visuals")]
         [Tooltip("샌드박스 CSV 전용 추가 BaseVisual 프리팹 — 데모 편성(SpawnDemoFormation)에는 쓰이지 않고, " +
             "CSV의 BaseVisual 값과 이름이 일치하는 것만 UnitPlacementController의 팔레트 렌더링에 쓰인다.")]
@@ -126,9 +132,8 @@ namespace TacticsECS
             _gridView = gridViewGo.AddComponent<GridView>();
             _gridView.Build(_grid);
 
-            var hudGo = new GameObject("BattleHud");
-            hudGo.transform.SetParent(transform, false);
-            _hud = hudGo.AddComponent<BattleHud>();
+            _hud = Instantiate(hudPrefab, transform);
+            _hud.name = "BattleHud";
             _hud.Init();
             _hud.OnDefendClicked += HandleDefendClicked;
             _hud.OnHealClicked += HandleHealClicked;
@@ -212,9 +217,8 @@ namespace TacticsECS
             };
             _placementController = new UnitPlacementController(_grid, _world, _spawner, basePrefabsByName, _viewsById);
 
-            var sandboxHudGo = new GameObject("SandboxHud");
-            sandboxHudGo.transform.SetParent(transform, false);
-            _sandboxHud = sandboxHudGo.AddComponent<SandboxHud>();
+            _sandboxHud = Instantiate(sandboxHudPrefab, transform);
+            _sandboxHud.name = "SandboxHud";
             _sandboxHud.Init();
             _sandboxHud.OnLoadClicked += HandleSandboxLoad;
             _sandboxHud.OnExportClicked += HandleSandboxExport;

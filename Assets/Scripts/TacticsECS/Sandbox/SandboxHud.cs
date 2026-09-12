@@ -9,6 +9,13 @@ namespace TacticsECS
     /// 샌드박스 배치 단계 전용 HUD. BattleHud와 같은 패턴 — 값을 스스로 판단하지 않고, 입력/클릭을
     /// 이벤트로만 밖(BattleController)에 알린다. 전투가 시작되면 gameObject를 비활성화해 화면을
     /// BattleHud에 넘긴다.
+    ///
+    /// 화면 구조(Canvas 이하 Toolbar/Palette 뼈대/StartBattleButton)는 더 이상 코드로 만들지 않는다.
+    /// Assets/Prefabs/UI/SandboxHud.prefab(UIPrefabSetup.GenerateSandboxHud 참고, Unity CLI
+    /// -executeMethod로만 생성)에 이미 만들어져 있고, 이 컴포넌트는 그 프리팹의 루트에 붙어
+    /// 인스턴스화된다 — Init()은 자식을 이름으로 찾아(Wire*) 참조를 캐싱하고 버튼 클릭 이벤트만 연결한다.
+    /// 팔레트 목록(SetPalette)은 CSV마다 행 수가 달라지는 진짜 동적 데이터라, 행 하나당
+    /// Assets/Prefabs/UI/PaletteButton.prefab을 그대로 인스턴스화해서 쓴다.
     /// </summary>
     public class SandboxHud : MonoBehaviour
     {
@@ -18,13 +25,14 @@ namespace TacticsECS
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
 
-        private static readonly Color PanelBackground = new Color(0.08f, 0.09f, 0.11f, 0.92f);
+        [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
+        [SerializeField] private GameObject paletteButtonPrefab;
+
         private static readonly Color ButtonIdle = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color ButtonSelected = new Color(0.30f, 0.55f, 0.95f, 0.95f);
         private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
 
-        private Font _font;
         private Text _statusText;
         private Button _playerButton;
         private Button _enemyButton;
@@ -43,101 +51,37 @@ namespace TacticsECS
 
         public void Init()
         {
-            _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var canvas = transform.Find("Canvas");
+            if (canvas == null)
+            {
+                Debug.LogError($"[SandboxHud] {name}: Canvas 자식이 없습니다. Assets/Prefabs/UI/SandboxHud.prefab을 통해 인스턴스화하세요.");
+                return;
+            }
 
-            var canvasGo = new GameObject("Canvas");
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280f, 720f);
-            scaler.matchWidthOrHeight = 0.5f;
-            canvasGo.AddComponent<GraphicRaycaster>();
-
-            var root = canvas.transform;
-            BuildToolbar(root);
-            BuildPalette(root);
-            BuildStartButton(root);
-        }
-
-        // ---------- 공용 빌딩 블록 (BattleHud와 같은 스타일, 이 클래스 전용으로 복사) ----------
-
-        private static RectTransform CreateRect(string name, Transform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
-        }
-
-        private static Image CreatePanelImage(RectTransform rect, Color color)
-        {
-            var img = rect.gameObject.AddComponent<Image>();
-            img.color = color;
-            return img;
-        }
-
-        private Button CreateTextButton(Transform parent, string label, Vector2 anchoredPos, Vector2 size, Color bg, out Image bgImage)
-        {
-            var rect = CreateRect(label + "Button", parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = anchoredPos;
-
-            bgImage = CreatePanelImage(rect, bg);
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = bgImage;
-
-            var textRect = CreateRect("Label", rect);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(6f, 2f);
-            textRect.offsetMax = new Vector2(-6f, -2f);
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = _font;
-            text.fontSize = 15;
-            text.alignment = TextAnchor.MiddleLeft;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.text = label;
-
-            return button;
+            WireToolbar(canvas);
+            WirePalette(canvas);
+            WireStartButton(canvas);
         }
 
         // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------
 
-        private void BuildToolbar(Transform root)
+        private void WireToolbar(Transform canvas)
         {
-            var panel = CreateRect("Toolbar", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(PanelWidth, 96f);
-            CreatePanelImage(panel, PanelBackground);
+            var panel = canvas.Find("Toolbar");
+            panel.Find("불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadClicked);
+            panel.Find("내보내기Button").GetComponent<Button>().onClick.AddListener(HandleExportClicked);
 
-            var loadButton = CreateTextButton(panel, "불러오기", new Vector2(8f, -8f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
-            loadButton.onClick.AddListener(HandleLoadClicked);
-
-            var exportButton = CreateTextButton(panel, "내보내기", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -8f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _);
-            exportButton.onClick.AddListener(HandleExportClicked);
-
-            _playerButton = CreateTextButton(panel, "플레이어", new Vector2(8f, -44f), new Vector2((PanelWidth - 24f) / 2f, 28f), PlayerAccent, out _playerButtonBg);
+            var playerButtonTransform = panel.Find("플레이어Button");
+            _playerButton = playerButtonTransform.GetComponent<Button>();
+            _playerButtonBg = playerButtonTransform.GetComponent<Image>();
             _playerButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Player));
 
-            _enemyButton = CreateTextButton(panel, "적", new Vector2(8f + (PanelWidth - 24f) / 2f + 8f, -44f), new Vector2((PanelWidth - 24f) / 2f, 28f), ButtonIdle, out _enemyButtonBg);
+            var enemyButtonTransform = panel.Find("적Button");
+            _enemyButton = enemyButtonTransform.GetComponent<Button>();
+            _enemyButtonBg = enemyButtonTransform.GetComponent<Image>();
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
-            var statusRect = CreateRect("Status", panel);
-            statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
-            statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -78f);
-            statusRect.sizeDelta = new Vector2(PanelWidth - 16f, 18f);
-            _statusText = statusRect.gameObject.AddComponent<Text>();
-            _statusText.font = _font;
-            _statusText.fontSize = 13;
-            _statusText.color = new Color(1f, 1f, 1f, 0.75f);
-            _statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _statusText = panel.Find("Status").GetComponent<Text>();
         }
 
         /// <summary>OS 파일 탐색기(열기 대화상자)로 불러올 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다.
@@ -177,71 +121,17 @@ namespace TacticsECS
 
         // ---------- 팔레트: 불러온 유닛 목록 ----------
 
-        /// <summary>목록이 패널 높이를 넘으면 ScrollRect(세로 전용, 얇은 스크롤바 포함)로 스크롤한다 —
-        /// 표준 Unity UGUI 구성: Palette(패널+ScrollRect) &gt; Viewport(RectMask2D) &gt; Content(버튼들이
-        /// 실제로 붙는 곳, 행 수에 맞춰 높이가 늘어남), Palette 오른쪽 가장자리에 얇은 세로 Scrollbar.</summary>
-        private void BuildPalette(Transform root)
+        private void WirePalette(Transform canvas)
         {
-            var panel = CreateRect("Palette", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -120f);
-            panel.sizeDelta = new Vector2(PanelWidth, PaletteHeight);
-            CreatePanelImage(panel, PanelBackground);
-
-            var viewport = CreateRect("Viewport", panel);
-            viewport.anchorMin = Vector2.zero;
-            viewport.anchorMax = Vector2.one;
-            viewport.offsetMin = Vector2.zero;
-            viewport.offsetMax = new Vector2(-ScrollbarGutter, 0f);
-            viewport.gameObject.AddComponent<RectMask2D>();
-
-            var content = CreateRect("Content", viewport);
-            content.anchorMin = new Vector2(0f, 1f);
-            content.anchorMax = Vector2.one;
-            content.pivot = new Vector2(0.5f, 1f);
-            content.anchoredPosition = Vector2.zero;
-            content.sizeDelta = new Vector2(0f, PaletteHeight);
-
-            var scrollbarTrack = CreateRect("Scrollbar", panel);
-            scrollbarTrack.anchorMin = new Vector2(1f, 0f);
-            scrollbarTrack.anchorMax = Vector2.one;
-            scrollbarTrack.pivot = new Vector2(1f, 0.5f);
-            scrollbarTrack.sizeDelta = new Vector2(ScrollbarWidth, 0f);
-            scrollbarTrack.anchoredPosition = Vector2.zero;
-            CreatePanelImage(scrollbarTrack, new Color(1f, 1f, 1f, 0.08f));
-
-            // Scrollbar 컴포넌트는 스크롤 방향 축(세로, BottomToTop이면 anchorMin.y/anchorMax.y)의 크기만
-            // 콘텐츠 비율에 맞춰 자동으로 조절한다 — 가로 축은 직접 트랙 전체 폭으로 채워야 하는데, 이걸
-            // 빠뜨리면 새 RectTransform 기본값(앵커 (0,0)-(0,0), 크기 0)이 그대로 남아 손잡이 가로폭이
-            // 0으로 찌그러진다.
-            var handle = CreateRect("Handle", scrollbarTrack);
-            handle.anchorMin = Vector2.zero;
-            handle.anchorMax = Vector2.one;
-            handle.sizeDelta = Vector2.zero;
-            handle.anchoredPosition = Vector2.zero;
-            var handleImage = CreatePanelImage(handle, new Color(1f, 1f, 1f, 0.35f));
-
-            var scrollbar = scrollbarTrack.gameObject.AddComponent<Scrollbar>();
-            scrollbar.direction = Scrollbar.Direction.BottomToTop;
-            scrollbar.targetGraphic = handleImage;
-            scrollbar.handleRect = handle;
-
-            _paletteScrollRect = panel.gameObject.AddComponent<ScrollRect>();
-            _paletteScrollRect.viewport = viewport;
-            _paletteScrollRect.content = content;
-            _paletteScrollRect.horizontal = false;
-            _paletteScrollRect.vertical = true;
-            _paletteScrollRect.movementType = ScrollRect.MovementType.Clamped;
-            _paletteScrollRect.verticalScrollbar = scrollbar;
-            _paletteScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
-
-            _paletteRoot = panel;
-            _paletteContent = content;
+            var panel = canvas.Find("Palette");
+            _paletteRoot = (RectTransform)panel;
+            _paletteContent = (RectTransform)panel.Find("Viewport/Content");
+            _paletteScrollRect = panel.GetComponent<ScrollRect>();
         }
 
-        /// <summary>불러온 CSV 행 목록으로 팔레트 버튼을 다시 만든다. Content 높이를 행 수에 맞게 늘려
-        /// 패널 높이를 넘으면 ScrollRect로 스크롤해서 볼 수 있게 한다.</summary>
+        /// <summary>불러온 CSV 행 목록으로 팔레트 버튼을 다시 만든다. 행마다 PaletteButton 프리팹을 그대로
+        /// 인스턴스화한다(행 수가 CSV마다 달라지는 진짜 동적 데이터라 프리팹 하나를 반복 사용). Content 높이를
+        /// 행 수에 맞게 늘려 패널 높이를 넘으면 ScrollRect로 스크롤해서 볼 수 있게 한다.</summary>
         public void SetPalette(IReadOnlyList<UnitCsvRow> rows)
         {
             foreach (var (button, _) in _paletteButtons) Destroy(button.gameObject);
@@ -253,7 +143,15 @@ namespace TacticsECS
                 int index = i;
                 var row = rows[i];
                 var label = $"{row.Name} (HP{row.MaxHp}/{row.BaseVisual})";
-                var button = CreateTextButton(_paletteContent, label, new Vector2(8f, -8f - i * (RowH + 4f)), new Vector2(buttonWidth, RowH), ButtonIdle, out var bg);
+
+                var buttonGo = Instantiate(paletteButtonPrefab, _paletteContent);
+                var rect = (RectTransform)buttonGo.transform;
+                rect.sizeDelta = new Vector2(buttonWidth, RowH);
+                rect.anchoredPosition = new Vector2(8f, -8f - i * (RowH + 4f));
+
+                var button = buttonGo.GetComponent<Button>();
+                var bg = buttonGo.GetComponent<Image>();
+                buttonGo.GetComponentInChildren<Text>().text = label;
                 button.onClick.AddListener(() => OnUnitSelected?.Invoke(index));
                 _paletteButtons.Add((button, bg));
             }
@@ -272,30 +170,9 @@ namespace TacticsECS
 
         // ---------- 전투 시작 ----------
 
-        private void BuildStartButton(Transform root)
+        private void WireStartButton(Transform canvas)
         {
-            var rect = CreateRect("StartBattleButton", root);
-            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-16f, 16f);
-            rect.sizeDelta = new Vector2(140f, 52f);
-
-            var bg = CreatePanelImage(rect, PlayerAccent);
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = bg;
-            button.onClick.AddListener(() => OnStartBattleClicked?.Invoke());
-
-            var textRect = CreateRect("Label", rect);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = _font;
-            text.fontSize = 18;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "전투 시작";
+            canvas.Find("StartBattleButton").GetComponent<Button>().onClick.AddListener(() => OnStartBattleClicked?.Invoke());
         }
     }
 }

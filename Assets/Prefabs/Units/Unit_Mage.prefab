@@ -48,6 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitView
   moveSpeed: 6
   turnSpeedDegrees: 720
+  hpDisplayPrefab: {fileID: 8538403207368219818, guid: e70f3bf3996da75498569986440695ca, type: 3}
 --- !u!114 &8885766006920969608
 MonoBehaviour:
   m_ObjectHideFlags: 0

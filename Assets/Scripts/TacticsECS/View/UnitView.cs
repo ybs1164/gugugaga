@@ -24,6 +24,10 @@ namespace TacticsECS
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float turnSpeedDegrees = 720f;
 
+        [Tooltip("머리 위 체력 표시(배경/채우기 막대 + 숫자) 프리팹. Assets/Prefabs/UI/HpDisplay.prefab " +
+            "(UIPrefabSetup.GenerateHpDisplay 참고) — 이 프리팹을 자식으로 인스턴스화해서 쓴다.")]
+        [SerializeField] private Transform hpDisplayPrefab;
+
         private Renderer[] _renderers;
         private Material _material;
         private UnitDefinition _definition;
@@ -35,11 +39,16 @@ namespace TacticsECS
         private Coroutine _moveRoutine;
 
         private static readonly Color GuardingColor = Color.yellow;
-        private static readonly Vector2 HpBarSize = new Vector2(0.6f, 0.08f);
+
+        /// <summary>UIPrefabSetup(에디터 전용 HpDisplay 프리팹 생성 도구, Assets/Editor)이 런타임과 같은
+        /// 크기/높이 값을 쓰도록 public으로 공개한 값들. 값이 여기와 프리팹 생성 스크립트 두 곳에 따로
+        /// 적히지 않게 한다. Editor 폴더는 별도 어셈블리(Assembly-CSharp-Editor)라 internal로는 보이지
+        /// 않아 public이 필요하다.</summary>
+        public static readonly Vector2 HpBarSize = new Vector2(0.6f, 0.08f);
         // 캐릭터 머리(약 Y 1.5 부근) 위로 확실히 뜨도록 여유를 둔 높이. 너무 낮추면 헬멧 등
         // 모델 자체 지오메트리에 가려 안 보인다(실측: 스크린샷 검증에서 1.35는 가려짐 확인).
-        private const float HpBarLocalY = 1.7f;
-        private const float HpNumberLocalY = 1.9f;
+        public const float HpBarLocalY = 1.7f;
+        public const float HpNumberLocalY = 1.9f;
 
         /// <summary>모델 원점(발밑)이 타일 바닥면 위에 오도록 하는 높이 보정.</summary>
         private const float GroundOffset = 0.05f;
@@ -66,43 +75,28 @@ namespace TacticsECS
             Refresh(world, id);
         }
 
-        /// <summary>머리 위 체력 표시(숫자 + 색깔 막대)를 만든다. 막대는 왼쪽 끝을 고정한 채
-        /// 오른쪽만 줄어들도록, 배경 쿼드 위에 채우기 전용 쿼드를 겹쳐 만든다.</summary>
+        /// <summary>머리 위 체력 표시(숫자 + 색깔 막대)를 만든다. 구조(배경 쿼드/채우기 쿼드/숫자)는
+        /// Assets/Prefabs/UI/HpDisplay.prefab에 이미 만들어져 있다(UIPrefabSetup.GenerateHpDisplay) — 여기서는
+        /// 그 프리팹을 인스턴스화하고, 채우기 쿼드는 유닛마다 색이 달라져야 하므로 전용 런타임 머티리얼만
+        /// 새로 만들어 씌운다(배경은 모든 유닛이 같은 색이라 프리팹의 공유 머티리얼을 그대로 쓴다).</summary>
         private void BuildHpDisplay()
         {
-            var group = new GameObject("HpDisplay");
-            group.transform.SetParent(transform, false);
-            _hpGroup = group.transform;
+            if (hpDisplayPrefab == null)
+            {
+                Debug.LogError($"[UnitView] {name}: hpDisplayPrefab이 비어있습니다. Assets/Prefabs/UI/HpDisplay.prefab을 연결하세요.");
+                return;
+            }
+
+            _hpGroup = Instantiate(hpDisplayPrefab, transform);
+            _hpGroup.name = "HpDisplay";
             _hpGroup.rotation = HpBillboardRotation();
 
-            var bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            bg.name = "Bar_Bg";
-            Destroy(bg.GetComponent<Collider>());
-            bg.transform.SetParent(group.transform, false);
-            bg.transform.localPosition = new Vector3(0f, HpBarLocalY, 0f);
-            bg.transform.localScale = new Vector3(HpBarSize.x, HpBarSize.y, 1f);
-            var bgMaterial = RuntimeMaterial.CreateColored(new Color(0f, 0f, 0f, 0.6f));
-            RuntimeMaterial.SetDoubleSided(bgMaterial);
-            bg.GetComponent<Renderer>().sharedMaterial = bgMaterial;
-
-            var fill = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            fill.name = "Bar_Fill";
-            Destroy(fill.GetComponent<Collider>());
-            fill.transform.SetParent(group.transform, false);
-            _hpBarFill = fill.transform;
+            _hpBarFill = _hpGroup.Find("Bar_Fill");
             _hpFillMaterial = RuntimeMaterial.CreateColored(HpColorScale.ForFraction(1f));
             RuntimeMaterial.SetDoubleSided(_hpFillMaterial);
-            fill.GetComponent<Renderer>().sharedMaterial = _hpFillMaterial;
+            _hpBarFill.GetComponent<Renderer>().sharedMaterial = _hpFillMaterial;
 
-            var textGo = new GameObject("Number");
-            textGo.transform.SetParent(group.transform, false);
-            textGo.transform.localPosition = new Vector3(0f, HpNumberLocalY, 0f);
-            textGo.transform.localScale = Vector3.one * 0.3f;
-            _hpText = textGo.AddComponent<TextMesh>();
-            _hpText.alignment = TextAlignment.Center;
-            _hpText.anchor = TextAnchor.MiddleCenter;
-            _hpText.fontSize = 48;
-            _hpText.color = Color.white;
+            _hpText = _hpGroup.GetComponentInChildren<TextMesh>();
         }
 
         public void Refresh(EntityWorld world, int id)

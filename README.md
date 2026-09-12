@@ -8,7 +8,8 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 - `Assets/Scripts/TacticsECS/Systems`: 정적 클래스. `Data`를 읽고 써서 판정/이동/전투/AI를 처리. 자체 상태 없음.
 - `Assets/Scripts/TacticsECS/View`: 화면 표시 전용 MonoBehaviour. 로직 없음.
 - `Assets/Scripts/TacticsECS/BattleController.cs`: 입력을 받아 System을 호출하고 View에 반영하는 조율자. `Assets/Scenes/SampleScene.unity`에 배치되어 있음.
-- `Assets/Prefabs/Units`: 유닛 타입별 프리팹(`Unit_Melee`/`Unit_Ranged`/`Unit_Guard`). 각 프리팹은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs) + [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트를 갖는다.
+- `Assets/Prefabs/Units`: 유닛 타입별 프리팹(`Unit_Melee`/`Unit_Ranged`/`Unit_Guard` 등). 각 프리팹은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs) + [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트를 갖는다.
+- `Assets/Prefabs/UI`: `HpDisplay`(유닛 머리 위 체력 표시)/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud` 프리팹. [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)(`-executeMethod`로만 실행)가 생성하며, 각 View 스크립트는 이 프리팹을 인스턴스화한 뒤 자식을 이름으로 찾아 참조만 캐싱한다(하이어라키를 코드로 만들지 않음).
 
 8x8 그리드에 플레이어/적 각 4유닛(Melee/Ranged/Guard)이 배치된 데모. 클릭으로 유닛 선택 → 이동/공격, 턴 종료 버튼으로 턴 전환.
 
@@ -549,3 +550,36 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     렌더링 — 스크롤바 손잡이가 트랙 폭 그대로 채워진 세로 막대로 정상 표시됨을 눈으로 확인(스크립트는 확인
     후 삭제). `unity run . -- -nographics` 헤드리스 컴파일과 `UnitCsvVerification.Run`(`ALL PASS`) 재검증
     통과.
+- 2026-09-13: 런타임 코드로 생성하던 UI/표시 오브젝트를 전부 프리팹으로 전환.
+  - **동기**: "오브젝트 생성해서 만드는 코드들 전부 점검 후, 프리팹으로 수정해서 적용할 수 있는 부분들
+    있으면 그렇게 수정해서 진행해달라"는 요청. 전체 조사 범위는 [`BattleHud`](Assets/Scripts/TacticsECS/View/BattleHud.cs)/
+    [`SandboxHud`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)(uGUI 전체를 매 Play마다 `new GameObject`+
+    `AddComponent`로 절차 생성)와 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)(유닛마다 머리 위
+    체력 표시를 `GameObject.CreatePrimitive`로 매번 새로 생성)까지로 정했다. `BattleController`의 `GridView`/
+    `UnitSpawner` 같은 "빈 오브젝트 + 컴포넌트 하나"짜리 홀더와 `Camera.main` 폴백은 하이어라키가 없어
+    프리팹화해도 이득이 없다고 판단해 그대로 뒀다.
+  - **방법**: 기존 `Assets/Editor/UnitPrefabSetup.cs` 패턴(코드로 GameObject를 만들고
+    `PrefabUtility.SaveAsPrefabAsset`으로 저장, `-executeMethod`로만 실행)을 그대로 따라
+    [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)를 새로 작성 — `Assets/Prefabs/UI/`에
+    `HpDisplay`/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud` 5개 프리팹을 생성하고,
+    `SampleScene`/`Sandbox` 두 씬의 `BattleController` 필드와 기존 유닛 프리팹 7종의 `UnitView.hpDisplayPrefab`
+    필드에 자동 연결한다(유닛 프리팹은 통째로 재생성하지 않고 이 필드 하나만 반사로 덧붙여, `Unit_Guard`의
+    수동 조정값 같은 기존 데이터를 건드리지 않았다). `BattleHud`/`SandboxHud`.`Init()`은 이제 하이어라키를
+    만드는 대신 프리팹 안의 자식을 이름으로 찾아(`Wire*`) 참조를 캐싱하고, 아이콘 스프라이트 지정·버튼
+    클릭 이벤트 연결처럼 프리팹에 구울 수 없는 부분만 코드로 채운다(`IconLibrary`가 만드는 Sprite는 디스크
+    에셋이 아니라서 프리팹에 구우면 참조가 끊긴다 — 기존 `IconLibrary` 주석과 같은 이유). CSV 행 수만큼
+    늘어나는 샌드박스 팔레트 목록만 예외로, 행마다 `PaletteButton` 프리팹을 그대로 인스턴스화한다.
+  - **버그 발견 및 수정**: 버튼/배지 툴팁을 담당하는 `TooltipTrigger`를 처음엔 `BattleHud`의 private 중첩
+    클래스로 그대로 뒀는데, 프리팹에 저장했다가 다시 불러오면(배치 재실행 시 새 프로세스) 컴포넌트의
+    `m_Script` 참조가 `fileID: 0`으로 끊겨 `GetComponent<TooltipTrigger>()`가 null을 반환하는 것을
+    직접 실행해서 발견. `public`으로 바꿔도 같은 문제가 재현됐는데, 원인은 접근 제한자가 아니라 "한
+    .cs 파일 안에 클래스 두 개"였다 — 그 파일이 이번 배치 실행에서 막 재컴파일된 경우, Unity가 두 번째
+    클래스의 MonoScript fileID를 그 실행 안에서 안정적으로 해석하지 못했다. 이 프로젝트의 다른 모든
+    MonoBehaviour처럼 [`TooltipTrigger.cs`](Assets/Scripts/TacticsECS/View/TooltipTrigger.cs)를 독립 파일로
+    분리해 해결.
+  - **검증**: `unity run . -- -nographics` 헤드리스 컴파일 통과. 1회성 스크립트(`UIPrefabVerify.Run`, 확인
+    후 삭제)로 `BattleHud`/`SandboxHud`/유닛 프리팹을 실제 프로덕션 경로 그대로(`UnitSpawner.Spawn` 포함)
+    인스턴스화해 `Init()`부터 `ShowUnitPanel`/`SetUnitActions`/`ShowBattleEnd`/`SetPalette`/`SetSelectedUnit`
+    등 공개 메서드 전부를 예외 없이 호출 — `Wire*`의 `transform.Find` 경로가 하나라도 어긋나면 그 자리에서
+    `NullReferenceException`이 나므로, 예외 없이 끝났다는 것 자체가 프리팹 하이어라키와 이름이 코드와
+    정확히 일치한다는 검증이다.

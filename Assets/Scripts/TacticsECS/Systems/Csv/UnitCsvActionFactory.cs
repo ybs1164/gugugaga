@@ -58,6 +58,12 @@ namespace TacticsECS
                 actions.Add(new AnchoredAction());
             if ((row.Actions & ActionType.Transport) != 0)
                 actions.Add(TransportAction.FromCsv(row.TransportCapacity));
+            if ((row.Actions & ActionType.Wait) != 0)
+                actions.Add(new WaitAction());
+
+            // 모든 유닛은 대기(WaitAction)를 기본 보유한다
+            if (!actions.Exists(a => a is WaitAction))
+                actions.Add(new WaitAction());
 
             return actions;
         }

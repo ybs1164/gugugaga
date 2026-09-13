@@ -82,5 +82,9 @@ namespace TacticsECS
         /// Core/UnitComponents.cs)은 이 패시브와 무관하게 이미 별도로 동작한다. 값을 갖지 않는 순수 마커 —
         /// Actions/TransportAction.cs 참고.</summary>
         Transport = 1 << 21,
+        /// <summary>대기: 이번 턴 행동을 종료하고 체력을 회복하는 액티브 행동(회복 2, 자기 영토 내 4 —
+        /// 영토는 현재 플레이스홀더). 턴 종료 시 미행동 유닛은 자동으로 대기 처리된다.
+        /// Actions/WaitAction.cs 참고.</summary>
+        Wait = 1 << 22,
     }
 }

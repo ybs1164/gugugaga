@@ -38,6 +38,7 @@ namespace TacticsECS
         {
             new MoveAction(),
             new AttackAction(),
+            new WaitAction(),
         };
 
         [Header("Movement")]
@@ -98,7 +99,9 @@ namespace TacticsECS
         {
             maxHp = row.MaxHp;
             defense = row.Defense;
-            actions = csvActions;
+            actions = csvActions ?? new List<IUnitAction>();
+            if (!actions.Any(a => a is WaitAction))
+                actions.Add(new WaitAction());
             domain = row.Domain;
         }
     }

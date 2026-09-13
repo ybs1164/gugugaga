@@ -23,6 +23,7 @@ namespace TacticsECS
         public event Action OnDefendClicked;
         public event Action OnHealClicked;
         public event Action OnSelfDestructClicked;
+        public event Action OnWaitClicked;
         public event Action OnDeselectClicked;
         /// <summary>승/패 화면의 "다시 시작" 버튼. 샌드박스 모드에서는 이 버튼이 곧 배치 화면(커스텀 화면)으로
         /// 되돌아가는 진입점이고, 데모 모드에서는 데모 편성을 다시 스폰하는 재시작이다 — 어느 쪽이든
@@ -295,6 +296,7 @@ namespace TacticsECS
             (ActionType.Defend, "guard", "방어 태세: 받는 피해를 줄입니다. (방어력 +" + CombatSystem.GuardDefenseBonus + ")"),
             (ActionType.Heal, "heal", "치유: 사거리 내의 모든 아군 유닛(자신 제외)의 체력을 회복시킵니다."),
             (ActionType.SelfDestruct, "selfdestruct", "자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다."),
+            (ActionType.Wait, "hp", "대기: 이번 턴 행동을 종료하고 체력을 2(자기 영토 4) 회복합니다."),
         };
 
         private void WireActionButtons(Transform canvas)
@@ -309,7 +311,10 @@ namespace TacticsECS
             {
                 var def = OptionalActionDefs[i];
                 var buttonTransform = canvas.Find(def.Flag + "Button");
-                WireIconButton(buttonTransform, def.Icon, def.Tooltip);
+                if (buttonTransform == null)
+                    buttonTransform = CreateDynamicActionButton(canvas, def.Flag + "Button", def.Icon, def.Tooltip);
+                else
+                    WireIconButton(buttonTransform, def.Icon, def.Tooltip);
 
                 var button = buttonTransform.GetComponent<Button>();
                 switch (def.Flag)
@@ -317,6 +322,7 @@ namespace TacticsECS
                     case ActionType.Defend: button.onClick.AddListener(() => OnDefendClicked?.Invoke()); break;
                     case ActionType.Heal: button.onClick.AddListener(() => OnHealClicked?.Invoke()); break;
                     case ActionType.SelfDestruct: button.onClick.AddListener(() => OnSelfDestructClicked?.Invoke()); break;
+                    case ActionType.Wait: button.onClick.AddListener(() => OnWaitClicked?.Invoke()); break;
                 }
                 _optionalActions[i] = new OptionalActionButton { Flag = def.Flag, Button = button, Rect = (RectTransform)buttonTransform };
             }
@@ -336,6 +342,39 @@ namespace TacticsECS
             trigger.Text = tooltip;
             trigger.OnEnter = ShowTooltip;
             trigger.OnExit = HideTooltip;
+        }
+
+        private Transform CreateDynamicActionButton(Transform canvas, string name, string iconName, string tooltip)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(canvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(1f, 0f);
+            rect.sizeDelta = new Vector2(ActionButtonSize, ActionButtonSize);
+
+            var bg = go.GetComponent<Image>();
+            bg.color = new Color(0.16f, 0.17f, 0.20f, 0.95f);
+            go.GetComponent<Button>().targetGraphic = bg;
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRect = (RectTransform)iconGo.transform;
+            iconRect.anchorMin = Vector2.zero;
+            iconRect.anchorMax = Vector2.one;
+            iconRect.offsetMin = new Vector2(10f, 10f);
+            iconRect.offsetMax = new Vector2(-10f, -10f);
+            var iconImg = iconGo.GetComponent<Image>();
+            iconImg.sprite = IconLibrary.Get(iconName);
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+
+            var trigger = go.AddComponent<TooltipTrigger>();
+            trigger.Text = tooltip;
+            trigger.OnEnter = ShowTooltip;
+            trigger.OnExit = HideTooltip;
+
+            return go.transform;
         }
 
         /// <summary>선택된 유닛이 실제로 쓸 수 있는 행동(hasActed면 전부 숨김)만 화면에 나타나게 하고,

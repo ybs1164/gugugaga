@@ -60,8 +60,12 @@ namespace TacticsECS
             // 수송 플레이스홀더: 아직 태우고 내리는 시스템이 없어 정원 값만 채워둔다(Core/UnitComponents.cs 참고).
             world.Set(id, new CargoCapacity { Value = definition.CargoCapacity });
 
-            world.Set(id, new AvailableActions { Value = definition.AvailableActions });
-            world.Set(id, new UnitActions { Value = definition.Actions });
+            var unitActions = new List<IUnitAction>(definition.Actions);
+            if (!unitActions.Exists(a => a is WaitAction))
+                unitActions.Add(new WaitAction());
+
+            world.Set(id, new AvailableActions { Value = definition.AvailableActions | ActionType.Wait });
+            world.Set(id, new UnitActions { Value = unitActions });
 
             world.Set(id, new MoveRange { Value = definition.MoveRange });
             world.Set(id, new IgnoreTerrain { Value = definition.IgnoreTerrain });

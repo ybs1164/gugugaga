@@ -157,6 +157,7 @@ namespace TacticsECS
             _hud.OnDefendClicked += HandleDefendClicked;
             _hud.OnHealClicked += HandleHealClicked;
             _hud.OnSelfDestructClicked += HandleSelfDestructClicked;
+            _hud.OnWaitClicked += HandleWaitClicked;
             _hud.OnDeselectClicked += ClearSelection;
             _hud.OnRestartClicked += HandleReturnToSetup;
 
@@ -301,9 +302,17 @@ namespace TacticsECS
             BeginBattle();
         }
 
-        /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.</summary>
+        /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.
+        /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
+            var waitedIds = AbilitySystem.ApplyTurnEndWait(_grid, _world, _turnState.ActiveTeam);
+            foreach (var id in waitedIds)
+            {
+                if (_viewsById.TryGetValue(id, out var view))
+                    view.Refresh(_world, id);
+            }
+
             _turnState = TurnSystem.EndTurn(_world, _turnState);
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
         }
@@ -667,6 +676,17 @@ namespace TacticsECS
                 _viewsById[id].Refresh(_world, id);
 
             CheckBattleEnd();
+            ClearSelection();
+        }
+
+        /// <summary>BattleHud의 대기 버튼 클릭 이벤트 핸들러. 이번 턴 행동을 종료하고 체력을 회복한다.</summary>
+        private void HandleWaitClicked()
+        {
+            if (_state != SelectState.UnitSelected) return;
+            int unitId = _selectedUnitId;
+            if (!AbilitySystem.TryWait(_grid, _world, unitId)) return;
+
+            _viewsById[unitId].Refresh(_world, unitId);
             ClearSelection();
         }
 

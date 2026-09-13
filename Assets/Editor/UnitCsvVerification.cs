@@ -57,7 +57,7 @@ namespace TacticsECS.EditorTools
                     a.MoveIgnoreUnitBlocking == b.MoveIgnoreUnitBlocking && a.MoveAllowDiagonal == b.MoveAllowDiagonal &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&
-                    a.PlayerColor == b.PlayerColor && a.EnemyColor == b.EnemyColor;
+                    a.Color == b.Color;
 
                 if (!same)
                 {

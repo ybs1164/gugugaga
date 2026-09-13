@@ -53,7 +53,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 ## 유닛 종류
 
 유닛 타입은 코드의 enum 분기가 아니라 **프리팹**으로 관리한다. `Assets/Prefabs/Units`의 각 프리팹은
-[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 팀별 색상·모델 겉감 텍스처를
+[`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트에 스탯과 색상·모델 겉감 텍스처를
 인스펙터 값으로 들고 있고, `BattleController`는 이 프리팹 3개를 인스펙터에서 참조해 스폰한다.
 `UnitSpawner.Spawn`/`UnitView`/`UnitDefinition` 어디에도 타입별 `switch`는 없으며, 전부 프리팹에 붙은 값을 그대로 읽어 쓴다.
 새 타입을 추가하려면 코드를 고칠 필요 없이 프리팹을 하나 더 만들고 `UnitDefinition` 값만 채우면 된다. 사거리는 맨해튼 거리 기준.
@@ -186,7 +186,7 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 `Unit_RogueHooded`/`Unit_Mage`/`Unit_SkeletonWarrior`/`Unit_SkeletonMage` 프리팹을 CSV의 `BaseVisual` 값으로만
 골라 쓴다(자세한 배정은 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 참고).
 
-플레이어 유닛은 파란/청록 계열, 적 유닛은 빨강/주황 계열 색으로 구분되며, 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 스폰 시 만드는 유닛별 런타임 머티리얼에서 `UnitDefinition.playerColor`/`enemyColor` 값을 모델의 겉감 텍스처(`UnitDefinition.bodyTexture`) 위에 곱해 틴트하는 방식이라, 모델의 음영/디테일은 남기면서 팀 색을 입힌다(캐릭터의 몸통/팔다리/망토/무기 등 여러 Renderer가 이 머티리얼 하나를 공유). 유닛 머리 위 텍스트는 `현재HP/최대HP`.
+유닛 색은 팀 구분 없이 유닛 타입별로 하나씩만 정해지며(플레이어/적 모두 같은 색으로 표시), 방어 태세 중인 유닛은 팀에 관계없이 노란색으로 표시된다. 이 색은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가 스폰 시 만드는 유닛별 런타임 머티리얼에서 `UnitDefinition.Color` 값을 모델의 겉감 텍스처(`UnitDefinition.bodyTexture`) 위에 곱해 틴트하는 방식이라, 모델의 음영/디테일은 남기면서 색을 입힌다(캐릭터의 몸통/팔다리/망토/무기 등 여러 Renderer가 이 머티리얼 하나를 공유). 유닛 머리 위 텍스트는 `현재HP/최대HP`.
 
 데미지 공식은 `max(1, 공격자 공격력 - (대상 방어력 + 방어 태세 보너스))`.
 
@@ -583,3 +583,21 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     등 공개 메서드 전부를 예외 없이 호출 — `Wire*`의 `transform.Find` 경로가 하나라도 어긋나면 그 자리에서
     `NullReferenceException`이 나므로, 예외 없이 끝났다는 것 자체가 프리팹 하이어라키와 이름이 코드와
     정확히 일치한다는 검증이다.
+- 2026-09-13: CSV에서 팀별 유닛 색(`PlayerColor`/`EnemyColor`)을 없애고 팀 구분 없는 단일 색으로 통일.
+  - **동기**: "csv 에 플레이어와 적 색깔을 삭제하고, 두 팀의 유닛 색깔을 전부 통일해달라"는 요청.
+  - **CSV 스키마**: `PlayerColor`/`EnemyColor` 두 컬럼을 `Color` 하나로 합침(값은 기존 `PlayerColor`를
+    그대로 사용). [`UnitCsvRow`](Assets/Scripts/TacticsECS/Data/Csv/UnitCsvRow.cs)도 `PlayerColor`/`EnemyColor`
+    필드 대신 `Color` 필드 하나로, [`UnitCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvSerializer.cs)의
+    헤더/파싱/작성 로직과 [`UnitCsvActionFactory.ToRow`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvActionFactory.cs)도
+    맞춰 갱신. [`docs/sample_units.csv`](docs/sample_units.csv)/[`SandboxUnits.csv`](SandboxUnits.csv)/
+    [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 스키마 표도 함께 갱신.
+  - **프리팹/View**: [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)의 `playerColor`/`enemyColor`
+    필드를 `color` 하나로 합치고, `ColorFor(Team)` 메서드를 팀 무관 `Color` 프로퍼티로 교체(호출부인
+    [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)의 `Init`/`Refresh`도 함께 갱신, `Team` 조회 제거).
+    기존 유닛 프리팹 7종(`Assets/Prefabs/Units/Unit_*.prefab`)의 YAML도 `playerColor`/`enemyColor` 두 줄을
+    `color` 한 줄로 직접 수정(값은 기존 `playerColor` 그대로 유지). 프리팹을 생성하는 1회성 배치 도구
+    [`UnitPrefabSetup.cs`](Assets/Editor/UnitPrefabSetup.cs)/[`ExtraCharacterPrefabSetup.cs`](Assets/Editor/ExtraCharacterPrefabSetup.cs)도
+    시그니처를 맞춰 갱신(재실행 대비).
+  - **검증**: `unity run . -- -nographics` 헤드리스 컴파일 통과. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UnitCsvVerification.Run`으로 갱신된 `docs/sample_units.csv`(13행) round-trip/스폰
+    검증 모두 `PASS`.

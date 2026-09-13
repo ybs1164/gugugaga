@@ -44,7 +44,7 @@ namespace TacticsECS.EditorTools
                 hideNames: new[] { "Knife_Offhand", "1H_Crossbow", "Knife", "Throwable" },
                 maxHp: 8, defense: 0,
                 actions: new List<IUnitAction> { MoveAction.FromCsv(3, false, false, false), AttackAction.FromCsv(4, 1) },
-                playerColor: new Color(0.6f, 0.3f, 0.75f), enemyColor: new Color(0.35f, 0.2f, 0.45f));
+                color: new Color(0.6f, 0.3f, 0.75f));
 
             // Mage: 왼손 스펠북(닫힌 버전만 남김) + 오른손 지팡이(2H_Staff만 남김, 1H_Wand는 숨김).
             var mage = CreatePrefab(
@@ -55,7 +55,7 @@ namespace TacticsECS.EditorTools
                 hideNames: new[] { "1H_Wand", "Spellbook_open" },
                 maxHp: 7, defense: 0,
                 actions: new List<IUnitAction> { MoveAction.FromCsv(2, false, false, false), AttackAction.FromCsv(2, 2) },
-                playerColor: new Color(0.25f, 0.55f, 0.85f), enemyColor: new Color(0.5f, 0.3f, 0.7f));
+                color: new Color(0.25f, 0.55f, 0.85f));
 
             // Skeleton 계열 두 종은 손 소켓 아래에 무기 변형이 아예 없다(맨손 리그) — hideNames 없이 그대로 쓴다.
             var skeletonWarrior = CreatePrefab(
@@ -66,7 +66,7 @@ namespace TacticsECS.EditorTools
                 hideNames: System.Array.Empty<string>(),
                 maxHp: 14, defense: 2,
                 actions: new List<IUnitAction> { MoveAction.FromCsv(1, false, false, false), AttackAction.FromCsv(3, 1) },
-                playerColor: new Color(0.55f, 0.6f, 0.65f), enemyColor: new Color(0.65f, 0.4f, 0.25f));
+                color: new Color(0.55f, 0.6f, 0.65f));
 
             var skeletonMage = CreatePrefab(
                 "Unit_SkeletonMage",
@@ -76,7 +76,7 @@ namespace TacticsECS.EditorTools
                 hideNames: System.Array.Empty<string>(),
                 maxHp: 8, defense: 0,
                 actions: new List<IUnitAction> { MoveAction.FromCsv(2, false, false, false), AttackAction.FromCsv(2, 2) },
-                playerColor: new Color(0.45f, 0.7f, 0.5f), enemyColor: new Color(0.75f, 0.25f, 0.35f));
+                color: new Color(0.45f, 0.7f, 0.5f));
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -94,7 +94,7 @@ namespace TacticsECS.EditorTools
 
         private static UnitView CreatePrefab(
             string name, string modelPath, string texturePath, float modelScale, float yRotationDegrees, string[] hideNames,
-            int maxHp, int defense, List<IUnitAction> actions, Color playerColor, Color enemyColor)
+            int maxHp, int defense, List<IUnitAction> actions, Color color)
         {
             var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (modelAsset == null)
@@ -128,8 +128,7 @@ namespace TacticsECS.EditorTools
             SetPrivateField(def, "maxHp", maxHp);
             SetPrivateField(def, "defense", defense);
             SetPrivateField(def, "actions", actions);
-            SetPrivateField(def, "playerColor", playerColor);
-            SetPrivateField(def, "enemyColor", enemyColor);
+            SetPrivateField(def, "color", color);
             SetPrivateField(def, "bodyTexture", texture);
             EditorUtility.SetDirty(def);
 

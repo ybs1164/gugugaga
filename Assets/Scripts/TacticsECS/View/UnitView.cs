@@ -7,10 +7,10 @@ namespace TacticsECS
     /// 유닛 하나의 화면 표시 전용 컴포넌트.
     /// 값을 스스로 들고 있지 않고, Init/Refresh(EntityWorld, id)로 받을 때마다 그 엔티티의 컴포넌트를
     /// 그때그때 조회해서 겉모습만 갱신한다 (전투 로직 없음).
-    /// 외형(모델/스케일)은 프리팹 자체에, 팀별 색상/텍스처/MaxHp는 같은 GameObject의 UnitDefinition
+    /// 외형(모델/스케일)은 프리팹 자체에, 색상/텍스처/MaxHp는 같은 GameObject의 UnitDefinition
     /// 컴포넌트에 있으므로 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다.
     /// 유닛 모델(자식의 KayKit 캐릭터)은 몸통/팔/다리/무기 등 여러 개의 Renderer로 나뉘어 있어,
-    /// 팀 색 틴트는 그 전부에 같은 런타임 머티리얼 하나를 공유시켜 적용한다.
+    /// 색 틴트는 그 전부에 같은 런타임 머티리얼 하나를 공유시켜 적용한다.
     /// 머리 위 체력 표시는 숫자(현재 HP만, 최댓값은 선택 시 BattleHud 패널에서 보여준다) +
     /// 색이 상태를 말해주는 막대(HpColorScale)로 구성해, 값을 굳이 읽지 않아도 색과 길이만으로
     /// 상태가 보이게 한다.
@@ -66,7 +66,7 @@ namespace TacticsECS
             _renderers = GetComponentsInChildren<Renderer>();
             _definition = GetComponent<UnitDefinition>();
 
-            _material = RuntimeMaterial.CreateColored(_definition.ColorFor(world.Get<Team>(id)), _definition.BodyTexture);
+            _material = RuntimeMaterial.CreateColored(_definition.Color, _definition.BodyTexture);
             foreach (var r in _renderers) r.sharedMaterial = _material;
 
             BuildHpDisplay();
@@ -113,7 +113,7 @@ namespace TacticsECS
             SetHpBarFraction(hpFraction);
             RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
 
-            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : _definition.ColorFor(world.Get<Team>(id)));
+            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : _definition.Color);
 
             var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)

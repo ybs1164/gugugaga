@@ -57,7 +57,7 @@ namespace TacticsECS
         /// (UnitDefinition)의 현재 값을 CSV 템플릿으로 뽑아낼 때, 그리고 향후 샌드박스에서 배치된 유닛
         /// 구성을 그대로 CSV로 내보낼 때 공통으로 쓴다.</summary>
         public static UnitCsvRow ToRow(string name, string baseVisual, int maxHp, int defense,
-            Color playerColor, Color enemyColor, IReadOnlyList<IUnitAction> actions)
+            Color color, IReadOnlyList<IUnitAction> actions)
         {
             var row = new UnitCsvRow
             {
@@ -65,8 +65,7 @@ namespace TacticsECS
                 MaxHp = maxHp,
                 Defense = defense,
                 BaseVisual = baseVisual,
-                PlayerColor = playerColor,
-                EnemyColor = enemyColor
+                Color = color
             };
 
             foreach (var action in actions)

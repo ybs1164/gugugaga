@@ -23,7 +23,7 @@ Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 
 | `Name` | 유닛 이름(표시/구분용) | |
 | `MaxHp`, `Defense` | 기본 스탯 | |
 | `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나 — `Assets/Prefabs/Units/Unit_<값>.prefab`을 찾는 키(대소문자 그대로 일치해야 함) |
-| `PlayerColor`, `EnemyColor` | 팀별 틴트 색 | `#RRGGBB` 형식 |
+| `Color` | 틴트 색(팀 구분 없이 양 팀 모두 동일) | `#RRGGBB` 형식 |
 | `Actions` | 이 유닛이 가진 행동 목록 | 세미콜론(`;`)으로 구분, 예: `Move;Attack;Counter` |
 | `Move.Range` / `Move.IgnoreTerrain` / `Move.IgnoreUnitBlocking` / `Move.AllowDiagonal` | Move 파라미터 | `Actions`에 `Move`가 있을 때만 사용 |
 | `Attack.Attack` / `Attack.Range` | Attack 파라미터 | `Actions`에 `Attack`이 있을 때만 사용. Counter는 별도 값 없이 이 값을 그대로 재사용 |

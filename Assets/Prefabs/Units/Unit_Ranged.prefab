@@ -67,8 +67,7 @@ MonoBehaviour:
   - rid: 1
   - rid: 2
   - rid: 3
-  playerColor: {r: 0.2, g: 0.8, b: 0.5, a: 1}
-  enemyColor: {r: 1, g: 0.7, b: 0.2, a: 1}
+  color: {r: 0.2, g: 0.8, b: 0.5, a: 1}
   bodyTexture: {fileID: 2800000, guid: 0badf8d3274f4c3479331ba4641cf262, type: 3}
   references:
     version: 2

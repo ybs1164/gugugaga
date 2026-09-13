@@ -41,9 +41,9 @@ namespace TacticsECS
         };
 
         [Header("Appearance")]
-        [SerializeField] private Color playerColor = Color.white;
-        [SerializeField] private Color enemyColor = Color.white;
-        [Tooltip("유닛 모델의 겉감 텍스처. UnitView가 팀 색과 함께 런타임 머티리얼에 입힌다.")]
+        [Tooltip("유닛 모델의 표시 색. 팀 구분 없이 양 팀 모두 같은 색으로 표시된다.")]
+        [SerializeField] private Color color = Color.white;
+        [Tooltip("유닛 모델의 겉감 텍스처. UnitView가 색과 함께 런타임 머티리얼에 입힌다.")]
         [SerializeField] private Texture2D bodyTexture;
 
         public int MaxHp => maxHp;
@@ -79,7 +79,7 @@ namespace TacticsECS
         public int HealAmount => FindAction<HealAction>()?.HealAmount ?? 0;
         public int HealRange => FindAction<HealAction>()?.HealRange ?? 0;
 
-        public Color ColorFor(Team team) => team == Team.Player ? playerColor : enemyColor;
+        public Color Color => color;
         public Texture2D BodyTexture => bodyTexture;
 
         /// <summary>CSV 행(UnitCsvRow) 값으로 이 컴포넌트의 필드를 전부 덮어쓴다. 외형(bodyTexture)은
@@ -91,8 +91,7 @@ namespace TacticsECS
             maxHp = row.MaxHp;
             defense = row.Defense;
             actions = csvActions;
-            playerColor = row.PlayerColor;
-            enemyColor = row.EnemyColor;
+            color = row.Color;
         }
     }
 }

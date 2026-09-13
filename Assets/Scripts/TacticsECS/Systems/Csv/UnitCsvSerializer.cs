@@ -17,7 +17,7 @@ namespace TacticsECS
     {
         private static readonly string[] Header =
         {
-            "Name", "MaxHp", "Defense", "BaseVisual", "PlayerColor", "EnemyColor", "Actions",
+            "Name", "MaxHp", "Defense", "BaseVisual", "Color", "Actions",
             "Move.Range", "Move.IgnoreTerrain", "Move.IgnoreUnitBlocking", "Move.AllowDiagonal",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range"
@@ -58,17 +58,16 @@ namespace TacticsECS
             MaxHp = ParseInt(Col(c, 1)),
             Defense = ParseInt(Col(c, 2)),
             BaseVisual = Col(c, 3),
-            PlayerColor = ParseColor(Col(c, 4)),
-            EnemyColor = ParseColor(Col(c, 5)),
-            Actions = ParseActions(Col(c, 6)),
-            MoveRange = ParseInt(Col(c, 7)),
-            MoveIgnoreTerrain = ParseBool(Col(c, 8)),
-            MoveIgnoreUnitBlocking = ParseBool(Col(c, 9)),
-            MoveAllowDiagonal = ParseBool(Col(c, 10)),
-            AttackAttack = ParseInt(Col(c, 11)),
-            AttackRange = ParseInt(Col(c, 12)),
-            HealAmount = ParseInt(Col(c, 13)),
-            HealRange = ParseInt(Col(c, 14))
+            Color = ParseColor(Col(c, 4)),
+            Actions = ParseActions(Col(c, 5)),
+            MoveRange = ParseInt(Col(c, 6)),
+            MoveIgnoreTerrain = ParseBool(Col(c, 7)),
+            MoveIgnoreUnitBlocking = ParseBool(Col(c, 8)),
+            MoveAllowDiagonal = ParseBool(Col(c, 9)),
+            AttackAttack = ParseInt(Col(c, 10)),
+            AttackRange = ParseInt(Col(c, 11)),
+            HealAmount = ParseInt(Col(c, 12)),
+            HealRange = ParseInt(Col(c, 13))
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
@@ -77,8 +76,7 @@ namespace TacticsECS
             row.MaxHp.ToString(CultureInfo.InvariantCulture),
             row.Defense.ToString(CultureInfo.InvariantCulture),
             row.BaseVisual ?? string.Empty,
-            WriteColor(row.PlayerColor),
-            WriteColor(row.EnemyColor),
+            WriteColor(row.Color),
             WriteActions(row.Actions),
             row.MoveRange.ToString(CultureInfo.InvariantCulture),
             row.MoveIgnoreTerrain.ToString(),

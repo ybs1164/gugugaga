@@ -41,6 +41,11 @@ namespace TacticsECS
     [System.Serializable] public struct IgnoreUnitBlocking { public bool Value; }
     [System.Serializable] public struct AllowDiagonal { public bool Value; }
 
+    // 이 유닛이 들어갈 수 있는 지형(TileData.Terrain, Core/TerrainType.cs와 공유). 육지 유닛은 물 타일에,
+    // 물 유닛은 육지 타일에 (IgnoreTerrain이 없는 한) 들어갈 수 없다 — PathfindingSystem.GetReachable과
+    // MoveAction.Execute가 함께 판정한다.
+    [System.Serializable] public struct MoveDomain { public TerrainType Value; }
+
     // ---- 턴 상태 (매 턴 리셋) ----
     [System.Serializable] public struct HasMoved { public bool Value; }
     [System.Serializable] public struct HasActed { public bool Value; }

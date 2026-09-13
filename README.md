@@ -84,9 +84,10 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
-어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰/스플래시/뻣뻣함/빙결
-중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라 행동 자신**이 정한다.
-열일곱 행동
+어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰/스플래시/뻣뻣함/빙결/
+요새화/은신/약탈/고정/수송 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라
+행동 자신**이 정한다. 마지막 다섯(요새화/은신/약탈/고정/수송)은 아직 게임플레이 효과가 정해지지 않은
+플레이스홀더다 — 자세한 내용은 [플레이스홀더 패시브](#플레이스홀더-패시브-아직-효과-미정) 참고. 스물두 행동
 ([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
 [`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
 [`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs)/
@@ -95,7 +96,9 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 [`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs)/[`ConvertAction`](Assets/Scripts/TacticsECS/Actions/ConvertAction.cs)/
 [`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)/[`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)/
 [`SplashAction`](Assets/Scripts/TacticsECS/Actions/SplashAction.cs)/[`StiffAction`](Assets/Scripts/TacticsECS/Actions/StiffAction.cs)/
-[`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs))
+[`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs)/[`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)/
+[`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)/[`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)/
+[`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)/[`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs))
 은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
 아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
 이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
@@ -173,6 +176,32 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
   건다. `Frozen`은 그 유닛의 다음 자기 팀 턴이 시작될 때(`TurnSystem.ResetUnitStates`) 그 턴의
   `HasMoved`/`HasActed`를 오히려 강제로 true로 세워 통째로 건너뛰게 만들고, 그 즉시 해제된다 — 정확히
   "1턴간 행동불능".
+
+#### 플레이스홀더 패시브 (아직 효과 미정)
+
+[`SandboxUnits.csv`](SandboxUnits.csv)의 육지/물 유닛 13종 예시를 만들면서, 기존 [`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)(정찰)과 같은 성격 — CSV/UI 연동에 필요한 태그는 있지만 아직 실제 게임플레이 효과가 정해지지 않은 — 패시브 5종을 추가했다. `UnitCsvActionFactory`/`ActionType`/CSV 왕복은 다른 행동과 동일하게 전부 동작하지만, `BattleHud`의 패시브 배지(`PassiveDefs`)에는 아직 연결하지 않았다(아이콘이 없고, 효과가 없는 채로 배지만 노출하는 것은 혼란을 줄 수 있어 보류).
+
+- **요새화**([`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)): 보병/방패병/궁병 등에 쓰임. 효과 미정(예상: 제자리 방어 보너스).
+- **은신**([`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)): 스파이에 쓰임. 효과 미정(예상: 적에게 발견되지 않음).
+- **약탈**([`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)): 스파이에 쓰임. 효과 미정(예상: 자원 획득).
+- **고정**([`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)): 사제/함선류에 쓰임. 효과 미정.
+- **수송**([`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs)): 함선류에 쓰임. 효과 미정(예상: 육지 유닛을 태우고 물을 건너는 것) — [지형(육지/물)](#지형-육지물)의 이동 제한과는 무관하게 이미 별도로 동작한다.
+
+### 지형 (육지/물)
+
+타일마다 [`TerrainType`](Assets/Scripts/TacticsECS/Core/TerrainType.cs)(`Land`/`Water`) 값을 갖고([`TileData.Terrain`](Assets/Scripts/TacticsECS/Core/TileData.cs)), 유닛도 같은 타입의 [`MoveDomain`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트로 자신이 들어갈 수 있는 지형을 하나 갖는다(CSV의 `Domain` 컬럼, `UnitDefinition.domain`). `Move.IgnoreTerrain`이 꺼진 유닛은 자신의 `MoveDomain`과 다른 지형 타일에 들어갈 수 없다 — 육지 유닛은 물을, 물 유닛(뗏목/정찰선/충각선/범선)은 육지를 건널 수 없다. 판정은 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)(경로 탐색)과 [`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(실제 이동)가 공유한다. 자세한 내용과 CSV 예시는 [`docs/UnitCsvSandbox.md`의 지형 섹션](docs/UnitCsvSandbox.md#지형육지물) 참고.
+
+타일의 지형은 `BattleController` 인스펙터의 `waterTiles` 좌표 목록으로 지정한다(비어있으면 그리드 전체가
+육지 — `Assets/Scenes/SampleScene.unity`는 비워둬서 기존 데모 전투에 영향이 없다). `Assets/Scenes/Sandbox.unity`는
+그리드 오른쪽 1/3을 물로 채워둬서 물 유닛을 곧바로 테스트해볼 수 있다. 타일 모델은
+[Kenney - Tower Defense Kit](https://kenney.nl/assets/tower-defense-kit)(CC0)의 평평한 타일 메시
+(`Assets/Art/Tiles/Kenney/tile.fbx`, 라이선스 원문 [`Assets/Art/Tiles/Kenney/Kenney-License.txt`](Assets/Art/Tiles/Kenney/Kenney-License.txt))를
+가져와 [`TileAssetSetup`](Assets/Editor/TileAssetSetup.cs)(CLI 전용)이 `Tile_Land`/`Tile_Water` 프리팹을 만들고,
+[`GridView`](Assets/Scripts/TacticsECS/View/GridView.cs)가 타일마다 이 프리팹을 인스턴스화한 뒤 기존과 같은 방식으로
+매번 새 런타임 머티리얼을 입힌다(하이라이트 시 타일마다 독립적으로 색이 바뀌어야 해서, 프리팹이 가진 머티리얼을
+공유하지 않는다) — 기본색은 육지=회색 계열, 물=파란색, 이동/공격 하이라이트는 기존과 동일. 두 프리팹을 아직
+연결하지 않은 씬(또는 `landTilePrefab`/`waterTilePrefab`을 비워둔 경우)은 예전처럼 프리미티브 큐브로
+대체된다.
 
 ### 겉모습 (3D 모델)
 
@@ -601,3 +630,42 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   - **검증**: `unity run . -- -nographics` 헤드리스 컴파일 통과. `unity run . -- -executeMethod
     TacticsECS.EditorTools.UnitCsvVerification.Run`으로 갱신된 `docs/sample_units.csv`(13행) round-trip/스폰
     검증 모두 `PASS`.
+- 2026-09-13: 무료 로우폴리 타일 에셋 도입 + 육지/물 지형 타입 추가, 그 위에서 테스트할 13유닛 CSV 구성.
+  - **에셋 선정**: [Kenney - Tower Defense Kit](https://kenney.nl/assets/tower-defense-kit)(CC0, 정사각형
+    그리드용 평평한 타일 메시 포함, 160개 파일)을 조사해 후보로 제시하고 사용자 확인 후 다운로드 —
+    `tile.fbx` + 텍스처(`colormap.png`, 실제로는 쓰이지 않음, 참고용) + 라이선스 원문만
+    `Assets/Art/Tiles/Kenney/`에 추가(전체 160개 대신 필요한 것만).
+  - **지형 데이터**: [`TerrainType`](Assets/Scripts/TacticsECS/Core/TerrainType.cs)(`Land`/`Water`) 신설.
+    [`TileData`](Assets/Scripts/TacticsECS/Core/TileData.cs)에 `Terrain` 필드, [`GridWorld`](Assets/Scripts/TacticsECS/Data/GridWorld.cs)에
+    `GetTerrain`/`SetTerrain` 추가. 유닛 쪽은 같은 타입의 [`MoveDomain`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)
+    컴포넌트(`UnitDefinition.domain` → `UnitSpawner`가 스폰 시 그대로 옮김)로 자신이 들어갈 수 있는 지형을 갖는다.
+  - **이동 판정**: [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)과
+    [`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)가 `Move.IgnoreTerrain`이 꺼진 유닛에 한해
+    `Walkable` 체크에 더해 "자신의 `MoveDomain`과 타일 지형이 같은가"까지 함께 판정하도록 확장 — 기본 차단만
+    구현하고(육지 유닛은 물에, 물 유닛은 육지에 못 들어감), 함선이 육지 유닛을 태우는 수송 기능은 만들지 않음.
+  - **CSV 스키마**: `UnitCsvRow`/`UnitCsvSerializer`/`UnitCsvActionFactory`에 `Domain` 컬럼 추가(Actions 다음,
+    Move.* 앞). 기존 CSV(`docs/sample_units.csv`)도 전부 `Land`로 채워 갱신 — 컬럼이 하나 늘어난 파싱은
+    위치 기반이라, `Domain` 없이 저장된 예전 CSV를 그대로 불러오면 그 뒤 컬럼이 밀린다는 점에 유의.
+  - **새 플레이스홀더 패시브 5종**: 사용자가 준 유닛 표의 요새화/은신/약탈/고정/수송이 기존 17개 행동에
+    없어, `ScoutAction`과 같은 성격(태그만 있고 효과 미정)의 `FortifyAction`/`StealthAction`/`PillageAction`/
+    `AnchoredAction`/`TransportAction`을 추가(`ActionType`에 플래그 5개 추가, `UnitCsvActionFactory.BuildActions`
+    연결). `BattleHud` 패시브 배지에는 아직 연결하지 않음 — 자세한 내용은 [플레이스홀더 패시브](#플레이스홀더-패시브-아직-효과-미정) 참고.
+  - **테스트 CSV**: 사용자가 준 표(보병/방패병/검투사/기병/기사/궁병/투석기/사제/스파이 — 육지, 뗏목/정찰선/
+    충각선/범선 — 물) 그대로 [`SandboxUnits.csv`](SandboxUnits.csv) 13유닛을 구성 — 표의 "패시브" 칸은 그대로
+    `Actions`로, "이동" 칸(육지/물)은 `Domain`으로 옮겼다. 표의 숫자 칸은 사용자가 "비용"(자원 비용, 지금 CSV
+    스키마에는 없는 개념) 의미로 확인해줘서 CSV의 `Attack.Attack`에는 반영하지 않았고, HP/이동 범위/사거리와
+    함께 공격력도 자유롭게 새로 정했다. 표의 마지막 칸(방패/제련/기마/기사도/궁술/수학/철학/외교/낚시/배 타기/
+    충파/항해)은 사용자 확인대로 게임 메커닉이 아닌 플레이버 텍스트로 보고 CSV에는 반영하지 않음.
+  - **씬 연결**: [`GridView`](Assets/Scripts/TacticsECS/View/GridView.cs)가 프리미티브 큐브 대신(지정돼 있으면)
+    지형별 타일 프리팹을 인스턴스화하도록 확장(가로/세로만 타일 크기로 스케일, 높이는 그대로) — 하이라이트는
+    여전히 타일마다 매번 새로 만드는 런타임 머티리얼로 처리해 프리팹 공유로 인한 색 간섭이 없게 함.
+    `BattleController`에 `waterTiles`/`landTilePrefab`/`waterTilePrefab` 인스펙터 필드 추가. 새 CLI 전용 도구
+    [`TileAssetSetup`](Assets/Editor/TileAssetSetup.cs)이 `tile.fbx`로 `Tile_Land`/`Tile_Water` 프리팹을 만들고
+    두 씬(`SampleScene`/`Sandbox`)의 `BattleController`에 연결 — `SampleScene`은 `waterTiles`를 비워 기존 데모
+    전투에 영향이 없고, `Sandbox`는 그리드 오른쪽 1/3(6~7열)을 물로 채워 새 물 유닛을 바로 테스트할 수 있게 함.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI 배치모드로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.TileAssetSetup.GenerateAll`로 프리팹 생성/씬 연결(로그에 컴파일 에러 없음, 두 씬 모두
+    필드 반영 확인). 1회성 점검 스크립트로 `Tile_Land`/`Tile_Water`의 실제 메시 바운드를 로그로 찍어 임포트
+    스케일이 정확히 1×0.2×1(자식 없이 루트에 Renderer)임을 확인 후 스크립트 삭제 — FBX 단위 보정 문제 없음.
+    `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run`(`Domain` 필드 비교 추가)으로
+    `docs/sample_units.csv` round-trip/스폰 `PASS`. `SandboxUnits.csv`는 15컬럼×13유닛 구조를 직접 확인.

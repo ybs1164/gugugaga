@@ -1,15 +1,22 @@
 # CSV 유닛 제작·합성 테스트 툴
 
 CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조합), 그 목록을 인게임에서 불러와 그리드에
-자유 배치한 뒤 실제 턴제 전투로 동작을 확인하는 샌드박스 모드. 새 게임플레이 규칙은 추가하지 않는다 —
-기존 8개 행동(Move/Attack/Defend/Heal/SelfDestruct/Counter/Charge/Retreat)의 조합과 파라미터 값만 CSV로
-표현한다.
+자유 배치한 뒤 실제 턴제 전투로 동작을 확인하는 샌드박스 모드. 기존 행동(Move/Attack/Defend/Heal/
+SelfDestruct/Counter/Charge/Retreat/Ambush/Infiltrate/Herd/Convert/Combo/Scout/Splash/Stiff/Freeze)의
+조합과 파라미터 값에 더해, 육지/물 지형 구분(`Domain`)과 아직 게임플레이 효과가 정해지지 않은 플레이스홀더
+패시브 5종(Fortify/Stealth/Pillage/Anchored/Transport — 자세한 내용은 [README의 플레이스홀더 패시브
+목록](../README.md#플레이스홀더-패시브-아직-효과-미정) 참고)도 CSV로 표현할 수 있다.
 
 ## CSV 스키마
 
 한 행 = 유닛 타입 하나. 예시: [`docs/sample_units.csv`](sample_units.csv) — Melee/Ranged/Guard는 실제 게임
 프리팹과 같은 조합(각각 SelfDestruct/Heal/Defend+Counter)으로 6개 행동을 전부 한 번씩 보여주고, Cleric은
 Heal+Defend+Counter를, Duelist는 Charge+Retreat를 한 유닛에 합성한 커스텀 예시다.
+
+실제로 `Assets/Scenes/Sandbox.unity`에서 불러오는 파일은 저장소 루트의 [`SandboxUnits.csv`](../SandboxUnits.csv)다
+— 보병/방패병/검투사/기병/기사/궁병/투석기/사제/스파이(육지 9종) + 뗏목/정찰선/충각선/범선(물 4종) 13유닛
+구성으로, `Domain`과 새 플레이스홀더 패시브(Fortify/Stealth/Pillage/Anchored/Transport)를 포함한 CSV의
+전체 컬럼을 실제 예시로 보여준다.
 
 `BaseVisual`은 원래 3종(Melee/Ranged/Guard)뿐이라 13개 예시 유닛이 전부 그 3개 모델만 재사용해 겉모습이
 많이 겹쳤다 — 같은 KayKit(Kay Lousberg, CC0) Adventurers 팩에서 아직 안 쓴 `RogueHooded`/`Mage`, 그리고
@@ -25,6 +32,7 @@ Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 
 | `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나 — `Assets/Prefabs/Units/Unit_<값>.prefab`을 찾는 키(대소문자 그대로 일치해야 함) |
 | `Color` | 틴트 색(팀 구분 없이 양 팀 모두 동일) | `#RRGGBB` 형식 |
 | `Actions` | 이 유닛이 가진 행동 목록 | 세미콜론(`;`)으로 구분, 예: `Move;Attack;Counter` |
+| `Domain` | 이 유닛이 들어갈 수 있는 지형 | `Land` 또는 `Water`(대소문자 무관, 빈 값/오타는 `Land`). 값이 다른 지형 타일에는 `Move.IgnoreTerrain`이 없는 한 들어갈 수 없다 — [지형(육지/물)](#지형-육지물) 참고 |
 | `Move.Range` / `Move.IgnoreTerrain` / `Move.IgnoreUnitBlocking` / `Move.AllowDiagonal` | Move 파라미터 | `Actions`에 `Move`가 있을 때만 사용 |
 | `Attack.Attack` / `Attack.Range` | Attack 파라미터 | `Actions`에 `Attack`이 있을 때만 사용. Counter는 별도 값 없이 이 값을 그대로 재사용 |
 | `Heal.Amount` / `Heal.Range` | Heal 파라미터 | `Actions`에 `Heal`이 있을 때만 사용 |
@@ -40,6 +48,24 @@ Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 
 
 **Actions 컬럼이 세미콜론인 이유**: CSV 컬럼 구분자는 쉼표라서, 한 컬럼 안에 여러 행동 이름을 담으려면
 쉼표와 겹치지 않는 다른 구분자가 필요하다.
+
+### 지형(육지/물)
+
+타일마다 `TerrainType`(`Land`/`Water`, [`Core/TerrainType.cs`](../Assets/Scripts/TacticsECS/Core/TerrainType.cs))
+값을 갖고, 유닛도 CSV의 `Domain` 컬럼으로 자신이 들어갈 수 있는 지형을 하나 갖는다. 육지 유닛은 물 타일에,
+물 유닛은 육지 타일에 `Move.IgnoreTerrain`이 없는 한 들어갈 수 없다(스파이처럼 `Move.IgnoreTerrain=True`인
+유닛은 지형을 완전히 무시). 정확히는 `Move.IgnoreTerrain`이 꺼져 있을 때 대상 타일이 `Walkable=false`이거나
+자신의 `Domain`과 타일 지형이 다르면 그 타일에 들어갈 수 없다 — 판정은
+[`PathfindingSystem.GetReachable`](../Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)(경로 탐색)과
+[`MoveAction.Execute`](../Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(실제 이동) 양쪽이 공유한다.
+
+수송(Transport) 패시브를 가진 함선이 육지 유닛을 태우고 물을 건너는 것 같은 기능은 아직 없다 — 지금은 이동
+가능한 지형을 막는 것까지만 구현되어 있고, "수송" 자체는 다른 플레이스홀더 패시브와 마찬가지로 태그만 있다.
+
+타일의 지형은 `BattleController` 인스펙터의 `waterTiles` 목록(좌표 목록, 비어있으면 그리드 전체가 육지)으로
+지정한다 — `Assets/Scenes/Sandbox.unity`는 그리드 오른쪽 1/3을 물로 채워둬서, 이 CSV의 물 유닛(뗏목/정찰선/
+충각선/범선)과 육지 유닛의 이동 제한을 곧바로 확인해볼 수 있다. `Assets/Scenes/SampleScene.unity`(데모 전투)는
+`waterTiles`가 비어있어 기존 동작에 영향이 없다.
 
 ### 예시 행동 조합
 
@@ -106,3 +132,8 @@ unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.UnitCsvVer
 - 배치 단계 로직: [`UnitPlacementController`](../Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs)
 - 배치 단계 UI: [`SandboxHud`](../Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)
 - 씬 배선/검증 CLI 스크립트: `Assets/Editor/SandboxSceneSetup.cs`, `Assets/Editor/UnitCsvVerification.cs`
+- 지형 타일 프리팹 생성 CLI 스크립트: [`TileAssetSetup`](../Assets/Editor/TileAssetSetup.cs)(Kenney 타일 메시로
+  `Tile_Land`/`Tile_Water` 프리팹을 만들고 두 씬의 `BattleController`에 연결, Sandbox에는 데모 `waterTiles`도 설정)
+- 지형 데이터/판정: [`TerrainType`](../Assets/Scripts/TacticsECS/Core/TerrainType.cs),
+  [`TileData.Terrain`](../Assets/Scripts/TacticsECS/Core/TileData.cs),
+  [`MoveDomain`](../Assets/Scripts/TacticsECS/Core/UnitComponents.cs)

@@ -17,7 +17,7 @@ namespace TacticsECS
     {
         private static readonly string[] Header =
         {
-            "Name", "MaxHp", "Defense", "BaseVisual", "Color", "Actions",
+            "Name", "MaxHp", "Defense", "BaseVisual", "Color", "Actions", "Domain",
             "Move.Range", "Move.IgnoreTerrain", "Move.IgnoreUnitBlocking", "Move.AllowDiagonal",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range"
@@ -60,14 +60,15 @@ namespace TacticsECS
             BaseVisual = Col(c, 3),
             Color = ParseColor(Col(c, 4)),
             Actions = ParseActions(Col(c, 5)),
-            MoveRange = ParseInt(Col(c, 6)),
-            MoveIgnoreTerrain = ParseBool(Col(c, 7)),
-            MoveIgnoreUnitBlocking = ParseBool(Col(c, 8)),
-            MoveAllowDiagonal = ParseBool(Col(c, 9)),
-            AttackAttack = ParseInt(Col(c, 10)),
-            AttackRange = ParseInt(Col(c, 11)),
-            HealAmount = ParseInt(Col(c, 12)),
-            HealRange = ParseInt(Col(c, 13))
+            Domain = ParseDomain(Col(c, 6)),
+            MoveRange = ParseInt(Col(c, 7)),
+            MoveIgnoreTerrain = ParseBool(Col(c, 8)),
+            MoveIgnoreUnitBlocking = ParseBool(Col(c, 9)),
+            MoveAllowDiagonal = ParseBool(Col(c, 10)),
+            AttackAttack = ParseInt(Col(c, 11)),
+            AttackRange = ParseInt(Col(c, 12)),
+            HealAmount = ParseInt(Col(c, 13)),
+            HealRange = ParseInt(Col(c, 14))
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
@@ -78,6 +79,7 @@ namespace TacticsECS
             row.BaseVisual ?? string.Empty,
             WriteColor(row.Color),
             WriteActions(row.Actions),
+            row.Domain.ToString(),
             row.MoveRange.ToString(CultureInfo.InvariantCulture),
             row.MoveIgnoreTerrain.ToString(),
             row.MoveIgnoreUnitBlocking.ToString(),
@@ -93,6 +95,9 @@ namespace TacticsECS
         private static int ParseInt(string s) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
 
         private static bool ParseBool(string s) => bool.TryParse(s, out var v) && v;
+
+        private static TerrainType ParseDomain(string s) =>
+            Enum.TryParse<TerrainType>(s, true, out var v) ? v : TerrainType.Land;
 
         private static Color ParseColor(string s) =>
             ColorUtility.TryParseHtmlString(string.IsNullOrEmpty(s) ? "#FFFFFF" : s, out var color) ? color : Color.white;

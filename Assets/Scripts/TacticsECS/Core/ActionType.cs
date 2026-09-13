@@ -64,5 +64,23 @@ namespace TacticsECS
         /// 만드는 패시브(AttackAction.Execute가 Frozen 컴포넌트를 세팅, TurnSystem.ResetUnitStates가 그 턴에
         /// HasMoved/HasActed를 강제로 true로 만들고 소모). 값을 갖지 않는 순수 마커 — Actions/FreezeAction.cs 참고.</summary>
         Freeze = 1 << 16,
+        /// <summary>요새화: SandboxUnits.csv 예시(보병/방패병/궁병 등)에 쓰인 패시브지만, 아직 구체적인
+        /// 효과(예: 제자리 방어 보너스)가 정해지지 않아 Scout과 마찬가지로 지금은 아무 게임플레이 효과가
+        /// 없는 플레이스홀더다. 값을 갖지 않는 순수 마커 — Actions/FortifyAction.cs 참고.</summary>
+        Fortify = 1 << 17,
+        /// <summary>은신: SandboxUnits.csv 예시(스파이)에 쓰인 패시브지만, 아직 구체적인 효과(예: 적에게
+        /// 발견되지 않음)가 정해지지 않은 플레이스홀더다. 값을 갖지 않는 순수 마커 — Actions/StealthAction.cs 참고.</summary>
+        Stealth = 1 << 18,
+        /// <summary>약탈: SandboxUnits.csv 예시(스파이)에 쓰인 패시브지만, 아직 구체적인 효과(예: 자원 획득)가
+        /// 정해지지 않은 플레이스홀더다. 값을 갖지 않는 순수 마커 — Actions/PillageAction.cs 참고.</summary>
+        Pillage = 1 << 19,
+        /// <summary>고정: SandboxUnits.csv 예시(사제/함선류)에 쓰인 패시브지만, 아직 구체적인 효과가 정해지지
+        /// 않은 플레이스홀더다. 값을 갖지 않는 순수 마커 — Actions/AnchoredAction.cs 참고.</summary>
+        Anchored = 1 << 20,
+        /// <summary>수송: SandboxUnits.csv 예시(함선류)에 쓰인 패시브지만, 아직 구체적인 효과(예: 육지
+        /// 유닛을 태우고 물을 건너는 것)가 정해지지 않은 플레이스홀더다 — 육지/물 이동 제한(MoveDomain,
+        /// Core/UnitComponents.cs)은 이 패시브와 무관하게 이미 별도로 동작한다. 값을 갖지 않는 순수 마커 —
+        /// Actions/TransportAction.cs 참고.</summary>
+        Transport = 1 << 21,
     }
 }

@@ -464,6 +464,9 @@ MonoBehaviour:
   gridWidth: 8
   gridHeight: 8
   tileSize: 1.2
+  waterTiles: []
+  landTilePrefab: {fileID: 8368334750216623470, guid: 631a5431c01416742be4511657c8cdf3, type: 3}
+  waterTilePrefab: {fileID: 4495718878278912031, guid: b2f9b99550cfcd246b936cfac3807ce5, type: 3}
   meleePrefab: {fileID: 3471446425503980103, guid: d8194f771098d1b439fa576e372b0dea, type: 3}
   rangedPrefab: {fileID: 3193695033754148919, guid: 782917be00c5a4a41b9a6f9291fef2fd, type: 3}
   guardPrefab: {fileID: 7992524672913923911, guid: b6826f38ee08ecc418c04b11fe6aade3, type: 3}

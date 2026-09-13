@@ -55,6 +55,15 @@ namespace TacticsECS
 
         public bool IsWalkable(Vector2Int p) => InBounds(p) && GetTile(p).Walkable;
 
+        public TerrainType GetTerrain(Vector2Int p) => GetTile(p).Terrain;
+
+        public void SetTerrain(Vector2Int p, TerrainType terrain)
+        {
+            var t = GetTile(p);
+            t.Terrain = terrain;
+            SetTile(p, t);
+        }
+
         public bool IsOccupied(Vector2Int p) => InBounds(p) && GetTile(p).OccupantId != TileData.NoOccupant;
 
         public int GetOccupant(Vector2Int p) => InBounds(p) ? GetTile(p).OccupantId : TileData.NoOccupant;

@@ -26,6 +26,9 @@ namespace TacticsECS
         /// <summary>이 유닛이 가진 행동의 집합. 비트 플래그라 여러 개를 동시에 가질 수 있다.</summary>
         public ActionType Actions;
 
+        /// <summary>이 유닛이 들어갈 수 있는 지형(육지/물). Core/TerrainType.cs 참고.</summary>
+        public TerrainType Domain = TerrainType.Land;
+
         public int MoveRange;
         public bool MoveIgnoreTerrain;
         public bool MoveIgnoreUnitBlocking;

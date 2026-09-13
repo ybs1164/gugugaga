@@ -40,6 +40,11 @@ namespace TacticsECS
             new AttackAction(),
         };
 
+        [Header("Movement")]
+        [Tooltip("이 유닛이 들어갈 수 있는 지형. 육지 유닛은 물 타일에, 물 유닛은 육지 타일에 " +
+            "MoveAction의 IgnoreTerrain 없이는 들어갈 수 없다(Core/TerrainType.cs 참고).")]
+        [SerializeField] private TerrainType domain = TerrainType.Land;
+
         [Header("Appearance")]
         [Tooltip("유닛 모델의 표시 색. 팀 구분 없이 양 팀 모두 같은 색으로 표시된다.")]
         [SerializeField] private Color color = Color.white;
@@ -79,6 +84,8 @@ namespace TacticsECS
         public int HealAmount => FindAction<HealAction>()?.HealAmount ?? 0;
         public int HealRange => FindAction<HealAction>()?.HealRange ?? 0;
 
+        public TerrainType Domain => domain;
+
         public Color Color => color;
         public Texture2D BodyTexture => bodyTexture;
 
@@ -92,6 +99,7 @@ namespace TacticsECS
             defense = row.Defense;
             actions = csvActions;
             color = row.Color;
+            domain = row.Domain;
         }
     }
 }

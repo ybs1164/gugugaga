@@ -53,7 +53,7 @@ namespace TacticsECS.EditorTools
                 var a = original[i];
                 var b = rewritten[i];
                 bool same = a.Name == b.Name && a.MaxHp == b.MaxHp && a.Defense == b.Defense && a.BaseVisual == b.BaseVisual &&
-                    a.Actions == b.Actions && a.MoveRange == b.MoveRange && a.MoveIgnoreTerrain == b.MoveIgnoreTerrain &&
+                    a.Actions == b.Actions && a.Domain == b.Domain && a.MoveRange == b.MoveRange && a.MoveIgnoreTerrain == b.MoveIgnoreTerrain &&
                     a.MoveIgnoreUnitBlocking == b.MoveIgnoreUnitBlocking && a.MoveAllowDiagonal == b.MoveAllowDiagonal &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&
@@ -119,6 +119,7 @@ namespace TacticsECS.EditorTools
                     if (world.Get<Defense>(view.UnitId).Value != row.Defense) { Debug.LogError($"[UnitCsvVerification] Defense mismatch for {row.Name}"); ok = false; }
                     if (world.Get<Attack>(view.UnitId).Value != row.AttackAttack) { Debug.LogError($"[UnitCsvVerification] Attack mismatch for {row.Name}"); ok = false; }
                     if (world.Get<AvailableActions>(view.UnitId).Value != row.Actions) { Debug.LogError($"[UnitCsvVerification] Actions mismatch for {row.Name}"); ok = false; }
+                    if (world.Get<MoveDomain>(view.UnitId).Value != row.Domain) { Debug.LogError($"[UnitCsvVerification] Domain mismatch for {row.Name}"); ok = false; }
                     if (grid.GetOccupant(pos) != view.UnitId) { Debug.LogError($"[UnitCsvVerification] grid occupant mismatch for {row.Name}"); ok = false; }
                 }
             }

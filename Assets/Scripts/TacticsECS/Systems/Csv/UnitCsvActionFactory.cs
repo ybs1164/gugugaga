@@ -49,6 +49,16 @@ namespace TacticsECS
                 actions.Add(new StiffAction());
             if ((row.Actions & ActionType.Freeze) != 0)
                 actions.Add(new FreezeAction());
+            if ((row.Actions & ActionType.Fortify) != 0)
+                actions.Add(new FortifyAction());
+            if ((row.Actions & ActionType.Stealth) != 0)
+                actions.Add(new StealthAction());
+            if ((row.Actions & ActionType.Pillage) != 0)
+                actions.Add(new PillageAction());
+            if ((row.Actions & ActionType.Anchored) != 0)
+                actions.Add(new AnchoredAction());
+            if ((row.Actions & ActionType.Transport) != 0)
+                actions.Add(new TransportAction());
 
             return actions;
         }
@@ -57,7 +67,7 @@ namespace TacticsECS
         /// (UnitDefinition)의 현재 값을 CSV 템플릿으로 뽑아낼 때, 그리고 향후 샌드박스에서 배치된 유닛
         /// 구성을 그대로 CSV로 내보낼 때 공통으로 쓴다.</summary>
         public static UnitCsvRow ToRow(string name, string baseVisual, int maxHp, int defense,
-            Color color, IReadOnlyList<IUnitAction> actions)
+            Color color, IReadOnlyList<IUnitAction> actions, TerrainType domain = TerrainType.Land)
         {
             var row = new UnitCsvRow
             {
@@ -65,7 +75,8 @@ namespace TacticsECS
                 MaxHp = maxHp,
                 Defense = defense,
                 BaseVisual = baseVisual,
-                Color = color
+                Color = color,
+                Domain = domain
             };
 
             foreach (var action in actions)

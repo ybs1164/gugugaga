@@ -26,6 +26,15 @@ namespace TacticsECS
         [SerializeField] private int gridWidth = 8;
         [SerializeField] private int gridHeight = 8;
         [SerializeField] private float tileSize = 1.2f;
+        [Tooltip("이 좌표들만 물(Water) 타일이 되고 나머지는 전부 육지(Land)다. 육지 유닛은 " +
+            "MoveAction.IgnoreTerrain 없이는 여기 들어갈 수 없고, 물 유닛(MoveDomain=Water)은 반대로 " +
+            "이 타일 밖으로 나갈 수 없다 — Core/TerrainType.cs 참고. 비워두면(기본값) 그리드 전체가 육지다.")]
+        [SerializeField] private List<Vector2Int> waterTiles = new List<Vector2Int>();
+        [Tooltip("육지 타일 모델(Assets/Prefabs/Tiles/Tile_Land.prefab). 비워두면 예전처럼 프리미티브 " +
+            "큐브로 대체된다. TileAssetSetup.GenerateAll로 만든다.")]
+        [SerializeField] private GameObject landTilePrefab;
+        [Tooltip("물 타일 모델(Assets/Prefabs/Tiles/Tile_Water.prefab). 비워두면 프리미티브 큐브로 대체된다.")]
+        [SerializeField] private GameObject waterTilePrefab;
 
         [Header("Unit Prefabs")]
         [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
@@ -122,15 +131,25 @@ namespace TacticsECS
             SetupBattle();
         }
 
+        /// <summary>waterTiles(Inspector에서 설정)에 있는 좌표만 물로 표시하고 나머지는 GridWorld의
+        /// 기본값(육지)을 그대로 둔다. GridView.Build보다 먼저 호출해야 처음 만들어지는 타일 시각화가
+        /// 지형을 올바르게 반영한다.</summary>
+        private void ApplyWaterTiles()
+        {
+            foreach (var p in waterTiles)
+                if (_grid.InBounds(p)) _grid.SetTerrain(p, TerrainType.Water);
+        }
+
         private void SetupBattle()
         {
             _grid = new GridWorld(gridWidth, gridHeight, tileSize);
             _world = new EntityWorld();
+            ApplyWaterTiles();
 
             var gridViewGo = new GameObject("GridView");
             gridViewGo.transform.SetParent(transform, false);
             _gridView = gridViewGo.AddComponent<GridView>();
-            _gridView.Build(_grid);
+            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
 
             _hud = Instantiate(hudPrefab, transform);
             _hud.name = "BattleHud";

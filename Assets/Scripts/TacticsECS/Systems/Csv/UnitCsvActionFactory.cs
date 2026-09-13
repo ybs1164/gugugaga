@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace TacticsECS
 {
@@ -58,16 +57,16 @@ namespace TacticsECS
             if ((row.Actions & ActionType.Anchored) != 0)
                 actions.Add(new AnchoredAction());
             if ((row.Actions & ActionType.Transport) != 0)
-                actions.Add(new TransportAction());
+                actions.Add(TransportAction.FromCsv(row.TransportCapacity));
 
             return actions;
         }
 
-        /// <summary>내보내기: 이름/스탯/색과 실제 행동 목록으로부터 CSV 행을 만든다. 기존 프리팹
+        /// <summary>내보내기: 이름/스탯과 실제 행동 목록으로부터 CSV 행을 만든다. 기존 프리팹
         /// (UnitDefinition)의 현재 값을 CSV 템플릿으로 뽑아낼 때, 그리고 향후 샌드박스에서 배치된 유닛
         /// 구성을 그대로 CSV로 내보낼 때 공통으로 쓴다.</summary>
         public static UnitCsvRow ToRow(string name, string baseVisual, int maxHp, int defense,
-            Color color, IReadOnlyList<IUnitAction> actions, TerrainType domain = TerrainType.Land)
+            IReadOnlyList<IUnitAction> actions, TerrainType domain = TerrainType.Land)
         {
             var row = new UnitCsvRow
             {
@@ -75,7 +74,6 @@ namespace TacticsECS
                 MaxHp = maxHp,
                 Defense = defense,
                 BaseVisual = baseVisual,
-                Color = color,
                 Domain = domain
             };
 
@@ -99,6 +97,9 @@ namespace TacticsECS
                     case HealAction heal:
                         row.HealAmount = heal.HealAmount;
                         row.HealRange = heal.HealRange;
+                        break;
+                    case TransportAction transport:
+                        row.TransportCapacity = transport.Capacity;
                         break;
                 }
             }

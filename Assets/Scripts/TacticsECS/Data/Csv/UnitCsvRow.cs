@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace TacticsECS
 {
     /// <summary>
@@ -20,9 +18,6 @@ namespace TacticsECS
         /// Unit_&lt;BaseVisual&gt; 프리팹을 찾는 키로 쓰인다(UnitCsvRow 자신은 그 매칭 방법을 모른다).</summary>
         public string BaseVisual;
 
-        /// <summary>이 유닛의 표시 색. 팀 구분 없이 양 팀 모두 같은 색으로 표시된다.</summary>
-        public Color Color = Color.white;
-
         /// <summary>이 유닛이 가진 행동의 집합. 비트 플래그라 여러 개를 동시에 가질 수 있다.</summary>
         public ActionType Actions;
 
@@ -39,5 +34,9 @@ namespace TacticsECS
 
         public int HealAmount;
         public int HealRange;
+
+        /// <summary>Transport(수송) 패시브가 있을 때만 쓰이는 정원 값. 아직 태우고 내리는 시스템 자체가
+        /// 없는 플레이스홀더 — Core/UnitComponents.cs의 CargoCapacity 참고.</summary>
+        public int TransportCapacity;
     }
 }

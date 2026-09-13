@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using UnityEngine;
 
 namespace TacticsECS
 {
@@ -17,10 +16,11 @@ namespace TacticsECS
     {
         private static readonly string[] Header =
         {
-            "Name", "MaxHp", "Defense", "BaseVisual", "Color", "Actions", "Domain",
+            "Name", "MaxHp", "Defense", "BaseVisual", "Actions", "Domain",
             "Move.Range", "Move.IgnoreTerrain", "Move.IgnoreUnitBlocking", "Move.AllowDiagonal",
             "Attack.Attack", "Attack.Range",
-            "Heal.Amount", "Heal.Range"
+            "Heal.Amount", "Heal.Range",
+            "Transport.Capacity"
         };
 
         private const char ActionsSeparator = ';';
@@ -58,17 +58,17 @@ namespace TacticsECS
             MaxHp = ParseInt(Col(c, 1)),
             Defense = ParseInt(Col(c, 2)),
             BaseVisual = Col(c, 3),
-            Color = ParseColor(Col(c, 4)),
-            Actions = ParseActions(Col(c, 5)),
-            Domain = ParseDomain(Col(c, 6)),
-            MoveRange = ParseInt(Col(c, 7)),
-            MoveIgnoreTerrain = ParseBool(Col(c, 8)),
-            MoveIgnoreUnitBlocking = ParseBool(Col(c, 9)),
-            MoveAllowDiagonal = ParseBool(Col(c, 10)),
-            AttackAttack = ParseInt(Col(c, 11)),
-            AttackRange = ParseInt(Col(c, 12)),
-            HealAmount = ParseInt(Col(c, 13)),
-            HealRange = ParseInt(Col(c, 14))
+            Actions = ParseActions(Col(c, 4)),
+            Domain = ParseDomain(Col(c, 5)),
+            MoveRange = ParseInt(Col(c, 6)),
+            MoveIgnoreTerrain = ParseBool(Col(c, 7)),
+            MoveIgnoreUnitBlocking = ParseBool(Col(c, 8)),
+            MoveAllowDiagonal = ParseBool(Col(c, 9)),
+            AttackAttack = ParseInt(Col(c, 10)),
+            AttackRange = ParseInt(Col(c, 11)),
+            HealAmount = ParseInt(Col(c, 12)),
+            HealRange = ParseInt(Col(c, 13)),
+            TransportCapacity = ParseInt(Col(c, 14))
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
@@ -77,7 +77,6 @@ namespace TacticsECS
             row.MaxHp.ToString(CultureInfo.InvariantCulture),
             row.Defense.ToString(CultureInfo.InvariantCulture),
             row.BaseVisual ?? string.Empty,
-            WriteColor(row.Color),
             WriteActions(row.Actions),
             row.Domain.ToString(),
             row.MoveRange.ToString(CultureInfo.InvariantCulture),
@@ -87,7 +86,8 @@ namespace TacticsECS
             row.AttackAttack.ToString(CultureInfo.InvariantCulture),
             row.AttackRange.ToString(CultureInfo.InvariantCulture),
             row.HealAmount.ToString(CultureInfo.InvariantCulture),
-            row.HealRange.ToString(CultureInfo.InvariantCulture)
+            row.HealRange.ToString(CultureInfo.InvariantCulture),
+            row.TransportCapacity.ToString(CultureInfo.InvariantCulture)
         });
 
         private static string Col(string[] cols, int index) => index < cols.Length ? cols[index].Trim() : string.Empty;
@@ -98,11 +98,6 @@ namespace TacticsECS
 
         private static TerrainType ParseDomain(string s) =>
             Enum.TryParse<TerrainType>(s, true, out var v) ? v : TerrainType.Land;
-
-        private static Color ParseColor(string s) =>
-            ColorUtility.TryParseHtmlString(string.IsNullOrEmpty(s) ? "#FFFFFF" : s, out var color) ? color : Color.white;
-
-        private static string WriteColor(Color color) => "#" + ColorUtility.ToHtmlStringRGB(color);
 
         private static ActionType ParseActions(string s)
         {

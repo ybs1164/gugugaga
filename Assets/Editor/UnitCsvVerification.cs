@@ -57,7 +57,7 @@ namespace TacticsECS.EditorTools
                     a.MoveIgnoreUnitBlocking == b.MoveIgnoreUnitBlocking && a.MoveAllowDiagonal == b.MoveAllowDiagonal &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&
-                    a.Color == b.Color;
+                    a.TransportCapacity == b.TransportCapacity;
 
                 if (!same)
                 {
@@ -120,6 +120,7 @@ namespace TacticsECS.EditorTools
                     if (world.Get<Attack>(view.UnitId).Value != row.AttackAttack) { Debug.LogError($"[UnitCsvVerification] Attack mismatch for {row.Name}"); ok = false; }
                     if (world.Get<AvailableActions>(view.UnitId).Value != row.Actions) { Debug.LogError($"[UnitCsvVerification] Actions mismatch for {row.Name}"); ok = false; }
                     if (world.Get<MoveDomain>(view.UnitId).Value != row.Domain) { Debug.LogError($"[UnitCsvVerification] Domain mismatch for {row.Name}"); ok = false; }
+                    if (world.Get<CargoCapacity>(view.UnitId).Value != row.TransportCapacity) { Debug.LogError($"[UnitCsvVerification] TransportCapacity mismatch for {row.Name}"); ok = false; }
                     if (grid.GetOccupant(pos) != view.UnitId) { Debug.LogError($"[UnitCsvVerification] grid occupant mismatch for {row.Name}"); ok = false; }
                 }
             }

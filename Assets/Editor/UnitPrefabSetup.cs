@@ -28,22 +28,19 @@ namespace TacticsECS.EditorTools
                 "Unit_Melee", "Barbarian", modelScale: 0.48f,
                 hideNames: new[] { "1H_Axe_Offhand", "Barbarian_Round_Shield", "1H_Axe", "Mug" },
                 maxHp: 12, attack: 5, defense: 1, attackRange: 1, canGuard: false,
-                moveRange: 3, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false,
-                color: new Color(0.2f, 0.5f, 1f));
+                moveRange: 3, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false);
 
             var rangedPrefab = CreatePrefab(
                 "Unit_Ranged", "Rogue", modelScale: 0.52f,
                 hideNames: new[] { "Knife_Offhand", "1H_Crossbow", "Knife", "Throwable" },
                 maxHp: 8, attack: 4, defense: 0, attackRange: 3, canGuard: false,
-                moveRange: 2, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false,
-                color: new Color(0.2f, 0.8f, 0.5f));
+                moveRange: 2, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false);
 
             var guardPrefab = CreatePrefab(
                 "Unit_Guard", "Knight", modelScale: 0.55f,
                 hideNames: new[] { "1H_Sword_Offhand", "Badge_Shield", "Round_Shield", "Spike_Shield", "2H_Sword" },
                 maxHp: 18, attack: 3, defense: 3, attackRange: 1, canGuard: true,
-                moveRange: 2, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false,
-                color: new Color(0.1f, 0.3f, 0.7f));
+                moveRange: 2, ignoreTerrain: false, ignoreUnitBlocking: false, allowDiagonal: false);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -64,8 +61,7 @@ namespace TacticsECS.EditorTools
         private static UnitView CreatePrefab(
             string name, string modelName, float modelScale, string[] hideNames,
             int maxHp, int attack, int defense, int attackRange, bool canGuard,
-            int moveRange, bool ignoreTerrain, bool ignoreUnitBlocking, bool allowDiagonal,
-            Color color)
+            int moveRange, bool ignoreTerrain, bool ignoreUnitBlocking, bool allowDiagonal)
         {
             var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>($"{ModelFolder}/{modelName}.fbx");
             if (modelAsset == null)
@@ -105,7 +101,6 @@ namespace TacticsECS.EditorTools
             SetPrivateField(def, "ignoreTerrain", ignoreTerrain);
             SetPrivateField(def, "ignoreUnitBlocking", ignoreUnitBlocking);
             SetPrivateField(def, "allowDiagonal", allowDiagonal);
-            SetPrivateField(def, "color", color);
             SetPrivateField(def, "bodyTexture", texture);
             EditorUtility.SetDirty(def);
 

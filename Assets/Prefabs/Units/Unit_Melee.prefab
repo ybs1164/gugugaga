@@ -67,7 +67,6 @@ MonoBehaviour:
   - rid: 1
   - rid: 2
   - rid: 3
-  color: {r: 0.2, g: 0.5, b: 1, a: 1}
   bodyTexture: {fileID: 2800000, guid: abf413141502cc645a198b70c1b0afcb, type: 3}
   references:
     version: 2

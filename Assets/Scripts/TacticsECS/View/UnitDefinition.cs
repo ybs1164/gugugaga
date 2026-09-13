@@ -46,9 +46,8 @@ namespace TacticsECS
         [SerializeField] private TerrainType domain = TerrainType.Land;
 
         [Header("Appearance")]
-        [Tooltip("유닛 모델의 표시 색. 팀 구분 없이 양 팀 모두 같은 색으로 표시된다.")]
-        [SerializeField] private Color color = Color.white;
-        [Tooltip("유닛 모델의 겉감 텍스처. UnitView가 색과 함께 런타임 머티리얼에 입힌다.")]
+        [Tooltip("유닛 모델의 겉감 텍스처. 표시 색(팀별 고정색)은 UnitDefinition이 아니라 UnitView가 " +
+            "Team 값으로 정한다 — 유닛 타입마다 다른 색을 가질 수 없다.")]
         [SerializeField] private Texture2D bodyTexture;
 
         public int MaxHp => maxHp;
@@ -84,21 +83,22 @@ namespace TacticsECS
         public int HealAmount => FindAction<HealAction>()?.HealAmount ?? 0;
         public int HealRange => FindAction<HealAction>()?.HealRange ?? 0;
 
+        public int CargoCapacity => FindAction<TransportAction>()?.Capacity ?? 0;
+
         public TerrainType Domain => domain;
 
-        public Color Color => color;
         public Texture2D BodyTexture => bodyTexture;
 
         /// <summary>CSV 행(UnitCsvRow) 값으로 이 컴포넌트의 필드를 전부 덮어쓴다. 외형(bodyTexture)은
-        /// 건드리지 않는다 — CSV 유닛은 BaseVisual 프리팹의 모델/텍스처를 그대로 빌려 쓰고 스탯/행동/색만
-        /// 갈아끼운다. 반드시 프리팹 에셋이 아니라 Instantiate로 만든 인스턴스에만 호출해야 원본 프리팹이
+        /// 건드리지 않는다 — CSV 유닛은 BaseVisual 프리팹의 모델/텍스처를 그대로 빌려 쓰고 스탯/행동만
+        /// 갈아끼운다(색은 UnitDefinition이 아니라 UnitView가 Team으로 정하므로 여기서 다룰 값이 아니다).
+        /// 반드시 프리팹 에셋이 아니라 Instantiate로 만든 인스턴스에만 호출해야 원본 프리팹이
         /// 오염되지 않는다(UnitSpawner.SpawnFromCsv 참고).</summary>
         public void ApplyCsvOverrides(UnitCsvRow row, List<IUnitAction> csvActions)
         {
             maxHp = row.MaxHp;
             defense = row.Defense;
             actions = csvActions;
-            color = row.Color;
             domain = row.Domain;
         }
     }

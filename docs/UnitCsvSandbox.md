@@ -30,7 +30,6 @@ Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 
 | `Name` | 유닛 이름(표시/구분용) | |
 | `MaxHp`, `Defense` | 기본 스탯 | |
 | `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나 — `Assets/Prefabs/Units/Unit_<값>.prefab`을 찾는 키(대소문자 그대로 일치해야 함) |
-| `Color` | 틴트 색(팀 구분 없이 양 팀 모두 동일) | `#RRGGBB` 형식 |
 | `Actions` | 이 유닛이 가진 행동 목록 | 세미콜론(`;`)으로 구분, 예: `Move;Attack;Counter` |
 | `Domain` | 이 유닛이 들어갈 수 있는 지형 | `Land` 또는 `Water`(대소문자 무관, 빈 값/오타는 `Land`). 값이 다른 지형 타일에는 `Move.IgnoreTerrain`이 없는 한 들어갈 수 없다 — [지형(육지/물)](#지형-육지물) 참고 |
 | `Move.Range` / `Move.IgnoreTerrain` / `Move.IgnoreUnitBlocking` / `Move.AllowDiagonal` | Move 파라미터 | `Actions`에 `Move`가 있을 때만 사용 |
@@ -39,6 +38,11 @@ Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 
 
 `Defend` / `SelfDestruct` / `Counter` / `Charge` / `Retreat`는 자체 파라미터가 없다 — `Actions`에 이름만
 넣으면 된다.
+
+**색(표시 색)은 CSV에 없다.** 유닛 타입이 아니라 팀만으로 정해지는 값이라 CSV/`UnitCsvRow`/`UnitDefinition`
+어디에도 데이터로 두지 않고, [`UnitView`](../Assets/Scripts/TacticsECS/View/UnitView.cs)의
+`PlayerColor`/`EnemyColor` 상수 두 개로 고정해뒀다 — 어떤 CSV를 불러오든 플레이어 유닛은 전부 같은 색,
+적 유닛은 전부 같은(다른) 색으로 표시된다.
 
 **Charge(돌격)/Retreat(대피)**: 기본적으로 유닛은 턴당 이동 또는 공격 중 하나만 할 수 있다(이동하면 그
 턴엔 공격 불가, 공격하면 그 턴엔 이동 불가). `Charge`는 이동한 뒤에도 공격할 수 있게, `Retreat`는 공격한

@@ -7,8 +7,9 @@ namespace TacticsECS
     /// 유닛 하나의 화면 표시 전용 컴포넌트.
     /// 값을 스스로 들고 있지 않고, Init/Refresh(EntityWorld, id)로 받을 때마다 그 엔티티의 컴포넌트를
     /// 그때그때 조회해서 겉모습만 갱신한다 (전투 로직 없음).
-    /// 외형(모델/스케일)은 프리팹 자체에, 색상/텍스처/MaxHp는 같은 GameObject의 UnitDefinition
-    /// 컴포넌트에 있으므로 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다.
+    /// 외형(모델/스케일)은 프리팹 자체에, 텍스처/MaxHp는 같은 GameObject의 UnitDefinition
+    /// 컴포넌트에 있으므로 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다. 색은 유닛 타입과
+    /// 무관하게 팀(Team 컴포넌트)만으로 정해지므로 PlayerColor/EnemyColor 상수를 그대로 쓴다.
     /// 유닛 모델(자식의 KayKit 캐릭터)은 몸통/팔/다리/무기 등 여러 개의 Renderer로 나뉘어 있어,
     /// 색 틴트는 그 전부에 같은 런타임 머티리얼 하나를 공유시켜 적용한다.
     /// 머리 위 체력 표시는 숫자(현재 HP만, 최댓값은 선택 시 BattleHud 패널에서 보여준다) +
@@ -40,6 +41,13 @@ namespace TacticsECS
 
         private static readonly Color GuardingColor = Color.yellow;
 
+        /// <summary>팀별 고정 표시 색. 유닛 타입과 무관하게 같은 팀이면 전부 같은 색으로 표시된다
+        /// (CSV/UnitDefinition에는 색 데이터가 없다 — 여기 하드코딩된 값이 유일한 기준점).</summary>
+        private static readonly Color PlayerColor = new Color(0.2f, 0.5f, 1f);
+        private static readonly Color EnemyColor = new Color(1f, 0.3f, 0.3f);
+
+        private static Color ColorForTeam(Team team) => team == Team.Player ? PlayerColor : EnemyColor;
+
         /// <summary>UIPrefabSetup(에디터 전용 HpDisplay 프리팹 생성 도구, Assets/Editor)이 런타임과 같은
         /// 크기/높이 값을 쓰도록 public으로 공개한 값들. 값이 여기와 프리팹 생성 스크립트 두 곳에 따로
         /// 적히지 않게 한다. Editor 폴더는 별도 어셈블리(Assembly-CSharp-Editor)라 internal로는 보이지
@@ -66,7 +74,7 @@ namespace TacticsECS
             _renderers = GetComponentsInChildren<Renderer>();
             _definition = GetComponent<UnitDefinition>();
 
-            _material = RuntimeMaterial.CreateColored(_definition.Color, _definition.BodyTexture);
+            _material = RuntimeMaterial.CreateColored(ColorForTeam(world.Get<Team>(id)), _definition.BodyTexture);
             foreach (var r in _renderers) r.sharedMaterial = _material;
 
             BuildHpDisplay();
@@ -113,7 +121,7 @@ namespace TacticsECS
             SetHpBarFraction(hpFraction);
             RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
 
-            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : _definition.Color);
+            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id)));
 
             var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)

@@ -182,11 +182,11 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 
 [`SandboxUnits.csv`](SandboxUnits.csv)의 육지/물 유닛 13종 예시를 만들면서, 기존 [`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)(정찰)과 같은 성격 — CSV/UI 연동에 필요한 태그는 있지만 아직 실제 게임플레이 효과가 정해지지 않은 — 패시브 5종을 추가했다. `UnitCsvActionFactory`/`ActionType`/CSV 왕복은 다른 행동과 동일하게 전부 동작하지만, `BattleHud`의 패시브 배지(`PassiveDefs`)에는 아직 연결하지 않았다(아이콘이 없고, 효과가 없는 채로 배지만 노출하는 것은 혼란을 줄 수 있어 보류).
 
-- **요새화**([`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)): 보병/방패병/궁병 등에 쓰임. 효과 미정(예상: 제자리 방어 보너스).
-- **은신**([`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)): 스파이에 쓰임. 효과 미정(예상: 적에게 발견되지 않음).
-- **약탈**([`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)): 스파이에 쓰임. 효과 미정(예상: 자원 획득).
-- **고정**([`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)): 사제/함선류에 쓰임. 효과 미정.
-- **수송**([`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs)): 함선류에 쓰임. 효과 미정(예상: 육지 유닛을 태우고 물을 건너는 것) — [지형(육지/물)](#지형-육지물)의 이동 제한과는 무관하게 이미 별도로 동작한다.
+- **요새화**([`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)): 보병/방패병/궁병 등에 쓰임. 효과 미정(예상: 제자리 방어 보너스). 상세: [docs/passives/Fortify.md](docs/passives/Fortify.md).
+- **은신**([`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)): 스파이에 쓰임. 효과 미정(예상: 적에게 발견되지 않음). 상세: [docs/passives/Stealth.md](docs/passives/Stealth.md).
+- **약탈**([`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)): 스파이에 쓰임. 효과 미정(예상: 자원 획득). 상세: [docs/passives/Pillage.md](docs/passives/Pillage.md).
+- **고정**([`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)): 사제/함선류에 쓰임. 효과 미정. 상세: [docs/passives/Anchored.md](docs/passives/Anchored.md).
+- **수송**([`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs)): 함선류에 쓰임. 효과 미정(예상: 육지 유닛을 태우고 물을 건너는 것) — [지형(육지/물)](#지형-육지물)의 이동 제한과는 무관하게 이미 별도로 동작한다. 상세: [docs/passives/Transport.md](docs/passives/Transport.md).
 
 ### 지형 (육지/물)
 
@@ -691,3 +691,18 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
     TacticsECS.EditorTools.UnitCsvVerification.Run` — 컴파일 에러 없이 `docs/sample_units.csv`(13행, 컬럼 하나
     줄어든 새 스키마) round-trip/스폰 검증 모두 `PASS`.
+- 2026-09-13: [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 기획자용으로 재정리, 플레이스홀더 패시브 5종을
+  개별 문서로 분리.
+  - **문서 재구성**: 기존 문서는 구현 세부사항(코드 경로, 판정 로직)이 사용법과 뒤섞여 있어, "빠른 시작(인게임
+    사용법)" → "CSV로 유닛 만들기/수정하기(스키마 표·예시 조합·주의사항)" 순으로 앞쪽에 배치하고,
+    코드 링크 모음(`관련 코드`)과 CLI 검증은 맨 아래로 내려 개발자 참고용으로만 남겼다.
+  - **플레이스홀더 패시브 개별 문서화**: 요새화/은신/약탈/고정/수송 5종을 각각
+    [`docs/passives/Fortify.md`](docs/passives/Fortify.md) / [`Stealth.md`](docs/passives/Stealth.md) /
+    [`Pillage.md`](docs/passives/Pillage.md) / [`Anchored.md`](docs/passives/Anchored.md) /
+    [`Transport.md`](docs/passives/Transport.md)로 분리 — 상태/사용 예시 유닛/예상 효과/CSV 표기법과, 나중에
+    효과를 구현할 때 손대야 할 지점(`UnitActionQueries.Find<T>` 호출 위치, `BattleHud.PassiveDefs` 등)을
+    정리했다. `README.md`의 기존 플레이스홀더 패시브 절과 `UnitCsvSandbox.md`에서 각 문서로 링크.
+  - **부수 발견**: `SandboxUnits.csv`의 물 유닛 4종이 쓰는 `BaseVisual`(`Raft`/`ShipSmall`/`Galleon`)이
+    `BattleController.StartPlacementPhase`의 `basePrefabsByName`에 아직 등록돼 있지 않아, 지금 샌드박스에서
+    불러오면 이 4종은 팔레트에 나타나지 않는다(콘솔 경고) — 코드는 고치지 않고 문서(`UnitCsvSandbox.md`의
+    `BaseVisual` 행)에 현재 상태로만 남겨둠. 새 `Assets/Art/Ships` 에셋과 함께 별도 작업으로 이어질 것으로 보임.

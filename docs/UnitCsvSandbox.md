@@ -1,143 +1,125 @@
 # CSV 유닛 제작·합성 테스트 툴
 
-CSV 한 장으로 유닛을 정의하고(스탯 + 기존 `IUnitAction`들의 조합), 그 목록을 인게임에서 불러와 그리드에
-자유 배치한 뒤 실제 턴제 전투로 동작을 확인하는 샌드박스 모드. 기존 행동(Move/Attack/Defend/Heal/
-SelfDestruct/Counter/Charge/Retreat/Ambush/Infiltrate/Herd/Convert/Combo/Scout/Splash/Stiff/Freeze)의
-조합과 파라미터 값에 더해, 육지/물 지형 구분(`Domain`)과 아직 게임플레이 효과가 정해지지 않은 플레이스홀더
-패시브 5종(Fortify/Stealth/Pillage/Anchored/Transport — 자세한 내용은 [README의 플레이스홀더 패시브
-목록](../README.md#플레이스홀더-패시브-아직-효과-미정) 참고)도 CSV로 표현할 수 있다.
+CSV 한 장으로 유닛(스탯 + 행동 조합)을 정의하고, 인게임 샌드박스에서 그리드에 자유 배치해 실제 턴제
+전투로 바로 확인해보는 툴. 코드를 고치지 않고 CSV 값만 바꿔서 유닛을 만들고 테스트할 수 있다.
 
-## CSV 스키마
+## 빠른 시작
 
-한 행 = 유닛 타입 하나. 예시: [`docs/sample_units.csv`](sample_units.csv) — Melee/Ranged/Guard는 실제 게임
-프리팹과 같은 조합(각각 SelfDestruct/Heal/Defend+Counter)으로 6개 행동을 전부 한 번씩 보여주고, Cleric은
-Heal+Defend+Counter를, Duelist는 Charge+Retreat를 한 유닛에 합성한 커스텀 예시다.
+1. [씬 준비](#씬-준비-최초-1회)가 안 되어 있으면 먼저 한다(최초 1회만).
+2. `Assets/Scenes/Sandbox.unity`를 열고 Play.
+3. 좌상단 **불러오기** → CSV 파일 선택(기본: 저장소 루트의 [`SandboxUnits.csv`](../SandboxUnits.csv)).
+4. 팔레트에서 유닛 종류 → 팀(플레이어/적) 선택 → 그리드 클릭으로 배치(다시 클릭하면 치워짐).
+5. 우하단 **전투 시작** → 평소와 같은 턴제 전투 진행.
+6. **내보내기**로 지금 불러온 유닛 목록(팔레트)을 CSV로 다시 저장 가능 — 값 조정 → 재시험 반복용.
+7. 전투 종료 후 **다시 시작**으로 씬을 다시 Play하지 않고 배치 화면으로 바로 복귀.
 
-실제로 `Assets/Scenes/Sandbox.unity`에서 불러오는 파일은 저장소 루트의 [`SandboxUnits.csv`](../SandboxUnits.csv)다
-— 보병/방패병/검투사/기병/기사/궁병/투석기/사제/스파이(육지 9종) + 뗏목/정찰선/충각선/범선(물 4종) 13유닛
-구성으로, `Domain`과 새 플레이스홀더 패시브(Fortify/Stealth/Pillage/Anchored/Transport)를 포함한 CSV의
-전체 컬럼을 실제 예시로 보여준다.
+> 불러오기/내보내기 대화상자(`OpenFilePanel`/`SaveFilePanel`)는 **에디터 Play 모드 전용**이다 — 빌드에서는 동작하지 않는다.
 
-`BaseVisual`은 원래 3종(Melee/Ranged/Guard)뿐이라 13개 예시 유닛이 전부 그 3개 모델만 재사용해 겉모습이
-많이 겹쳤다 — 같은 KayKit(Kay Lousberg, CC0) Adventurers 팩에서 아직 안 쓴 `RogueHooded`/`Mage`, 그리고
-자매 팩인 KayKit Skeletons(역시 CC0)의 `SkeletonWarrior`/`SkeletonMage`를 추가로 받아 총 7종으로 늘리고
-`sample_units.csv`의 BaseVisual을 유닛 컨셉에 맞게 재배정했다(예: Duelist/Assassin→RogueHooded,
-Cleric/IceMage→Mage, Shaman/Cultist→SkeletonMage, Golem→SkeletonWarrior). 라이선스 원문은
-[`Assets/Art/KayKit/LICENSE.txt`](../Assets/Art/KayKit/LICENSE.txt) / [`Assets/Art/KayKitSkeletons/LICENSE.txt`](../Assets/Art/KayKitSkeletons/LICENSE.txt).
+## CSV로 유닛 만들기 / 수정하기
 
-| 컬럼 | 의미 | 비고 |
+한 행 = 유닛 하나. 실제 샌드박스가 불러오는 파일은 [`SandboxUnits.csv`](../SandboxUnits.csv)(육지 9종 +
+물 4종, 13유닛 예시) — 컬럼을 참고할 땐 이 파일을 열어보는 게 제일 빠르다. [`docs/sample_units.csv`](sample_units.csv)는
+행동 조합 예시용 별도 파일이다.
+
+| 컬럼 | 의미 | 값 |
 |---|---|---|
-| `Name` | 유닛 이름(표시/구분용) | |
-| `MaxHp`, `Defense` | 기본 스탯 | |
-| `BaseVisual` | 외형(모델/머티리얼)을 빌려올 기존 프리팹 | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나 — `Assets/Prefabs/Units/Unit_<값>.prefab`을 찾는 키(대소문자 그대로 일치해야 함) |
-| `Actions` | 이 유닛이 가진 행동 목록 | 세미콜론(`;`)으로 구분, 예: `Move;Attack;Counter` |
-| `Domain` | 이 유닛이 들어갈 수 있는 지형 | `Land` 또는 `Water`(대소문자 무관, 빈 값/오타는 `Land`). 값이 다른 지형 타일에는 `Move.IgnoreTerrain`이 없는 한 들어갈 수 없다 — [지형(육지/물)](#지형-육지물) 참고 |
-| `Move.Range` / `Move.IgnoreTerrain` / `Move.IgnoreUnitBlocking` / `Move.AllowDiagonal` | Move 파라미터 | `Actions`에 `Move`가 있을 때만 사용 |
-| `Attack.Attack` / `Attack.Range` | Attack 파라미터 | `Actions`에 `Attack`이 있을 때만 사용. Counter는 별도 값 없이 이 값을 그대로 재사용 |
-| `Heal.Amount` / `Heal.Range` | Heal 파라미터 | `Actions`에 `Heal`이 있을 때만 사용 |
+| `Name` | 유닛 이름 | 자유 텍스트 |
+| `MaxHp`, `Defense` | 기본 스탯 | 숫자 |
+| `BaseVisual` | 외형(모델) | `Melee` / `Ranged` / `Guard` / `RogueHooded` / `Mage` / `SkeletonWarrior` / `SkeletonMage` 중 하나(대소문자까지 정확히 일치해야 함). 이 중 하나가 아니면 팔레트에 표시되지 않고 콘솔에 경고가 뜬다 — **주의**: `SandboxUnits.csv`의 물 유닛 4종(뗏목/정찰선/충각선/범선)은 `Raft`/`ShipSmall`/`Galleon`을 쓰는데, 아직 이 목록에 없어 현재는 팔레트에 뜨지 않는다(함선 프리팹/아트 작업 진행 중) |
+| `Actions` | 행동 목록 | 아래 [사용 가능 행동](#사용-가능-행동) 이름을 **세미콜론(`;`)**으로 나열. 예: `Move;Attack;Counter` |
+| `Domain` | 다닐 수 있는 지형 | `Land` 또는 `Water`(빈 값/오타는 `Land`로 처리) |
+| `Move.Range` 등 `Move.*` | 이동 파라미터 | `Actions`에 `Move` 있을 때만 |
+| `Attack.Attack` / `Attack.Range` | 공격 파라미터 | `Actions`에 `Attack` 있을 때만(반격도 이 값 재사용) |
+| `Heal.Amount` / `Heal.Range` | 회복 파라미터 | `Actions`에 `Heal` 있을 때만 |
+| `Transport.Capacity` | 수송 정원 | `Actions`에 `Transport` 있을 때만. 아직 정원 값만 저장될 뿐 실제 탑승 기능은 없음([상세](passives/Transport.md)) |
 
-`Defend` / `SelfDestruct` / `Counter` / `Charge` / `Retreat`는 자체 파라미터가 없다 — `Actions`에 이름만
-넣으면 된다.
+`Defend`/`SelfDestruct`/`Counter`/`Charge`/`Retreat`/`Fortify`/`Stealth`/`Pillage`/`Anchored` 등 값이 없는
+행동·패시브는 `Actions`에 이름만 넣으면 된다.
 
-**색(표시 색)은 CSV에 없다.** 유닛 타입이 아니라 팀만으로 정해지는 값이라 CSV/`UnitCsvRow`/`UnitDefinition`
-어디에도 데이터로 두지 않고, [`UnitView`](../Assets/Scripts/TacticsECS/View/UnitView.cs)의
-`PlayerColor`/`EnemyColor` 상수 두 개로 고정해뒀다 — 어떤 CSV를 불러오든 플레이어 유닛은 전부 같은 색,
-적 유닛은 전부 같은(다른) 색으로 표시된다.
+### 사용 가능 행동
 
-**Charge(돌격)/Retreat(대피)**: 기본적으로 유닛은 턴당 이동 또는 공격 중 하나만 할 수 있다(이동하면 그
-턴엔 공격 불가, 공격하면 그 턴엔 이동 불가). `Charge`는 이동한 뒤에도 공격할 수 있게, `Retreat`는 공격한
-뒤에도 이동할 수 있게 그 제약을 풀어주는 예외 패시브다. 둘 다 가지고 있어도 이동/공격은 여전히 턴당
-1회씩으로 제한된다 — 예를 들어 공격 → (Retreat로) 이동까지 한 뒤에는, Charge가 있어도 이미 이번 턴
-공격을 마쳤으므로 다시 공격할 수 없다.
+`Move` · `Attack` · `Defend` · `Heal` · `SelfDestruct` · `Counter`(반격) · `Charge`(돌격) · `Retreat`(대피) ·
+`Ambush`(기습) · `Infiltrate`(잠입) · `Herd`(무리) · `Convert`(전향) · `Combo`(연타) · `Scout`(정찰, 효과 미구현) ·
+`Splash`(스플래시) · `Stiff`(뻣뻣함) · `Freeze`(빙결) + [플레이스홀더 패시브 5종](#플레이스홀더-패시브) — 자세한
+동작은 [README의 사용 가능 행동](../README.md#사용-가능-행동-assetsscriptstacticsecsactions) 참고.
 
-**Actions 컬럼이 세미콜론인 이유**: CSV 컬럼 구분자는 쉼표라서, 한 컬럼 안에 여러 행동 이름을 담으려면
-쉼표와 겹치지 않는 다른 구분자가 필요하다.
+**Charge/Retreat**: 기본적으로 한 턴에 이동 또는 공격 중 하나만 가능하다. `Charge`는 이동 후에도 공격을,
+`Retreat`는 공격 후에도 이동을 허용한다(이동/공격 자체는 여전히 턴당 1회).
 
-### 지형(육지/물)
-
-타일마다 `TerrainType`(`Land`/`Water`, [`Core/TerrainType.cs`](../Assets/Scripts/TacticsECS/Core/TerrainType.cs))
-값을 갖고, 유닛도 CSV의 `Domain` 컬럼으로 자신이 들어갈 수 있는 지형을 하나 갖는다. 육지 유닛은 물 타일에,
-물 유닛은 육지 타일에 `Move.IgnoreTerrain`이 없는 한 들어갈 수 없다(스파이처럼 `Move.IgnoreTerrain=True`인
-유닛은 지형을 완전히 무시). 정확히는 `Move.IgnoreTerrain`이 꺼져 있을 때 대상 타일이 `Walkable=false`이거나
-자신의 `Domain`과 타일 지형이 다르면 그 타일에 들어갈 수 없다 — 판정은
-[`PathfindingSystem.GetReachable`](../Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)(경로 탐색)과
-[`MoveAction.Execute`](../Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(실제 이동) 양쪽이 공유한다.
-
-수송(Transport) 패시브를 가진 함선이 육지 유닛을 태우고 물을 건너는 것 같은 기능은 아직 없다 — 지금은 이동
-가능한 지형을 막는 것까지만 구현되어 있고, "수송" 자체는 다른 플레이스홀더 패시브와 마찬가지로 태그만 있다.
-
-타일의 지형은 `BattleController` 인스펙터의 `waterTiles` 목록(좌표 목록, 비어있으면 그리드 전체가 육지)으로
-지정한다 — `Assets/Scenes/Sandbox.unity`는 그리드 오른쪽 1/3을 물로 채워둬서, 이 CSV의 물 유닛(뗏목/정찰선/
-충각선/범선)과 육지 유닛의 이동 제한을 곧바로 확인해볼 수 있다. `Assets/Scenes/SampleScene.unity`(데모 전투)는
-`waterTiles`가 비어있어 기존 동작에 영향이 없다.
-
-### 예시 행동 조합
+### 예시 조합
 
 - 근접 딜러: `Move;Attack`
 - 반격형 탱커: `Move;Attack;Defend;Counter`
-- 서포터: `Move;Heal;Defend` (공격 없이 회복/방어만)
+- 서포터(공격 없음): `Move;Heal;Defend`
 - 자폭 유닛: `Move;SelfDestruct`
-- 돌격형 듀얼리스트: `Move;Attack;Charge;Retreat` (이동/공격 순서에 상관없이 둘 다 할 수 있는 유닛)
+- 돌격형 듀얼리스트: `Move;Attack;Charge;Retreat`
 
-### 비목표 (v1)
+### 지형 (육지/물)
 
-- 바디 텍스처를 CSV로 지정하는 것 — 모델 텍스처는 `BaseVisual` 프리팹의 값을 그대로 쓴다.
-- 쉼표/따옴표가 포함된 필드 값 이스케이프 — 값이 전부 숫자/불리언/영문 이름이라 단순 분리로 충분하다.
-- 빌드(Standalone)에서의 파일 탐색기 지원 — `EditorUtility.OpenFilePanel`/`SaveFilePanel`은 에디터 전용 API라,
-  이 툴은 에디터 Play 모드에서 쓰는 것을 전제로 한다.
+타일마다 `Land`/`Water` 지형이 있고, 유닛은 `Domain` 컬럼으로 자신이 다닐 수 있는 지형을 정한다.
+`Move.IgnoreTerrain=True`가 아니면, 육지 유닛은 물 타일에 물 유닛(뗏목/정찰선/충각선/범선)은 육지 타일에
+들어갈 수 없다. 타일 배치는 `BattleController`의 `waterTiles` 목록으로 정하며, `Sandbox.unity`는 그리드
+오른쪽 1/3이 물이라 바로 테스트해볼 수 있다.
 
-## 샌드박스 사용법 (인게임)
+수송 함선이 육지 유닛을 태우고 물을 건너는 기능은 아직 없다 — [수송 패시브 상세](passives/Transport.md) 참고.
 
-1. `Assets/Scenes/Sandbox.unity`를 연다(없다면 아래 "씬 준비" 참고). Play를 누르면 배치 단계로 시작한다.
-2. 좌상단 **불러오기**를 누르면 OS 파일 탐색기(열기 대화상자)가 뜬다 — 불러올 CSV 파일을 고른다.
-3. 팔레트에서 배치할 유닛을, 그 아래 버튼에서 팀(플레이어/적)을 고른다.
-4. 그리드의 빈 칸을 클릭하면 그 자리에 유닛이 놓인다. 이미 유닛이 있는 칸을 클릭하면 치워진다.
-5. 배치가 끝나면 우하단 **전투 시작**을 누른다 — 이후로는 평소와 동일한 턴제 전투(이동/공격/방어/치유/자폭/반격/
-   돌격/대피)가 그대로 진행된다.
-6. 언제든 **내보내기**를 누르면 OS 파일 탐색기(저장 대화상자)가 뜨고, 고른 경로로 마지막에 불러온 유닛 목록이
-   CSV로 저장된다(배치된 유닛의 위치가 아니라, 팔레트로 쓰인 "유닛 정의 목록" 자체를 그대로 내보내는 것 — CSV에서
-   값을 조정하고 다시 불러오는 반복 실험용).
-7. 전투가 끝나면(승리/패배) 화면 중앙에 뜨는 **다시 시작** 버튼으로 배치 화면(커스텀 화면)으로 곧장 되돌아갈 수
-   있다 — CSV를 고쳐 다시 불러오고, 새로 배치해서 곧바로 재시험하는 흐름이 씬을 다시 Play할 필요 없이 이어진다.
+### 알아두면 좋은 것
 
-**불러오기/내보내기 대화상자는 Unity 에디터 Play 모드에서만 동작한다**(`UnityEditor.EditorUtility.OpenFilePanel`/
-`SaveFilePanel` 사용 — 이 툴은 에디터 전용 테스트 도구라 빌드에서 쓰는 것은 범위 밖).
+- **색은 CSV에 없다.** 팀(플레이어/적)에 따라 고정 2색으로만 표시되고, 유닛 타입과는 무관하다
+  ([`UnitView`](../Assets/Scripts/TacticsECS/View/UnitView.cs)의 `PlayerColor`/`EnemyColor`).
+- **`Actions`가 세미콜론인 이유**: CSV 컬럼 구분자가 쉼표라서, 한 컬럼에 여러 행동을 넣으려면 다른
+  구분자가 필요하다.
+- **바디 텍스처는 CSV로 못 바꾼다** — `BaseVisual` 프리팹의 텍스처를 그대로 쓴다.
+- **쉼표/따옴표가 든 값은 지원하지 않는다** — 값이 전부 숫자/불리언/영문 이름이라는 전제.
+
+### 플레이스홀더 패시브
+
+CSV/코드 연동(파싱·내보내기·스폰)은 정상 동작하지만, 아직 실제 전투 효과가 없는 패시브 5종. 각 문서에
+현재 상태와 구현 시 참고할 내용을 정리해뒀다.
+
+| 패시브 | 예상 효과 | 문서 |
+|---|---|---|
+| 요새화 | 제자리 방어 보너스(예상) | [Fortify.md](passives/Fortify.md) |
+| 은신 | 적에게 발견되지 않음(예상) | [Stealth.md](passives/Stealth.md) |
+| 약탈 | 자원 획득(예상) | [Pillage.md](passives/Pillage.md) |
+| 고정 | 미정 | [Anchored.md](passives/Anchored.md) |
+| 수송 | 육지 유닛을 태우고 물을 건넘(예상, 정원 값은 이미 동작) | [Transport.md](passives/Transport.md) |
 
 ## 씬 준비 (최초 1회)
 
-Unity 에디터 GUI를 직접 열어 씬을 만들지 않고, CLI로 `SampleScene.unity`를 복제해 `Sandbox.unity`를 만든다
-(CLAUDE.md 규칙 1 — 배치모드 CLI 사용, 이미 에디터가 열려 있으면 먼저 종료 후 실행):
+Unity 에디터 GUI로 직접 만들지 않고 CLI로 생성한다(에디터가 이미 켜져 있으면 먼저 종료 요청):
 
 ```bash
 unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.SandboxSceneSetup.Generate -quit
 ```
 
-`Assets/Editor/SandboxSceneSetup.cs`가 씬을 복제하고 `BattleController.sandboxMode`를 켜준다. 기존
-Melee/Ranged/Guard 프리팹 참조는 복제된 씬에 그대로 남아있으므로 추가로 연결할 것이 없다.
+`Assets/Editor/SandboxSceneSetup.cs`가 `SampleScene.unity`를 복제해 `Sandbox.unity`를 만들고
+`BattleController.sandboxMode`를 켠다.
 
 ## 자동 검증 (CLI)
 
-클릭으로 배치하는 실제 UI 흐름은 상호작용 검증이라 자동화하지 않지만, CSV 파싱/왕복과 스폰 연동은
-배치모드 스크립트로 검증할 수 있다:
+클릭 배치 자체는 자동화하지 않지만, CSV 파싱/왕복과 스폰 연동은 배치모드로 검증할 수 있다:
 
 ```bash
 unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run -quit
 ```
 
-`docs/sample_units.csv`를 Parse → Write → 재파싱해 값이 보존되는지, `UnitSpawner.SpawnFromCsv`로 만든
-엔티티의 컴포넌트 값이 CSV 행과 일치하는지 확인하고 Console에 `PASS`/`FAIL`을 남긴다.
+`docs/sample_units.csv`를 Parse → Write → 재파싱해 값이 보존되는지, 스폰된 엔티티 컴포넌트가 CSV 행과
+일치하는지 확인하고 Console에 `PASS`/`FAIL`을 남긴다.
 
-## 관련 코드
+## 비목표 (v1)
+
+- 바디 텍스처를 CSV로 지정하는 것
+- 쉼표/따옴표가 포함된 필드 값 이스케이프
+- 빌드(Standalone)에서의 파일 탐색기 지원 — 에디터 Play 모드 전용 툴
+
+## 관련 코드 (개발자용)
 
 - CSV 파싱/작성: [`UnitCsvSerializer`](../Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvSerializer.cs)
-- CSV 행 <-> 행동 목록 변환: [`UnitCsvActionFactory`](../Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvActionFactory.cs)
+- CSV 행 ↔ 행동 목록 변환: [`UnitCsvActionFactory`](../Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvActionFactory.cs)
 - CSV 행 값 타입: [`UnitCsvRow`](../Assets/Scripts/TacticsECS/Data/Csv/UnitCsvRow.cs)
 - 런타임 스폰: [`UnitSpawner.SpawnFromCsv`](../Assets/Scripts/TacticsECS/View/UnitSpawner.cs) / [`UnitDefinition.ApplyCsvOverrides`](../Assets/Scripts/TacticsECS/View/UnitDefinition.cs)
-- 배치 단계 로직: [`UnitPlacementController`](../Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs)
-- 배치 단계 UI: [`SandboxHud`](../Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)
-- 씬 배선/검증 CLI 스크립트: `Assets/Editor/SandboxSceneSetup.cs`, `Assets/Editor/UnitCsvVerification.cs`
-- 지형 타일 프리팹 생성 CLI 스크립트: [`TileAssetSetup`](../Assets/Editor/TileAssetSetup.cs)(Kenney 타일 메시로
-  `Tile_Land`/`Tile_Water` 프리팹을 만들고 두 씬의 `BattleController`에 연결, Sandbox에는 데모 `waterTiles`도 설정)
-- 지형 데이터/판정: [`TerrainType`](../Assets/Scripts/TacticsECS/Core/TerrainType.cs),
-  [`TileData.Terrain`](../Assets/Scripts/TacticsECS/Core/TileData.cs),
-  [`MoveDomain`](../Assets/Scripts/TacticsECS/Core/UnitComponents.cs)
+- 배치 단계 로직/UI: [`UnitPlacementController`](../Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs), [`SandboxHud`](../Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs)
+- 씬/검증 CLI 스크립트: `Assets/Editor/SandboxSceneSetup.cs`, `Assets/Editor/UnitCsvVerification.cs`
+- 지형 타일 프리팹 생성 CLI: [`TileAssetSetup`](../Assets/Editor/TileAssetSetup.cs)
+- 지형 데이터/판정: [`TerrainType`](../Assets/Scripts/TacticsECS/Core/TerrainType.cs), [`TileData.Terrain`](../Assets/Scripts/TacticsECS/Core/TileData.cs), [`MoveDomain`](../Assets/Scripts/TacticsECS/Core/UnitComponents.cs)

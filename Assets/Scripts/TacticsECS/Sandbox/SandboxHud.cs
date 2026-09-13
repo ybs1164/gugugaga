@@ -85,29 +85,21 @@ namespace TacticsECS
         }
 
         /// <summary>OS 파일 탐색기(열기 대화상자)로 불러올 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다.
-        /// 에디터 밖(빌드)에서는 이 대화상자를 쓸 수 없어 상태 텍스트로만 안내한다 — 이 툴은 에디터
-        /// Play 모드 전용이라 실사용에는 영향이 없다.</summary>
+        /// 에디터와 스탠드얼론 빌드(Windows) 양쪽에서 동작한다.</summary>
         private void HandleLoadClicked()
         {
-#if UNITY_EDITOR
-            var path = UnityEditor.EditorUtility.OpenFilePanel("불러올 CSV 선택", "", "csv");
+            var path = StandaloneFileDialog.OpenFilePanel("불러올 CSV 선택", "", "csv");
             if (string.IsNullOrEmpty(path)) return;
             OnLoadClicked?.Invoke(path);
-#else
-            SetStatus("파일 탐색기는 에디터에서만 지원합니다.");
-#endif
         }
 
-        /// <summary>OS 파일 탐색기(저장 대화상자)로 내보낼 CSV 경로를 고른다.</summary>
+        /// <summary>OS 파일 탐색기(저장 대화상자)로 내보낼 CSV 경로를 고른다.
+        /// 에디터와 스탠드얼론 빌드(Windows) 양쪽에서 동작한다.</summary>
         private void HandleExportClicked()
         {
-#if UNITY_EDITOR
-            var path = UnityEditor.EditorUtility.SaveFilePanel("CSV로 내보내기", "", "SandboxUnits", "csv");
+            var path = StandaloneFileDialog.SaveFilePanel("CSV로 내보내기", "", "SandboxUnits", "csv");
             if (string.IsNullOrEmpty(path)) return;
             OnExportClicked?.Invoke(path);
-#else
-            SetStatus("파일 탐색기는 에디터에서만 지원합니다.");
-#endif
         }
 
         /// <summary>어느 팀에 배치할지 강조 표시만 바꾼다(선택 자체는 BattleController 쪽 상태가 갖고 있음).</summary>

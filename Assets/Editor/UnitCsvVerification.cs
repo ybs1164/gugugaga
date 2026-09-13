@@ -14,36 +14,40 @@ namespace TacticsECS.EditorTools
     public static class UnitCsvVerification
     {
         private const string SampleCsvRelativePath = "docs/sample_units.csv";
+        private const string SandboxCsvRelativePath = "SandboxUnits.csv";
 
         public static void Run()
         {
-            bool ok = VerifyRoundTrip() & VerifySpawnFromCsv();
+            bool ok = VerifyRoundTrip(SampleCsvRelativePath) &
+                      VerifySpawnFromCsv(SampleCsvRelativePath) &
+                      VerifyRoundTrip(SandboxCsvRelativePath) &
+                      VerifySpawnFromCsv(SandboxCsvRelativePath);
             Debug.Log(ok ? "[UnitCsvVerification] ALL PASS" : "[UnitCsvVerification] SOME CHECKS FAILED - see errors above");
         }
 
-        private static string ReadSampleCsv() => File.ReadAllText(Path.Combine(Application.dataPath, "..", SampleCsvRelativePath));
+        private static string ReadCsv(string relativePath) => File.ReadAllText(Path.Combine(Application.dataPath, "..", relativePath));
 
         /// <summary>Parse -> Write -> 재파싱해서 값이 그대로 보존되는지 확인한다.</summary>
-        private static bool VerifyRoundTrip()
+        private static bool VerifyRoundTrip(string relativePath)
         {
-            var absolutePath = Path.Combine(Application.dataPath, "..", SampleCsvRelativePath);
+            var absolutePath = Path.Combine(Application.dataPath, "..", relativePath);
             if (!File.Exists(absolutePath))
             {
-                Debug.LogError($"[UnitCsvVerification] sample csv not found: {absolutePath}");
+                Debug.LogError($"[UnitCsvVerification] csv not found: {absolutePath}");
                 return false;
             }
 
-            var original = UnitCsvSerializer.Parse(ReadSampleCsv());
+            var original = UnitCsvSerializer.Parse(ReadCsv(relativePath));
             var rewritten = UnitCsvSerializer.Parse(UnitCsvSerializer.Write(original));
 
             if (original.Count == 0)
             {
-                Debug.LogError("[UnitCsvVerification] sample csv parsed to 0 rows");
+                Debug.LogError($"[UnitCsvVerification] {relativePath} parsed to 0 rows");
                 return false;
             }
             if (original.Count != rewritten.Count)
             {
-                Debug.LogError($"[UnitCsvVerification] round-trip row count mismatch: {original.Count} vs {rewritten.Count}");
+                Debug.LogError($"[UnitCsvVerification] round-trip row count mismatch for {relativePath}: {original.Count} vs {rewritten.Count}");
                 return false;
             }
 
@@ -61,23 +65,21 @@ namespace TacticsECS.EditorTools
 
                 if (!same)
                 {
-                    Debug.LogError($"[UnitCsvVerification] round-trip mismatch on row {i} ({a.Name})");
+                    Debug.LogError($"[UnitCsvVerification] round-trip mismatch in {relativePath} on row {i} ({a.Name})");
                     ok = false;
                 }
             }
 
-            if (ok) Debug.Log($"[UnitCsvVerification] round-trip PASS ({original.Count} rows)");
+            if (ok) Debug.Log($"[UnitCsvVerification] round-trip PASS for {relativePath} ({original.Count} rows)");
             return ok;
         }
 
-        /// <summary>UnitSpawner.SpawnFromCsv로 만든 엔티티의 컴포넌트 값이 CSV 행과 일치하는지 확인한다.
-        /// 임시 GameObject 위에서만 동작하고 끝나면 즉시 정리한다(에디터 씬을 오염시키지 않는다).</summary>
-        private static bool VerifySpawnFromCsv()
+        private static bool VerifySpawnFromCsv(string relativePath)
         {
-            var rows = UnitCsvSerializer.Parse(ReadSampleCsv());
+            var rows = UnitCsvSerializer.Parse(ReadCsv(relativePath));
             if (rows.Count == 0)
             {
-                Debug.LogError("[UnitCsvVerification] no rows to verify spawn against");
+                Debug.LogError($"[UnitCsvVerification] no rows to verify spawn against in {relativePath}");
                 return false;
             }
 

@@ -46,6 +46,12 @@ namespace TacticsECS
     // MoveAction.Execute가 함께 판정한다.
     [System.Serializable] public struct MoveDomain { public TerrainType Value; }
 
+    // ---- 수송 플레이스홀더 (스폰 후 불변) ----
+    // Transport(ActionType) 보유 유닛이 태울 수 있는 유닛 수. VisionRange(정찰 플레이스홀더)와 같은 성격 —
+    // 아직 유닛을 태우고 내리는 시스템 자체가 없어 지금은 값만 들고 있을 뿐 실제 게임플레이 효과는 없다.
+    // 나중에 수송 시스템이 생기면 이 값을 정원으로 쓰면 된다 — Actions/TransportAction.cs 참고.
+    [System.Serializable] public struct CargoCapacity { public int Value; }
+
     // ---- 턴 상태 (매 턴 리셋) ----
     [System.Serializable] public struct HasMoved { public bool Value; }
     [System.Serializable] public struct HasActed { public bool Value; }

@@ -706,3 +706,20 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     `BattleController.StartPlacementPhase`의 `basePrefabsByName`에 아직 등록돼 있지 않아, 지금 샌드박스에서
     불러오면 이 4종은 팔레트에 나타나지 않는다(콘솔 경고) — 코드는 고치지 않고 문서(`UnitCsvSandbox.md`의
     `BaseVisual` 행)에 현재 상태로만 남겨둠. 새 `Assets/Art/Ships` 에셋과 함께 별도 작업으로 이어질 것으로 보임.
+- 2026-09-13: 기획자 제공용 샌드박스 툴 빌드 환경 및 가이드 문서 정비.
+  - **스탠드얼론 파일 대화상자 구현**: 에디터 전용(`EditorUtility.OpenFilePanel`/`SaveFilePanel`)이던 파일
+    불러오기/내보내기 기능을 Windows 스탠드얼론 빌드본에서도 작동하도록 Win32 `comdlg32.dll` 기반
+    네이티브 다이얼로그 헬퍼 [`StandaloneFileDialog.cs`](Assets/Scripts/TacticsECS/Sandbox/StandaloneFileDialog.cs)
+    구현 및 [`SandboxHud.cs`](Assets/Scripts/TacticsECS/Sandbox/SandboxHud.cs) 연결.
+  - **물 지형 삭제 및 땅 지형 통일**: `Sandbox.unity` 씬의 `waterTiles`를 빈 리스트(`[]`)로 수정하여 그리드 전체를
+    땅 지형으로 일원화하고, `TileAssetSetup.cs`에서도 샌드박스용 데모 물 타일 자동 주입을 비활성화.
+  - **물 유닛 및 플레이스홀더 정리**: 아직 외형 모델 및 수송 기능이 미비한 물 관련 유닛(뗏목, 정찰선, 충각선, 범선)을
+    플레이스홀더로 전환하고, `SandboxUnits.csv`를 즉시 정상 플레이 가능한 육지 9종 유닛(보병, 방패병, 검투사, 기병,
+    기사, 궁병, 투석기, 사제, 스파이)으로 정비.
+  - **기획자용 요약 가이드 (`UnitCsvSandbox.md`) 작성**: 기획자가 알아야 할 최소한의 정보와 실제 수행 가능한 조작,
+    완전히 구현된 행동(스킬) 16종 명세 및 필수 CSV 컬럼만을 선별하여 [`UnitCsvSandbox.md`](UnitCsvSandbox.md)
+    (루트 및 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md))로 재정리(미구현 플레이스홀더 및 물 요소 생략).
+  - **검증**: `UnitCsvVerification.cs`에 `SandboxUnits.csv`의 왕복 파싱 및 런타임 스폰 검증을 추가하고,
+    `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run` 실행하여 13종 샘플 및 9종 샌드박스 유닛
+    모두 `ALL PASS` 확인.
+

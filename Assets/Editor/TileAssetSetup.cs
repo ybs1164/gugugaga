@@ -72,7 +72,7 @@ namespace TacticsECS.EditorTools
         {
             AssignToScene(ScenePath, landPrefab, waterPrefab, addDemoWater: false);
             if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) != null)
-                AssignToScene(SandboxScenePath, landPrefab, waterPrefab, addDemoWater: true);
+                AssignToScene(SandboxScenePath, landPrefab, waterPrefab, addDemoWater: false);
         }
 
         private static void AssignToScene(string scenePath, GameObject landPrefab, GameObject waterPrefab, bool addDemoWater)

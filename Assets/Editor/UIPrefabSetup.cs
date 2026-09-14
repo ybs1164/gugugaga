@@ -27,6 +27,10 @@ namespace TacticsECS.EditorTools
         private const string ScenePath = "Assets/Scenes/SampleScene.unity";
         private const string SandboxScenePath = "Assets/Scenes/Sandbox.unity";
 
+        /// <summary>로우폴리풍 캐주얼 UI에 맞춘 한글 지원 폰트(Jua, OFL 라이선스 — Assets/Fonts/LICENSE.txt).
+        /// 모든 Text/TextMesh가 이 폰트 하나를 공유한다(LoadUiFont).</summary>
+        private const string UiFontPath = "Assets/Fonts/Jua-Regular.ttf";
+
         private static readonly string[] UnitPrefabPaths =
         {
             "Assets/Prefabs/Units/Unit_Melee.prefab",
@@ -74,24 +78,39 @@ namespace TacticsECS.EditorTools
 
         public static void GenerateAll()
         {
+            // Assets/Fonts에 새로 추가된 폰트 파일을 이번 배치 실행에서 바로 인식하게 한다(폴더 생성보다 먼저).
+            AssetDatabase.Refresh();
+
             EnsureFolder("Assets", "Materials");
             EnsureFolder("Assets", "Prefabs");
             EnsureFolder("Assets/Prefabs", "UI");
 
+            var font = LoadUiFont();
             var hpBarBackground = GenerateHpBarBackgroundMaterial();
-            var hpDisplay = GenerateHpDisplay(hpBarBackground);
+            var hpDisplay = GenerateHpDisplay(hpBarBackground, font);
+            var damagePopup = GenerateDamagePopup(font);
             var eventSystem = GenerateEventSystem();
-            var paletteButton = GeneratePaletteButton();
-            var battleHud = GenerateBattleHud(eventSystem);
-            var sandboxHud = GenerateSandboxHud(paletteButton);
+            var paletteButton = GeneratePaletteButton(font);
+            var battleHud = GenerateBattleHud(eventSystem, font);
+            var sandboxHud = GenerateSandboxHud(paletteButton, font);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            PatchUnitPrefabs(hpDisplay);
+            PatchUnitPrefabs(hpDisplay, damagePopup);
             AssignToScenes(battleHud, sandboxHud);
 
-            Debug.Log("[UIPrefabSetup] Done: HpDisplay/EventSystem/PaletteButton/BattleHud/SandboxHud prefabs created under " + UiFolderPath);
+            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud prefabs created under " + UiFolderPath);
+        }
+
+        /// <summary>모든 UI Text/TextMesh가 공유하는 폰트. 텍스처 임포트 설정처럼 에디터를 직접 열어
+        /// 건드릴 필요가 없다 — TTF는 Assets에 두기만 하면 Unity가 알아서 Font 에셋으로 가져온다.</summary>
+        private static Font LoadUiFont()
+        {
+            var font = AssetDatabase.LoadAssetAtPath<Font>(UiFontPath);
+            if (font == null)
+                Debug.LogError($"[UIPrefabSetup] UI font not found at {UiFontPath}.");
+            return font;
         }
 
         // ---------- HpDisplay (유닛 머리 위 체력 표시) ----------
@@ -111,7 +130,7 @@ namespace TacticsECS.EditorTools
         /// <summary>UnitView.BuildHpDisplay가 인스턴스화해서 쓰는 프리팹. 배경 쿼드는 모든 유닛이 같은
         /// 색이라 공유 머티리얼(HpBarBackground.mat)을 바로 굽지만, 채우기 쿼드는 유닛마다 다른 색으로
         /// 매번 새로 만들어야 해서(HpColorScale) 머티리얼을 비워둔다 — UnitView가 인스턴스화 직후 씌운다.</summary>
-        private static Transform GenerateHpDisplay(Material barBackgroundMaterial)
+        private static Transform GenerateHpDisplay(Material barBackgroundMaterial, Font font)
         {
             var root = new GameObject("HpDisplay");
 
@@ -135,6 +154,7 @@ namespace TacticsECS.EditorTools
             textGo.transform.localPosition = new Vector3(0f, UnitView.HpNumberLocalY, 0f);
             textGo.transform.localScale = Vector3.one * 0.3f;
             var textMesh = textGo.AddComponent<TextMesh>();
+            ApplyUiFont(textMesh, font);
             textMesh.alignment = TextAlignment.Center;
             textMesh.anchor = TextAnchor.MiddleCenter;
             textMesh.fontSize = 48;
@@ -146,11 +166,43 @@ namespace TacticsECS.EditorTools
             return saved.transform;
         }
 
+        /// <summary>피해 팝업(DamagePopup) 프리팹. HpDisplay의 "Number"와 같은 방식(TextMesh + 공용 폰트)
+        /// 이지만, 유닛의 자식으로 두지 않고 매번 독립된 오브젝트로 인스턴스화된다(UnitView.ShowDamagePopup) —
+        /// 그래야 맞은 유닛이 그 자리에서 비활성화돼도 라벨이 끊기지 않는다.</summary>
+        private static Transform GenerateDamagePopup(Font font)
+        {
+            var root = new GameObject("DamagePopup");
+
+            var textMesh = root.AddComponent<TextMesh>();
+            ApplyUiFont(textMesh, font);
+            textMesh.alignment = TextAlignment.Center;
+            textMesh.anchor = TextAnchor.MiddleCenter;
+            textMesh.fontSize = 64;
+            textMesh.color = Color.white;
+            root.transform.localScale = Vector3.one * 0.35f;
+
+            root.AddComponent<DamagePopup>();
+
+            string path = $"{UiFolderPath}/DamagePopup.prefab";
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return saved.transform;
+        }
+
+        /// <summary>TextMesh.font를 코드로 지정할 때는 UI.Text와 달리 렌더러 머티리얼을 직접 맞춰줘야
+        /// 글자가 실제로 그 폰트로 그려진다(안 하면 기본 폰트로 남는다) — HpDisplay/DamagePopup이 공유하는
+        /// 작은 헬퍼.</summary>
+        private static void ApplyUiFont(TextMesh textMesh, Font font)
+        {
+            textMesh.font = font;
+            textMesh.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+        }
+
         /// <summary>이미 만들어진 유닛 프리팹(Unit_*.prefab)에 hpDisplayPrefab 필드만 채워 넣는다.
         /// UnitPrefabSetup/ExtraCharacterPrefabSetup처럼 프리팹 전체를 새로 만들지 않는다 — 그러면
         /// Guard의 MaxHp=9처럼 이후 수동으로 조정해둔 값이 되돌아가 버린다(ExtraCharacterPrefabSetup.cs
         /// 주석 참고). 필드 하나만 반사로 덧붙이고 저장한다.</summary>
-        private static void PatchUnitPrefabs(Transform hpDisplayPrefab)
+        private static void PatchUnitPrefabs(Transform hpDisplayPrefab, Transform damagePopupPrefab)
         {
             foreach (var path in UnitPrefabPaths)
             {
@@ -162,6 +214,7 @@ namespace TacticsECS.EditorTools
                 }
                 var view = prefab.GetComponent<UnitView>();
                 SetPrivateField(view, "hpDisplayPrefab", hpDisplayPrefab);
+                SetPrivateField(view, "damagePopupPrefab", damagePopupPrefab);
                 EditorUtility.SetDirty(view);
                 PrefabUtility.SavePrefabAsset(prefab);
             }
@@ -183,10 +236,8 @@ namespace TacticsECS.EditorTools
 
         // ---------- PaletteButton (SandboxHud 팔레트 한 줄) ----------
 
-        private static GameObject GeneratePaletteButton()
+        private static GameObject GeneratePaletteButton(Font font)
         {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
             var rect = CreateRect("PaletteButton", null);
             rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
@@ -216,21 +267,22 @@ namespace TacticsECS.EditorTools
 
         // ---------- BattleHud ----------
 
-        private static GameObject GenerateBattleHud(GameObject eventSystemPrefab)
+        private static GameObject GenerateBattleHud(GameObject eventSystemPrefab, Font font)
         {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
             var root = new GameObject("BattleHud");
             var hud = root.AddComponent<BattleHud>();
 
             var canvasRoot = CreateCanvas(root.transform);
             BuildTurnBadge(font, canvasRoot);
+            BuildUnitRoster(canvasRoot);
+            BuildActionLog(canvasRoot);
             BuildUnitPanel(font, canvasRoot);
             BuildActionButtons(canvasRoot);
             BuildTooltip(font, canvasRoot);
             BuildBattleEndPanel(font, canvasRoot);
 
             SetPrivateField(hud, "eventSystemPrefab", eventSystemPrefab);
+            SetPrivateField(hud, "uiFont", font);
             EditorUtility.SetDirty(hud);
 
             string path = $"{UiFolderPath}/BattleHud.prefab";
@@ -252,6 +304,48 @@ namespace TacticsECS.EditorTools
             var number = CreateNumberText(font, "Number", panel, new Vector2(44f, -8f), new Vector2(40f, 32f));
             number.fontSize = 24;
             number.alignment = TextAnchor.MiddleCenter;
+        }
+
+        // ---------- 유닛 상태 로스터 (좌상단, TurnBadge 바로 아래) ----------
+        // 뼈대(배경/Viewport/Content/Scrollbar)만 여기서 만든다. 행(유닛 하나당 아이콘+숫자)은 유닛 수가
+        // 계속 바뀌는 진짜 동적 데이터라 BattleHud.SetRoster가 코드로 그때그때 만든다.
+
+        private const float RosterPanelWidth = 118f;
+        /// <summary>BattleHud.RosterContentMinHeight와 같아야 한다.</summary>
+        private const float RosterPanelHeight = 140f;
+        private const float RosterScrollbarWidth = 5f;
+
+        private static void BuildUnitRoster(Transform root)
+        {
+            BuildScrollPanel("UnitRoster", root,
+                anchor: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
+                anchoredPos: new Vector2(16f, -68f), // TurnBadge(높이 44, y -16~-60) 바로 아래
+                size: new Vector2(RosterPanelWidth, RosterPanelHeight),
+                background: PanelBackground, scrollbarWidth: RosterScrollbarWidth);
+        }
+
+        // ---------- 행동 로그 (우상단) ----------
+        // 스크롤 없이 최근 줄만 유지하는 킬피드 방식(BattleHud.AddLogEntry)이라 Viewport/ScrollRect가
+        // 필요 없다 — 배경 패널 + Content(줄이 붙는 곳)만 있으면 된다.
+
+        private const float LogPanelWidth = 260f;
+        private const float LogPanelHeight = 190f;
+
+        private static void BuildActionLog(Transform root)
+        {
+            var panel = CreateRect("ActionLog", root);
+            panel.anchorMin = panel.anchorMax = new Vector2(1f, 1f);
+            panel.pivot = new Vector2(1f, 1f);
+            panel.anchoredPosition = new Vector2(-16f, -16f);
+            panel.sizeDelta = new Vector2(LogPanelWidth, LogPanelHeight);
+            CreatePanelImage(panel, PanelBackground);
+            panel.gameObject.AddComponent<RectMask2D>();
+
+            var content = CreateRect("Content", panel);
+            content.anchorMin = Vector2.zero;
+            content.anchorMax = Vector2.one;
+            content.offsetMin = new Vector2(8f, 6f);
+            content.offsetMax = new Vector2(-8f, -6f);
         }
 
         private static void BuildUnitPanel(Font font, Transform root)
@@ -451,12 +545,9 @@ namespace TacticsECS.EditorTools
         private const float SandboxPanelWidth = 220f;
         private const float SandboxPaletteHeight = 300f;
         private const float SandboxScrollbarWidth = 6f;
-        private const float SandboxScrollbarGutter = SandboxScrollbarWidth + 2f;
 
-        private static GameObject GenerateSandboxHud(GameObject paletteButtonPrefab)
+        private static GameObject GenerateSandboxHud(GameObject paletteButtonPrefab, Font font)
         {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
             var root = new GameObject("SandboxHud");
             var hud = root.AddComponent<SandboxHud>();
 
@@ -527,24 +618,37 @@ namespace TacticsECS.EditorTools
             text.text = label;
         }
 
-        /// <summary>목록이 패널 높이를 넘으면 ScrollRect(세로 전용, 얇은 스크롤바 포함)로 스크롤한다 —
-        /// 표준 Unity UGUI 구성: Palette(패널+ScrollRect) &gt; Viewport(RectMask2D) &gt; Content(팔레트
-        /// 버튼이 실제로 붙는 곳, SandboxHud.SetPalette가 행 수에 맞춰 높이를 늘림), Palette 오른쪽
-        /// 가장자리에 얇은 세로 Scrollbar.</summary>
+        /// <summary>목록이 패널 높이를 넘으면 ScrollRect로 스크롤하는 뼈대. BattleHud의 유닛 로스터
+        /// (BuildUnitRoster)도 이 구조를 그대로 재사용한다 — SandboxHud.SetPalette/BattleHud.SetRoster
+        /// 둘 다 행 수가 계속 바뀌는 진짜 동적 데이터라 Content에 자기 행을 직접 채워 넣는다.</summary>
         private static void BuildSandboxPalette(Transform root)
         {
-            var panel = CreateRect("Palette", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -120f);
-            panel.sizeDelta = new Vector2(SandboxPanelWidth, SandboxPaletteHeight);
-            CreatePanelImage(panel, SandboxPanelBackground);
+            BuildScrollPanel("Palette", root,
+                anchor: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
+                anchoredPos: new Vector2(16f, -120f),
+                size: new Vector2(SandboxPanelWidth, SandboxPaletteHeight),
+                background: SandboxPanelBackground, scrollbarWidth: SandboxScrollbarWidth);
+        }
+
+        /// <summary>세로 스크롤 목록(배경 패널 + Viewport(RectMask2D) + Content + 얇은 Scrollbar) 뼈대를
+        /// 만드는 표준 Unity UGUI 구성 — 패널(ScrollRect) &gt; Viewport &gt; Content(행이 실제로 붙는 곳),
+        /// 패널 오른쪽 가장자리에 얇은 세로 Scrollbar.</summary>
+        private static void BuildScrollPanel(string name, Transform root, Vector2 anchor, Vector2 pivot, Vector2 anchoredPos, Vector2 size, Color background, float scrollbarWidth)
+        {
+            float scrollbarGutter = scrollbarWidth + 2f;
+
+            var panel = CreateRect(name, root);
+            panel.anchorMin = panel.anchorMax = anchor;
+            panel.pivot = pivot;
+            panel.anchoredPosition = anchoredPos;
+            panel.sizeDelta = size;
+            CreatePanelImage(panel, background);
 
             var viewport = CreateRect("Viewport", panel);
             viewport.anchorMin = Vector2.zero;
             viewport.anchorMax = Vector2.one;
             viewport.offsetMin = Vector2.zero;
-            viewport.offsetMax = new Vector2(-SandboxScrollbarGutter, 0f);
+            viewport.offsetMax = new Vector2(-scrollbarGutter, 0f);
             viewport.gameObject.AddComponent<RectMask2D>();
 
             var content = CreateRect("Content", viewport);
@@ -552,13 +656,13 @@ namespace TacticsECS.EditorTools
             content.anchorMax = Vector2.one;
             content.pivot = new Vector2(0.5f, 1f);
             content.anchoredPosition = Vector2.zero;
-            content.sizeDelta = new Vector2(0f, SandboxPaletteHeight);
+            content.sizeDelta = new Vector2(0f, size.y);
 
             var scrollbarTrack = CreateRect("Scrollbar", panel);
             scrollbarTrack.anchorMin = new Vector2(1f, 0f);
             scrollbarTrack.anchorMax = Vector2.one;
             scrollbarTrack.pivot = new Vector2(1f, 0.5f);
-            scrollbarTrack.sizeDelta = new Vector2(SandboxScrollbarWidth, 0f);
+            scrollbarTrack.sizeDelta = new Vector2(scrollbarWidth, 0f);
             scrollbarTrack.anchoredPosition = Vector2.zero;
             CreatePanelImage(scrollbarTrack, new Color(1f, 1f, 1f, 0.08f));
 

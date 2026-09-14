@@ -22,12 +22,24 @@ namespace TacticsECS
     {
         public int UnitId { get; private set; }
 
+        /// <summary>행동 로그(BattleHud.AddLogEntry)에 표시할 이 유닛의 이름표. 데모 편성은 "근접 전사"
+        /// 같은 고정 한글 이름(BattleController.SpawnUnit), 샌드박스 CSV 유닛은 CSV의 Name 컬럼 값이다
+        /// (UnitSpawner.FinishSpawn이 label 그대로 전달).</summary>
+        public string Label { get; private set; }
+
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float turnSpeedDegrees = 720f;
 
         [Tooltip("머리 위 체력 표시(배경/채우기 막대 + 숫자) 프리팹. Assets/Prefabs/UI/HpDisplay.prefab " +
             "(UIPrefabSetup.GenerateHpDisplay 참고) — 이 프리팹을 자식으로 인스턴스화해서 쓴다.")]
         [SerializeField] private Transform hpDisplayPrefab;
+
+        [Tooltip("피해를 입었을 때 잠깐 떠오르는 숫자 라벨 프리팹. Assets/Prefabs/UI/DamagePopup.prefab " +
+            "(UIPrefabSetup.GenerateDamagePopup 참고) — HpDisplay와 달리 이 유닛의 자식으로 두지 않고 " +
+            "매번 독립된 오브젝트로 인스턴스화한다(ShowDamagePopup 참고).")]
+        [SerializeField] private Transform damagePopupPrefab;
+
+        private static readonly Color DamageColor = new Color(0.95f, 0.25f, 0.2f);
 
         private Renderer[] _renderers;
         private Material _material;
@@ -67,9 +79,10 @@ namespace TacticsECS
         /// </summary>
         private static readonly Quaternion ModelFacingCorrection = Quaternion.Euler(0f, 180f, 0f);
 
-        public void Init(EntityWorld world, int id, GridWorld grid)
+        public void Init(EntityWorld world, int id, GridWorld grid, string label)
         {
             UnitId = id;
+            Label = label;
             _grid = grid;
             _renderers = GetComponentsInChildren<Renderer>();
             _definition = GetComponent<UnitDefinition>();
@@ -129,6 +142,18 @@ namespace TacticsECS
                 if (_moveRoutine != null) StopCoroutine(_moveRoutine);
                 _moveRoutine = StartCoroutine(MoveRoutine(targetWorldPos));
             }
+        }
+
+        /// <summary>피해를 입었을 때 머리 위에서 잠깐 떠올랐다 사라지는 숫자 라벨을 띄운다(DamagePopup 참고).
+        /// HpDisplay와 달리 이 유닛의 자식으로 만들지 않는다 — 이 공격으로 죽어 gameObject가 비활성화돼도
+        /// (Refresh) 라벨은 끊기지 않고 끝까지 애니메이션을 마쳐야 하기 때문이다.</summary>
+        public void ShowDamagePopup(int amount)
+        {
+            if (damagePopupPrefab == null) return;
+
+            var spawnPos = transform.position + Vector3.up * HpNumberLocalY;
+            var instance = Instantiate(damagePopupPrefab, spawnPos, HpBillboardRotation());
+            instance.GetComponent<DamagePopup>().Play("-" + amount, DamageColor);
         }
 
         /// <summary>채우기 쿼드는 중심 기준으로 커지므로, 왼쪽 끝이 항상 배경 왼쪽 끝에 붙어있도록

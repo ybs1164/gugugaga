@@ -9,7 +9,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 - `Assets/Scripts/TacticsECS/View`: 화면 표시 전용 MonoBehaviour. 로직 없음.
 - `Assets/Scripts/TacticsECS/BattleController.cs`: 입력을 받아 System을 호출하고 View에 반영하는 조율자. `Assets/Scenes/SampleScene.unity`에 배치되어 있음.
 - `Assets/Prefabs/Units`: 유닛 타입별 프리팹(`Unit_Melee`/`Unit_Ranged`/`Unit_Guard` 등). 각 프리팹은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs) + [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트를 갖는다.
-- `Assets/Prefabs/UI`: `HpDisplay`(유닛 머리 위 체력 표시)/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud` 프리팹. [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)(`-executeMethod`로만 실행)가 생성하며, 각 View 스크립트는 이 프리팹을 인스턴스화한 뒤 자식을 이름으로 찾아 참조만 캐싱한다(하이어라키를 코드로 만들지 않음).
+- `Assets/Prefabs/UI`: `HpDisplay`(유닛 머리 위 체력 표시)/`DamagePopup`(피해 팝업)/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud` 프리팹. [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)(`-executeMethod`로만 실행)가 생성하며, 각 View 스크립트는 이 프리팹을 인스턴스화한 뒤 자식을 이름으로 찾아 참조만 캐싱한다(하이어라키를 코드로 만들지 않음). `BattleHud`의 좌상단 유닛 로스터/우상단 행동 로그처럼 행 수가 계속 바뀌는 목록은 이렇게 프리팹으로 굽지 않고 코드로 그때그때 행을 만든다.
 
 8x8 그리드에 플레이어/적 각 4유닛(Melee/Ranged/Guard)이 배치된 데모. 클릭으로 유닛 선택 → 이동/공격, 턴 종료 버튼으로 턴 전환.
 
@@ -227,6 +227,9 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 - **공격**: 하이라이트된 빨간 타일 위의 적 유닛을 클릭하면 공격한다 (턴당 1회). 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다 — 돌격(Charge) 패시브가 있으면 예외.
 - **행동 버튼**(화면 우하단): 선택한 유닛의 `AvailableActions`에 있는 행동만, 아직 행동하지 않았을 때만 나타난다 — 방어 태세(Guard), 치유(Ranged), 자폭(Melee)은 모두 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용된다.
 - **행동 설명 툴팁**: 행동 버튼(방어/치유/자폭/선택 해제/턴 종료) 위에 마우스를 올리면, 버튼 줄 바로 위 한 구역에 그 행동에 대한 설명이 뜬다.
+- **유닛 로스터**(화면 좌상단, 턴 배지 바로 아래): 살아있는 모든 유닛(양 팀)을 체력 아이콘 + 현재 HP 숫자 한 줄씩으로 보여준다. 수가 많으면(스트레스 테스트) 스크롤된다.
+- **행동 로그**(화면 우상단): 이동/공격/반격/방어/치유/자폭/대기/쓰러짐 등 모든 유닛의 행동을 팀 색으로 구분해 한 줄 요약으로 보여준다. 최근 9줄만 유지되며 오래된 줄은 자동으로 사라진다.
+- **피해 팝업**: 유닛이 공격/반격/자폭으로 피해를 입으면 그 위에 "-숫자"가 잠깐 떠올랐다 사라진다.
 - **선택 해제** 버튼: 현재 선택을 취소한다.
 - **턴 종료** 버튼: 플레이어 턴을 마치고 적 턴으로 넘긴다. 적 턴은 [`EnemyAI`](Assets/Scripts/TacticsECS/Systems/EnemyAI.cs)가 자동으로 진행하며 별도 입력이 필요 없다.
 - 한쪽 팀 유닛이 전멸하면 자동으로 전투가 종료되고 좌상단에 "승리!"/"패배..." 메시지가 표시된다.
@@ -722,4 +725,35 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   - **검증**: `UnitCsvVerification.cs`에 `SandboxUnits.csv`의 왕복 파싱 및 런타임 스폰 검증을 추가하고,
     `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run` 실행하여 13종 샘플 및 9종 샌드박스 유닛
     모두 `ALL PASS` 확인.
+- 2026-09-15: 좌상단 유닛 로스터(체력 아이콘+숫자), 피해 팝업, 우상단 행동 로그, 공용 한글 폰트(Jua)를 추가.
+  - **폰트**: 로우폴리 캐주얼 톤에 맞는 한글 지원 폰트 Jua(Google Fonts, OFL 라이선스)를
+    `Assets/Fonts/Jua-Regular.ttf`(+`LICENSE.txt`)로 추가하고, `UIPrefabSetup.LoadUiFont`가 프로젝트의 모든
+    UI Text/TextMesh(턴 배지, 유닛 패널, 툴팁, 승/패 화면, 샌드박스 팔레트/툴바, 유닛 머리 위 체력 숫자 등)에
+    일괄 적용하도록 변경 — 기존 `Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")` 호출을 전부 제거했다.
+  - **좌상단 유닛 로스터**: `BattleHud`에 `TurnBadge` 바로 아래 스크롤 가능한 패널을 추가했다
+    ([`UIPrefabSetup.BuildUnitRoster`](Assets/Editor/UIPrefabSetup.cs) — 기존 `SandboxHud` 팔레트와 뼈대
+    (Viewport/Content/Scrollbar)를 공유하도록 `BuildScrollPanel` 헬퍼로 추출). `BattleHud.SetRoster(world)`가
+    살아있는 모든 유닛(양 팀)을 [팀 색 줄 | 체력 아이콘 | 현재 HP 숫자] 한 줄씩으로 다시 그리고,
+    `BattleController`는 체력이 바뀌거나 유닛이 죽는 모든 행동(공격/반격/치유/자폭/대기/턴 종료 자동 대기)
+    직후 `RefreshRoster()`로 갱신한다.
+  - **피해 팝업**: 새 [`DamagePopup`](Assets/Scripts/TacticsECS/View/DamagePopup.cs) 컴포넌트 + 프리팹
+    (`UIPrefabSetup.GenerateDamagePopup`)을 추가했다. `UnitView.ShowDamagePopup(amount)`가 맞은 유닛 위에
+    "-숫자"를 잠깐 띄웠다 위로 떠오르며 사라지게 한다 — 맞은 유닛(UnitView)의 자식이 아니라 독립된
+    오브젝트로 스폰해서, 그 자리에서 죽어 비활성화돼도 애니메이션이 끊기지 않는다. `BattleController`가
+    `CombatSystem.TryAttack`의 `damageDealt`/`counterDamageDealt`(기존에는 버려지던 out 값)와, 자폭처럼 여러
+    유닛이 한꺼번에 맞는 경우는 실행 전후 체력 스냅샷(`SnapshotHp`) 차이로 정확한 피해량을 구해 띄운다.
+  - **우상단 행동 로그**: `BattleHud`에 스크롤 없는 고정 패널(`UIPrefabSetup.BuildActionLog`)을 추가했다 —
+    `BattleHud.AddLogEntry`가 슈팅 게임 킬피드처럼 최근 9줄만 유지하며 위에 새 줄을 쌓는 방식이라 스크롤이
+    필요 없다. 새 값 타입 [`BattleLogEntry`](Assets/Scripts/TacticsECS/Core/BattleLogEntry.cs)(순수 데이터,
+    `Data`/`Core` 계층 규칙 준수)로 이동/공격/반격/방어/치유/자폭/대기/쓰러짐을 표현하고,
+    `BattleController.FormatLogEntry`가 유닛 이름(새로 추가한 `UnitView.Label` — CSV 유닛은 `Name` 컬럼,
+    데모 편성은 `SpawnUnit`에 지정한 한글 이름)과 팀 강조색(`<color>` 리치 텍스트)을 붙여 한 줄 문구로
+    바꾼다. 플레이어 조작과 [`EnemyAI`](Assets/Scripts/TacticsECS/Systems/EnemyAI.cs)(반환 타입을
+    `List<(int,int)>`에서 `List<BattleLogEntry>`로 변경해 이동/공격/반격/사망까지 전부 기록) 양쪽 모두 같은
+    경로로 로그를 쌓는다.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`로 프리팹 재생성(컴파일 에러 없음). 새 배치모드 검증
+    스크립트 [`UIVerification.cs`](Assets/Editor/UIVerification.cs)(`UnitCsvVerification`과 같은 패턴)를 추가해
+    `unity run . -- -executeMethod TacticsECS.EditorTools.UIVerification.Run` 실행 — 공용 폰트 배선, 로스터/로그
+    줄 생성, 유닛 이름표/피해 팝업 프리팹 배선까지 `ALL PASS` 확인.
 

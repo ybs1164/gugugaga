@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -34,8 +35,14 @@ namespace TacticsECS
             "씬에 EventSystem이 이미 있으면 쓰이지 않는다. Assets/Prefabs/UI/EventSystem.prefab.")]
         [SerializeField] private GameObject eventSystemPrefab;
 
-        private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
-        private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
+        [Tooltip("유닛 로스터/행동 로그 줄처럼 프리팹이 아니라 코드로 그때그때 만드는 Text에 쓰는 폰트. " +
+            "Assets/Fonts/Jua-Regular.ttf. UIPrefabSetup.GenerateAll이 채운다.")]
+        [SerializeField] private Font uiFont;
+
+        /// <summary>턴 배지/유닛 패널 강조색과 같은 값. BattleController가 행동 로그 문구를 팀 색으로
+        /// 칠할 때도 이 상수를 그대로 재사용한다(FormatLogEntry) — 팀 색이 여러 곳에 따로 적히지 않도록.</summary>
+        public static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
+        public static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
         private static readonly Color GuardHighlight = Color.yellow;
 
         private Image _turnBadgeBg;
@@ -98,6 +105,8 @@ namespace TacticsECS
             }
 
             WireTurnBadge(canvas);
+            WireUnitRoster(canvas);
+            WireActionLog(canvas);
             WireUnitPanel(canvas);
             WireActionButtons(canvas);
             WireTooltip(canvas);
@@ -174,6 +183,146 @@ namespace TacticsECS
         }
 
         public void SetEndTurnVisible(bool visible) => _endTurnButton.gameObject.SetActive(visible);
+
+        // ---------- 유닛 상태 로스터 (좌상단, TurnBadge 바로 아래) ----------
+
+        /// <summary>패널 Content가 최소한 이 높이는 유지하게 한다(스크롤 시작 전 빈 여백 방지). 프리팹
+        /// 생성 쪽 값(UIPrefabSetup.RosterPanelHeight)과 같아야 한다.</summary>
+        private const float RosterContentMinHeight = 140f;
+        private const float RosterRowHeight = 20f;
+        private const float RosterRowGap = 2f;
+        private const float RosterIconSize = 14f;
+
+        private RectTransform _rosterContent;
+        private readonly List<GameObject> _rosterRows = new List<GameObject>();
+
+        private void WireUnitRoster(Transform canvas)
+        {
+            var panel = canvas.Find("UnitRoster");
+            _rosterContent = (RectTransform)panel.Find("Viewport/Content");
+        }
+
+        /// <summary>현재 살아있는 모든 유닛(양 팀)을 [팀 색 줄 | 체력 아이콘 | 숫자] 한 줄씩으로 나열한다.
+        /// SandboxHud.SetPalette와 같은 방식 — 유닛이 죽거나 체력이 바뀔 때마다(BattleController가 각
+        /// 행동 처리 직후 호출) 통째로 다시 그린다. 유닛 수가 많아 패널 높이를 넘으면(스트레스 테스트)
+        /// ScrollRect로 스크롤해서 볼 수 있다.</summary>
+        public void SetRoster(EntityWorld world)
+        {
+            foreach (var row in _rosterRows) Destroy(row);
+            _rosterRows.Clear();
+
+            float y = 0f;
+            for (int id = 0; id < world.EntityCount; id++)
+            {
+                if (!UnitQueries.IsAlive(world, id)) continue;
+
+                var team = world.Get<Team>(id);
+                int hp = world.Get<Hp>(id).Value;
+                _rosterRows.Add(CreateRosterRow(team == Team.Player ? PlayerAccent : EnemyAccent, hp, y));
+                y -= RosterRowHeight + RosterRowGap;
+            }
+
+            _rosterContent.sizeDelta = new Vector2(0f, Mathf.Max(-y, RosterContentMinHeight));
+        }
+
+        private GameObject CreateRosterRow(Color accentColor, int hp, float y)
+        {
+            var row = new GameObject("Row", typeof(RectTransform));
+            row.transform.SetParent(_rosterContent, false);
+            var rowRect = (RectTransform)row.transform;
+            rowRect.anchorMin = new Vector2(0f, 1f);
+            rowRect.anchorMax = new Vector2(1f, 1f);
+            rowRect.pivot = new Vector2(0f, 1f);
+            rowRect.anchoredPosition = new Vector2(0f, y);
+            rowRect.sizeDelta = new Vector2(0f, RosterRowHeight);
+
+            var accent = new GameObject("Accent", typeof(RectTransform), typeof(Image));
+            accent.transform.SetParent(row.transform, false);
+            var accentRect = (RectTransform)accent.transform;
+            accentRect.anchorMin = new Vector2(0f, 0f);
+            accentRect.anchorMax = new Vector2(0f, 1f);
+            accentRect.pivot = new Vector2(0f, 0.5f);
+            accentRect.sizeDelta = new Vector2(3f, 0f);
+            accent.GetComponent<Image>().color = accentColor;
+
+            var icon = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            icon.transform.SetParent(row.transform, false);
+            var iconRect = (RectTransform)icon.transform;
+            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0f, 0.5f);
+            iconRect.pivot = new Vector2(0f, 0.5f);
+            iconRect.sizeDelta = new Vector2(RosterIconSize, RosterIconSize);
+            iconRect.anchoredPosition = new Vector2(10f, 0f);
+            var iconImage = icon.GetComponent<Image>();
+            iconImage.sprite = IconLibrary.Get("hp");
+            iconImage.preserveAspect = true;
+
+            var textGo = new GameObject("Number", typeof(RectTransform));
+            textGo.transform.SetParent(row.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(10f + RosterIconSize + 4f, 0f);
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = uiFont;
+            text.fontSize = 13;
+            text.color = Color.white;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.text = hp.ToString();
+
+            return row;
+        }
+
+        // ---------- 행동 로그 (우상단, 최근 줄만 유지) ----------
+
+        private const int MaxLogLines = 9;
+        private const float LogLineHeight = 19f;
+
+        private RectTransform _logContent;
+        private readonly List<Text> _logLines = new List<Text>();
+
+        private void WireActionLog(Transform canvas)
+        {
+            var panel = canvas.Find("ActionLog");
+            _logContent = (RectTransform)panel.Find("Content");
+        }
+
+        /// <summary>행동 한 줄을 로그 맨 위에 추가한다. 스크롤 없이, 슈팅 게임 킬피드처럼 오래된 줄이
+        /// 아래로 밀려나다가 MaxLogLines를 넘으면 사라지는 방식 — 최근 행동만 항상 한눈에 보이면 충분하고
+        /// (자세한 기록을 남기는 목적이 아니다), 목록이 계속 늘어나 무거워지지도 않는다. richText 색
+        /// 태그(BattleController.FormatLogEntry)로 팀을 구분해서 보여준다.</summary>
+        public void AddLogEntry(string richText)
+        {
+            var lineGo = new GameObject("Line", typeof(RectTransform));
+            lineGo.transform.SetParent(_logContent, false);
+            var rect = (RectTransform)lineGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.sizeDelta = new Vector2(0f, LogLineHeight);
+
+            var text = lineGo.AddComponent<Text>();
+            text.font = uiFont;
+            text.fontSize = 14;
+            text.color = Color.white;
+            text.alignment = TextAnchor.MiddleLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.supportRichText = true;
+            text.text = richText;
+
+            _logLines.Insert(0, text);
+            if (_logLines.Count > MaxLogLines)
+            {
+                var oldest = _logLines[_logLines.Count - 1];
+                _logLines.RemoveAt(_logLines.Count - 1);
+                Destroy(oldest.gameObject);
+            }
+
+            for (int i = 0; i < _logLines.Count; i++)
+                ((RectTransform)_logLines[i].transform).anchoredPosition = new Vector2(0f, -i * LogLineHeight);
+        }
 
         // ---------- 선택 유닛 능력치 패널 (좌하단) ----------
 

@@ -13,10 +13,10 @@ namespace TacticsECS
     {
         public List<UnitView> SpawnedViews { get; } = new List<UnitView>();
 
-        public UnitView Spawn(GridWorld grid, EntityWorld world, Team team, UnitView prefab, Vector2Int pos)
+        public UnitView Spawn(GridWorld grid, EntityWorld world, Team team, UnitView prefab, Vector2Int pos, string label = null)
         {
             var view = Instantiate(prefab, transform);
-            return FinishSpawn(grid, world, team, view, pos, prefab.name);
+            return FinishSpawn(grid, world, team, view, pos, label ?? prefab.name);
         }
 
         /// <summary>CSV로 정의한 유닛을 스폰한다. baseVisualPrefab(기존 Melee/Ranged/Guard 중 하나)을 그대로
@@ -76,7 +76,7 @@ namespace TacticsECS
             grid.PlaceOccupant(pos, id);
 
             view.name = $"Unit_{team}_{label}_{id}";
-            view.Init(world, id, grid);
+            view.Init(world, id, grid, label);
             SpawnedViews.Add(view);
             return view;
         }

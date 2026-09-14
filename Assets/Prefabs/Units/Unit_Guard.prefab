@@ -49,6 +49,7 @@ MonoBehaviour:
   moveSpeed: 6
   turnSpeedDegrees: 720
   hpDisplayPrefab: {fileID: 8538403207368219818, guid: e70f3bf3996da75498569986440695ca, type: 3}
+  damagePopupPrefab: {fileID: 2982738932613230953, guid: 633bb18da84b0034294705ef8a50b5a9, type: 3}
 --- !u!114 &4771178760629799982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -68,6 +69,7 @@ MonoBehaviour:
   - rid: 2
   - rid: 3
   - rid: 4
+  domain: 0
   bodyTexture: {fileID: 2800000, guid: ed7adb4842dce7a4eb2175952639b597, type: 3}
   references:
     version: 2

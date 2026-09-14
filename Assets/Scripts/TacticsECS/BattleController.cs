@@ -188,6 +188,7 @@ namespace TacticsECS
             // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
             // 그 전에 _hud가 준비돼 있어야 한다.
             _turnState = TurnSystem.StartTurn(_world, Team.Player, 1);
+            RefreshRoster();
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
         }
 
@@ -306,12 +307,16 @@ namespace TacticsECS
         /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
+            var hpBefore = SnapshotHp();
             var waitedIds = AbilitySystem.ApplyTurnEndWait(_grid, _world, _turnState.ActiveTeam);
             foreach (var id in waitedIds)
             {
+                int healed = _world.Get<Hp>(id).Value - (hpBefore.TryGetValue(id, out var before) ? before : 0);
+                _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Wait, TargetId = BattleLogEntry.NoTarget, Amount = healed }));
                 if (_viewsById.TryGetValue(id, out var view))
                     view.Refresh(_world, id);
             }
+            RefreshRoster();
 
             _turnState = TurnSystem.EndTurn(_world, _turnState);
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
@@ -319,15 +324,15 @@ namespace TacticsECS
 
         private void SpawnDemoFormation()
         {
-            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1));
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3));
-            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5));
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6));
+            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1), "방패병");
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3), "근접 전사");
+            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5), "궁수");
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6), "근접 전사");
 
-            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2));
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4));
-            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6));
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7));
+            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2), "방패병");
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4), "근접 전사");
+            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6), "궁수");
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7), "근접 전사");
 
             if (stressTestExtraUnitsPerTeam > 0)
                 SpawnStressTestUnits(stressTestExtraUnitsPerTeam);
@@ -336,15 +341,18 @@ namespace TacticsECS
         private void SpawnStressTestUnits(int perTeam)
         {
             var prefabs = new[] { meleePrefab, rangedPrefab, guardPrefab };
+            var labels = new[] { "근접 전사", "궁수", "방패병" };
             var rng = new System.Random(12345);
             for (int i = 0; i < perTeam; i++)
             {
-                var prefab = prefabs[i % prefabs.Length];
+                int typeIndex = i % prefabs.Length;
+                var prefab = prefabs[typeIndex];
+                var label = labels[typeIndex];
                 var p = RandomFreeTile(rng, 0, gridWidth / 2);
-                if (p.HasValue) SpawnUnit(Team.Player, prefab, p.Value);
+                if (p.HasValue) SpawnUnit(Team.Player, prefab, p.Value, label);
 
                 var e = RandomFreeTile(rng, gridWidth / 2, gridWidth);
-                if (e.HasValue) SpawnUnit(Team.Enemy, prefab, e.Value);
+                if (e.HasValue) SpawnUnit(Team.Enemy, prefab, e.Value, label);
             }
         }
 
@@ -358,10 +366,10 @@ namespace TacticsECS
             return null;
         }
 
-        private void SpawnUnit(Team team, UnitView prefab, Vector2Int pos)
+        private void SpawnUnit(Team team, UnitView prefab, Vector2Int pos, string label = null)
         {
             if (_grid.IsOccupied(pos)) return;
-            var view = _spawner.Spawn(_grid, _world, team, prefab, pos);
+            var view = _spawner.Spawn(_grid, _world, team, prefab, pos, label);
             _viewsById[view.UnitId] = view;
         }
 
@@ -456,10 +464,19 @@ namespace TacticsECS
         private IEnumerator RunEnemyTurnRoutine()
         {
             yield return new WaitForSeconds(0.3f);
-            var attacks = EnemyAI.RunTurn(_grid, _world);
+            var entries = EnemyAI.RunTurn(_grid, _world);
             RefreshAllViews();
-            foreach (var (attackerId, targetId) in attacks)
-                _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
+            RefreshRoster();
+
+            foreach (var entry in entries)
+            {
+                if (entry.Verb == BattleLogVerb.Attack)
+                    _viewsById[entry.ActorId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(entry.TargetId).Value));
+                if ((entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) && entry.Amount > 0)
+                    _viewsById[entry.TargetId].ShowDamagePopup(entry.Amount);
+                _hud.AddLogEntry(FormatLogEntry(entry));
+            }
+
             CheckBattleEnd();
             yield return new WaitForSeconds(0.3f);
             if (!_battleOver)
@@ -472,6 +489,48 @@ namespace TacticsECS
             {
                 if (_viewsById.TryGetValue(i, out var view))
                     view.Refresh(_world, i);
+            }
+        }
+
+        /// <summary>좌상단 유닛 로스터를 현재 EntityWorld 상태로 다시 그린다. 체력이 바뀌거나(공격/치유/
+        /// 자폭/대기) 유닛이 죽는 모든 행동 직후 호출한다.</summary>
+        private void RefreshRoster() => _hud.SetRoster(_world);
+
+        /// <summary>지금 살아있는 모든 유닛의 체력을 id별로 찍어둔다. 자폭/턴 종료 자동 대기처럼 한 번의
+        /// 호출로 여러 유닛의 체력이 한꺼번에 바뀌는 행동에서, 실행 전후 차이로 데미지 팝업/회복량을
+        /// 정확히 구하는 데 쓴다(단일 대상 공격은 CombatSystem.TryAttack의 out 값을 그대로 쓰므로 필요 없다).</summary>
+        private Dictionary<int, int> SnapshotHp()
+        {
+            var snapshot = new Dictionary<int, int>();
+            for (int i = 0; i < _world.EntityCount; i++)
+                if (UnitQueries.IsAlive(_world, i)) snapshot[i] = _world.Get<Hp>(i).Value;
+            return snapshot;
+        }
+
+        /// <summary>BattleLogEntry 값 하나를 우측 상단 행동 로그에 쓸 한 줄짜리 한글 문구로 바꾼다.
+        /// 유닛 이름(UnitView.Label)과 소속 팀 강조색(BattleHud.PlayerAccent/EnemyAccent)은 View 쪽
+        /// 값이라 여기(오케스트레이터)에서 조합한다 — SandboxHud 상태 문구(HandleSandboxLoad 등)와
+        /// 같은 방식이다.</summary>
+        private string FormatLogEntry(BattleLogEntry entry)
+        {
+            string Name(int id) => _viewsById.TryGetValue(id, out var view) ? view.Label : $"#{id}";
+            string Colored(int id)
+            {
+                var accent = _world.Get<Team>(id) == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
+                return $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{Name(id)}</color>";
+            }
+
+            switch (entry.Verb)
+            {
+                case BattleLogVerb.Move: return $"{Colored(entry.ActorId)} 이동";
+                case BattleLogVerb.Attack: return $"{Colored(entry.ActorId)} 공격 → {Colored(entry.TargetId)} ({entry.Amount})";
+                case BattleLogVerb.Counter: return $"{Colored(entry.ActorId)} 반격 → {Colored(entry.TargetId)} ({entry.Amount})";
+                case BattleLogVerb.Defend: return $"{Colored(entry.ActorId)} 방어 태세";
+                case BattleLogVerb.Heal: return $"{Colored(entry.ActorId)} 치유 ({entry.Amount}명)";
+                case BattleLogVerb.SelfDestruct: return $"{Colored(entry.ActorId)} 자폭";
+                case BattleLogVerb.Wait: return entry.Amount > 0 ? $"{Colored(entry.ActorId)} 대기 (+{entry.Amount})" : $"{Colored(entry.ActorId)} 대기";
+                case BattleLogVerb.Defeated: return $"{Colored(entry.ActorId)} 쓰러짐";
+                default: return Colored(entry.ActorId);
             }
         }
 
@@ -623,17 +682,33 @@ namespace TacticsECS
         private void MoveSelectedUnit(Vector2Int pos)
         {
             if (!MovementSystem.TryMove(_grid, _world, _selectedUnitId, pos)) return;
+
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             RecomputeHighlights();
         }
 
         private void TryAttack(int attackerId, int targetId)
         {
-            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out _, out _)) return;
+            if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int damage, out int counterDamage)) return;
+
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
+            _viewsById[targetId].ShowDamagePopup(damage);
+            if (!UnitQueries.IsAlive(_world, targetId))
+                _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
+
+            if (counterDamage > 0)
+            {
+                _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Counter, TargetId = attackerId, Amount = counterDamage }));
+                _viewsById[attackerId].ShowDamagePopup(counterDamage);
+                if (!UnitQueries.IsAlive(_world, attackerId))
+                    _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
+            }
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
             _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
+            RefreshRoster();
 
             CheckBattleEnd();
             ClearSelection();
@@ -645,6 +720,7 @@ namespace TacticsECS
             if (_state != SelectState.UnitSelected) return;
             if (!CombatSystem.TryDefend(_grid, _world, _selectedUnitId)) return;
 
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Defend, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             ClearSelection();
         }
@@ -656,9 +732,11 @@ namespace TacticsECS
             if (_state != SelectState.UnitSelected) return;
             if (!AbilitySystem.TryHeal(_grid, _world, _selectedUnitId, out var healedIds)) return;
 
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Heal, TargetId = BattleLogEntry.NoTarget, Amount = healedIds.Count }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)
                 _viewsById[id].Refresh(_world, id);
+            RefreshRoster();
 
             ClearSelection();
         }
@@ -669,11 +747,25 @@ namespace TacticsECS
         {
             if (_state != SelectState.UnitSelected) return;
             int unitId = _selectedUnitId;
+            var hpBefore = SnapshotHp();
             if (!AbilitySystem.TrySelfDestruct(_grid, _world, unitId, out var damagedIds)) return;
+
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.SelfDestruct, TargetId = BattleLogEntry.NoTarget, Amount = damagedIds.Count }));
+            foreach (var id in damagedIds)
+            {
+                int before = hpBefore.TryGetValue(id, out var v) ? v : 0;
+                int after = UnitQueries.IsAlive(_world, id) ? _world.Get<Hp>(id).Value : 0;
+                int taken = before - after;
+                if (taken > 0) _viewsById[id].ShowDamagePopup(taken);
+                if (!UnitQueries.IsAlive(_world, id))
+                    _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
+            }
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
 
             _viewsById[unitId].Refresh(_world, unitId);
             foreach (var id in damagedIds)
                 _viewsById[id].Refresh(_world, id);
+            RefreshRoster();
 
             CheckBattleEnd();
             ClearSelection();
@@ -684,9 +776,13 @@ namespace TacticsECS
         {
             if (_state != SelectState.UnitSelected) return;
             int unitId = _selectedUnitId;
+            int hpBefore = _world.Get<Hp>(unitId).Value;
             if (!AbilitySystem.TryWait(_grid, _world, unitId)) return;
 
+            int healed = _world.Get<Hp>(unitId).Value - hpBefore;
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Wait, TargetId = BattleLogEntry.NoTarget, Amount = healed }));
             _viewsById[unitId].Refresh(_world, unitId);
+            RefreshRoster();
             ClearSelection();
         }
 

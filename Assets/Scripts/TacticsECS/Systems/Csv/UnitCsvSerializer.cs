@@ -16,7 +16,7 @@ namespace TacticsECS
     {
         private static readonly string[] Header =
         {
-            "Name", "MaxHp", "Defense", "BaseVisual", "Actions", "Domain",
+            "Id", "Name", "MaxHp", "Defense", "BaseVisual", "Actions", "Domain",
             "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
@@ -54,22 +54,24 @@ namespace TacticsECS
 
         private static UnitCsvRow ParseRow(string[] c) => new UnitCsvRow
         {
-            Name = Col(c, 0),
-            MaxHp = ParseInt(Col(c, 1)),
-            Defense = ParseInt(Col(c, 2)),
-            BaseVisual = Col(c, 3),
-            Actions = ParseActions(Col(c, 4)),
-            Domain = ParseDomain(Col(c, 5)),
-            MoveRange = ParseInt(Col(c, 6)),
-            AttackAttack = ParseInt(Col(c, 7)),
-            AttackRange = ParseInt(Col(c, 8)),
-            HealAmount = ParseInt(Col(c, 9)),
-            HealRange = ParseInt(Col(c, 10)),
-            TransportCapacity = ParseInt(Col(c, 11))
+            Id = Col(c, 0),
+            Name = Col(c, 1),
+            MaxHp = ParseInt(Col(c, 2)),
+            Defense = ParseInt(Col(c, 3)),
+            BaseVisual = Col(c, 4),
+            Actions = ParseActions(Col(c, 5)),
+            Domain = ParseDomain(Col(c, 6)),
+            MoveRange = ParseInt(Col(c, 7)),
+            AttackAttack = ParseInt(Col(c, 8)),
+            AttackRange = ParseInt(Col(c, 9)),
+            HealAmount = ParseInt(Col(c, 10)),
+            HealRange = ParseInt(Col(c, 11)),
+            TransportCapacity = ParseInt(Col(c, 12))
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
         {
+            row.Id ?? string.Empty,
             row.Name ?? string.Empty,
             row.MaxHp.ToString(CultureInfo.InvariantCulture),
             row.Defense.ToString(CultureInfo.InvariantCulture),

@@ -56,7 +56,7 @@ namespace TacticsECS.EditorTools
             {
                 var a = original[i];
                 var b = rewritten[i];
-                bool same = a.Name == b.Name && a.MaxHp == b.MaxHp && a.Defense == b.Defense && a.BaseVisual == b.BaseVisual &&
+                bool same = a.Id == b.Id && a.Name == b.Name && a.MaxHp == b.MaxHp && a.Defense == b.Defense && a.BaseVisual == b.BaseVisual &&
                     a.Actions == b.Actions && a.Domain == b.Domain && a.MoveRange == b.MoveRange &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&

@@ -795,3 +795,18 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     샘플 + 9종 샌드박스 유닛 round-trip/스폰 `ALL PASS`, 스파이의 `IgnoreTerrainAction` 배선 포함),
     `unity run . -- -executeMethod TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`) 순으로 실행.
 
+- 2026-09-15: 유닛 CSV에 `Id` 컬럼 추가.
+  - [`UnitCsvRow`](Assets/Scripts/TacticsECS/Data/Csv/UnitCsvRow.cs)에 `Id`(문자열) 필드 추가 — `Name`(표시용
+    텍스트, 기획 편의상 자유롭게 바뀔 수 있음)과 분리된, 유닛 타입을 가리키는 안정적인 키. 맨 앞 컬럼으로
+    넣었다.
+  - [`UnitCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvSerializer.cs) 헤더/파싱/쓰기에 `Id`
+    컬럼을 첫 컬럼으로 추가(나머지 컬럼은 위치가 한 칸씩 밀림 — 컬럼 위치 기반 파싱이라 이전 12컬럼 CSV는
+    그대로 불러오면 밀린다). [`UnitCsvActionFactory.ToRow`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvActionFactory.cs)도
+    `id` 매개변수를 받도록 변경(현재 실제 호출부는 없음).
+  - [`docs/sample_units.csv`](docs/sample_units.csv)(13종)/[`SandboxUnits.csv`](SandboxUnits.csv)(9종)에 각
+    행마다 영문 소문자 `Id` 값을 채워 새 13컬럼 스키마로 갱신(예: `Melee`→`melee`, `보병`→`infantry`).
+    [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 스키마 표에 `Id` 행 추가.
+  - `UnitCsvVerification.VerifyRoundTrip`의 필드별 비교에 `Id` 비교 추가.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UnitCsvVerification.Run` — 새 13컬럼 스키마로 13종 샘플 + 9종 샌드박스 유닛
+    round-trip/스폰 `ALL PASS`.

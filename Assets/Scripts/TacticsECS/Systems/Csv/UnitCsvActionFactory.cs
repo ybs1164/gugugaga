@@ -77,11 +77,12 @@ namespace TacticsECS
         /// <summary>내보내기: 이름/스탯과 실제 행동 목록으로부터 CSV 행을 만든다. 기존 프리팹
         /// (UnitDefinition)의 현재 값을 CSV 템플릿으로 뽑아낼 때, 그리고 향후 샌드박스에서 배치된 유닛
         /// 구성을 그대로 CSV로 내보낼 때 공통으로 쓴다.</summary>
-        public static UnitCsvRow ToRow(string name, string baseVisual, int maxHp, int defense,
+        public static UnitCsvRow ToRow(string id, string name, string baseVisual, int maxHp, int defense,
             IReadOnlyList<IUnitAction> actions, TerrainType domain = TerrainType.Land)
         {
             var row = new UnitCsvRow
             {
+                Id = id,
                 Name = name,
                 MaxHp = maxHp,
                 Defense = defense,

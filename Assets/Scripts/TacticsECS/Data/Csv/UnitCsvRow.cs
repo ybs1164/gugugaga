@@ -10,6 +10,10 @@ namespace TacticsECS
     /// </summary>
     public class UnitCsvRow
     {
+        /// <summary>이 유닛 타입을 가리키는 고유 식별자. Name(표시용 텍스트, 기획 편의상 중복/변경 가능)과
+        /// 달리 저장 데이터나 다른 시스템이 유닛 타입을 참조할 때 쓰는 안정적인 키다.</summary>
+        public string Id;
+
         public string Name;
         public int MaxHp;
         public int Defense;

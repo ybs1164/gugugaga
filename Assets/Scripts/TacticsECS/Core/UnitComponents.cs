@@ -36,13 +36,14 @@ namespace TacticsECS
     [System.Serializable] public struct AvailableActions { public ActionType Value; }
 
     // ---- 이동 방식 (스폰 후 불변) ----
+    // 장애물 통과/장애물(유닛) 통과/대각선 이동 여부는 더 이상 여기 별도 컴포넌트로 두지 않는다 — 대부분의
+    // 유닛에는 해당 없는 드문 케이스라 Charge/Retreat와 같은 값 없는 순수 마커 패시브(IgnoreTerrainAction/
+    // IgnoreUnitBlockingAction/AllowDiagonalAction, Actions/ 폴더)로 옮겼고, MoveAction.Execute/
+    // PathfindingSystem.GetReachable이 UnitActionQueries.Find<T>로 보유 여부만 그때그때 확인한다.
     [System.Serializable] public struct MoveRange { public int Value; }
-    [System.Serializable] public struct IgnoreTerrain { public bool Value; }
-    [System.Serializable] public struct IgnoreUnitBlocking { public bool Value; }
-    [System.Serializable] public struct AllowDiagonal { public bool Value; }
 
     // 이 유닛이 들어갈 수 있는 지형(TileData.Terrain, Core/TerrainType.cs와 공유). 육지 유닛은 물 타일에,
-    // 물 유닛은 육지 타일에 (IgnoreTerrain이 없는 한) 들어갈 수 없다 — PathfindingSystem.GetReachable과
+    // 물 유닛은 육지 타일에 (IgnoreTerrainAction이 없는 한) 들어갈 수 없다 — PathfindingSystem.GetReachable과
     // MoveAction.Execute가 함께 판정한다.
     [System.Serializable] public struct MoveDomain { public TerrainType Value; }
 

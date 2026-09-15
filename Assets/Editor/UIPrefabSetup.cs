@@ -152,7 +152,8 @@ namespace TacticsECS.EditorTools
             var textGo = new GameObject("Number");
             textGo.transform.SetParent(root.transform, false);
             textGo.transform.localPosition = new Vector3(0f, UnitView.HpNumberLocalY, 0f);
-            textGo.transform.localScale = Vector3.one * 0.3f;
+            // 0.3f였던 기존 크기의 절반(사용자 요청: 인게임 체력 라벨을 2배 줄여달라).
+            textGo.transform.localScale = Vector3.one * 0.15f;
             var textMesh = textGo.AddComponent<TextMesh>();
             ApplyUiFont(textMesh, font);
             textMesh.alignment = TextAlignment.Center;
@@ -179,7 +180,8 @@ namespace TacticsECS.EditorTools
             textMesh.anchor = TextAnchor.MiddleCenter;
             textMesh.fontSize = 64;
             textMesh.color = Color.white;
-            root.transform.localScale = Vector3.one * 0.35f;
+            // 0.35f였던 기존 크기의 절반(사용자 요청: 인게임 데미지 라벨을 2배 줄여달라).
+            root.transform.localScale = Vector3.one * 0.175f;
 
             root.AddComponent<DamagePopup>();
 

@@ -40,7 +40,7 @@ namespace TacticsECS
         Ambush = 1 << 8,
         /// <summary>잠입: 적 유닛에 의한 이동 방해만 무시하는 패시브(PathfindingSystem.GetReachable/
         /// MoveAction.CanEnter가 참조). 아군에 의한 차단은 그대로 적용된다는 점에서 모든 유닛을 무시하는
-        /// MoveAction.IgnoreUnitBlocking과 다르다. 값을 갖지 않는 순수 마커 — Actions/InfiltrateAction.cs 참고.</summary>
+        /// IgnoreUnitBlockingAction과 다르다. 값을 갖지 않는 순수 마커 — Actions/InfiltrateAction.cs 참고.</summary>
         Infiltrate = 1 << 9,
         /// <summary>무리: 주변 1블록 내 아군에게 가속(Accelerated) 상태를 부여하는 패시브
         /// (PassiveAuraSystem.RefreshHerdAura가 참조). 값을 갖지 않는 순수 마커 — Actions/HerdAction.cs 참고.</summary>
@@ -86,5 +86,17 @@ namespace TacticsECS
         /// 영토는 현재 플레이스홀더). 턴 종료 시 미행동 유닛은 자동으로 대기 처리된다.
         /// Actions/WaitAction.cs 참고.</summary>
         Wait = 1 << 22,
+        /// <summary>장애물 통과: Walkable=false인 지형(벽/장애물)을 무시하고 이동한다(비행 유닛 등). 예전엔
+        /// MoveAction 자신의 값이었지만, 대부분의 유닛에는 해당 없는 드문 케이스라 Charge/Retreat 같은
+        /// 값 없는 순수 마커 패시브로 옮겼다 — `MoveAction.Execute`/`PathfindingSystem.GetReachable`이
+        /// `UnitActionQueries.Find`로 보유 여부만 확인한다. Actions/IgnoreTerrainAction.cs 참고.</summary>
+        IgnoreTerrain = 1 << 23,
+        /// <summary>장애물(유닛) 통과: 다른 유닛(아군/적군 모두)이 있는 타일도 지나가거나 멈출 수 있다
+        /// (유령/투명체 등). 적 유닛에 의한 차단만 무시하고 싶다면 이 대신 잠입(Infiltrate)을 쓴다. 값을
+        /// 갖지 않는 순수 마커 — Actions/IgnoreUnitBlockingAction.cs 참고.</summary>
+        IgnoreUnitBlocking = 1 << 24,
+        /// <summary>대각선 이동: 8방향 이동을 허용한다(없으면 상하좌우 4방향만). 값을 갖지 않는 순수 마커 —
+        /// Actions/AllowDiagonalAction.cs 참고.</summary>
+        AllowDiagonal = 1 << 25,
     }
 }

@@ -15,7 +15,7 @@ namespace TacticsECS
             var actions = new List<IUnitAction>();
 
             if ((row.Actions & ActionType.Move) != 0)
-                actions.Add(MoveAction.FromCsv(row.MoveRange, row.MoveIgnoreTerrain, row.MoveIgnoreUnitBlocking, row.MoveAllowDiagonal));
+                actions.Add(MoveAction.FromCsv(row.MoveRange));
             if ((row.Actions & ActionType.Attack) != 0)
                 actions.Add(AttackAction.FromCsv(row.AttackAttack, row.AttackRange));
             if ((row.Actions & ActionType.Defend) != 0)
@@ -60,6 +60,12 @@ namespace TacticsECS
                 actions.Add(TransportAction.FromCsv(row.TransportCapacity));
             if ((row.Actions & ActionType.Wait) != 0)
                 actions.Add(new WaitAction());
+            if ((row.Actions & ActionType.IgnoreTerrain) != 0)
+                actions.Add(new IgnoreTerrainAction());
+            if ((row.Actions & ActionType.IgnoreUnitBlocking) != 0)
+                actions.Add(new IgnoreUnitBlockingAction());
+            if ((row.Actions & ActionType.AllowDiagonal) != 0)
+                actions.Add(new AllowDiagonalAction());
 
             // 모든 유닛은 대기(WaitAction)를 기본 보유한다
             if (!actions.Exists(a => a is WaitAction))
@@ -92,9 +98,6 @@ namespace TacticsECS
                 {
                     case MoveAction move:
                         row.MoveRange = move.MoveRange;
-                        row.MoveIgnoreTerrain = move.IgnoreTerrain;
-                        row.MoveIgnoreUnitBlocking = move.IgnoreUnitBlocking;
-                        row.MoveAllowDiagonal = move.AllowDiagonal;
                         break;
                     case AttackAction attack:
                         row.AttackAttack = attack.Attack;

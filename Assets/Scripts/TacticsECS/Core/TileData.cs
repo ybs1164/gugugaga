@@ -12,7 +12,8 @@ namespace TacticsECS
         public int OccupantId;
 
         /// <summary>이 타일의 지형(육지/물). 유닛의 MoveDomain(Core/UnitComponents.cs)과 일치해야
-        /// (IgnoreTerrain이 없는 한) 그 유닛이 들어갈 수 있다 — Walkable(장애물 여부)과는 별개 판정이다.</summary>
+        /// (IgnoreTerrainAction 패시브가 없는 한) 그 유닛이 들어갈 수 있다 — Walkable(장애물 여부)과는
+        /// 별개 판정이다.</summary>
         public TerrainType Terrain;
 
         public static TileData Default => new TileData

@@ -31,8 +31,9 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
   `UnitActions`(이 유닛이 실제로 쓸 수 있는 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs) 목록 —
   실행 가능 여부/효과 판단의 단일 기준점, 자세한 내용은 [사용 가능 행동](#사용-가능-행동-assetsscriptstacticsecsactions) 참고),
   `AvailableActions`([`ActionType`](Assets/Scripts/TacticsECS/Core/ActionType.cs) 플래그 — 실행 판정에는 관여하지 않는
-  UI/CSV용 플레이스홀더 태그), `MoveRange`/`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`(이동),
-  `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로 정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
+  UI/CSV용 플레이스홀더 태그), `MoveRange`(이동, 장애물 통과/유닛 통과/대각선 이동은 더 이상 별도 컴포넌트가
+  아니라 값 없는 패시브 — 아래 [이동 방식](#이동-방식) 참고), `HasMoved`/`HasActed`/`IsGuarding`(턴 상태)로
+  정의되어 있다. 각각 값 하나만 담는 아주 작은 타입이고, 서로 아무 관계도 없다.
 
 `EntityWorld` 자체는 오직 `Set<T>(id, value)` / `Get<T>(id)` 두 메서드만 제공한다. 컴포넌트 타입 `T`마다 내부적으로
 완전히 분리된 리스트를 하나씩 두고(같은 id는 모든 리스트에서 같은 인덱스를 가리킨다), `Get<Hp>(3)`이라고 부르면
@@ -63,19 +64,21 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 ### 이동 방식
 
-이동은 더 이상 "이동 범위 몇 칸" 하나로만 정해지지 않고, 프리팹의 `UnitDefinition` 값으로 세부 지정한다(각각 독립된 속성):
+이동은 "이동 범위 몇 칸"(`MoveAction.MoveRange`, `Move.Range` CSV 컬럼)만 그 행동 자신의 값으로 갖는다.
+장애물 통과/유닛 통과/대각선 이동은 대부분의 유닛에는 해당 없는 드문 케이스라, `MoveAction` 자신의 값이
+아니라 Charge/Retreat/Infiltrate와 같은 **값 없는 순수 마커 패시브**로 따로 뺐다(예전엔 CSV의
+`Move.IgnoreTerrain`/`Move.IgnoreUnitBlocking`/`Move.AllowDiagonal` 고정 컬럼이었다):
 
-| 속성 | 의미 |
+| 패시브 | 의미 |
 | --- | --- |
-| `MoveRange` | 이동 가능 칸 수 |
-| `IgnoreTerrain` | true면 `Walkable = false`인 지형(벽/장애물)을 무시하고 이동 (비행 유닛 등) |
-| `IgnoreUnitBlocking` | true면 다른 유닛이 있는 타일도 지나가거나 멈출 수 있음 (유령/투명체 등) |
-| `AllowDiagonal` | true면 대각선을 포함한 8방향 이동, false면 상하좌우 4방향만 |
+| [`IgnoreTerrainAction`](Assets/Scripts/TacticsECS/Actions/IgnoreTerrainAction.cs) | 있으면 `Walkable = false`인 지형(벽/장애물) 및 자신의 `MoveDomain`과 다른 지형을 무시하고 이동 (비행 유닛 등) |
+| [`IgnoreUnitBlockingAction`](Assets/Scripts/TacticsECS/Actions/IgnoreUnitBlockingAction.cs) | 있으면 다른 유닛(아군/적군 모두)이 있는 타일도 지나가거나 멈출 수 있음 (유령/투명체 등) |
+| [`AllowDiagonalAction`](Assets/Scripts/TacticsECS/Actions/AllowDiagonalAction.cs) | 있으면 대각선을 포함한 8방향 이동, 없으면 상하좌우 4방향만 |
 
-기본 3종 유닛은 모두 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`이 꺼진 평범한 지상 4방향 이동이며,
+기본 3종 유닛은 셋 다 갖고 있지 않은 평범한 지상 4방향 이동이며,
 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)과
 [`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(`MovementSystem.TryMove`가 찾아 호출)가
-`EntityWorld`에서 이 컴포넌트들을 각각 조회해 판정한다.
+`UnitActionQueries.Find<T>`로 각 패시브의 보유 여부만 그때그때 확인해 판정한다(Infiltrate와 완전히 같은 방식).
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -147,7 +150,8 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
   보유 여부만 확인): 공격이 성사되면, 대상이 반격(`CounterAction`)을 갖고 있어도 발동시키지 않는다.
 - **잠입**([`InfiltrateAction`](Assets/Scripts/TacticsECS/Actions/InfiltrateAction.cs), `PathfindingSystem.IsBlockedByOccupant`가
   경로 탐색/실제 이동 양쪽에서 공유해 참조): 적 유닛에 의한 이동 방해만 무시한다. 모든 유닛(아군 포함)을
-  무시하는 `MoveAction.IgnoreUnitBlocking`과 달리 아군에 의한 차단은 그대로 적용된다.
+  무시하는 [`IgnoreUnitBlockingAction`](Assets/Scripts/TacticsECS/Actions/IgnoreUnitBlockingAction.cs)과
+  달리 아군에 의한 차단은 그대로 적용된다.
 - **무리**([`HerdAction`](Assets/Scripts/TacticsECS/Actions/HerdAction.cs),
   [`PassiveAuraSystem.RefreshHerdAura`](Assets/Scripts/TacticsECS/Systems/PassiveAuraSystem.cs)가 유닛 이동 직후와 매 턴
   시작 시 다시 계산): 주변 1블록 내 아군(자신 제외)에게 **가속**(`Accelerated` 컴포넌트) 상태를 부여한다. 가속은
@@ -190,7 +194,7 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 
 ### 지형 (육지/물)
 
-타일마다 [`TerrainType`](Assets/Scripts/TacticsECS/Core/TerrainType.cs)(`Land`/`Water`) 값을 갖고([`TileData.Terrain`](Assets/Scripts/TacticsECS/Core/TileData.cs)), 유닛도 같은 타입의 [`MoveDomain`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트로 자신이 들어갈 수 있는 지형을 하나 갖는다(CSV의 `Domain` 컬럼, `UnitDefinition.domain`). `Move.IgnoreTerrain`이 꺼진 유닛은 자신의 `MoveDomain`과 다른 지형 타일에 들어갈 수 없다 — 육지 유닛은 물을, 물 유닛(뗏목/정찰선/충각선/범선)은 육지를 건널 수 없다. 판정은 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)(경로 탐색)과 [`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(실제 이동)가 공유한다. 자세한 내용과 CSV 예시는 [`docs/UnitCsvSandbox.md`의 지형 섹션](docs/UnitCsvSandbox.md#지형육지물) 참고.
+타일마다 [`TerrainType`](Assets/Scripts/TacticsECS/Core/TerrainType.cs)(`Land`/`Water`) 값을 갖고([`TileData.Terrain`](Assets/Scripts/TacticsECS/Core/TileData.cs)), 유닛도 같은 타입의 [`MoveDomain`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트로 자신이 들어갈 수 있는 지형을 하나 갖는다(CSV의 `Domain` 컬럼, `UnitDefinition.domain`). [`IgnoreTerrainAction`](Assets/Scripts/TacticsECS/Actions/IgnoreTerrainAction.cs) 패시브가 없는 유닛은 자신의 `MoveDomain`과 다른 지형 타일에 들어갈 수 없다 — 육지 유닛은 물을, 물 유닛(뗏목/정찰선/충각선/범선)은 육지를 건널 수 없다. 판정은 [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)(경로 탐색)과 [`MoveAction.Execute`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)(실제 이동)가 공유한다. 자세한 내용과 CSV 예시는 [`docs/UnitCsvSandbox.md`의 지형 섹션](docs/UnitCsvSandbox.md#지형육지물) 참고.
 
 타일의 지형은 `BattleController` 인스펙터의 `waterTiles` 좌표 목록으로 지정한다(비어있으면 그리드 전체가
 육지 — `Assets/Scenes/SampleScene.unity`는 비워둬서 기존 데모 전투에 영향이 없다). `Assets/Scenes/Sandbox.unity`는
@@ -756,4 +760,38 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     스크립트 [`UIVerification.cs`](Assets/Editor/UIVerification.cs)(`UnitCsvVerification`과 같은 패턴)를 추가해
     `unity run . -- -executeMethod TacticsECS.EditorTools.UIVerification.Run` 실행 — 공용 폰트 배선, 로스터/로그
     줄 생성, 유닛 이름표/피해 팝업 프리팹 배선까지 `ALL PASS` 확인.
+- 2026-09-15: 인게임 체력/데미지 라벨 크기 축소, CSV의 드문 이동 옵션 3종을 고정 컬럼에서 패시브(Actions)로 이동.
+  - **라벨 크기**: 머리 위 체력 숫자([`UIPrefabSetup.GenerateHpDisplay`](Assets/Editor/UIPrefabSetup.cs)의
+    `Number` localScale 0.3→0.15)와 피해 팝업(`GenerateDamagePopup`의 localScale 0.35→0.175)을 각각 절반
+    크기로 줄였다(사용자 요청: "2배 줄여").
+  - **동기**: CSV의 `Move.IgnoreTerrain`/`Move.IgnoreUnitBlocking`/`Move.AllowDiagonal`이 모든 유닛 행에
+    고정으로 들어가는 컬럼이었는데, 실제로 쓰는 유닛은 거의 없는 드문 케이스라("샌드박스 13+9종 중 딱 1종만
+    사용) Charge/Retreat/Infiltrate와 같은 성격의 값 없는 순수 마커 패시브로 옮겨 `Actions` 컬럼에서 필요한
+    유닛만 선택적으로 켜도록 재구성했다(사용자 요청, 질문 없이 판단해 진행).
+  - **새 패시브 3종**: [`IgnoreTerrainAction`](Assets/Scripts/TacticsECS/Actions/IgnoreTerrainAction.cs)(장애물
+    통과)/[`IgnoreUnitBlockingAction`](Assets/Scripts/TacticsECS/Actions/IgnoreUnitBlockingAction.cs)(유닛
+    통과)/[`AllowDiagonalAction`](Assets/Scripts/TacticsECS/Actions/AllowDiagonalAction.cs)(대각선 이동) 추가
+    (`ActionType`에 플래그 3개 추가, `UnitCsvActionFactory.BuildActions`/`ToRow` 연결). [`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)은
+    이제 `MoveRange`만 갖고, `Execute`가 `UnitActionQueries.Find<T>`로 이 세 패시브의 보유 여부만 그때그때
+    확인한다(Infiltrate와 완전히 같은 방식) — [`PathfindingSystem.GetReachable`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs)도
+    동일하게 변경. `Core/UnitComponents.cs`의 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal` 컴포넌트와
+    `UnitDefinition`/`UnitSpawner`의 관련 배선은 더 이상 필요 없어 제거했다.
+  - **CSV 스키마 변경(호환 깨짐)**: [`UnitCsvRow`](Assets/Scripts/TacticsECS/Data/Csv/UnitCsvRow.cs)에서 세
+    필드를 제거하고, [`UnitCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/UnitCsvSerializer.cs)의 헤더에서
+    `Move.IgnoreTerrain`/`Move.IgnoreUnitBlocking`/`Move.AllowDiagonal` 세 컬럼을 통째로 뺐다 — 컬럼 위치
+    기반 파싱이라 **예전 15컬럼 CSV는 그대로 불러오면 `Move.Range` 뒤 컬럼이 밀린다**(기존 CSV는 `Actions`에
+    필요한 경우만 `IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`을 추가하고 12컬럼으로 다시 저장해야
+    함). [`docs/sample_units.csv`](docs/sample_units.csv)/[`SandboxUnits.csv`](SandboxUnits.csv)를 새 12컬럼
+    스키마로 갱신 — 유일하게 값이 있던 `SandboxUnits.csv`의 스파이(`Move.IgnoreTerrain=True`)는
+    `Actions`에 `IgnoreTerrain`을 추가해 동작이 그대로 보존되도록 옮겼다. [`UnitCsvSandbox.md`](UnitCsvSandbox.md)/
+    [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md) 스키마 표/패시브 목록도 갱신.
+  - **부수 발견 및 수정**: 검증 중 `UnitCsvVerification.VerifySpawnFromCsv`의 `AvailableActions` 비교가
+    (이 작업과 무관하게) 항상 실패하고 있던 걸 발견 — `UnitCsvActionFactory.BuildActions`가 CSV에 `Wait`가
+    없어도 항상 `WaitAction`을 추가해주는데, 비교 대상인 `row.Actions`(원본 CSV 값)에는 그 비트가 없어
+    모든 행이 항상 mismatch였다. 기대값도 `| ActionType.Wait`로 맞춰 수정.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`(라벨 크기 반영, 컴파일 에러 없음),
+    `unity run . -- -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run`(새 12컬럼 스키마로 13종
+    샘플 + 9종 샌드박스 유닛 round-trip/스폰 `ALL PASS`, 스파이의 `IgnoreTerrainAction` 배선 포함),
+    `unity run . -- -executeMethod TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`) 순으로 실행.
 

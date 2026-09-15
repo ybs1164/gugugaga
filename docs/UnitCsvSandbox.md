@@ -53,15 +53,15 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
 | `BaseVisual` | O | 3D 모델 | 위 7종 중 택 1 (`Melee`, `Ranged`, `Guard`, `RogueHooded`, `Mage`, `SkeletonWarrior`, `SkeletonMage`) |
 | `Actions` | O | 행동 및 패시브 조합 | 사용 가능 행동들을 `;`로 나열 (예: `Move;Attack;Charge`) |
 | `Move.Range` | 선택 | 이동 사거리 (칸) | 자연수 (`Actions`에 `Move`가 있을 때 적용) |
-| `Move.IgnoreTerrain` | 선택 | 장애물 통과 여부 | `True` 또는 `False` (기본값: `False`) |
-| `Move.IgnoreUnitBlocking` | 선택 | 유닛 통과 여부 | `True` 또는 `False` (기본값: `False`) |
-| `Move.AllowDiagonal` | 선택 | 대각선 이동 허용 여부 | `True` 또는 `False` (기본값: `False`) |
 | `Attack.Attack` | 선택 | 기본 공격력 | 0 이상의 정수 (`Actions`에 `Attack`이 있을 때 적용) |
 | `Attack.Range` | 선택 | 공격 사거리 (칸) | 자연수 (1: 인접 근접, 2 이상: 원거리) |
 | `Heal.Amount` | 선택 | 치유량 | 자연수 (`Actions`에 `Heal`이 있을 때 적용) |
 | `Heal.Range` | 선택 | 치유 사거리 (칸) | 자연수 |
 
 > *참고: `Domain` 컬럼은 모두 `Land`로 처리되며, `Transport.Capacity` 컬럼은 `0`으로 두시면 됩니다.*
+> *참고: 장애물 통과/유닛 통과/대각선 이동은 대부분의 유닛에는 필요 없는 드문 케이스라 별도 컬럼이 아니라
+> `Actions`에 넣는 패시브(`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`)로 다룹니다 — 아래 4번
+> 전술/기동 패시브 참고.*
 
 ---
 
@@ -81,6 +81,9 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
 - `Retreat` (대피): 공격을 수행한 직후에도 **남은 턴에 이동**이 가능합니다.
 - `Ambush` (기습): 공격 시 대상의 **반격(`Counter`)을 무시**하고 일방적으로 공격합니다.
 - `Infiltrate` (잠입): 이동 경로 상에 있는 **적 유닛을 뚫고 통과**하여 이동할 수 있습니다. (목표 타일은 빈 칸이어야 함)
+- `IgnoreTerrain` (장애물 통과): 벽/장애물 타일이나 자신의 이동 지형(육지/물)과 다른 타일도 무시하고 이동할 수 있습니다. (드문 케이스 — 비행 유닛 등)
+- `IgnoreUnitBlocking` (유닛 통과): 다른 유닛(아군/적군 모두)이 있는 타일도 지나가거나 멈출 수 있습니다. (드문 케이스 — 유령/투명체 등. 적 유닛만 뚫고 싶다면 `Infiltrate`를 대신 쓰세요.)
+- `AllowDiagonal` (대각선 이동): 대각선을 포함한 8방향으로 이동할 수 있습니다. (기본은 상하좌우 4방향)
 
 ### 특수 효과 패시브
 - `Counter` (반격): 공격받았을 때 사거리 내에 공격한 적이 있다면 즉시 반격 피해를 입힙니다.

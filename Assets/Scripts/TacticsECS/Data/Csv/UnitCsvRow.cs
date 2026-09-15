@@ -25,9 +25,6 @@ namespace TacticsECS
         public TerrainType Domain = TerrainType.Land;
 
         public int MoveRange;
-        public bool MoveIgnoreTerrain;
-        public bool MoveIgnoreUnitBlocking;
-        public bool MoveAllowDiagonal;
 
         public int AttackAttack;
         public int AttackRange;

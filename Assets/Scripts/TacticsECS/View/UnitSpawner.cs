@@ -68,9 +68,6 @@ namespace TacticsECS
             world.Set(id, new UnitActions { Value = unitActions });
 
             world.Set(id, new MoveRange { Value = definition.MoveRange });
-            world.Set(id, new IgnoreTerrain { Value = definition.IgnoreTerrain });
-            world.Set(id, new IgnoreUnitBlocking { Value = definition.IgnoreUnitBlocking });
-            world.Set(id, new AllowDiagonal { Value = definition.AllowDiagonal });
             world.Set(id, new MoveDomain { Value = definition.Domain });
 
             grid.PlaceOccupant(pos, id);

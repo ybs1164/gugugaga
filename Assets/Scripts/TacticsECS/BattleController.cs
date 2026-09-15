@@ -27,7 +27,7 @@ namespace TacticsECS
         [SerializeField] private int gridHeight = 8;
         [SerializeField] private float tileSize = 1.2f;
         [Tooltip("이 좌표들만 물(Water) 타일이 되고 나머지는 전부 육지(Land)다. 육지 유닛은 " +
-            "MoveAction.IgnoreTerrain 없이는 여기 들어갈 수 없고, 물 유닛(MoveDomain=Water)은 반대로 " +
+            "IgnoreTerrainAction 패시브 없이는 여기 들어갈 수 없고, 물 유닛(MoveDomain=Water)은 반대로 " +
             "이 타일 밖으로 나갈 수 없다 — Core/TerrainType.cs 참고. 비워두면(기본값) 그리드 전체가 육지다.")]
         [SerializeField] private List<Vector2Int> waterTiles = new List<Vector2Int>();
         [Tooltip("육지 타일 모델(Assets/Prefabs/Tiles/Tile_Land.prefab). 비워두면 예전처럼 프리미티브 " +

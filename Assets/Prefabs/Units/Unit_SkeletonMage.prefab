@@ -76,9 +76,6 @@ MonoBehaviour:
       type: {class: MoveAction, ns: TacticsECS, asm: Assembly-CSharp}
       data:
         moveRange: 2
-        ignoreTerrain: 0
-        ignoreUnitBlocking: 0
-        allowDiagonal: 0
     - rid: 836785803124015117
       type: {class: AttackAction, ns: TacticsECS, asm: Assembly-CSharp}
       data:

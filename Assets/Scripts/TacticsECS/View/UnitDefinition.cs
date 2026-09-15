@@ -43,7 +43,7 @@ namespace TacticsECS
 
         [Header("Movement")]
         [Tooltip("이 유닛이 들어갈 수 있는 지형. 육지 유닛은 물 타일에, 물 유닛은 육지 타일에 " +
-            "MoveAction의 IgnoreTerrain 없이는 들어갈 수 없다(Core/TerrainType.cs 참고).")]
+            "IgnoreTerrainAction 패시브 없이는 들어갈 수 없다(Core/TerrainType.cs 참고).")]
         [SerializeField] private TerrainType domain = TerrainType.Land;
 
         [Header("Appearance")]
@@ -74,9 +74,6 @@ namespace TacticsECS
         private T FindAction<T>() where T : class, IUnitAction => actions.OfType<T>().FirstOrDefault();
 
         public int MoveRange => FindAction<MoveAction>()?.MoveRange ?? 0;
-        public bool IgnoreTerrain => FindAction<MoveAction>()?.IgnoreTerrain ?? false;
-        public bool IgnoreUnitBlocking => FindAction<MoveAction>()?.IgnoreUnitBlocking ?? false;
-        public bool AllowDiagonal => FindAction<MoveAction>()?.AllowDiagonal ?? false;
 
         public int Attack => FindAction<AttackAction>()?.Attack ?? 0;
         public int AttackRange => FindAction<AttackAction>()?.AttackRange ?? 0;

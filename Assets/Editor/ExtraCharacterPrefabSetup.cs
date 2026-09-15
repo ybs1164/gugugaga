@@ -43,7 +43,7 @@ namespace TacticsECS.EditorTools
                 modelScale: 0.52f, yRotationDegrees: 180f,
                 hideNames: new[] { "Knife_Offhand", "1H_Crossbow", "Knife", "Throwable" },
                 maxHp: 8, defense: 0,
-                actions: new List<IUnitAction> { MoveAction.FromCsv(3, false, false, false), AttackAction.FromCsv(4, 1) });
+                actions: new List<IUnitAction> { MoveAction.FromCsv(3), AttackAction.FromCsv(4, 1) });
 
             // Mage: 왼손 스펠북(닫힌 버전만 남김) + 오른손 지팡이(2H_Staff만 남김, 1H_Wand는 숨김).
             var mage = CreatePrefab(
@@ -53,7 +53,7 @@ namespace TacticsECS.EditorTools
                 modelScale: 0.5f, yRotationDegrees: 180f,
                 hideNames: new[] { "1H_Wand", "Spellbook_open" },
                 maxHp: 7, defense: 0,
-                actions: new List<IUnitAction> { MoveAction.FromCsv(2, false, false, false), AttackAction.FromCsv(2, 2) });
+                actions: new List<IUnitAction> { MoveAction.FromCsv(2), AttackAction.FromCsv(2, 2) });
 
             // Skeleton 계열 두 종은 손 소켓 아래에 무기 변형이 아예 없다(맨손 리그) — hideNames 없이 그대로 쓴다.
             var skeletonWarrior = CreatePrefab(
@@ -63,7 +63,7 @@ namespace TacticsECS.EditorTools
                 modelScale: 0.5f, yRotationDegrees: 180f,
                 hideNames: System.Array.Empty<string>(),
                 maxHp: 14, defense: 2,
-                actions: new List<IUnitAction> { MoveAction.FromCsv(1, false, false, false), AttackAction.FromCsv(3, 1) });
+                actions: new List<IUnitAction> { MoveAction.FromCsv(1), AttackAction.FromCsv(3, 1) });
 
             var skeletonMage = CreatePrefab(
                 "Unit_SkeletonMage",
@@ -72,7 +72,7 @@ namespace TacticsECS.EditorTools
                 modelScale: 0.5f, yRotationDegrees: 180f,
                 hideNames: System.Array.Empty<string>(),
                 maxHp: 8, defense: 0,
-                actions: new List<IUnitAction> { MoveAction.FromCsv(2, false, false, false), AttackAction.FromCsv(2, 2) });
+                actions: new List<IUnitAction> { MoveAction.FromCsv(2), AttackAction.FromCsv(2, 2) });
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

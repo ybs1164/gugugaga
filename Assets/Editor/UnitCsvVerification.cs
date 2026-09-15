@@ -57,8 +57,7 @@ namespace TacticsECS.EditorTools
                 var a = original[i];
                 var b = rewritten[i];
                 bool same = a.Name == b.Name && a.MaxHp == b.MaxHp && a.Defense == b.Defense && a.BaseVisual == b.BaseVisual &&
-                    a.Actions == b.Actions && a.Domain == b.Domain && a.MoveRange == b.MoveRange && a.MoveIgnoreTerrain == b.MoveIgnoreTerrain &&
-                    a.MoveIgnoreUnitBlocking == b.MoveIgnoreUnitBlocking && a.MoveAllowDiagonal == b.MoveAllowDiagonal &&
+                    a.Actions == b.Actions && a.Domain == b.Domain && a.MoveRange == b.MoveRange &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&
                     a.TransportCapacity == b.TransportCapacity;
@@ -120,7 +119,10 @@ namespace TacticsECS.EditorTools
                     if (world.Get<MaxHp>(view.UnitId).Value != row.MaxHp) { Debug.LogError($"[UnitCsvVerification] MaxHp mismatch for {row.Name}"); ok = false; }
                     if (world.Get<Defense>(view.UnitId).Value != row.Defense) { Debug.LogError($"[UnitCsvVerification] Defense mismatch for {row.Name}"); ok = false; }
                     if (world.Get<Attack>(view.UnitId).Value != row.AttackAttack) { Debug.LogError($"[UnitCsvVerification] Attack mismatch for {row.Name}"); ok = false; }
-                    if (world.Get<AvailableActions>(view.UnitId).Value != row.Actions) { Debug.LogError($"[UnitCsvVerification] Actions mismatch for {row.Name}"); ok = false; }
+                    // UnitCsvActionFactory.BuildActions는 CSV의 Actions에 Wait가 없어도 항상 WaitAction을
+                    // 추가로 넣어주므로(모든 유닛의 기본 보유 행동), 실제 스폰된 유닛의 AvailableActions는
+                    // row.Actions에 Wait 비트가 없어도 항상 그 비트가 서 있다 — 기대값 쪽에도 같이 OR해서 비교한다.
+                    if (world.Get<AvailableActions>(view.UnitId).Value != (row.Actions | ActionType.Wait)) { Debug.LogError($"[UnitCsvVerification] Actions mismatch for {row.Name}"); ok = false; }
                     if (world.Get<MoveDomain>(view.UnitId).Value != row.Domain) { Debug.LogError($"[UnitCsvVerification] Domain mismatch for {row.Name}"); ok = false; }
                     if (world.Get<CargoCapacity>(view.UnitId).Value != row.TransportCapacity) { Debug.LogError($"[UnitCsvVerification] TransportCapacity mismatch for {row.Name}"); ok = false; }
                     if (grid.GetOccupant(pos) != view.UnitId) { Debug.LogError($"[UnitCsvVerification] grid occupant mismatch for {row.Name}"); ok = false; }

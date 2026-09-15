@@ -17,7 +17,7 @@ namespace TacticsECS
         private static readonly string[] Header =
         {
             "Name", "MaxHp", "Defense", "BaseVisual", "Actions", "Domain",
-            "Move.Range", "Move.IgnoreTerrain", "Move.IgnoreUnitBlocking", "Move.AllowDiagonal",
+            "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
             "Transport.Capacity"
@@ -61,14 +61,11 @@ namespace TacticsECS
             Actions = ParseActions(Col(c, 4)),
             Domain = ParseDomain(Col(c, 5)),
             MoveRange = ParseInt(Col(c, 6)),
-            MoveIgnoreTerrain = ParseBool(Col(c, 7)),
-            MoveIgnoreUnitBlocking = ParseBool(Col(c, 8)),
-            MoveAllowDiagonal = ParseBool(Col(c, 9)),
-            AttackAttack = ParseInt(Col(c, 10)),
-            AttackRange = ParseInt(Col(c, 11)),
-            HealAmount = ParseInt(Col(c, 12)),
-            HealRange = ParseInt(Col(c, 13)),
-            TransportCapacity = ParseInt(Col(c, 14))
+            AttackAttack = ParseInt(Col(c, 7)),
+            AttackRange = ParseInt(Col(c, 8)),
+            HealAmount = ParseInt(Col(c, 9)),
+            HealRange = ParseInt(Col(c, 10)),
+            TransportCapacity = ParseInt(Col(c, 11))
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
@@ -80,9 +77,6 @@ namespace TacticsECS
             WriteActions(row.Actions),
             row.Domain.ToString(),
             row.MoveRange.ToString(CultureInfo.InvariantCulture),
-            row.MoveIgnoreTerrain.ToString(),
-            row.MoveIgnoreUnitBlocking.ToString(),
-            row.MoveAllowDiagonal.ToString(),
             row.AttackAttack.ToString(CultureInfo.InvariantCulture),
             row.AttackRange.ToString(CultureInfo.InvariantCulture),
             row.HealAmount.ToString(CultureInfo.InvariantCulture),
@@ -93,8 +87,6 @@ namespace TacticsECS
         private static string Col(string[] cols, int index) => index < cols.Length ? cols[index].Trim() : string.Empty;
 
         private static int ParseInt(string s) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
-
-        private static bool ParseBool(string s) => bool.TryParse(s, out var v) && v;
 
         private static TerrainType ParseDomain(string s) =>
             Enum.TryParse<TerrainType>(s, true, out var v) ? v : TerrainType.Land;

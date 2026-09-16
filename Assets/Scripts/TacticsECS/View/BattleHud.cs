@@ -91,8 +91,6 @@ namespace TacticsECS
         private Image _battleEndIcon;
         private Text _battleEndText;
 
-        private static Sprite _circleSprite;
-
         public void Init()
         {
             EnsureEventSystem();
@@ -129,39 +127,6 @@ namespace TacticsECS
             }
             var go = Instantiate(eventSystemPrefab);
             go.name = "EventSystem";
-        }
-
-        /// <summary>가득 찬 흰 원 스프라이트(1개만 만들어 재사용). 패시브 배지의 "동그라미 배경"에 쓴다.
-        /// 텍스처 임포트 설정을 건드리지 않고(IconLibrary와 같은 이유) 런타임에 픽셀을 직접 채워 만든다 —
-        /// 프리팹에 미리 구워둘 수 없는 이유도 같다: Sprite.Create 결과는 디스크에 저장된 에셋이 아니라서,
-        /// 프리팹 저장 시 별도 서브에셋으로 붙이지 않는 한 참조가 유지되지 않는다.</summary>
-        private static Sprite CircleSprite
-        {
-            get
-            {
-                if (_circleSprite != null) return _circleSprite;
-
-                const int res = 64;
-                var tex = new Texture2D(res, res, TextureFormat.RGBA32, false) { name = "CircleBadge" };
-                var center = new Vector2((res - 1) * 0.5f, (res - 1) * 0.5f);
-                float radius = res * 0.5f;
-                var pixels = new Color32[res * res];
-                for (int y = 0; y < res; y++)
-                {
-                    for (int x = 0; x < res; x++)
-                    {
-                        float dist = Vector2.Distance(new Vector2(x, y), center);
-                        // 가장자리 1px만 부드럽게(anti-alias) 처리해 확대해도 계단 현상이 덜하게 한다.
-                        float alpha = Mathf.Clamp01(radius - dist + 0.5f);
-                        pixels[y * res + x] = new Color(1f, 1f, 1f, alpha);
-                    }
-                }
-                tex.SetPixels32(pixels);
-                tex.Apply();
-
-                _circleSprite = Sprite.Create(tex, new Rect(0f, 0f, res, res), new Vector2(0.5f, 0.5f), 100f);
-                return _circleSprite;
-            }
         }
 
         // ---------- 턴 배지 (좌상단) ----------
@@ -379,7 +344,7 @@ namespace TacticsECS
 
         private void WirePassiveBadge(Transform badge, string iconName, string tooltip)
         {
-            badge.GetComponent<Image>().sprite = CircleSprite;
+            badge.GetComponent<Image>().sprite = RuntimeSprite.CreateCircle();
             badge.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(iconName);
 
             var trigger = badge.GetComponent<TooltipTrigger>();

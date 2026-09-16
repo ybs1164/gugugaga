@@ -44,7 +44,19 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
   freeze.png   "빙결(Freeze) - 자체 제작" (흰색 실루엣, 눈 결정(6방향 십자 + 곁가지) 모양의
                원본 아이콘. 외부 라이선스 대상 아님)
 
+  기술트리(TechTree) 아이콘 26종 - 전부 자체 제작 (흰색 실루엣/투명 배경, PowerShell +
+  System.Drawing/GDI+로 직접 그려서 저장, counter.png 등과 같은 방식. 외부 라이선스 대상 아님):
+
+  tech_hub.png(중앙 허브 - 고리+원), mountaineering.png(등산 - 산), meditation.png(명상 - 고리+점),
+  mining.png(채광 - 곡괭이), philosophy.png(철학 - 펼친 책), smithing.png(제련 - 망치),
+  gathering.png(채집 - 과일), shields.png(방패), farming.png(농사 - 밀 이삭), diplomacy.png(외교 -
+  두루마리), construction.png(건축 - 집), riding.png(기마 - 말굽), freespirit.png(자유 영혼 - 새),
+  roads.png(도로), chivalry.png(기사도 - 검), trade.png(교역 - 동전 더미), hunting.png(사냥 - 활과
+  화살), forestry.png(임업 - 도끼), archery.png(궁술 - 과녁), mathematics.png(수학 - 직각자),
+  spiritualism.png(강신술 - 불꽃), fishing.png(낚시 - 물고기), ramming.png(충파 - 충각),
+  sailing.png(배 타기 - 범선), aquatics.png(수생학 - 파도), navigation.png(항해 - 나침반)
+
 Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
 https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png/ambush.png/
-infiltrate.png/herd.png/convert.png/combo.png/scout.png/splash.png/stiff.png/freeze.png
-제외 — 자체 제작)
+infiltrate.png/herd.png/convert.png/combo.png/scout.png/splash.png/stiff.png/freeze.png/
+기술트리 아이콘 26종 제외 — 전부 자체 제작)

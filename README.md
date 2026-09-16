@@ -303,13 +303,25 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   선행 기술 해금 여부, `CanUnlock` — 그리고 발전도 충분 여부)과 실제 해금(`Unlock` — 발전도 소모 +
   해금 집합에 추가)을 담당하는 무상태 시스템.
 - [`TechTreeHud`](Assets/Scripts/TacticsECS/View/TechTreeHud.cs) + `Assets/Prefabs/UI/TechTreePanel.prefab`:
-  `CityResourceHud`와 같은 패턴의 재사용 가능한 독립 프리팹. 토글 버튼으로 열고 닫는 패널 안에 갈래(가로)
-  x 티어(세로)로 배치된 25개 노드 버튼 + 부모-자식 연결선(둘 다 `TechTreeDefinition`의 Branch/Tier/Slot/
-  ParentId만 보고 `UIPrefabSetup.GenerateTechTreePanel`이 계산해서 굽는다), 노드를 클릭하면 하단 상세
-  패널에 이름/효과/비용/해금 가능 여부(해금 완료·선행 기술 필요·발전도 부족·해금 가능)가 표시되고,
-  해금 버튼을 누르면 `OnUnlockRequested` 이벤트가 발생한다(`BattleHud.OnDefendClicked`와 같은 패턴 —
-  실제 해금 판정/소모는 `BattleController.HandleTechUnlockRequested`가 `TechSystem.Unlock`으로 수행하고,
-  결과를 다시 `SetState`로 반영).
+  `CityResourceHud`와 같은 패턴의 재사용 가능한 독립 프리팹. 토글 버튼으로 열고 닫는 패널 안에 **중앙
+  허브(시작 노드)에서 5갈래가 방사형(각 72도)으로 퍼져나가는 그래프 레이아웃** — 1티어는 허브에 바로
+  연결되고, 2티어는 좌우로 갈라지며(TechNodeData.Slot), 3티어는 부모와 같은 각도로 더 바깥쪽에 이어진다.
+  각 기술은 **아이콘이 있는 원형 노드**(해금 상태에 따라 회색/파랑/초록으로 칠해짐)이고 바로 아래에
+  이름 라벨이 붙는다. 노드 위치/반지름/연결선 전부 `TechTreeDefinition`의 Branch/Tier/Slot/ParentId만
+  보고 `UIPrefabSetup.GenerateTechTreePanel`이 계산해서 굽는다(기술 추가/삭제 시 이 코드는 그대로 둬도
+  됨). 원형 배경은 `RuntimeSprite.CreateCircle()`(BattleHud 패시브 배지와 공유하는 헬퍼로 분리),
+  아이콘 스프라이트는 `IconLibrary.Get(TechNodeData.Icon)` — 둘 다 프리팹에 구울 수 없어(디스크 에셋이
+  아님) `TechTreeHud.Init()`이 인스턴스화 직후 채운다. 노드를 클릭하면 하단 상세 패널에 이름/효과/비용/
+  해금 가능 여부(해금 완료·선행 기술 필요·발전도 부족·해금 가능)가 표시되고, 해금 버튼을 누르면
+  `OnUnlockRequested` 이벤트가 발생한다(`BattleHud.OnDefendClicked`와 같은 패턴 — 실제 해금 판정/소모는
+  `BattleController.HandleTechUnlockRequested`가 `TechSystem.Unlock`으로 수행하고, 결과를 다시
+  `SetState`로 반영).
+- **아이콘**: 25개 노드 + 중앙 허브 전용 아이콘 26종을 전부 자체 제작했다(`Assets/Art/GameIcons/
+  Resources/Icons`, `counter.png` 등 기존 패시브 아이콘과 같은 방식 — PowerShell + System.Drawing(GDI+)
+  으로 512x512 흰색 실루엣/투명 배경 PNG를 직접 그려서 저장, Unity 에디터 미사용). game-icons.net에서
+  받아오는 대신 이 방식을 택한 이유는 기존 12종 패시브 아이콘이 이미 이 프로젝트에서 검증된 방식이라
+  라이선스/일관성 문제 없이 바로 재사용할 수 있었기 때문. 출처는 `Assets/Art/GameIcons/LICENSE.txt`
+  참고.
 - `BattleController`의 `techTreeHudPrefab` 필드로 연결하며, `cityResourceHudPrefab`이 켜진 경우에만
   같이 초기화된다(도시 발전도가 있어야 의미가 있으므로). `CityResourceBar`와 마찬가지로 지금은
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
@@ -926,3 +938,40 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`, 5개 검증 전부 통과) 순으로 실행. 생성된
     프리팹의 연결선 개수(20 = 25노드 - 5개 1티어 루트)와 25개 노드의 한글 라벨이 깨지지 않고 그대로
     저장됐는지 직접 확인.
+
+- 2026-09-16: 기술트리 UI를 갈래x티어 격자에서 **중앙 허브 + 방사형(5방향) 그래프**로, 노드를 사각형에서
+  **아이콘 있는 원형**으로 교체.
+  - **동기**: 사용자가 스크린샷을 보고 "각 항목에 개별 아이콘 하나씩", "시작 노드를 중앙에 두고 5방향
+    으로 퍼져나가는 그래프 형식", "각 항목은 동그라미 모양"으로 바꿔달라고 요청.
+  - **아이콘 26종 자체 제작**: `Assets/Art/GameIcons/Resources/Icons`에 25개 기술 노드 + 중앙 허브용
+    "tech_hub" 아이콘을 추가. game-icons.net에서 새로 받아오는 대신, 이미 이 프로젝트에 있던 "자체 제작
+    아이콘" 방식(`counter.png`/`charge.png` 등 12종이 쓴 PowerShell + System.Drawing(GDI+) 흰색 실루엣/
+    투명 배경 512x512 PNG)을 그대로 따랐다 — 다운로드 없이 바로 라이선스 문제 없는 일관된 스타일을 낼 수
+    있어서다. 생성 스크립트(`GenerateTechIcons.ps1`)는 1회성 도구라 실행 후 삭제, 결과 PNG/meta만 남김.
+    `farming.png`(농사)는 첫 시도가 뭉개진 모양이라 밀 이삭 모양으로 다시 그렸다. `Assets/Art/GameIcons/
+    LICENSE.txt`에 26종 전부 자체 제작임을 기록.
+  - [`TechNodeData`](Assets/Scripts/TacticsECS/Core/TechNodeData.cs)에 `Icon`(아이콘 이름) 필드 추가,
+    [`TechTreeDefinition`](Assets/Scripts/TacticsECS/Data/TechTreeDefinition.cs) 25개 노드 전부에 매칭되는
+    아이콘 이름을 채우고 허브용 `HubIcon` 상수 추가.
+  - **원형 노드 + 방사형 배치**: `UIPrefabSetup.GenerateTechTreePanel`을 전면 재작성 — 중앙 허브(원점)에서
+    5갈래가 72도씩 나뉘고, 갈래 안에서는 1티어(허브에 바로 연결) -> 2티어(TechNodeData.Slot로 좌우
+    ±20도) -> 3티어(부모와 같은 각도로 더 바깥쪽) 순으로 반지름이 커지는 순수 계산 배치로 바꿨다(이전엔
+    가로=갈래/세로=티어인 격자였다). 각 노드는 사각형 버튼 대신 원형 `Image`(배경) + 중앙 `Icon` + 바로
+    아래 이름 `Label`으로 구성 — 배경 색은 해금 상태에 따라 런타임에 칠해지므로 여기서 굽지 않는다.
+    2티어->3티어는 부모·자식이 같은 각도라 둘을 잇는 연결선이 2티어 라벨과 같은 직선 위에 놓이는 문제가
+    있어(라벨 글자를 선이 가로지름), 그 구간의 반지름 간격만 더 넓혔다(1티어->2티어는 서로 각도가 달라
+    문제 없음). 이 패널만 Canvas 기준 해상도를 세로로 키워(1280x950, 다른 프리팹은 1280x720 그대로)
+    25개 노드+라벨이 겹치지 않을 공간을 확보했다.
+  - **원형 스프라이트 공유 헬퍼 분리**: `BattleHud`가 패시브 배지용으로 갖고 있던 런타임 원형 스프라이트
+    생성 코드(픽셀 직접 채우기 + 캐싱)를 `View/RuntimeSprite.cs`(`RuntimeMaterial`과 같은 성격의 공용
+    유틸리티)로 빼내 `TechTreeHud`의 노드 배경과 공유하도록 리팩터링. `BattleHud.CircleSprite`
+    프로퍼티/캐시 필드는 삭제하고 호출부를 `RuntimeSprite.CreateCircle()`로 교체.
+  - [`TechTreeHud.Init()`](Assets/Scripts/TacticsECS/View/TechTreeHud.cs)이 허브/25개 노드 각각의 원형
+    배경(`RuntimeSprite.CreateCircle()`)과 아이콘(`IconLibrary.Get(node.Icon)`)을 인스턴스화 직후
+    채우도록 갱신 — Sprite.Create 결과는 프리팹에 구워둘 수 없어(CityResourceHud/IconLibrary와 같은 이유)
+    코드로 매번 연결해야 한다.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `UIPrefabSetup.GenerateAll`(컴파일 에러
+    없음) → `UIVerification.Run`(`ALL PASS`) 순으로 실행. 배치를 눈으로 확인하기 위해 1회성 스크립트
+    (`TechTreeScreenshot.cs`, Edit 모드에서 임시 Camera+RenderTexture로 패널을 렌더링해 PNG 저장, 확인
+    후 삭제)로 스크린샷을 3차례 반복 캡처하며 라벨 겹침을 잡았다(처음엔 라벨 폭이 노드 간격보다 넓어
+    사방이 뒤엉켰고, 두 번째 시도에선 2티어->3티어 연결선이 라벨을 가로질렀다 — 위 반지름 조정으로 해결).

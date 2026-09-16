@@ -12,8 +12,11 @@ namespace TacticsECS
     /// BattleHud와 독립된 별도 프리팹(Assets/Prefabs/UI/TechTreePanel.prefab, UIPrefabSetup.
     /// GenerateTechTreePanel 참고, Unity CLI -executeMethod로만 생성)이다.
     ///
-    /// 각 기술 노드 버튼은 UIPrefabSetup이 TechTreeDefinition.Nodes 순서대로, 이름을 TechId.ToString()
-    /// 으로 구워둔다 — Init()이 그 이름으로 자식을 찾아(Wire) 참조를 캐싱하므로, 노드를 추가/삭제할 땐
+    /// 중앙 허브(시작 노드)에서 5갈래가 방사형으로 퍼져나가는 그래프 레이아웃이며, 각 기술은 아이콘이
+    /// 있는 원형 노드다(UIPrefabSetup.GenerateTechTreePanel이 위치/반지름/각도를 계산해서 굽는다). 각
+    /// 노드 버튼은 UIPrefabSetup이 TechTreeDefinition.Nodes 순서대로, 이름을 TechId.ToString()으로
+    /// 구워둔다 — Init()이 그 이름으로 자식을 찾아(Wire) 참조를 캐싱하고, 원형 배경/아이콘 스프라이트는
+    /// 프리팹에 구울 수 없어(RuntimeSprite/IconLibrary 참고) 여기서 직접 채운다. 노드를 추가/삭제할 땐
     /// TechTreeDefinition 한 곳만 고치면 된다(단, UIPrefabSetup을 다시 실행해야 프리팹도 갱신된다).
     /// </summary>
     public class TechTreeHud : MonoBehaviour
@@ -61,10 +64,19 @@ namespace TacticsECS
             closeButton.onClick.AddListener(() => _panel.SetActive(false));
 
             var tree = _panel.transform.Find("Tree");
+
+            var hub = tree.Find("Hub");
+            hub.GetComponent<Image>().sprite = RuntimeSprite.CreateCircle();
+            hub.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(TechTreeDefinition.HubIcon);
+
             foreach (var node in TechTreeDefinition.Nodes)
             {
                 var nodeRect = tree.Find(node.Id.ToString());
-                _nodeBg[node.Id] = nodeRect.GetComponent<Image>();
+                var bg = nodeRect.GetComponent<Image>();
+                bg.sprite = RuntimeSprite.CreateCircle();
+                _nodeBg[node.Id] = bg;
+
+                nodeRect.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(node.Icon);
 
                 var id = node.Id; // 클로저 캡처용 로컬 복사(foreach 변수를 그대로 캡처하면 안 됨)
                 nodeRect.GetComponent<Button>().onClick.AddListener(() => SelectNode(id));

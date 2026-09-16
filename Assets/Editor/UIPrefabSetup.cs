@@ -782,18 +782,33 @@ namespace TacticsECS.EditorTools
 
         // ---------- TechTreePanel (기술트리, 5갈래 x 1+2+2티어, 재사용 가능한 독립 프리팹) ----------
 
-        private const float TechBranchColumnWidth = 232f;
-        private const float TechNodeWidth = 96f;
-        private const float TechNodeHeight = 46f;
-        private const float TechTier1Y = -40f;
-        private const float TechTier2Y = -140f;
-        private const float TechTier3Y = -240f;
-        private const float TechSlotOffsetX = 62f;
+        // 중앙 허브(시작 노드)에서 5갈래가 방사형으로 퍼져나가는 배치. 반지름은 허브 기준 거리,
+        // 같은 갈래의 2/3티어는 TechBranchAngleSpreadDeg만큼 좌우로 벌어진 각도에 놓인다(3티어는 부모
+        // 2티어와 같은 각도 — 더 바깥쪽으로 이어지는 방사선처럼 보인다). 다른 프리팹과 달리 이 패널만
+        // 기준 해상도를 세로로 더 키운다(TechCanvasReferenceResolution) — 25개 노드 + 라벨이 겹치지
+        // 않을 공간이 1280x720으로는 부족해서다.
+        private static readonly Vector2 TechCanvasReferenceResolution = new Vector2(1280f, 950f);
+        private const float TechHubDiameter = 110f;
+        private const float TechTier1Diameter = 80f;
+        private const float TechTier2Diameter = 70f;
+        private const float TechTier3Diameter = 64f;
+        private const float TechR1 = 115f;
+        private const float TechR2 = 205f;
+        // R2->R3 간격은 R1->R2보다 훨씬 넓다 — 3티어는 부모(2티어)와 같은 각도라(Slot이 같음) 둘을 잇는
+        // 연결선이 2티어 라벨과 정확히 같은 직선 위에 놓이는데, 라벨 한 줄(약 40px)이 그 사이에 들어갈
+        // 여유가 없으면 연결선이 라벨 글자를 가로지른다. 1티어->2티어는 서로 각도가 달라(Slot로 벌어짐)
+        // 이 문제가 없다.
+        private const float TechR3 = 315f;
+        private const float TechBranchAngleSpreadDeg = 20f;
+        private const float TechTreeCenterY = 40f; // Detail 패널 공간을 아래에 남기기 위해 위로.
+        private const float TechIconInsetRatio = 0.58f; // 노드 지름 대비 아이콘 크기 비율.
+        private const float TechLabelWidth = 110f;
+        private const float TechLabelHeight = 30f;
         private const float TechConnectorThickness = 3f;
         private const float TechDetailWidth = 420f;
         private const float TechDetailHeight = 130f;
-        private static readonly Color TechNodeLocked = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color TechConnectorColor = new Color(1f, 1f, 1f, 0.25f);
+        private static readonly Color TechHubColor = new Color(1f, 1f, 1f, 0.9f);
 
         /// <summary>CityResourceBar와 마찬가지로 BattleHud와 독립된 별도 프리팹으로 만든다 — 도시 자원
         /// 화면이 있는 곳이라면 어디든 그대로 갖다 놓을 수 있게 하기 위함이다. 노드 배치(가로=갈래,
@@ -805,6 +820,7 @@ namespace TacticsECS.EditorTools
             var hud = root.AddComponent<TechTreeHud>();
 
             var canvasRoot = CreateCanvas(root.transform);
+            canvasRoot.GetComponent<CanvasScaler>().referenceResolution = TechCanvasReferenceResolution;
             BuildTechTreeToggleButton(font, canvasRoot);
             var panel = BuildTechTreeContent(font, canvasRoot);
             panel.gameObject.SetActive(false);
@@ -873,10 +889,10 @@ namespace TacticsECS.EditorTools
             closeLabel.text = "X";
 
             var tree = CreateRect("Tree", panel);
-            tree.anchorMin = tree.anchorMax = new Vector2(0.5f, 1f);
-            tree.pivot = new Vector2(0.5f, 1f);
-            tree.anchoredPosition = new Vector2(0f, -70f);
-            tree.sizeDelta = new Vector2(TechBranchColumnWidth * TechTreeDefinition.BranchOrder.Length, 300f);
+            tree.anchorMin = tree.anchorMax = new Vector2(0.5f, 0.5f);
+            tree.pivot = new Vector2(0.5f, 0.5f);
+            tree.anchoredPosition = new Vector2(0f, TechTreeCenterY);
+            tree.sizeDelta = new Vector2(700f, 700f); // 실제 배치는 자식들의 anchoredPosition이 결정한다.
 
             BuildTechTreeNodes(font, tree);
             BuildTechTreeDetail(font, panel);
@@ -884,36 +900,51 @@ namespace TacticsECS.EditorTools
             return panel;
         }
 
+        /// <summary>중앙 허브(시작 노드)를 원점으로, 갈래마다 72도씩 각도를 나누고 그 안에서 티어별로
+        /// 반지름을 늘려가며 배치한다(허브 -> 1티어 -> 2티어(좌우로 벌어짐) -> 3티어(부모와 같은 각도로
+        /// 더 바깥쪽)). 노드 위치/연결선 전부 TechTreeDefinition의 Branch/Tier/Slot/ParentId만 보고
+        /// 계산하므로, 기술을 추가/삭제해도 이 메서드는 건드릴 필요가 없다(갈래 수가 5가 아니게 바뀌면
+        /// 각도 간격만 자동으로 달라진다).</summary>
         private static void BuildTechTreeNodes(Font font, RectTransform tree)
         {
-            float totalWidth = TechBranchColumnWidth * TechTreeDefinition.BranchOrder.Length;
             var positions = new Dictionary<TechId, Vector2>();
+            var diameters = new Dictionary<TechId, float>();
+
+            const float startAngleDeg = 90f; // 첫 갈래가 정확히 위쪽을 향하게.
+            float branchStepDeg = 360f / TechTreeDefinition.BranchOrder.Length;
 
             for (int b = 0; b < TechTreeDefinition.BranchOrder.Length; b++)
             {
-                float branchCenterX = -totalWidth / 2f + TechBranchColumnWidth * (b + 0.5f);
+                float branchAngleDeg = startAngleDeg - b * branchStepDeg;
                 var branch = TechTreeDefinition.BranchOrder[b];
 
                 foreach (var node in TechTreeDefinition.Nodes)
                 {
                     if (node.Branch != branch) continue;
 
-                    float y = node.Tier == 1 ? TechTier1Y : node.Tier == 2 ? TechTier2Y : TechTier3Y;
-                    float x = branchCenterX + (node.Tier >= 2 ? (node.Slot == 0 ? -TechSlotOffsetX : TechSlotOffsetX) : 0f);
+                    float radius = node.Tier == 1 ? TechR1 : node.Tier == 2 ? TechR2 : TechR3;
+                    float angleDeg = node.Tier == 1
+                        ? branchAngleDeg
+                        : branchAngleDeg + (node.Slot == 0 ? -TechBranchAngleSpreadDeg : TechBranchAngleSpreadDeg);
+                    float angleRad = angleDeg * Mathf.Deg2Rad;
 
-                    positions[node.Id] = new Vector2(x, y);
+                    positions[node.Id] = new Vector2(radius * Mathf.Cos(angleRad), radius * Mathf.Sin(angleRad));
+                    diameters[node.Id] = node.Tier == 1 ? TechTier1Diameter : node.Tier == 2 ? TechTier2Diameter : TechTier3Diameter;
                 }
             }
 
-            // 연결선을 노드보다 먼저 만들어서 하이어라키상 노드 배경 아래에 깔리게 한다.
+            // 연결선을 노드보다 먼저 만들어서 하이어라키상 노드 배경 아래에 깔리게 한다. 1티어는 허브
+            // (원점, ParentId=None)에서 바로 이어진다.
             foreach (var node in TechTreeDefinition.Nodes)
             {
-                if (node.ParentId == TechId.None) continue;
-                CreateTechConnector(tree, positions[node.ParentId], positions[node.Id]);
+                Vector2 from = node.ParentId == TechId.None ? Vector2.zero : positions[node.ParentId];
+                CreateTechConnector(tree, from, positions[node.Id]);
             }
 
+            CreateTechHub(tree);
+
             foreach (var node in TechTreeDefinition.Nodes)
-                CreateTechNode(font, tree, node, positions[node.Id]);
+                CreateTechNode(font, tree, node, positions[node.Id], diameters[node.Id]);
         }
 
         /// <summary>두 점을 잇는 얇은 Image를 회전시켜 직선 커넥터처럼 보이게 만드는 표준 uGUI 트릭.</summary>
@@ -924,7 +955,7 @@ namespace TacticsECS.EditorTools
             float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
 
             var rect = CreateRect("Connector", parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = from + delta * 0.5f;
             rect.sizeDelta = new Vector2(length, TechConnectorThickness);
@@ -932,33 +963,72 @@ namespace TacticsECS.EditorTools
             CreatePanelImage(rect, TechConnectorColor);
         }
 
-        /// <summary>노드 하나(배경 버튼 + 이름 라벨). 이름을 TechId.ToString()으로 구워서 TechTreeHud.Init이
-        /// TechTreeDefinition을 순회하며 같은 이름으로 찾아 배선한다(CityResourceHud의 Wire 패턴과 같음).
-        /// 색은 여기서 굽지 않는다 — 해금 상태에 따라 매번 바뀌므로 TechTreeHud.SetState가 런타임에 칠한다.</summary>
-        private static void CreateTechNode(Font font, RectTransform parent, TechNodeData node, Vector2 pos)
+        /// <summary>방사형 배치의 중심에 놓이는 장식용 허브(시작 노드) — 어떤 TechId도 아니고 클릭할 수
+        /// 없다(Button 없음). 원형 배경(Bg)/아이콘(Icon) 스프라이트는 여기서 굽지 않는다 — Sprite.Create
+        /// 결과는 디스크 에셋이 아니라서 프리팹에 구워두면 참조가 유지되지 않으므로(IconLibrary/
+        /// RuntimeSprite 참고), TechTreeHud.Init()이 인스턴스화 직후 채운다.</summary>
+        private static void CreateTechHub(RectTransform parent)
+        {
+            var rect = CreateRect("Hub", parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(TechHubDiameter, TechHubDiameter);
+
+            var bg = rect.gameObject.AddComponent<Image>();
+            bg.color = TechHubColor;
+
+            CreateTechNodeIcon(rect, TechHubDiameter);
+        }
+
+        /// <summary>노드 하나(원형 배경 버튼 + 중앙 아이콘 + 바로 아래 이름 라벨). 이름을 TechId.ToString()
+        /// 으로 구워서 TechTreeHud.Init이 TechTreeDefinition을 순회하며 같은 이름으로 찾아 배선한다
+        /// (CityResourceHud의 Wire 패턴과 같음). 원형 배경 색/아이콘 스프라이트는 여기서 굽지 않는다 —
+        /// 색은 해금 상태에 따라 매번 바뀌므로, 스프라이트는 CreateTechHub와 같은 이유로 TechTreeHud.Init/
+        /// SetState가 런타임에 채운다.</summary>
+        private static void CreateTechNode(Font font, RectTransform parent, TechNodeData node, Vector2 pos, float diameter)
         {
             var rect = CreateRect(node.Id.ToString(), parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = pos;
-            rect.sizeDelta = new Vector2(TechNodeWidth, TechNodeHeight);
+            rect.sizeDelta = new Vector2(diameter, diameter);
 
-            var bg = CreatePanelImage(rect, TechNodeLocked);
+            var bg = rect.gameObject.AddComponent<Image>();
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = bg;
 
-            var textRect = CreateRect("Label", rect);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(4f, 2f);
-            textRect.offsetMax = new Vector2(-4f, -2f);
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 14;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.text = node.Name;
+            CreateTechNodeIcon(rect, diameter);
+
+            var labelRect = CreateRect("Label", rect);
+            labelRect.anchorMin = labelRect.anchorMax = new Vector2(0.5f, 0f);
+            labelRect.pivot = new Vector2(0.5f, 1f);
+            labelRect.anchoredPosition = new Vector2(0f, -4f);
+            labelRect.sizeDelta = new Vector2(TechLabelWidth, TechLabelHeight);
+            var label = labelRect.gameObject.AddComponent<Text>();
+            label.font = font;
+            label.fontSize = 12;
+            label.alignment = TextAnchor.UpperCenter;
+            label.color = Color.white;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.raycastTarget = false; // 라벨이 원 바깥에 있어도 클릭은 항상 원(Bg)이 받도록.
+            label.text = node.Name;
+        }
+
+        /// <summary>노드/허브 원 중앙에 들어가는 아이콘 Image 뼈대만 만든다(sprite는 런타임에 채움).
+        /// raycastTarget을 꺼서 클릭이 항상 부모의 Bg(=Button의 targetGraphic)로 가게 한다 — CreateIconButton과
+        /// 같은 이유.</summary>
+        private static void CreateTechNodeIcon(RectTransform parent, float diameter)
+        {
+            float inset = diameter * (1f - TechIconInsetRatio) * 0.5f;
+            var iconRect = CreateRect("Icon", parent);
+            iconRect.anchorMin = Vector2.zero;
+            iconRect.anchorMax = Vector2.one;
+            iconRect.offsetMin = new Vector2(inset, inset);
+            iconRect.offsetMax = new Vector2(-inset, -inset);
+            var icon = iconRect.gameObject.AddComponent<Image>();
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
         }
 
         /// <summary>선택된 노드의 이름/효과/해금 가능 여부/비용을 보여주는 하단 상세 패널.

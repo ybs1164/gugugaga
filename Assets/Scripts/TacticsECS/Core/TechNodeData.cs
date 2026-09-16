@@ -23,6 +23,11 @@ namespace TacticsECS
 
         public string Name;
 
+        /// <summary>이 노드의 아이콘 이름(IconLibrary.Get에 그대로 넘기는 키). Assets/Art/GameIcons/
+        /// Resources/Icons에 있는 자체 제작 아이콘(512x512 흰색 실루엣/투명 배경) 25종 + 중앙 허브용
+        /// "tech_hub" 1종 — Assets/Art/GameIcons/LICENSE.txt 참고.</summary>
+        public string Icon;
+
         /// <summary>해금에 필요한 도시 발전도(CityResourceData.Development). TechTreeDefinition의
         /// Tier1Cost/Tier2Cost/Tier3Cost 참고 — 아직 정식 밸런싱 전의 임시값이다.</summary>
         public int Cost;

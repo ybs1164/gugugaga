@@ -277,6 +277,42 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 - `BattleController`의 `cityResourceHudPrefab` 필드로 연결하며, 지금은 `Assets/Scenes/Sandbox.unity`
   (커스텀 배치 화면)에만 배정되어 있다 — `SampleScene`에는 비워둬 생성 자체를 건너뛴다. 시작값(인구
   상한/골드 생산량/신앙 최대치/수도 여부)은 `BattleController` 인스펙터에서 조정 가능.
+- 발전도(⚙️)는 원래 늘 0이었다(생산 로직이 없었음) — 기술트리가 실제로 쓸 자원이 필요해져
+  `DevelopmentProduction`(고정값 플레이스홀더, `GoldProduction`과 같은 이유) 필드를 추가하고
+  `ApplyTurnStart`가 매 플레이어 턴 시작마다 발전도를 그만큼 늘리도록 했다 — 아래 [기술트리](#기술트리-스킬트리-플레이스홀더) 참고.
+
+## 기술트리 (스킬트리, 플레이스홀더)
+
+폴리토피아 기반 5갈래(등산/채집/기마/사냥/낚시) x 1+2+2티어 = 25개 노드 기술트리. 도시 발전도(위
+[도시 발전 자원](#도시-발전-자원-플레이스홀더))를 소모해 해금한다. 각 노드가 실제로 여는 효과(건물
+건설, 유닛 훈련, 지형 방어 보너스 등)는 그 대상 시스템(건물/유닛 훈련/지형) 자체가 프로젝트에 아직
+없어 전부 구현하지 않았다 — "이 기술이 해금됐는가"라는 사실만 관리하고, 해당 시스템이 생기면
+`TechSystem.IsUnlocked`를 참조해 실제 효과를 적용하면 된다(`CityResourceSystem.IsConnectedToCapital`과
+같은 방식의 플레이스홀더).
+
+- [`TechId`](Assets/Scripts/TacticsECS/Core/TechId.cs): 25개 노드 식별자 enum(순수 태그).
+- [`TechNodeData`](Assets/Scripts/TacticsECS/Core/TechNodeData.cs): 노드 하나의 고정 정의(이름/티어/
+  선행 기술/비용/효과 요약 텍스트) — 순수 데이터.
+- [`TechTreeData`](Assets/Scripts/TacticsECS/Core/TechTreeData.cs): 도시 하나가 해금한 기술 집합
+  (`HashSet<TechId>`) — 순수 데이터. 지금은 도시가 하나뿐이라 `CityResourceData`처럼 `BattleController`가
+  필드 하나로 직접 들고 있는다.
+- [`TechTreeDefinition`](Assets/Scripts/TacticsECS/Data/TechTreeDefinition.cs): 25개 노드 전체를 채운
+  고정 테이블(기획 문서 그대로 옮김). 비용은 티어별 고정값(1티어 3 / 2티어 5 / 3티어 8)으로, 정식
+  밸런싱 전의 임시값이다.
+- [`TechSystem`](Assets/Scripts/TacticsECS/Systems/TechSystem.cs): 해금 가능 여부 판정(`IsAvailable` —
+  선행 기술 해금 여부, `CanUnlock` — 그리고 발전도 충분 여부)과 실제 해금(`Unlock` — 발전도 소모 +
+  해금 집합에 추가)을 담당하는 무상태 시스템.
+- [`TechTreeHud`](Assets/Scripts/TacticsECS/View/TechTreeHud.cs) + `Assets/Prefabs/UI/TechTreePanel.prefab`:
+  `CityResourceHud`와 같은 패턴의 재사용 가능한 독립 프리팹. 토글 버튼으로 열고 닫는 패널 안에 갈래(가로)
+  x 티어(세로)로 배치된 25개 노드 버튼 + 부모-자식 연결선(둘 다 `TechTreeDefinition`의 Branch/Tier/Slot/
+  ParentId만 보고 `UIPrefabSetup.GenerateTechTreePanel`이 계산해서 굽는다), 노드를 클릭하면 하단 상세
+  패널에 이름/효과/비용/해금 가능 여부(해금 완료·선행 기술 필요·발전도 부족·해금 가능)가 표시되고,
+  해금 버튼을 누르면 `OnUnlockRequested` 이벤트가 발생한다(`BattleHud.OnDefendClicked`와 같은 패턴 —
+  실제 해금 판정/소모는 `BattleController.HandleTechUnlockRequested`가 `TechSystem.Unlock`으로 수행하고,
+  결과를 다시 `SetState`로 반영).
+- `BattleController`의 `techTreeHudPrefab` 필드로 연결하며, `cityResourceHudPrefab`이 켜진 경우에만
+  같이 초기화된다(도시 발전도가 있어야 의미가 있으므로). `CityResourceBar`와 마찬가지로 지금은
+  `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
 
@@ -859,3 +895,34 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
     TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`(컴파일 에러 없음, `CityResourceBar.prefab` 생성 및
     `Sandbox.unity`에만 배정됨을 씬 diff로 확인), `unity run . -- -executeMethod
     TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`) 순으로 실행.
+
+- 2026-09-16: 기술트리(스킬트리) 구현 — 도시 발전도 소모형, 5갈래 x 25노드.
+  - **동기**: 폴리토피아 기반 기술트리 기획(등산/채집/기마/사냥/낚시 5갈래, 각 1+2+2티어) 다이어그램 +
+    표를 받아 구현 요청. "도시 발전 자원을 소모해서 진행"하라는 요청에 따라, 위 [기술트리](#기술트리-스킬트리-플레이스홀더)
+    절 참고. 미구현 기능은 플레이스홀더로 유지해달라는 요청대로, 노드 25개가 실제로 여는 효과(건물
+    건설/유닛 훈련/지형 보너스)는 대상 시스템 자체가 없어 구현하지 않고 "해금 여부" 상태만 관리한다.
+  - **부수 변경**: 기존 `CityResourceData.Development`(도시 발전도)는 생산 로직이 전혀 없어 항상 0으로
+    고정돼 있었다 — 기술트리가 실제로 소모할 자원이 필요해져, `GoldProduction`과 같은 방식의 고정값
+    플레이스홀더 `DevelopmentProduction` 필드를 추가하고 `CityResourceSystem.ApplyTurnStart`가 매
+    플레이어 턴마다 발전도를 그만큼 늘리도록 했다(`CityResourceData.Create` 시그니처에 매개변수 추가 —
+    기존 호출부 `BattleController`/`UIVerification` 갱신).
+  - 순수 데이터 [`TechId`](Assets/Scripts/TacticsECS/Core/TechId.cs)/[`TechNodeData`](Assets/Scripts/TacticsECS/Core/TechNodeData.cs)/
+    [`TechTreeData`](Assets/Scripts/TacticsECS/Core/TechTreeData.cs)(Core), 고정 테이블
+    [`TechTreeDefinition`](Assets/Scripts/TacticsECS/Data/TechTreeDefinition.cs)(Data, 25노드 전체 정의),
+    무상태 시스템 [`TechSystem`](Assets/Scripts/TacticsECS/Systems/TechSystem.cs)(Systems) 추가 —
+    CityResourceData/CityResourceSystem과 똑같이 CLAUDE.md의 Data/Systems 계층 분리 규칙을 그대로 따름.
+  - **UI**: [`TechTreeHud`](Assets/Scripts/TacticsECS/View/TechTreeHud.cs) View 스크립트 +
+    `Assets/Editor/UIPrefabSetup.cs`에 `GenerateTechTreePanel` 추가해 `Assets/Prefabs/UI/TechTreePanel.prefab`을
+    생성(`CityResourceBar`와 같은 패턴 — 노드 배치/연결선까지 전부 `TechTreeDefinition` 테이블만 보고
+    코드로 계산해서 굽고, 해금 상태에 따른 색칠만 `TechTreeHud`가 런타임에 채움). `BattleController`에
+    `techTreeHudPrefab` 필드 + `HandleTechUnlockRequested` 핸들러 추가, `UIPrefabSetup.AssignToScene`이
+    `Sandbox.unity`에만 배정하도록 함.
+  - [`UIVerification.cs`](Assets/Editor/UIVerification.cs)에 `VerifyTechTreePanel` 추가 — 선행 기술이
+    해금된 2티어 노드는 해금 가능, 선행 기술이 없는 3티어 노드는 해금 불가로 표시되는지, 해금 버튼 클릭
+    시 `OnUnlockRequested`가 올바른 `TechId`로 발생하는지 확인.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`(컴파일 에러 없음, `TechTreePanel.prefab` 생성 및
+    `Sandbox.unity`에만 배정됨을 로그로 확인), `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`, 5개 검증 전부 통과) 순으로 실행. 생성된
+    프리팹의 연결선 개수(20 = 25노드 - 5개 1티어 루트)와 25개 노드의 한글 라벨이 깨지지 않고 그대로
+    저장됐는지 직접 확인.

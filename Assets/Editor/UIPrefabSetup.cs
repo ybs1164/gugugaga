@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -94,14 +95,15 @@ namespace TacticsECS.EditorTools
             var battleHud = GenerateBattleHud(eventSystem, font);
             var sandboxHud = GenerateSandboxHud(paletteButton, font);
             var cityResourceBar = GenerateCityResourceBar(font);
+            var techTreePanel = GenerateTechTreePanel(font);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             PatchUnitPrefabs(hpDisplay, damagePopup);
-            AssignToScenes(battleHud, sandboxHud, cityResourceBar);
+            AssignToScenes(battleHud, sandboxHud, cityResourceBar, techTreePanel);
 
-            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud/CityResourceBar prefabs created under " + UiFolderPath);
+            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud/CityResourceBar/TechTreePanel prefabs created under " + UiFolderPath);
         }
 
         /// <summary>모든 UI Text/TextMesh가 공유하는 폰트. 텍스처 임포트 설정처럼 에디터를 직접 열어
@@ -778,6 +780,257 @@ namespace TacticsECS.EditorTools
             }
         }
 
+        // ---------- TechTreePanel (기술트리, 5갈래 x 1+2+2티어, 재사용 가능한 독립 프리팹) ----------
+
+        private const float TechBranchColumnWidth = 232f;
+        private const float TechNodeWidth = 96f;
+        private const float TechNodeHeight = 46f;
+        private const float TechTier1Y = -40f;
+        private const float TechTier2Y = -140f;
+        private const float TechTier3Y = -240f;
+        private const float TechSlotOffsetX = 62f;
+        private const float TechConnectorThickness = 3f;
+        private const float TechDetailWidth = 420f;
+        private const float TechDetailHeight = 130f;
+        private static readonly Color TechNodeLocked = new Color(0.16f, 0.17f, 0.20f, 0.95f);
+        private static readonly Color TechConnectorColor = new Color(1f, 1f, 1f, 0.25f);
+
+        /// <summary>CityResourceBar와 마찬가지로 BattleHud와 독립된 별도 프리팹으로 만든다 — 도시 자원
+        /// 화면이 있는 곳이라면 어디든 그대로 갖다 놓을 수 있게 하기 위함이다. 노드 배치(가로=갈래,
+        /// 세로=티어)와 부모-자식 연결선은 TechTreeDefinition의 Branch/Tier/Slot/ParentId만 보고 이
+        /// 메서드가 전부 계산한다 — 기술을 추가/삭제해도 이 코드는 건드릴 필요가 없다.</summary>
+        private static GameObject GenerateTechTreePanel(Font font)
+        {
+            var root = new GameObject("TechTreePanel");
+            var hud = root.AddComponent<TechTreeHud>();
+
+            var canvasRoot = CreateCanvas(root.transform);
+            BuildTechTreeToggleButton(font, canvasRoot);
+            var panel = BuildTechTreeContent(font, canvasRoot);
+            panel.gameObject.SetActive(false);
+
+            SetPrivateField(hud, "uiFont", font);
+            EditorUtility.SetDirty(hud);
+
+            string path = $"{UiFolderPath}/TechTreePanel.prefab";
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        private static void BuildTechTreeToggleButton(Font font, Transform root)
+        {
+            var rect = CreateRect("ToggleButton", root);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -64f); // CityResourceBar(높이 40, y -16~-56) 바로 아래
+            rect.sizeDelta = new Vector2(96f, 30f);
+
+            var bg = CreatePanelImage(rect, ButtonIdle);
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = bg;
+
+            var textRect = CreateRect("Label", rect);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textRect.gameObject.AddComponent<Text>();
+            text.font = font;
+            text.fontSize = 15;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "기술트리";
+        }
+
+        private static RectTransform BuildTechTreeContent(Font font, Transform root)
+        {
+            var panel = CreateRect("Panel", root);
+            panel.anchorMin = Vector2.zero;
+            panel.anchorMax = Vector2.one;
+            panel.offsetMin = Vector2.zero;
+            panel.offsetMax = Vector2.zero;
+            CreatePanelImage(panel, new Color(0f, 0f, 0f, 0.55f));
+
+            var closeRect = CreateRect("CloseButton", panel);
+            closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
+            closeRect.pivot = new Vector2(1f, 1f);
+            closeRect.anchoredPosition = new Vector2(-16f, -16f);
+            closeRect.sizeDelta = new Vector2(36f, 36f);
+            var closeBg = CreatePanelImage(closeRect, ButtonIdle);
+            var closeButton = closeRect.gameObject.AddComponent<Button>();
+            closeButton.targetGraphic = closeBg;
+            var closeLabelRect = CreateRect("Label", closeRect);
+            closeLabelRect.anchorMin = Vector2.zero;
+            closeLabelRect.anchorMax = Vector2.one;
+            closeLabelRect.offsetMin = Vector2.zero;
+            closeLabelRect.offsetMax = Vector2.zero;
+            var closeLabel = closeLabelRect.gameObject.AddComponent<Text>();
+            closeLabel.font = font;
+            closeLabel.fontSize = 20;
+            closeLabel.alignment = TextAnchor.MiddleCenter;
+            closeLabel.color = Color.white;
+            closeLabel.text = "X";
+
+            var tree = CreateRect("Tree", panel);
+            tree.anchorMin = tree.anchorMax = new Vector2(0.5f, 1f);
+            tree.pivot = new Vector2(0.5f, 1f);
+            tree.anchoredPosition = new Vector2(0f, -70f);
+            tree.sizeDelta = new Vector2(TechBranchColumnWidth * TechTreeDefinition.BranchOrder.Length, 300f);
+
+            BuildTechTreeNodes(font, tree);
+            BuildTechTreeDetail(font, panel);
+
+            return panel;
+        }
+
+        private static void BuildTechTreeNodes(Font font, RectTransform tree)
+        {
+            float totalWidth = TechBranchColumnWidth * TechTreeDefinition.BranchOrder.Length;
+            var positions = new Dictionary<TechId, Vector2>();
+
+            for (int b = 0; b < TechTreeDefinition.BranchOrder.Length; b++)
+            {
+                float branchCenterX = -totalWidth / 2f + TechBranchColumnWidth * (b + 0.5f);
+                var branch = TechTreeDefinition.BranchOrder[b];
+
+                foreach (var node in TechTreeDefinition.Nodes)
+                {
+                    if (node.Branch != branch) continue;
+
+                    float y = node.Tier == 1 ? TechTier1Y : node.Tier == 2 ? TechTier2Y : TechTier3Y;
+                    float x = branchCenterX + (node.Tier >= 2 ? (node.Slot == 0 ? -TechSlotOffsetX : TechSlotOffsetX) : 0f);
+
+                    positions[node.Id] = new Vector2(x, y);
+                }
+            }
+
+            // 연결선을 노드보다 먼저 만들어서 하이어라키상 노드 배경 아래에 깔리게 한다.
+            foreach (var node in TechTreeDefinition.Nodes)
+            {
+                if (node.ParentId == TechId.None) continue;
+                CreateTechConnector(tree, positions[node.ParentId], positions[node.Id]);
+            }
+
+            foreach (var node in TechTreeDefinition.Nodes)
+                CreateTechNode(font, tree, node, positions[node.Id]);
+        }
+
+        /// <summary>두 점을 잇는 얇은 Image를 회전시켜 직선 커넥터처럼 보이게 만드는 표준 uGUI 트릭.</summary>
+        private static void CreateTechConnector(RectTransform parent, Vector2 from, Vector2 to)
+        {
+            Vector2 delta = to - from;
+            float length = delta.magnitude;
+            float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+
+            var rect = CreateRect("Connector", parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = from + delta * 0.5f;
+            rect.sizeDelta = new Vector2(length, TechConnectorThickness);
+            rect.localRotation = Quaternion.Euler(0f, 0f, angle);
+            CreatePanelImage(rect, TechConnectorColor);
+        }
+
+        /// <summary>노드 하나(배경 버튼 + 이름 라벨). 이름을 TechId.ToString()으로 구워서 TechTreeHud.Init이
+        /// TechTreeDefinition을 순회하며 같은 이름으로 찾아 배선한다(CityResourceHud의 Wire 패턴과 같음).
+        /// 색은 여기서 굽지 않는다 — 해금 상태에 따라 매번 바뀌므로 TechTreeHud.SetState가 런타임에 칠한다.</summary>
+        private static void CreateTechNode(Font font, RectTransform parent, TechNodeData node, Vector2 pos)
+        {
+            var rect = CreateRect(node.Id.ToString(), parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = new Vector2(TechNodeWidth, TechNodeHeight);
+
+            var bg = CreatePanelImage(rect, TechNodeLocked);
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = bg;
+
+            var textRect = CreateRect("Label", rect);
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(4f, 2f);
+            textRect.offsetMax = new Vector2(-4f, -2f);
+            var text = textRect.gameObject.AddComponent<Text>();
+            text.font = font;
+            text.fontSize = 14;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.text = node.Name;
+        }
+
+        /// <summary>선택된 노드의 이름/효과/해금 가능 여부/비용을 보여주는 하단 상세 패널.
+        /// TechTreeHud.SelectNode/RefreshDetail이 채운다.</summary>
+        private static void BuildTechTreeDetail(Font font, Transform panel)
+        {
+            var detail = CreateRect("Detail", panel);
+            detail.anchorMin = new Vector2(0.5f, 0f);
+            detail.anchorMax = new Vector2(0.5f, 0f);
+            detail.pivot = new Vector2(0.5f, 0f);
+            detail.anchoredPosition = new Vector2(0f, 20f);
+            detail.sizeDelta = new Vector2(TechDetailWidth, TechDetailHeight);
+            CreatePanelImage(detail, PanelBackground);
+
+            var name = CreateRect("Name", detail);
+            name.anchorMin = name.anchorMax = new Vector2(0f, 1f);
+            name.pivot = new Vector2(0f, 1f);
+            name.anchoredPosition = new Vector2(14f, -10f);
+            name.sizeDelta = new Vector2(TechDetailWidth - 28f, 26f);
+            var nameText = name.gameObject.AddComponent<Text>();
+            nameText.font = font;
+            nameText.fontSize = 18;
+            nameText.alignment = TextAnchor.MiddleLeft;
+            nameText.color = Color.white;
+
+            var effect = CreateRect("Effect", detail);
+            effect.anchorMin = effect.anchorMax = new Vector2(0f, 1f);
+            effect.pivot = new Vector2(0f, 1f);
+            effect.anchoredPosition = new Vector2(14f, -40f);
+            effect.sizeDelta = new Vector2(TechDetailWidth - 28f, 48f);
+            var effectText = effect.gameObject.AddComponent<Text>();
+            effectText.font = font;
+            effectText.fontSize = 13;
+            effectText.alignment = TextAnchor.UpperLeft;
+            effectText.color = new Color(1f, 1f, 1f, 0.85f);
+            effectText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            effectText.verticalOverflow = VerticalWrapMode.Overflow;
+
+            var status = CreateRect("Status", detail);
+            status.anchorMin = status.anchorMax = new Vector2(0f, 0f);
+            status.pivot = new Vector2(0f, 0f);
+            status.anchoredPosition = new Vector2(14f, 10f);
+            status.sizeDelta = new Vector2(230f, 34f);
+            var statusText = status.gameObject.AddComponent<Text>();
+            statusText.font = font;
+            statusText.fontSize = 13;
+            statusText.alignment = TextAnchor.MiddleLeft;
+            statusText.color = new Color(1f, 0.85f, 0.4f);
+            statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            var unlockRect = CreateRect("UnlockButton", detail);
+            unlockRect.anchorMin = unlockRect.anchorMax = new Vector2(1f, 0f);
+            unlockRect.pivot = new Vector2(1f, 0f);
+            unlockRect.anchoredPosition = new Vector2(-14f, 10f);
+            unlockRect.sizeDelta = new Vector2(120f, 34f);
+            var unlockBg = CreatePanelImage(unlockRect, PlayerAccent);
+            var unlockButton = unlockRect.gameObject.AddComponent<Button>();
+            unlockButton.targetGraphic = unlockBg;
+
+            var unlockLabelRect = CreateRect("Label", unlockRect);
+            unlockLabelRect.anchorMin = Vector2.zero;
+            unlockLabelRect.anchorMax = Vector2.one;
+            unlockLabelRect.offsetMin = Vector2.zero;
+            unlockLabelRect.offsetMax = Vector2.zero;
+            var unlockLabel = unlockLabelRect.gameObject.AddComponent<Text>();
+            unlockLabel.font = font;
+            unlockLabel.fontSize = 15;
+            unlockLabel.alignment = TextAnchor.MiddleCenter;
+            unlockLabel.color = Color.white;
+            unlockLabel.text = "해금";
+        }
+
         // ---------- 공용 빌딩 블록 ----------
 
         private static Transform CreateCanvas(Transform root)
@@ -849,17 +1102,17 @@ namespace TacticsECS.EditorTools
 
         // ---------- 씬 연결 / 공용 유틸 ----------
 
-        /// <summary>cityResourceBarPrefab은 커스텀(샌드박스 배치) 화면에만 연결한다 — 데모 전투 씬
-        /// (SampleScene)에는 배정하지 않으므로 null로 남는다(BattleController가 null 체크 후 생성 자체를
-        /// 건너뛴다).</summary>
-        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab)
+        /// <summary>cityResourceBarPrefab/techTreePanelPrefab은 커스텀(샌드박스 배치) 화면에만 연결한다 —
+        /// 데모 전투 씬(SampleScene)에는 배정하지 않으므로 null로 남는다(BattleController가 null 체크 후
+        /// 생성 자체를 건너뛴다).</summary>
+        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab, GameObject techTreePanelPrefab)
         {
-            AssignToScene(ScenePath, battleHudPrefab, sandboxHudPrefab, null);
+            AssignToScene(ScenePath, battleHudPrefab, sandboxHudPrefab, null, null);
             if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) != null)
-                AssignToScene(SandboxScenePath, battleHudPrefab, sandboxHudPrefab, cityResourceBarPrefab);
+                AssignToScene(SandboxScenePath, battleHudPrefab, sandboxHudPrefab, cityResourceBarPrefab, techTreePanelPrefab);
         }
 
-        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab)
+        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab, GameObject techTreePanelPrefab)
         {
             var scene = EditorSceneManager.OpenScene(scenePath);
             var controller = Object.FindFirstObjectByType<BattleController>(FindObjectsInactive.Include);
@@ -873,6 +1126,8 @@ namespace TacticsECS.EditorTools
             SetPrivateField(controller, "sandboxHudPrefab", sandboxHudPrefab.GetComponent<SandboxHud>());
             if (cityResourceBarPrefab != null)
                 SetPrivateField(controller, "cityResourceHudPrefab", cityResourceBarPrefab.GetComponent<CityResourceHud>());
+            if (techTreePanelPrefab != null)
+                SetPrivateField(controller, "techTreeHudPrefab", techTreePanelPrefab.GetComponent<TechTreeHud>());
             EditorUtility.SetDirty(controller);
 
             EditorSceneManager.MarkSceneDirty(scene);

@@ -76,11 +76,18 @@ namespace TacticsECS
         [Tooltip("매 턴 시작 시 자동 생산되는 골드량(수도 보너스는 별도). 실제로는 도시 타일/건물 생산량의 " +
             "합이어야 하지만 타일 시스템이 없어 고정값 플레이스홀더로 둔다.")]
         [SerializeField] private int cityGoldProduction = 1;
+        [Tooltip("매 턴 시작 시 자동 생산되는 도시 발전도(기술트리 해금에 쓰인다). 실제로는 수도와 연결된 " +
+            "도시 수에 비례해야 하지만 영토/도로 시스템이 없어 고정값 플레이스홀더로 둔다 " +
+            "(CityResourceSystem.IsConnectedToCapital 참고).")]
+        [SerializeField] private int cityDevelopmentProduction = 1;
         [Tooltip("신앙 최대 보유량.")]
         [SerializeField] private int cityMaxFaith = 10;
         [Tooltip("최초 시작 도시(수도) 여부 — 켜면 골드 생산 +1 보너스가 붙는다(피점령 시 일반 도시 취급하는 " +
             "규칙은 점령 개념이 없어 아직 반영하지 않는다).")]
         [SerializeField] private bool cityIsCapital = true;
+        [Tooltip("기술트리 패널 프리팹. 비워두면 생성 자체를 건너뛴다 — cityResourceHudPrefab과 같은 블록 " +
+            "에서만 초기화된다(도시 발전도가 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
+        [SerializeField] private TechTreeHud techTreeHudPrefab;
 
         [Header("Camera (Isometric)")]
         [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
@@ -114,6 +121,9 @@ namespace TacticsECS
 
         private CityResourceHud _cityResourceHud;
         private CityResourceData _playerCity;
+
+        private TechTreeHud _techTreeHud;
+        private TechTreeData _playerTech;
 
         // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
         // 팬(이동)은 이 focus 점만 옮기고, 매 프레임 여기서 실제 카메라 position을 재계산한다.
@@ -184,8 +194,18 @@ namespace TacticsECS
                 _cityResourceHud = Instantiate(cityResourceHudPrefab, transform);
                 _cityResourceHud.name = "CityResourceHud";
                 _cityResourceHud.Init();
-                _playerCity = CityResourceData.Create(cityPopulationCap, cityGoldProduction, cityMaxFaith, cityIsCapital);
+                _playerCity = CityResourceData.Create(cityPopulationCap, cityGoldProduction, cityDevelopmentProduction, cityMaxFaith, cityIsCapital);
                 RefreshCityResources();
+
+                if (techTreeHudPrefab != null)
+                {
+                    _techTreeHud = Instantiate(techTreeHudPrefab, transform);
+                    _techTreeHud.name = "TechTreeHud";
+                    _techTreeHud.Init();
+                    _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
+                    _playerTech = TechTreeData.CreateEmpty();
+                    RefreshTechTree();
+                }
             }
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
@@ -240,6 +260,7 @@ namespace TacticsECS
             _sandboxHud = null;
             _placementController = null;
             _cityResourceHud = null;
+            _techTreeHud = null;
 
             SetupBattle();
         }
@@ -489,6 +510,8 @@ namespace TacticsECS
             {
                 _playerCity = CityResourceSystem.ApplyTurnStart(_playerCity, _world, Team.Player);
                 RefreshCityResources();
+                // 발전도가 늘어나 해금 가능 여부/버튼 활성화가 바뀔 수 있으므로 같이 갱신한다.
+                if (_techTreeHud != null) RefreshTechTree();
             }
 
             if (team == Team.Enemy && !_battleOver)
@@ -501,6 +524,20 @@ namespace TacticsECS
         {
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
             _cityResourceHud.SetResources(_playerCity, populationUsed);
+        }
+
+        private void RefreshTechTree()
+        {
+            _techTreeHud.SetState(_playerTech, _playerCity);
+        }
+
+        /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/발전도 소모는 TechSystem이 계산하고,
+        /// 결과를 두 HUD 모두에 다시 반영한다(발전도가 줄어드므로 CityResourceHud도 함께).</summary>
+        private void HandleTechUnlockRequested(TechId id)
+        {
+            _playerTech = TechSystem.Unlock(_playerTech, _playerCity, id, out _playerCity);
+            RefreshTechTree();
+            RefreshCityResources();
         }
 
         private IEnumerator RunEnemyTurnRoutine()

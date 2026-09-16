@@ -19,7 +19,8 @@ namespace TacticsECS.EditorTools
             bool ok = VerifyFont() &
                       VerifyBattleHudRosterAndLog() &
                       VerifyUnitLabelAndDamagePopupWiring() &
-                      VerifyCityResourceBar();
+                      VerifyCityResourceBar() &
+                      VerifyTechTreePanel();
             Debug.Log(ok ? "[UIVerification] ALL PASS" : "[UIVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -141,7 +142,7 @@ namespace TacticsECS.EditorTools
             {
                 instance.Init();
 
-                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, maxFaith: 10, isCapital: true);
+                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
                 city.Development = 2;
                 city.Gold = 5;
                 city.Faith = 4;
@@ -169,6 +170,67 @@ namespace TacticsECS.EditorTools
             }
 
             if (ok) Debug.Log("[UIVerification] city resource bar PASS");
+            return ok;
+        }
+
+        /// <summary>TechTreePanel.prefab(기술트리)이 노드 선택 시 상세 정보를 제대로 보여주고, 선행 기술/
+        /// 발전도 부족 판정에 따라 해금 버튼 활성화를 올바르게 바꾸며, 실제로 해금 버튼을 누르면
+        /// OnUnlockRequested가 발생하는지 확인한다.</summary>
+        private static bool VerifyTechTreePanel()
+        {
+            var hudPrefab = AssetDatabase.LoadAssetAtPath<TechTreeHud>("Assets/Prefabs/UI/TechTreePanel.prefab");
+            var instance = Object.Instantiate(hudPrefab);
+            bool ok = true;
+
+            try
+            {
+                instance.Init();
+
+                var tech = TechTreeData.CreateEmpty();
+                tech.Unlocked.Add(TechId.Mountaineering);
+                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
+                city.Development = 10;
+                instance.SetState(tech, city);
+
+                var tree = instance.transform.Find("Canvas/Panel/Tree");
+                var detail = instance.transform.Find("Canvas/Panel/Detail");
+                var nameText = detail.Find("Name").GetComponent<Text>();
+                var statusText = detail.Find("Status").GetComponent<Text>();
+                var unlockButton = detail.Find("UnlockButton").GetComponent<Button>();
+
+                // 선행 기술(등산)이 해금되어 있고 발전도(10)가 비용(5)보다 많은 2티어 노드 -> 해금 가능해야 한다.
+                tree.Find(TechId.Meditation.ToString()).GetComponent<Button>().onClick.Invoke();
+                if (!nameText.text.Contains("명상") || !unlockButton.interactable)
+                {
+                    Debug.LogError($"[UIVerification] TechTreePanel: expected Meditation to be unlockable, name='{nameText.text}', interactable={unlockButton.interactable}, status='{statusText.text}'");
+                    ok = false;
+                }
+
+                // 선행 기술(명상)이 아직 해금되지 않은 3티어 노드 -> 해금 불가여야 한다.
+                tree.Find(TechId.Philosophy.ToString()).GetComponent<Button>().onClick.Invoke();
+                if (unlockButton.interactable || !statusText.text.Contains("선행 기술"))
+                {
+                    Debug.LogError($"[UIVerification] TechTreePanel: expected Philosophy to require a prerequisite, interactable={unlockButton.interactable}, status='{statusText.text}'");
+                    ok = false;
+                }
+
+                // 해금 버튼 클릭 -> OnUnlockRequested(Meditation) 발생 확인.
+                TechId requested = TechId.None;
+                instance.OnUnlockRequested += id => requested = id;
+                tree.Find(TechId.Meditation.ToString()).GetComponent<Button>().onClick.Invoke();
+                unlockButton.onClick.Invoke();
+                if (requested != TechId.Meditation)
+                {
+                    Debug.LogError($"[UIVerification] TechTreePanel: expected OnUnlockRequested(Meditation), got {requested}");
+                    ok = false;
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance.gameObject);
+            }
+
+            if (ok) Debug.Log("[UIVerification] tech tree panel PASS");
             return ok;
         }
     }

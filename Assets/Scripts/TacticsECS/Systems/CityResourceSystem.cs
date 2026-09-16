@@ -33,10 +33,11 @@ namespace TacticsECS
             return CountPopulation(world, team) < city.PopulationCap;
         }
 
-        /// <summary>매 턴 시작 시 자동 생산되는 골드/신앙을 반영한 다음 CityResourceData를 반환한다.
-        /// 신앙은 보유 유닛 수만큼 늘어나되 MaxFaith를 넘지 않는다.</summary>
+        /// <summary>매 턴 시작 시 자동 생산되는 발전도/골드/신앙을 반영한 다음 CityResourceData를
+        /// 반환한다. 신앙은 보유 유닛 수만큼 늘어나되 MaxFaith를 넘지 않는다.</summary>
         public static CityResourceData ApplyTurnStart(CityResourceData city, EntityWorld world, Team team)
         {
+            city.Development += city.DevelopmentProduction;
             city.Gold += city.GoldProduction + (city.IsCapital ? CapitalGoldBonus : 0);
 
             int faith = city.Faith + CountPopulation(world, team);

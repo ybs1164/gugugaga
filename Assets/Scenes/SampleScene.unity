@@ -481,8 +481,10 @@ MonoBehaviour:
   cityResourceHudPrefab: {fileID: 0}
   cityPopulationCap: 10
   cityGoldProduction: 1
+  cityDevelopmentProduction: 1
   cityMaxFaith: 10
   cityIsCapital: 1
+  techTreeHudPrefab: {fileID: 0}
   isoYawDegrees: 45
   isoPitchDegrees: 35.264
   isoZoom: 0.62

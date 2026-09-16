@@ -271,8 +271,9 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   (`IsConnectedToCapital`, 항상 `false`)를 제공하는 무상태 시스템.
 - [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`:
   네 자원을 아이콘+숫자로 보여주는 재사용 가능한 독립 프리팹(BattleHud와 무관하게 어느 화면에도 배치
-  가능). 아이콘 아트가 아직 없어 `BattleHud.CircleSprite`와 같은 방식으로 런타임에 색만 다른 원을
-  그려 임시 아이콘으로 쓴다.
+  가능). 발전도/인구/골드/신앙 전용 아이콘 아트는 아직 없어, `IconLibrary`에 이미 있는 아이콘 중 의미가
+  가장 비슷한 것(발전도=`combo`, 인구=`herd`, 골드=`victory`, 신앙=`splash`)을 자원별 색으로 틴트해
+  대신 쓴다 — 전용 아이콘이 추가되면 `CityResourceHud.SlotDefs` 표만 바꾸면 된다.
 - `BattleController`의 `cityResourceHudPrefab` 필드로 연결하며, 지금은 `Assets/Scenes/Sandbox.unity`
   (커스텀 배치 화면)에만 배정되어 있다 — `SampleScene`에는 비워둬 생성 자체를 건너뛴다. 시작값(인구
   상한/골드 생산량/신앙 최대치/수도 여부)은 `BattleController` 인스펙터에서 조정 가능.

@@ -22,10 +22,18 @@ namespace TacticsECS
         private Text _goldText;
         private Text _faithText;
 
-        private static Sprite _developmentIconSprite;
-        private static Sprite _populationIconSprite;
-        private static Sprite _goldIconSprite;
-        private static Sprite _faithIconSprite;
+        // 발전도/인구/골드/신앙 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 4종이
+        // 없음), 기존 IconLibrary 세트 중 의미가 가장 비슷한 아이콘을 대신 가져다 쓴다 — combo(상승하는
+        // 화살표 3개 = 성장/발전), herd(겹친 원 3개 = 무리/보유 수), victory(트로피 = 재화/보상),
+        // splash(별 모양 광원 = 신앙/기운). 각 자원 색으로 틴트(Image.color)해서 서로 구분한다. 전용
+        // 아이콘이 추가되면 이 표만 교체하면 된다.
+        private static readonly (string Icon, Color Tint)[] SlotDefs =
+        {
+            ("combo", new Color(0.75f, 0.75f, 0.80f)),
+            ("herd", new Color(0.30f, 0.55f, 0.95f)),
+            ("victory", new Color(0.95f, 0.80f, 0.25f)),
+            ("splash", new Color(0.65f, 0.35f, 0.85f)),
+        };
 
         public void Init()
         {
@@ -37,15 +45,17 @@ namespace TacticsECS
             }
 
             var bar = canvas.Find("Bar");
-            _developmentText = WireSlot(bar.Find("Development"), DevelopmentIconSprite);
-            _populationText = WireSlot(bar.Find("Population"), PopulationIconSprite);
-            _goldText = WireSlot(bar.Find("Gold"), GoldIconSprite);
-            _faithText = WireSlot(bar.Find("Faith"), FaithIconSprite);
+            _developmentText = WireSlot(bar.Find("Development"), SlotDefs[0]);
+            _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
+            _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
+            _faithText = WireSlot(bar.Find("Faith"), SlotDefs[3]);
         }
 
-        private static Text WireSlot(Transform slot, Sprite iconSprite)
+        private static Text WireSlot(Transform slot, (string Icon, Color Tint) def)
         {
-            slot.Find("Icon").GetComponent<Image>().sprite = iconSprite;
+            var icon = slot.Find("Icon").GetComponent<Image>();
+            icon.sprite = IconLibrary.Get(def.Icon);
+            icon.color = def.Tint;
             return slot.Find("Number").GetComponent<Text>();
         }
 
@@ -58,52 +68,6 @@ namespace TacticsECS
             _populationText.text = $"{populationUsed}/{city.PopulationCap}";
             _goldText.text = city.Gold.ToString();
             _faithText.text = $"{city.Faith}/{city.MaxFaith}";
-        }
-
-        // 발전도/인구/골드/신앙 아이콘 아트가 아직 없어(Assets/Art/GameIcons에 없음), BattleHud.CircleSprite
-        // 와 같은 이유로 런타임에 색만 다른 동그라미를 그려 임시 아이콘으로 쓴다 — Sprite.Create 결과는
-        // 디스크 에셋이 아니라서 프리팹에 미리 구워둘 수 없다. 실제 아이콘이 추가되면 IconLibrary.Get으로
-        // 바꾸면 된다.
-        private static Sprite DevelopmentIconSprite
-        {
-            get { return _developmentIconSprite != null ? _developmentIconSprite : (_developmentIconSprite = MakeColoredCircle(new Color(0.55f, 0.55f, 0.60f))); }
-        }
-
-        private static Sprite PopulationIconSprite
-        {
-            get { return _populationIconSprite != null ? _populationIconSprite : (_populationIconSprite = MakeColoredCircle(new Color(0.30f, 0.55f, 0.95f))); }
-        }
-
-        private static Sprite GoldIconSprite
-        {
-            get { return _goldIconSprite != null ? _goldIconSprite : (_goldIconSprite = MakeColoredCircle(new Color(0.95f, 0.80f, 0.25f))); }
-        }
-
-        private static Sprite FaithIconSprite
-        {
-            get { return _faithIconSprite != null ? _faithIconSprite : (_faithIconSprite = MakeColoredCircle(new Color(0.65f, 0.35f, 0.85f))); }
-        }
-
-        private static Sprite MakeColoredCircle(Color color)
-        {
-            const int res = 64;
-            var tex = new Texture2D(res, res, TextureFormat.RGBA32, false);
-            var center = new Vector2((res - 1) * 0.5f, (res - 1) * 0.5f);
-            float radius = res * 0.5f;
-            var pixels = new Color32[res * res];
-            for (int y = 0; y < res; y++)
-            {
-                for (int x = 0; x < res; x++)
-                {
-                    float dist = Vector2.Distance(new Vector2(x, y), center);
-                    float alpha = Mathf.Clamp01(radius - dist + 0.5f);
-                    pixels[y * res + x] = new Color(color.r, color.g, color.b, alpha);
-                }
-            }
-            tex.SetPixels32(pixels);
-            tex.Apply();
-
-            return Sprite.Create(tex, new Rect(0f, 0f, res, res), new Vector2(0.5f, 0.5f), 100f);
         }
     }
 }

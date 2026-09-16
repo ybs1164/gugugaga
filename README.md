@@ -9,7 +9,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 - `Assets/Scripts/TacticsECS/View`: 화면 표시 전용 MonoBehaviour. 로직 없음.
 - `Assets/Scripts/TacticsECS/BattleController.cs`: 입력을 받아 System을 호출하고 View에 반영하는 조율자. `Assets/Scenes/SampleScene.unity`에 배치되어 있음.
 - `Assets/Prefabs/Units`: 유닛 타입별 프리팹(`Unit_Melee`/`Unit_Ranged`/`Unit_Guard` 등). 각 프리팹은 [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs) + [`UnitDefinition`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs) 컴포넌트를 갖는다.
-- `Assets/Prefabs/UI`: `HpDisplay`(유닛 머리 위 체력 표시)/`DamagePopup`(피해 팝업)/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud` 프리팹. [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)(`-executeMethod`로만 실행)가 생성하며, 각 View 스크립트는 이 프리팹을 인스턴스화한 뒤 자식을 이름으로 찾아 참조만 캐싱한다(하이어라키를 코드로 만들지 않음). `BattleHud`의 좌상단 유닛 로스터/우상단 행동 로그처럼 행 수가 계속 바뀌는 목록은 이렇게 프리팹으로 굽지 않고 코드로 그때그때 행을 만든다.
+- `Assets/Prefabs/UI`: `HpDisplay`(유닛 머리 위 체력 표시)/`DamagePopup`(피해 팝업)/`EventSystem`/`PaletteButton`/`BattleHud`/`SandboxHud`/`CityResourceBar`(도시 발전 자원 바) 프리팹. [`UIPrefabSetup.cs`](Assets/Editor/UIPrefabSetup.cs)(`-executeMethod`로만 실행)가 생성하며, 각 View 스크립트는 이 프리팹을 인스턴스화한 뒤 자식을 이름으로 찾아 참조만 캐싱한다(하이어라키를 코드로 만들지 않음). `BattleHud`의 좌상단 유닛 로스터/우상단 행동 로그처럼 행 수가 계속 바뀌는 목록은 이렇게 프리팹으로 굽지 않고 코드로 그때그때 행을 만든다.
 
 8x8 그리드에 플레이어/적 각 4유닛(Melee/Ranged/Guard)이 배치된 데모. 클릭으로 유닛 선택 → 이동/공격, 턴 종료 버튼으로 턴 전환.
 
@@ -254,6 +254,28 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 불러와 그리드에 자유 배치한 뒤 실제 턴제 전투로 동작을 확인할 수 있는 샌드박스 모드. 스키마/사용법/검증
 방법은 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md)에 정리했다. `Assets/Scenes/Sandbox.unity`(`SampleScene`을
 복제해 `BattleController.sandboxMode`만 켠 씬)에서 Play하면 배치 단계부터 시작한다.
+
+## 도시 발전 자원 (플레이스홀더)
+
+도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
+"채집형/설치형 자원", "영토 밖 특수 자원 채집", "수도 연결 보너스(도로/해로)"처럼 타일 소유권에 의존하는
+규칙은 구현하지 않고 비워뒀다(`WaitAction.IsInOwnTerritory`와 같은 방식의 플레이스홀더).
+
+- [`CityResourceData`](Assets/Scripts/TacticsECS/Core/CityResourceData.cs): 순수 데이터(발전도/인구
+  상한/골드/골드 생산량/신앙/신앙 최대치/수도 여부). `GoldProduction`은 원래 도시 타일/건물 생산량의
+  합이어야 하지만, 그 데이터가 없어 지금은 도시 하나의 고정값(인스펙터 설정)으로 대신한다.
+- [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs): 매 턴(플레이어 턴 시작)
+  골드/신앙 자동 생산(`ApplyTurnStart` — 골드는 생산량+수도 보너스, 신앙은 보유 유닛 수만큼 증가하되
+  최대치 초과 불가), 인구 계산(`CountPopulation` — 지금은 팀 소속 유닛을 전부 세며, "중립/특수 유닛은
+  인구 미소모" 구분은 유닛 데이터에 아직 없어 반영하지 않음), 수도 연결 여부 플레이스홀더
+  (`IsConnectedToCapital`, 항상 `false`)를 제공하는 무상태 시스템.
+- [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`:
+  네 자원을 아이콘+숫자로 보여주는 재사용 가능한 독립 프리팹(BattleHud와 무관하게 어느 화면에도 배치
+  가능). 아이콘 아트가 아직 없어 `BattleHud.CircleSprite`와 같은 방식으로 런타임에 색만 다른 원을
+  그려 임시 아이콘으로 쓴다.
+- `BattleController`의 `cityResourceHudPrefab` 필드로 연결하며, 지금은 `Assets/Scenes/Sandbox.unity`
+  (커스텀 배치 화면)에만 배정되어 있다 — `SampleScene`에는 비워둬 생성 자체를 건너뛴다. 시작값(인구
+  상한/골드 생산량/신앙 최대치/수도 여부)은 `BattleController` 인스펙터에서 조정 가능.
 
 ## 작업 로그
 
@@ -810,3 +832,29 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
     TacticsECS.EditorTools.UnitCsvVerification.Run` — 새 13컬럼 스키마로 13종 샘플 + 9종 샌드박스 유닛
     round-trip/스폰 `ALL PASS`.
+
+- 2026-09-16: 도시 발전 자원(발전도/인구/골드/신앙) 최소 구현 + 재사용 가능한 표시 UI 프리팹 추가.
+  - **동기**: 기획 문서(도시 발전도/인구/골드/신앙 네 자원의 획득·소모 규칙)를 받아 구현 요청. 타일/영토
+    정보가 프로젝트에 아직 없어, 그에 의존하는 규칙(채집형/설치형 자원, 영토 밖 특수 자원, 수도 연결
+    보너스)은 플레이스홀더로 남겨두고, UI는 프리팹으로 만들어 재사용 가능하게 해달라는 요청을 받음. "커스텀
+    화면"은 프로젝트에 그 이름의 씬이 없어 사용자에게 확인한 결과 `Assets/Scenes/Sandbox.unity`의 배치
+    단계 화면을 가리키는 것으로 확정.
+  - 순수 데이터 [`CityResourceData`](Assets/Scripts/TacticsECS/Core/CityResourceData.cs)(Core)와 무상태
+    시스템 [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs)(Systems) 추가 —
+    CLAUDE.md의 Data/Systems 계층 분리 규칙 그대로 적용. 자세한 내용은 위 [도시 발전
+    자원](#도시-발전-자원-플레이스홀더) 절 참고.
+  - **UI**: [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) View 스크립트 +
+    `Assets/Editor/UIPrefabSetup.cs`에 `GenerateCityResourceBar` 추가해 `Assets/Prefabs/UI/CityResourceBar.prefab`을
+    생성(BattleHud/SandboxHud와 같은 패턴 — 하이어라키는 프리팹에, 아이콘/값 바인딩만 Init()이 코드로
+    채움). `BattleHud`에 종속시키지 않고 완전히 독립된 프리팹으로 만들어 재사용 가능하게 함.
+  - `BattleController`에 `cityResourceHudPrefab`(+ 시작값 인스펙터 필드 4개) 추가, `HandleTurnStart`에서
+    플레이어 턴이 시작될 때마다 `CityResourceSystem.ApplyTurnStart` 호출. `UIPrefabSetup.AssignToScene`이
+    이 프리팹을 `Sandbox.unity`에만 배정하도록 수정(`SampleScene`은 비워둠 → `BattleController`가 null
+    체크로 생성을 건너뜀).
+  - [`UIVerification.cs`](Assets/Editor/UIVerification.cs)에 `VerifyCityResourceBar` 추가 — 프리팹을
+    인스턴스화해 `SetResources`로 넘긴 값이 4개 슬롯(Development/Population/Gold/Faith) 텍스트에 그대로
+    반영되는지 확인.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`(컴파일 에러 없음, `CityResourceBar.prefab` 생성 및
+    `Sandbox.unity`에만 배정됨을 씬 diff로 확인), `unity run . -- -executeMethod
+    TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`) 순으로 실행.

@@ -67,6 +67,21 @@ namespace TacticsECS
             "배치 단계에서 SandboxHud의 \"전투 시작\" 버튼을 누르면 지금과 동일한 턴제 전투로 이어진다.")]
         [SerializeField] private bool sandboxMode;
 
+        [Header("City Resources")]
+        [Tooltip("도시 발전 자원(발전도/인구/골드/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
+            "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
+        [SerializeField] private CityResourceHud cityResourceHudPrefab;
+        [Tooltip("이 도시가 보유할 수 있는 유닛 총 수량(인구 상한).")]
+        [SerializeField] private int cityPopulationCap = 10;
+        [Tooltip("매 턴 시작 시 자동 생산되는 골드량(수도 보너스는 별도). 실제로는 도시 타일/건물 생산량의 " +
+            "합이어야 하지만 타일 시스템이 없어 고정값 플레이스홀더로 둔다.")]
+        [SerializeField] private int cityGoldProduction = 1;
+        [Tooltip("신앙 최대 보유량.")]
+        [SerializeField] private int cityMaxFaith = 10;
+        [Tooltip("최초 시작 도시(수도) 여부 — 켜면 골드 생산 +1 보너스가 붙는다(피점령 시 일반 도시 취급하는 " +
+            "규칙은 점령 개념이 없어 아직 반영하지 않는다).")]
+        [SerializeField] private bool cityIsCapital = true;
+
         [Header("Camera (Isometric)")]
         [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
         [SerializeField] private float isoYawDegrees = 45f;
@@ -96,6 +111,9 @@ namespace TacticsECS
         private SandboxHud _sandboxHud;
         private UnitPlacementController _placementController;
         private bool _placementActive;
+
+        private CityResourceHud _cityResourceHud;
+        private CityResourceData _playerCity;
 
         // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
         // 팬(이동)은 이 focus 점만 옮기고, 매 프레임 여기서 실제 카메라 position을 재계산한다.
@@ -161,6 +179,15 @@ namespace TacticsECS
             _hud.OnDeselectClicked += ClearSelection;
             _hud.OnRestartClicked += HandleReturnToSetup;
 
+            if (cityResourceHudPrefab != null)
+            {
+                _cityResourceHud = Instantiate(cityResourceHudPrefab, transform);
+                _cityResourceHud.name = "CityResourceHud";
+                _cityResourceHud.Init();
+                _playerCity = CityResourceData.Create(cityPopulationCap, cityGoldProduction, cityMaxFaith, cityIsCapital);
+                RefreshCityResources();
+            }
+
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
             // Camera.main 방향으로 맞추는데(HpBillboardRotation), 그때 카메라가 아직 기본 회전값이면
             // 잘못된 각도로 굳어버린다(이후 이동/공격 전까지는 다시 계산하지 않으므로).
@@ -212,6 +239,7 @@ namespace TacticsECS
             _placementActive = false;
             _sandboxHud = null;
             _placementController = null;
+            _cityResourceHud = null;
 
             SetupBattle();
         }
@@ -457,8 +485,22 @@ namespace TacticsECS
             _hud.SetEndTurnVisible(team == Team.Player && !_battleOver);
             ClearSelection();
 
+            if (team == Team.Player && _cityResourceHud != null)
+            {
+                _playerCity = CityResourceSystem.ApplyTurnStart(_playerCity, _world, Team.Player);
+                RefreshCityResources();
+            }
+
             if (team == Team.Enemy && !_battleOver)
                 StartCoroutine(RunEnemyTurnRoutine());
+        }
+
+        /// <summary>RefreshRoster와 같은 방식 — 인구 사용량(populationUsed)은 CityResourceData가 아니라
+        /// EntityWorld 쪽 값이라 매번 다시 세어서 넘긴다.</summary>
+        private void RefreshCityResources()
+        {
+            int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
+            _cityResourceHud.SetResources(_playerCity, populationUsed);
         }
 
         private IEnumerator RunEnemyTurnRoutine()

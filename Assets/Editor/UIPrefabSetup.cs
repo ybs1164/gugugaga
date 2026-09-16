@@ -93,14 +93,15 @@ namespace TacticsECS.EditorTools
             var paletteButton = GeneratePaletteButton(font);
             var battleHud = GenerateBattleHud(eventSystem, font);
             var sandboxHud = GenerateSandboxHud(paletteButton, font);
+            var cityResourceBar = GenerateCityResourceBar(font);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             PatchUnitPrefabs(hpDisplay, damagePopup);
-            AssignToScenes(battleHud, sandboxHud);
+            AssignToScenes(battleHud, sandboxHud, cityResourceBar);
 
-            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud prefabs created under " + UiFolderPath);
+            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud/CityResourceBar prefabs created under " + UiFolderPath);
         }
 
         /// <summary>모든 UI Text/TextMesh가 공유하는 폰트. 텍스처 임포트 설정처럼 에디터를 직접 열어
@@ -719,6 +720,64 @@ namespace TacticsECS.EditorTools
             text.text = "전투 시작";
         }
 
+        // ---------- CityResourceBar (도시 발전도/인구/골드/신앙, 재사용 가능한 독립 프리팹) ----------
+
+        /// <summary>표시 순서 + 툴팁 문구. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
+        private static readonly (string Name, string Tooltip)[] CityResourceDefs =
+        {
+            ("Development", "도시 발전도: 도시 발전에 필요한 자원."),
+            ("Population", "인구: 도시가 보유할 수 있는 유닛 총 수량."),
+            ("Gold", "골드: 기술 발전/유닛 생산에 쓰는 기본 재화."),
+            ("Faith", "신앙: 신앙 펀치(액티브 스킬) 사용에 필요한 재화."),
+        };
+
+        private const float CityResourceSlotWidth = 92f;
+        private const float CityResourceBarHeight = 40f;
+
+        /// <summary>BattleHud와 독립된 별도 프리팹으로 만든다 — 특정 화면(BattleHud)에 종속되지 않고,
+        /// 자원 표시가 필요한 어느 씬/화면에나 그대로 갖다 놓을 수 있게 하기 위함(사용자 요청: 재사용
+        /// 가능한 프리팹).</summary>
+        private static GameObject GenerateCityResourceBar(Font font)
+        {
+            var root = new GameObject("CityResourceBar");
+            var hud = root.AddComponent<CityResourceHud>();
+
+            var canvasRoot = CreateCanvas(root.transform);
+            BuildCityResourceBar(font, canvasRoot);
+
+            SetPrivateField(hud, "uiFont", font);
+            EditorUtility.SetDirty(hud);
+
+            string path = $"{UiFolderPath}/CityResourceBar.prefab";
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        private static void BuildCityResourceBar(Font font, Transform root)
+        {
+            var bar = CreateRect("Bar", root);
+            bar.anchorMin = bar.anchorMax = new Vector2(0.5f, 1f);
+            bar.pivot = new Vector2(0.5f, 1f);
+            bar.anchoredPosition = new Vector2(0f, -16f);
+            bar.sizeDelta = new Vector2(CityResourceSlotWidth * CityResourceDefs.Length, CityResourceBarHeight);
+            CreatePanelImage(bar, PanelBackground);
+
+            for (int i = 0; i < CityResourceDefs.Length; i++)
+            {
+                var def = CityResourceDefs[i];
+                var slot = CreateRect(def.Name, bar);
+                slot.anchorMin = slot.anchorMax = new Vector2(0f, 0.5f);
+                slot.pivot = new Vector2(0f, 0.5f);
+                slot.sizeDelta = new Vector2(CityResourceSlotWidth, CityResourceBarHeight);
+                slot.anchoredPosition = new Vector2(i * CityResourceSlotWidth, 0f);
+
+                CreateIconPlaceholder("Icon", slot, 24f, new Vector2(8f, -8f));
+                var number = CreateNumberText(font, "Number", slot, new Vector2(38f, -10f), new Vector2(48f, 20f));
+                number.fontSize = 16;
+            }
+        }
+
         // ---------- 공용 빌딩 블록 ----------
 
         private static Transform CreateCanvas(Transform root)
@@ -790,14 +849,17 @@ namespace TacticsECS.EditorTools
 
         // ---------- 씬 연결 / 공용 유틸 ----------
 
-        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab)
+        /// <summary>cityResourceBarPrefab은 커스텀(샌드박스 배치) 화면에만 연결한다 — 데모 전투 씬
+        /// (SampleScene)에는 배정하지 않으므로 null로 남는다(BattleController가 null 체크 후 생성 자체를
+        /// 건너뛴다).</summary>
+        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab)
         {
-            AssignToScene(ScenePath, battleHudPrefab, sandboxHudPrefab);
+            AssignToScene(ScenePath, battleHudPrefab, sandboxHudPrefab, null);
             if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) != null)
-                AssignToScene(SandboxScenePath, battleHudPrefab, sandboxHudPrefab);
+                AssignToScene(SandboxScenePath, battleHudPrefab, sandboxHudPrefab, cityResourceBarPrefab);
         }
 
-        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab)
+        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab)
         {
             var scene = EditorSceneManager.OpenScene(scenePath);
             var controller = Object.FindFirstObjectByType<BattleController>(FindObjectsInactive.Include);
@@ -809,6 +871,8 @@ namespace TacticsECS.EditorTools
 
             SetPrivateField(controller, "hudPrefab", battleHudPrefab.GetComponent<BattleHud>());
             SetPrivateField(controller, "sandboxHudPrefab", sandboxHudPrefab.GetComponent<SandboxHud>());
+            if (cityResourceBarPrefab != null)
+                SetPrivateField(controller, "cityResourceHudPrefab", cityResourceBarPrefab.GetComponent<CityResourceHud>());
             EditorUtility.SetDirty(controller);
 
             EditorSceneManager.MarkSceneDirty(scene);

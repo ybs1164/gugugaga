@@ -478,6 +478,11 @@ MonoBehaviour:
   skeletonMagePrefab: {fileID: 7618103252866758234, guid: b1388736d97c61148b01a1298cf990df, type: 3}
   stressTestExtraUnitsPerTeam: 0
   sandboxMode: 0
+  cityResourceHudPrefab: {fileID: 0}
+  cityPopulationCap: 10
+  cityGoldProduction: 1
+  cityMaxFaith: 10
+  cityIsCapital: 1
   isoYawDegrees: 45
   isoPitchDegrees: 35.264
   isoZoom: 0.62

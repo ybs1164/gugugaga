@@ -18,7 +18,8 @@ namespace TacticsECS.EditorTools
         {
             bool ok = VerifyFont() &
                       VerifyBattleHudRosterAndLog() &
-                      VerifyUnitLabelAndDamagePopupWiring();
+                      VerifyUnitLabelAndDamagePopupWiring() &
+                      VerifyCityResourceBar();
             Debug.Log(ok ? "[UIVerification] ALL PASS" : "[UIVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -125,6 +126,49 @@ namespace TacticsECS.EditorTools
             }
 
             if (ok) Debug.Log("[UIVerification] unit label / damage popup wiring PASS");
+            return ok;
+        }
+
+        /// <summary>CityResourceBar.prefab(도시 발전도/인구/골드/신앙 표시)이 SetResources로 넘긴 값을
+        /// 그대로 4칸에 반영하는지 확인한다.</summary>
+        private static bool VerifyCityResourceBar()
+        {
+            var hudPrefab = AssetDatabase.LoadAssetAtPath<CityResourceHud>("Assets/Prefabs/UI/CityResourceBar.prefab");
+            var instance = Object.Instantiate(hudPrefab);
+            bool ok = true;
+
+            try
+            {
+                instance.Init();
+
+                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, maxFaith: 10, isCapital: true);
+                city.Development = 2;
+                city.Gold = 5;
+                city.Faith = 4;
+                instance.SetResources(city, populationUsed: 3);
+
+                var bar = instance.transform.Find("Canvas/Bar");
+                void CheckSlot(string slotName, string expected)
+                {
+                    var text = bar.Find(slotName + "/Number")?.GetComponent<Text>();
+                    if (text == null || text.text != expected)
+                    {
+                        Debug.LogError($"[UIVerification] CityResourceBar {slotName} mismatch: expected '{expected}', got '{(text == null ? "<missing>" : text.text)}'");
+                        ok = false;
+                    }
+                }
+
+                CheckSlot("Development", "2");
+                CheckSlot("Population", "3/10");
+                CheckSlot("Gold", "5");
+                CheckSlot("Faith", "4/10");
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance.gameObject);
+            }
+
+            if (ok) Debug.Log("[UIVerification] city resource bar PASS");
             return ok;
         }
     }

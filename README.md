@@ -255,6 +255,46 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 방법은 [`docs/UnitCsvSandbox.md`](docs/UnitCsvSandbox.md)에 정리했다. `Assets/Scenes/Sandbox.unity`(`SampleScene`을
 복제해 `BattleController.sandboxMode`만 켠 씬)에서 Play하면 배치 단계부터 시작한다.
 
+## 절차적 지형 생성 (바이옴)
+
+Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으로 `GridWorld`를 절차적으로 채우는 기능.
+알고리즘은 노이즈 기반 지형 생성 여러 방식(Perlin/Simplex 노이즈, Cellular Automata, Voronoi, Wave
+Function Collapse 등)을 비교한 뒤, "타일 종류가 늘어나고 인접 배제 규칙 + 최소 개수 + 확률 가중치가
+바이옴마다 다른 노이즈로 지정된다"는 요구사항에 맞춰 **바이옴별 노이즈 + 가중치 랜덤 + 제약 필터링**
+조합(경량 WFC 변형)으로 확정했다.
+
+- [`Core/TileData.cs`](Assets/Scripts/TacticsECS/Core/TileData.cs): `TileTypeId`(예: "Grass"/"Forest"/"Sand")
+  필드 추가. 기존 `Terrain`(육지/물, 이동 판정)과 독립적인 순수 표시/생성용 값이라 `PathfindingSystem`/
+  `MoveAction` 등 이동 로직은 전혀 건드리지 않았다.
+- [`Data/Csv/BiomeCsvRow.cs`](Assets/Scripts/TacticsECS/Data/Csv/BiomeCsvRow.cs) +
+  [`Systems/Csv/BiomeCsvSerializer.cs`](Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs):
+  `UnitCsvRow`/`UnitCsvSerializer`와 같은 패턴의 바이옴 CSV 파서. 컬럼:
+  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,Tiles` — `Tiles`는 `TileId:TerrainType:Weight:MinCount:Exclude1|Exclude2`
+  형식의 엔트리를 세미콜론으로 나열한다(콤마를 쓰지 않아 따옴표 없이도 안전하게 파싱). 예시:
+  [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland 3바이옴, 각 3타일).
+- [`Systems/NoiseSystem.cs`](Assets/Scripts/TacticsECS/Systems/NoiseSystem.cs): 옥타브를 누적하는 순수
+  프랙탈 Perlin 노이즈 함수 하나(무상태).
+- [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs):
+  무상태 정적 시스템. (1) 바이옴이 여러 개면 랜덤 시드점 기준 간단한 Voronoi로 영역을 나누고, (2) 같은
+  바이옴 안에서도 타일 엔트리마다 독립된 노이즈장(SeedOffset을 엔트리별로 다르게)을 써서 패치처럼
+  뭉치게 하고, (3) MinCount가 있는 타일부터 인접 배제 규칙을 만족하는 빈 칸에 우선 배치한 뒤, (4) 남은
+  칸을 노이즈 가중치로 랜덤 채운다(막힌 칸은 바이옴 첫 엔트리로 폴백). 유닛이 점유한 칸은 절대 건드리지
+  않는다.
+- 비주얼: 새 에셋 다운로드 없이 기존 `Assets/Art/Tiles/Kenney/tile.fbx`(이미 육지/물 타일이 재사용
+  중이던 그 메시)를 그대로 쓰고, [`View/TileView.cs`](Assets/Scripts/TacticsECS/View/TileView.cs)의
+  `TileTypeId`별 색 테이블로만 구분한다(Grass=초록/Forest=진초록/Sand=황토/Rock=회색/Snow=흰색/
+  Water=파랑). [`View/GridView.cs`](Assets/Scripts/TacticsECS/View/GridView.cs)에 `RefreshTerrain`을
+  추가해 타일 오브젝트를 파괴/재생성하지 않고 색만 다시 입힌다.
+- UI: `SandboxHud` 툴바에 "바이옴 불러오기"(OS 파일 대화상자로 CSV 선택)/"지형 생성"(클릭마다 새
+  시드로 재생성) 버튼 2개 추가 — 기존 유닛 CSV 불러오기/내보내기와 같은 패턴. `Assets/Editor/UIPrefabSetup.cs`의
+  `BuildSandboxToolbar`를 수정해 `-executeMethod`로 `SandboxHud.prefab`을 다시 구웠다(CLAUDE.md 규칙 1 —
+  프리팹을 에디터 GUI로 손으로 만들지 않음).
+- 검증: `Assets/Editor/TerrainGenerationVerification.cs`(배치모드, `-executeMethod`)로 CSV 왕복 파싱,
+  단일 바이옴 인접 배제/최소 개수 정확성, 시드 결정론적 재현, 3바이옴 통합 스모크 테스트까지 전부 PASS
+  확인. Sandbox 씬에서 "바이옴 불러오기 -> 지형 생성" 흐름을 Edit Mode로 동기 재현하고 RenderTexture로
+  스크린샷을 찍어 3개 바이옴이 영역별로 뭉쳐 생성되는 것을 육안으로도 확인했다(Play Mode는
+  `-executeMethod` 호출을 못 버티므로 사용하지 않음).
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -327,6 +367,27 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-17: 절차적 타일맵 지형 생성(바이옴 CSV 기반) 추가.
+  - **동기**: 앞으로 타일 종류가 많아지고, "특정 타일에 인접 불가" 같은 배제 규칙, 플레이어가 지정하는
+    최소 개수/확률 가중치, 바이옴마다 다른 노이즈가 필요하다는 요구사항을 받아 여러 절차 생성 알고리즘
+    (Perlin/Simplex 노이즈, Cellular Automata, Voronoi, WFC, BSP)의 득실을 비교한 뒤 "바이옴별 노이즈 +
+    가중치 랜덤 + 제약 필터링" 조합으로 확정 — 자세한 설계는 위 [절차적 지형 생성 (바이옴)](#절차적-지형-생성-바이옴) 참고.
+  - 신규 `BiomeCsvRow`/`BiomeCsvSerializer`/`NoiseSystem`/`TerrainGenerationSystem`, `TileData.TileTypeId`
+    필드, `GridWorld.GetTileType`/`SetTileType`, `TileView`/`GridView`(`RefreshTerrain`) 비주얼 확장,
+    `SandboxHud`/`BattleController`에 "바이옴 불러오기"/"지형 생성" 버튼 연동. 기존 `TerrainType`(Land/Water,
+    이동 판정)은 변경 없음 — 새 타일 타입은 전부 이 값으로 매핑되므로 이동/경로탐색 로직은 그대로다.
+  - 새 다운로드 없이 기존 `Assets/Art/Tiles/Kenney/tile.fbx`를 타입별 색만 다르게 재사용(사용자 확인
+    후 결정 — 축소판 MVP로 바이옴 3개 x 타일 3종).
+  - 예시 CSV: [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland).
+  - **검증**: Unity CLI 배치모드로 (1) `TerrainGenerationVerification`(CSV 왕복, 단일 바이옴 인접배제/
+    최소개수 정확성, 시드 결정론, 3바이옴 스모크) 전부 PASS, (2) `UIPrefabSetup.GenerateAll`로
+    `SandboxHud.prefab` 재생성 후 (3) 기존 `UIVerification`/`UnitCsvVerification` 재실행해 회귀 없음
+    확인, (4) Sandbox 씬을 Edit Mode에서 동기 재현(`BattleController` private 메서드를 리플렉션으로
+    직접 호출 — Play Mode는 `-executeMethod`를 못 버팀)해 RenderTexture 스크린샷으로 3바이옴이 영역별로
+    뭉쳐 생성되는 것을 육안 확인(검증용 임시 스크립트는 확인 후 삭제).
+    도중 `Random`이 `UnityEngine.Random`/`System.Random` 사이에서 모호하다는 컴파일 에러가 나서
+    `using Random = System.Random;` 별칭으로 해결.
 
 - 2026-09-04: 프로젝트 동작 검증.
   - Unity CLI 헤드리스 빌드(`unity run . -- -nographics`)로 컴파일 에러 없음 확인.

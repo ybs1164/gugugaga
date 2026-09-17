@@ -40,7 +40,7 @@ namespace TacticsECS
                     go.GetComponentInChildren<Renderer>().sharedMaterial = RuntimeMaterial.CreateColored(Color.white);
 
                     var view = go.AddComponent<TileView>();
-                    view.Init(pos, terrain);
+                    view.Init(pos, terrain, grid.GetTileType(pos));
                     _tileViews[grid.Index(pos)] = view;
                 }
             }
@@ -56,6 +56,20 @@ namespace TacticsECS
             var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.transform.localScale = new Vector3(1f, 0.1f, 1f);
             return cube;
+        }
+
+        /// <summary>지형(Terrain/TileTypeId)이 바뀐 뒤(TerrainGenerationSystem.Generate) 기존 타일
+        /// GameObject를 파괴/재생성하지 않고 색만 다시 입힌다 — Build와 달리 오브젝트 개수/메시는 그대로다.</summary>
+        public void RefreshTerrain(GridWorld grid)
+        {
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    _tileViews[grid.Index(pos)].Init(pos, grid.GetTerrain(pos), grid.GetTileType(pos));
+                }
+            }
         }
 
         public void ClearHighlights()

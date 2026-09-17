@@ -118,6 +118,7 @@ namespace TacticsECS
         private SandboxHud _sandboxHud;
         private UnitPlacementController _placementController;
         private bool _placementActive;
+        private List<BiomeCsvRow> _loadedBiomes;
 
         private CityResourceHud _cityResourceHud;
         private CityResourceData _playerCity;
@@ -259,6 +260,7 @@ namespace TacticsECS
             _placementActive = false;
             _sandboxHud = null;
             _placementController = null;
+            _loadedBiomes = null;
             _cityResourceHud = null;
             _techTreeHud = null;
 
@@ -295,6 +297,8 @@ namespace TacticsECS
             _sandboxHud.OnUnitSelected += HandleSandboxUnitSelected;
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
+            _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
+            _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.SetSelectedTeam(Team.Player);
             _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
         }
@@ -328,6 +332,39 @@ namespace TacticsECS
             {
                 _sandboxHud.SetStatus($"내보내기 실패: {e.Message}");
             }
+        }
+
+        /// <summary>바이옴 CSV를 불러오기만 한다 — 실제 지형 생성은 "지형 생성" 버튼(HandleGenerateTerrain)을
+        /// 눌러야 실행된다(불러오기와 생성을 분리해, 같은 바이옴 목록으로 여러 번 재생성해볼 수 있게).</summary>
+        private void HandleBiomeLoad(string path)
+        {
+            try
+            {
+                var csvText = System.IO.File.ReadAllText(path);
+                _loadedBiomes = BiomeCsvSerializer.Parse(csvText);
+                _sandboxHud.SetStatus($"{_loadedBiomes.Count}개 바이옴을 불러왔습니다. \"지형 생성\"을 눌러 지형을 만드세요.");
+            }
+            catch (System.Exception e)
+            {
+                _sandboxHud.SetStatus($"바이옴 불러오기 실패: {e.Message}");
+            }
+        }
+
+        /// <summary>불러온 바이옴 목록으로 그리드를 다시 채운다. 이미 유닛이 놓인 칸은
+        /// TerrainGenerationSystem이 알아서 건드리지 않으므로 배치 중에 눌러도 안전하다. 매번 새 시드를
+        /// 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.</summary>
+        private void HandleGenerateTerrain()
+        {
+            if (_loadedBiomes == null || _loadedBiomes.Count == 0)
+            {
+                _sandboxHud.SetStatus("먼저 \"바이옴 불러오기\"로 바이옴 CSV를 불러오세요.");
+                return;
+            }
+
+            int seed = System.Environment.TickCount;
+            TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed);
+            _gridView.RefreshTerrain(_grid);
+            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, seed={seed}).");
         }
 
         private void HandleSandboxUnitSelected(int index)

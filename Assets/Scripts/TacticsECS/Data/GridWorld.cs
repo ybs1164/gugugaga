@@ -64,6 +64,15 @@ namespace TacticsECS
             SetTile(p, t);
         }
 
+        public string GetTileType(Vector2Int p) => GetTile(p).TileTypeId;
+
+        public void SetTileType(Vector2Int p, string tileTypeId)
+        {
+            var t = GetTile(p);
+            t.TileTypeId = tileTypeId;
+            SetTile(p, t);
+        }
+
         public bool IsOccupied(Vector2Int p) => InBounds(p) && GetTile(p).OccupantId != TileData.NoOccupant;
 
         public int GetOccupant(Vector2Int p) => InBounds(p) ? GetTile(p).OccupantId : TileData.NoOccupant;

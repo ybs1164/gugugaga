@@ -24,6 +24,8 @@ namespace TacticsECS
         public event Action<int> OnUnitSelected;
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
+        public event Action<string> OnLoadBiomeClicked;
+        public event Action OnGenerateTerrainClicked;
 
         [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
         [SerializeField] private GameObject paletteButtonPrefab;
@@ -81,7 +83,19 @@ namespace TacticsECS
             _enemyButtonBg = enemyButtonTransform.GetComponent<Image>();
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
+            panel.Find("바이옴불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadBiomeClicked);
+            panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
+
             _statusText = panel.Find("Status").GetComponent<Text>();
+        }
+
+        /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
+        /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>
+        private void HandleLoadBiomeClicked()
+        {
+            var path = StandaloneFileDialog.OpenFilePanel("불러올 바이옴 CSV 선택", "", "csv");
+            if (string.IsNullOrEmpty(path)) return;
+            OnLoadBiomeClicked?.Invoke(path);
         }
 
         /// <summary>OS 파일 탐색기(열기 대화상자)로 불러올 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다.

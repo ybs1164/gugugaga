@@ -16,11 +16,17 @@ namespace TacticsECS
         /// 별개 판정이다.</summary>
         public TerrainType Terrain;
 
+        /// <summary>바이옴 절차 생성이 채워 넣는 세부 타일 타입 키(예: "Grass"/"Forest"/"Sand" — Systems/
+        /// TerrainGenerationSystem.cs 참고). 비어있으면(기본값) 이동 판정에는 영향이 없고, View(TileView)도
+        /// 기존 Terrain 2색 표시로 폴백한다 — Terrain(이동 판정)과 독립된 순수 표시/생성용 값이다.</summary>
+        public string TileTypeId;
+
         public static TileData Default => new TileData
         {
             Walkable = true,
             OccupantId = NoOccupant,
-            Terrain = TerrainType.Land
+            Terrain = TerrainType.Land,
+            TileTypeId = string.Empty
         };
     }
 }

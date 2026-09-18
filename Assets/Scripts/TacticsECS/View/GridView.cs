@@ -9,7 +9,7 @@ namespace TacticsECS
     /// </summary>
     public class GridView : MonoBehaviour
     {
-        [SerializeField] private float tileGap = 0.05f;
+        [SerializeField] private float tileGap = 0f;
 
         /// <summary>구조물(수도/유적/자원/불가사리) 프리팹을 타일 위에 얼마나 축소해서 놓을지 —
         /// 타일 전체를 채우지 않고 한쪽에 얹힌 장식처럼 보이도록 하는 값.</summary>

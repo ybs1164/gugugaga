@@ -10,7 +10,8 @@ namespace TacticsECS
     /// 갖지 않고, 매번 GridWorld/BiomeCsvRow와 시드를 인자로 받아 결과를 GridWorld에 직접 써넣는다.
     /// docs/PolytopiaMapGeneration.md 기준 2차 재정비: 완전 랜덤 Voronoi 시드 대신 쿼드런트(구역) 기반
     /// 앵커 배치(Polytopia의 수도 배치), 앵커 기준 Inner/Outer 이중 확률, 일반화된 거리 제약(MinDistance/
-    /// EdgeMargin) + 맵 크기 비례 개수(CountPerTiles)를 반영했다.
+    /// EdgeMargin) + 맵 크기 비례 개수(CountPerTiles)를 반영했다. 3차 재정비: 습도 배율 지원(2절) +
+    /// 계산된 앵커를 StructureGenerationSystem이 재사용할 수 있도록 반환.
     /// Sandbox/BattleController.HandleGenerateTerrain이 호출한다.
     /// </summary>
     public static class TerrainGenerationSystem
@@ -18,19 +19,64 @@ namespace TacticsECS
         /// <summary>이미 놓인 이웃 타입이 없을 때도 완전히 0이 되지 않도록 노이즈 가중치에 더하는 바닥값.</summary>
         private const float NoiseWeightFloor = 0.25f;
 
-        public static void Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed)
+        /// <summary>지형을 생성하고, 바이옴별 앵커(쿼드런트 내 랜덤 지점)를 반환한다 —
+        /// StructureGenerationSystem이 수도(Capital) 배치와 구조물 영역 판정에 같은 앵커를 재사용한다.
+        /// wetnessMultiplier(습도 프리셋, BattleController.WetnessPresets)는 1.0이면 CSV 값 그대로,
+        /// 그 외에는 TerrainType이 Water인 엔트리의 InnerWeight/OuterWeight/CountPerTiles에만 배율을
+        /// 적용한 임시 복사본으로 생성한다 — 원본 CSV 데이터(biomes)는 건드리지 않는다.</summary>
+        public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier = 1f)
         {
-            if (grid == null || biomes == null || biomes.Count == 0) return;
+            if (grid == null || biomes == null || biomes.Count == 0) return Array.Empty<Vector2Int>();
+
+            var effectiveBiomes = Mathf.Approximately(wetnessMultiplier, 1f) ? biomes : ApplyWetness(biomes, wetnessMultiplier);
 
             var rng = new Random(seed);
-            var (biomeIndexPerCell, anchors) = AssignBiomeRegions(grid, biomes.Count, rng);
-            var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, biomes.Count);
+            var (biomeIndexPerCell, anchors) = AssignBiomeRegions(grid, effectiveBiomes.Count, rng);
+            var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, effectiveBiomes.Count);
 
             ClearGeneratedTiles(grid);
             var placedPositionsByType = BuildInitialPlacedPositions(grid);
 
-            PlaceMinCountQuota(grid, biomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
-            FillRemaining(grid, biomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
+            PlaceMinCountQuota(grid, effectiveBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
+            FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
+
+            return anchors;
+        }
+
+        /// <summary>Water 타입 엔트리만 배율을 적용한 바이옴 목록 복제본을 만든다. InnerWeight/OuterWeight는
+        /// 곱하고(직접적인 확률 계수라 배율이 클수록 그대로 더 잘 나옴), CountPerTiles는 나눈다(개수 =
+        /// 영역 크기/CountPerTiles라 값이 작아질수록 개수가 늘어나므로 — 습도가 높을수록 더 흔해지려면
+        /// 나눠야 한다). 원본 biomes 리스트/엔트리는 값 타입(struct) 복사라 전혀 변경되지 않는다.</summary>
+        private static List<BiomeCsvRow> ApplyWetness(IReadOnlyList<BiomeCsvRow> biomes, float wetnessMultiplier)
+        {
+            var result = new List<BiomeCsvRow>(biomes.Count);
+            foreach (var biome in biomes)
+            {
+                var clone = new BiomeCsvRow
+                {
+                    Id = biome.Id,
+                    Name = biome.Name,
+                    NoiseType = biome.NoiseType,
+                    Frequency = biome.Frequency,
+                    Octaves = biome.Octaves,
+                    SeedOffset = biome.SeedOffset,
+                    InnerRadius = biome.InnerRadius,
+                    Structures = biome.Structures
+                };
+                foreach (var entry in biome.Tiles)
+                {
+                    var e = entry;
+                    if (e.TerrainType == TerrainType.Water)
+                    {
+                        e.InnerWeight *= wetnessMultiplier;
+                        e.OuterWeight *= wetnessMultiplier;
+                        if (e.CountPerTiles > 0f && wetnessMultiplier > 0f) e.CountPerTiles /= wetnessMultiplier;
+                    }
+                    clone.Tiles.Add(e);
+                }
+                result.Add(clone);
+            }
+            return result;
         }
 
         /// <summary>재생성(다시 "지형 생성" 버튼을 누르는 경우) 시 이전 결과가 "이미 채워진 칸"으로
@@ -72,7 +118,7 @@ namespace TacticsECS
             int quadrantsPerSide = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(biomeCount)));
             var quadrantIndices = new List<int>();
             for (int i = 0; i < quadrantsPerSide * quadrantsPerSide; i++) quadrantIndices.Add(i);
-            Shuffle(quadrantIndices, rng);
+            ProceduralGenerationUtil.Shuffle(quadrantIndices, rng);
 
             var anchors = new Vector2Int[biomeCount];
             for (int b = 0; b < biomeCount; b++)
@@ -89,21 +135,11 @@ namespace TacticsECS
             if (biomeCount > 1)
             {
                 for (int y = 0; y < grid.Height; y++)
-                {
                     for (int x = 0; x < grid.Width; x++)
                     {
-                        int nearest = 0;
-                        int nearestDistSq = int.MaxValue;
-                        for (int i = 0; i < anchors.Length; i++)
-                        {
-                            int dx = anchors[i].x - x;
-                            int dy = anchors[i].y - y;
-                            int distSq = dx * dx + dy * dy;
-                            if (distSq < nearestDistSq) { nearestDistSq = distSq; nearest = i; }
-                        }
-                        biomeIndexPerCell[grid.Index(new Vector2Int(x, y))] = nearest;
+                        var pos = new Vector2Int(x, y);
+                        biomeIndexPerCell[grid.Index(pos)] = ProceduralGenerationUtil.NearestAnchorIndex(anchors, pos);
                     }
-                }
             }
             return (biomeIndexPerCell, anchors);
         }
@@ -142,11 +178,11 @@ namespace TacticsECS
                 for (int entryIdx = 0; entryIdx < biome.Tiles.Count; entryIdx++)
                 {
                     var entry = biome.Tiles[entryIdx];
-                    int targetCount = EffectiveMinCount(entry, regionSizePerBiome[biomeIdx]);
+                    int targetCount = EffectiveMinCount(entry.MinCount, entry.CountPerTiles, regionSizePerBiome[biomeIdx]);
                     if (targetCount <= 0) continue;
 
                     var candidates = CollectEmptyCellsInBiome(grid, biomeIndexPerCell, biomeIdx);
-                    Shuffle(candidates, rng);
+                    ProceduralGenerationUtil.Shuffle(candidates, rng);
 
                     int placed = 0;
                     foreach (var pos in candidates)
@@ -163,13 +199,13 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>MinCount와 CountPerTiles(이 바이옴 영역 크기에 비례, Polytopia의 유적/외딴섬 마을
-        /// 개수표와 같은 개념 — 영역 크기 기준이라 바이옴이 몇 개든, 맵 크기가 얼마든 밀도가 일정하게
-        /// 유지된다) 중 더 큰 값을 이 엔트리의 실제 목표 개수로 쓴다.</summary>
-        private static int EffectiveMinCount(BiomeTileEntry entry, int regionSize)
+        /// <summary>MinCount와 CountPerTiles(이 바이옴/구조물 영역 크기에 비례, Polytopia의 유적/외딴섬
+        /// 마을 개수표와 같은 개념) 중 더 큰 값을 실제 목표 개수로 쓴다. StructureGenerationSystem도
+        /// 재사용한다.</summary>
+        public static int EffectiveMinCount(int minCount, float countPerTiles, int regionSize)
         {
-            int fromDensity = entry.CountPerTiles > 0f ? Mathf.RoundToInt(regionSize / entry.CountPerTiles) : 0;
-            return Mathf.Max(entry.MinCount, fromDensity);
+            int fromDensity = countPerTiles > 0f ? Mathf.RoundToInt(regionSize / countPerTiles) : 0;
+            return Mathf.Max(minCount, fromDensity);
         }
 
         /// <summary>남은 빈 칸을 셔플된 순서로 순회하며, 제약(EdgeMargin/MinDistance/ExcludeAdjacent)을
@@ -188,7 +224,7 @@ namespace TacticsECS
                     if (!string.IsNullOrEmpty(grid.GetTileType(pos))) continue;
                     emptyCells.Add(pos);
                 }
-            Shuffle(emptyCells, rng);
+            ProceduralGenerationUtil.Shuffle(emptyCells, rng);
 
             foreach (var pos in emptyCells)
             {
@@ -205,7 +241,7 @@ namespace TacticsECS
                     candidates.Add((entry, ComputeWeight(biome, i, entry, anchor, pos.x, pos.y)));
                 }
 
-                var chosen = candidates.Count == 0 ? biome.Tiles[0] : WeightedPick(candidates, rng);
+                var chosen = candidates.Count == 0 ? biome.Tiles[0] : ProceduralGenerationUtil.WeightedPick(candidates, rng);
                 PlaceTile(grid, pos, chosen, placedPositionsByType);
             }
         }
@@ -246,19 +282,12 @@ namespace TacticsECS
         /// 거리) / ExcludeAdjacent(바로 인접한 다른 타입 배제, 1차 구현부터 유지) 세 제약을 전부 검사한다.</summary>
         private static bool ViolatesConstraints(GridWorld grid, Vector2Int pos, BiomeTileEntry entry, Dictionary<string, List<Vector2Int>> placedPositionsByType)
         {
-            if (entry.EdgeMargin > 0)
-            {
-                int distToEdge = Mathf.Min(Mathf.Min(pos.x, pos.y), Mathf.Min(grid.Width - 1 - pos.x, grid.Height - 1 - pos.y));
-                if (distToEdge < entry.EdgeMargin) return true;
-            }
+            if (entry.EdgeMargin > 0 && ProceduralGenerationUtil.DistanceToEdge(grid, pos) < entry.EdgeMargin) return true;
 
             if (entry.MinDistance > 0 && placedPositionsByType.TryGetValue(entry.TileId, out var placed))
             {
                 foreach (var other in placed)
-                {
-                    int dist = Mathf.Max(Mathf.Abs(other.x - pos.x), Mathf.Abs(other.y - pos.y));
-                    if (dist < entry.MinDistance) return true;
-                }
+                    if (ProceduralGenerationUtil.ChebyshevDistance(other, pos) < entry.MinDistance) return true;
             }
 
             if (entry.ExcludeAdjacent != null && entry.ExcludeAdjacent.Length > 0)
@@ -283,36 +312,11 @@ namespace TacticsECS
         /// 자연스럽게 뭉친 패치로 나온다.</summary>
         private static float ComputeWeight(BiomeCsvRow biome, int entryIndex, BiomeTileEntry entry, Vector2Int anchor, int x, int y)
         {
-            int distToAnchor = Mathf.Max(Mathf.Abs(x - anchor.x), Mathf.Abs(y - anchor.y));
+            int distToAnchor = ProceduralGenerationUtil.ChebyshevDistance(anchor, new Vector2Int(x, y));
             float baseWeight = distToAnchor <= biome.InnerRadius ? entry.InnerWeight : entry.OuterWeight;
 
             float noise = NoiseSystem.Sample(x, y, biome.Frequency, biome.Octaves, biome.SeedOffset + entryIndex * 997);
             return Mathf.Max(0f, baseWeight) * (NoiseWeightFloor + noise);
-        }
-
-        private static BiomeTileEntry WeightedPick(List<(BiomeTileEntry Entry, float Weight)> candidates, Random rng)
-        {
-            float total = 0f;
-            foreach (var c in candidates) total += c.Weight;
-            if (total <= 0f) return candidates[rng.Next(candidates.Count)].Entry;
-
-            float roll = (float)(rng.NextDouble() * total);
-            float acc = 0f;
-            foreach (var c in candidates)
-            {
-                acc += c.Weight;
-                if (roll <= acc) return c.Entry;
-            }
-            return candidates[candidates.Count - 1].Entry;
-        }
-
-        private static void Shuffle<T>(List<T> list, Random rng)
-        {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
-                int j = rng.Next(i + 1);
-                (list[i], list[j]) = (list[j], list[i]);
-            }
         }
     }
 }

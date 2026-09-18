@@ -576,7 +576,7 @@ namespace TacticsECS.EditorTools
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(SandboxPanelWidth, 168f);
+            panel.sizeDelta = new Vector2(SandboxPanelWidth, 204f);
             CreatePanelImage(panel, SandboxPanelBackground);
 
             float halfWidth = (SandboxPanelWidth - 24f) / 2f;
@@ -586,12 +586,13 @@ namespace TacticsECS.EditorTools
             CreateTextButtonPlaceholder(font, panel, "적", new Vector2(8f + halfWidth + 8f, -44f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "맵크기", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "지형생성", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "습도", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "지형생성", new Vector2(8f, -152f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
             statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -150f);
+            statusRect.anchoredPosition = new Vector2(8f, -186f);
             statusRect.sizeDelta = new Vector2(SandboxPanelWidth - 16f, 18f);
             var status = statusRect.gameObject.AddComponent<Text>();
             status.font = font;
@@ -633,7 +634,7 @@ namespace TacticsECS.EditorTools
         {
             BuildScrollPanel("Palette", root,
                 anchor: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(16f, -192f),
+                anchoredPos: new Vector2(16f, -228f),
                 size: new Vector2(SandboxPanelWidth, SandboxPaletteHeight),
                 background: SandboxPanelBackground, scrollbarWidth: SandboxScrollbarWidth);
         }

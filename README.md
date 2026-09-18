@@ -270,10 +270,12 @@ Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으�
 - [`Data/Csv/BiomeCsvRow.cs`](Assets/Scripts/TacticsECS/Data/Csv/BiomeCsvRow.cs) +
   [`Systems/Csv/BiomeCsvSerializer.cs`](Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs):
   `UnitCsvRow`/`UnitCsvSerializer`와 같은 패턴의 바이옴 CSV 파서. 컬럼:
-  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles` — `Tiles`는
-  `TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:Exclude1|Exclude2`
+  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles,Structures` — `Tiles`는
+  `TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:Exclude1|Exclude2`,
+  `Structures`(3차 재정비, 아래 참고)는
+  `StructureId:AllowedTileType1|AllowedTileType2:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin`
   형식의 엔트리를 세미콜론으로 나열한다(콤마를 쓰지 않아 따옴표 없이도 안전하게 파싱). 예시:
-  [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland 3바이옴, 각 3타일).
+  [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland 3바이옴, 각 3타일 + 3구조물).
 - [`Systems/NoiseSystem.cs`](Assets/Scripts/TacticsECS/Systems/NoiseSystem.cs): 옥타브를 누적하는 순수
   프랙탈 Perlin 노이즈 함수 하나(무상태).
 - [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs):
@@ -310,6 +312,47 @@ Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으�
   까지 전부 PASS 확인. Sandbox 씬에서 "바이옴 불러오기 -> 맵 크기 순환 -> 지형 생성" 흐름을 Edit Mode로
   동기 재현하고 RenderTexture로 스크린샷을 찍어 리사이즈와 3바이옴 분산 배치를 육안으로도 확인했다
   (Play Mode는 `-executeMethod` 호출을 못 버티므로 사용하지 않음).
+
+### 타일 위 구조물(수도/유적/자원/불가사리) + 습도 — 3차 재정비
+
+docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절은 전부 "타일 자체"가 아니라
+**타일 위에 얹히는 구조물**이다. 여기에 2절(습도/맵 타입 프리셋)까지 반영했다.
+
+- [`Core/TileData.cs`](Assets/Scripts/TacticsECS/Core/TileData.cs)에 `StructureId` 필드 추가(`TileTypeId`와
+  같은 패턴 — 이동/점유 판정과 무관한 순수 표시용 값). `GridWorld.GetStructure`/`SetStructure` 접근자.
+- [`Data/Csv/BiomeCsvRow.cs`](Assets/Scripts/TacticsECS/Data/Csv/BiomeCsvRow.cs)의 `BiomeStructureEntry`:
+  `BiomeTileEntry`와 같은 제약 어휘(Weight/MinCount/CountPerTiles/MinDistance/EdgeMargin)를 재사용하되,
+  TerrainType 대신 `AllowedTileTypes`(이 구조물이 놓일 수 있는 TileTypeId 목록)를 갖는다. 수도(Capital)는
+  CSV 항목이 아니라 바이옴 앵커에 자동 배치된다.
+- 신규 [`Systems/ProceduralGenerationUtil.cs`](Assets/Scripts/TacticsECS/Systems/ProceduralGenerationUtil.cs):
+  `TerrainGenerationSystem`/`StructureGenerationSystem`이 공유하는 순수 헬퍼(셔플/거리 계산/가중치 랜덤
+  선택) — 중복 제거를 위해 분리.
+- 신규 [`Systems/StructureGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/StructureGenerationSystem.cs):
+  `TerrainGenerationSystem.Generate`가 반환한 바이옴 앵커로 (1) 앵커마다 수도를 자동 배치하고, (2) 바이옴별
+  `Structures` 엔트리들이 같은 빈 칸을 두고 경쟁할 때 Weight 비례로 하나를 뽑아 배치한다(예: Ruin과
+  Resource_Food가 둘 다 Grass에 놓일 수 있는 경우).
+- **습도(맵 타입) 프리셋**: `TerrainGenerationSystem.Generate`에 `wetnessMultiplier` 인자 추가 — `TerrainType`이
+  Water인 엔트리의 InnerWeight/OuterWeight/CountPerTiles에만 배율을 적용한 임시 복사본으로 생성한다(원본
+  CSV는 불변). `BattleController.WetnessPresets`가 Polytopia 6종 이름 + 대표 습도값(Continents=1.0배 기준)을
+  갖고, Sandbox 툴바의 "습도" 버튼이 맵 크기 버튼과 같은 패턴으로 순환한다(CSV에는 저장하지 않는 전역
+  생성 파라미터).
+- **에셋(전부 CC0, Kenney)**: `Assets/Art/Nature/Kenney/`(Nature Kit에서 선별 — 유적=`statue_columnDamaged`,
+  음식 자원=`mushroom_redGroup`, 광물 자원=`rock_largeA`)와 `Assets/Art/Castle/Kenney/`(이미 부분 임포트된
+  Tower Defense Kit 전체를 다시 받아 추가 — 수도=`tower-round-build-f`). 불가사리는 적당한 기성 모델이
+  없어 `Assets/Editor/StructureAssetSetup.cs`가 5각 별 평면 메시를 직접 생성한다. 색은 타입별 단색
+  (`Assets/Materials/Structure_*.mat`) — 프로젝트 전체가 저폴리+단색 스타일이라 텍스처 매핑 없이도
+  일관된다. **주의**: 런타임에 색을 덮어쓰는 타일(GridView.Build/TileView)과 달리 구조물은 프리팹에
+  구워둔 머티리얼을 그대로 쓰므로, `RuntimeMaterial.CreateColored`로 만든 임시 머티리얼을 그냥 참조만
+  시키면 `PrefabUtility.SaveAsPrefabAsset`가 에셋이 아닌 참조를 null로 직렬화해버려 Unity 기본 마젠타로
+  보이는 문제가 있었다 — `.mat` 에셋으로 저장(`AssetDatabase.CreateAsset`, `UIPrefabSetup.GenerateHpBarBackgroundMaterial`과
+  같은 패턴)한 뒤 참조해서 해결했다.
+- 구조물은 순수 시각 요소다 — 유닛 배치/이동을 막거나 상호작용(획득 등) 게임 로직은 이번 범위에
+  포함하지 않았다.
+- 검증: 신규 `Assets/Editor/StructureGenerationVerification.cs`로 수도가 정확히 앵커에 있는지, 구조물이
+  `AllowedTileTypes` 밖의 타일엔 절대 놓이지 않는지, MinDistance/EdgeMargin 준수, 시드 결정론까지 PASS.
+  `TerrainGenerationVerification`에도 습도 배율 테스트(같은 시드로 낮은/높은 습도 비교 시 Water 타일 수가
+  실제로 달라지는지) 추가. Sandbox 씬 Edit Mode 재현 스크린샷으로 타일 위 구조물(금색 수도/청록 광물/회색
+  유적)이 실제로 보이는 것까지 육안 확인.
 
 ## 도시 발전 자원 (플레이스홀더)
 
@@ -383,6 +426,36 @@ Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으�
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-18: 타일 위 구조물(수도/유적/자원/불가사리) + 습도 UI — 지형 생성 3차 재정비.
+  - **동기**: docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절은 "타일 자체"가 아니라
+    "타일 위에 얹히는 구조물"이라는 지적을 받아, 별도의 얇은 레이어(`TileData.StructureId`)로 추가했다.
+    동시에 2차 재정비에서 다루지 않았던 2절(습도/맵 타입 프리셋)도 Sandbox UI에 반영했다.
+  - `BiomeCsvRow.Structures`(신규 `BiomeStructureEntry` — `BiomeTileEntry`와 같은 제약 어휘를 재사용,
+    TerrainType 대신 AllowedTileTypes) + CSV `Structures` 컬럼. 수도는 CSV 항목이 아니라 바이옴 앵커에
+    자동 배치(`StructureGenerationSystem`). `TerrainGenerationSystem`/`StructureGenerationSystem`이 공유하는
+    순수 헬퍼를 `ProceduralGenerationUtil`로 분리.
+  - 습도: `TerrainGenerationSystem.Generate`에 `wetnessMultiplier` 인자 추가(Water 엔트리만 배율 적용,
+    원본 CSV 불변). `BattleController.WetnessPresets` + Sandbox "습도" 순환 버튼(맵 크기 버튼과 같은 패턴).
+  - 에셋(전부 CC0, Kenney.nl 공식 다운로드 — 직접 승인받고 curl로 받음): Nature Kit(~10.5MB, 유적/자원용
+    `statue_columnDamaged`/`mushroom_redGroup`/`rock_largeA`)와 Tower Defense Kit 전체(~5.4MB, 이미
+    `tile.fbx`만 임포트되어 있던 팩 — 수도용 `tower-round-build-f`). 불가사리는 적당한 기성 모델이 없어
+    5각 별 평면 메시를 절차적으로 생성. `Assets/Editor/StructureAssetSetup.cs`가 프리팹 5종을 굽는다.
+  - **버그 발견 및 수정**: 처음엔 `RuntimeMaterial.CreateColored`로 만든 임시(메모리 전용) 머티리얼을
+    구조물 렌더러에 바로 물려 프리팹으로 저장했더니, 스크린샷 검증에서 전부 Unity 기본 마젠타로 보였다.
+    원인은 `PrefabUtility.SaveAsPrefabAsset`가 "에셋이 아닌" 머티리얼 참조를 null로 직렬화해버리는 것—
+    타일은 런타임에 `GridView.Build`가 항상 색을 다시 입혀서 이 문제가 가려져 있었지만, 구조물은 런타임
+    재적용이 없어 그대로 드러났다. `.mat` 에셋으로 저장(`AssetDatabase.CreateAsset`,
+    `UIPrefabSetup.GenerateHpBarBackgroundMaterial`과 같은 기존 패턴)한 뒤 참조하도록 고쳐 해결했다.
+    또한 FBX 원본이 여러 머티리얼 슬롯을 가진 경우(`tower-round-build-f`) 슬롯 0만 바꾸면 나머지가
+    남는다는 점도 함께 발견해 모든 슬롯을 같은 색으로 덮어쓰도록 수정했다.
+  - 구조물은 순수 시각 요소(이동/점유 판정에 관여하지 않음) — 상호작용 게임 로직은 범위 밖으로 명시.
+  - **검증**: Unity CLI 배치모드로 (1) `StructureAssetSetup.GenerateAll` -> (2) `UIPrefabSetup.GenerateAll` ->
+    (3) `TerrainGenerationVerification`(습도 배율 테스트 추가) -> (4) 신규 `StructureGenerationVerification`
+    (수도가 정확히 앵커 위치인지, AllowedTileTypes/MinDistance/EdgeMargin 준수, 시드 결정론) -> (5) 기존
+    `UIVerification`/`UnitCsvVerification`(회귀) 순서로 전부 PASS. Sandbox 씬 Edit Mode 재현 스크린샷으로
+    금색 수도/청록 광물/회색 유적이 실제로 타일 위에 보이는 것까지 육안 확인(검증용 임시 스크립트는
+    확인 후 삭제).
 
 - 2026-09-18: Polytopia 맵 생성 규칙을 반영해 절차적 지형 생성 2차 재정비.
   - **동기**: [Polytopia Wiki의 맵 생성 규칙](https://polytopia.fandom.com/wiki/Map_Generation)을

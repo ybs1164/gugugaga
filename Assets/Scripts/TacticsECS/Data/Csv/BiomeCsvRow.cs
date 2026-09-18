@@ -30,6 +30,11 @@ namespace TacticsECS
         public int InnerRadius;
 
         public List<BiomeTileEntry> Tiles = new List<BiomeTileEntry>();
+
+        /// <summary>타일 자체가 아니라 타일 "위에" 얹히는 구조물(자원/유적/불가사리) 생성 규칙 —
+        /// docs/PolytopiaMapGeneration.md 3/9/10절. 수도(Capital)는 이 목록이 아니라 바이옴 앵커에
+        /// 자동으로 배치된다(Systems/StructureGenerationSystem.cs 참고).</summary>
+        public List<BiomeStructureEntry> Structures = new List<BiomeStructureEntry>();
     }
 
     /// <summary>바이옴 하나에 속한 타일 타입 하나의 생성 규칙. Polytopia 맵 생성 규칙(docs/
@@ -64,5 +69,24 @@ namespace TacticsECS
 
         /// <summary>이 타일과 인접(상하좌우)할 수 없는 다른 TileId 목록. 비어있으면 제약 없음.</summary>
         public string[] ExcludeAdjacent;
+    }
+
+    /// <summary>타일 위에 얹히는 구조물(자원/유적/불가사리) 하나의 생성 규칙. BiomeTileEntry와 같은
+    /// 제약 어휘(Weight/MinCount/CountPerTiles/MinDistance/EdgeMargin)를 재사용하되, TerrainType 대신
+    /// "어떤 TileTypeId 위에만 놓일 수 있는가"(AllowedTileTypes)를 갖는다 — 구조물은 이동 판정을 바꾸지
+    /// 않는 순수 시각 요소라 TerrainType이 필요 없다.</summary>
+    public struct BiomeStructureEntry
+    {
+        public string StructureId;
+
+        /// <summary>이 구조물이 놓일 수 있는 TileTypeId 목록(파이프 구분). 비어있으면 어떤 타일에도
+        /// 놓이지 않는다(오타 방지 — "전체 허용"을 원하면 그 바이옴의 모든 TileId를 명시해야 한다).</summary>
+        public string[] AllowedTileTypes;
+
+        public float Weight;
+        public int MinCount;
+        public float CountPerTiles;
+        public int MinDistance;
+        public int EdgeMargin;
     }
 }

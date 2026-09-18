@@ -467,6 +467,11 @@ MonoBehaviour:
   waterTiles: []
   landTilePrefab: {fileID: 8368334750216623470, guid: 631a5431c01416742be4511657c8cdf3, type: 3}
   waterTilePrefab: {fileID: 4495718878278912031, guid: b2f9b99550cfcd246b936cfac3807ce5, type: 3}
+  capitalStructurePrefab: {fileID: 3142038873365083682, guid: b256a9e91932f6c43bdbd36660f1d9b9, type: 3}
+  ruinStructurePrefab: {fileID: 702275419990610841, guid: 1bc3fb979e6cab54ca94237f7d6d8456, type: 3}
+  resourceFoodStructurePrefab: {fileID: 8034252029873953931, guid: d1cd4a335765a0745a4b7d7f451e1e53, type: 3}
+  resourceOreStructurePrefab: {fileID: 4512571588350856658, guid: 50db16c2934ad5045b40e5301756a9b1, type: 3}
+  starfishStructurePrefab: {fileID: 1875322032826083348, guid: 02492dcd3649259499e2cae831f08ea3, type: 3}
   meleePrefab: {fileID: 3471446425503980103, guid: d8194f771098d1b439fa576e372b0dea, type: 3}
   rangedPrefab: {fileID: 3193695033754148919, guid: 782917be00c5a4a41b9a6f9291fef2fd, type: 3}
   guardPrefab: {fileID: 7992524672913923911, guid: b6826f38ee08ecc418c04b11fe6aade3, type: 3}

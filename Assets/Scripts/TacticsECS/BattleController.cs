@@ -36,6 +36,20 @@ namespace TacticsECS
         [Tooltip("물 타일 모델(Assets/Prefabs/Tiles/Tile_Water.prefab). 비워두면 프리미티브 큐브로 대체된다.")]
         [SerializeField] private GameObject waterTilePrefab;
 
+        [Header("Structures (Sandbox 지형 생성 전용)")]
+        [Tooltip("바이옴 앵커에 자동 배치되는 수도 모델. Assets/Prefabs/Structures/Structure_Capital.prefab. " +
+            "StructureAssetSetup.GenerateAll로 만든다. 비워두면 해당 구조물은 표시되지 않는다(생성 자체는 " +
+            "계속되고 GridWorld.StructureId는 채워짐 — 순수 시각 요소라 게임 로직에는 영향 없음).")]
+        [SerializeField] private GameObject capitalStructurePrefab;
+        [Tooltip("바이옴 CSV의 \"Ruin\" 구조물 모델. Assets/Prefabs/Structures/Structure_Ruin.prefab.")]
+        [SerializeField] private GameObject ruinStructurePrefab;
+        [Tooltip("바이옴 CSV의 \"Resource_Food\" 구조물 모델. Assets/Prefabs/Structures/Structure_ResourceFood.prefab.")]
+        [SerializeField] private GameObject resourceFoodStructurePrefab;
+        [Tooltip("바이옴 CSV의 \"Resource_Ore\" 구조물 모델. Assets/Prefabs/Structures/Structure_ResourceOre.prefab.")]
+        [SerializeField] private GameObject resourceOreStructurePrefab;
+        [Tooltip("바이옴 CSV의 \"Starfish\" 구조물 모델. Assets/Prefabs/Structures/Structure_Starfish.prefab.")]
+        [SerializeField] private GameObject starfishStructurePrefab;
+
         [Header("Unit Prefabs")]
         [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
         [SerializeField] private UnitView meleePrefab;
@@ -127,6 +141,17 @@ namespace TacticsECS
             ("Tiny", 11), ("Small", 14), ("Normal", 16), ("Large", 18), ("Huge", 20), ("Massive", 30)
         };
         private int _selectedMapSizeIndex;
+
+        /// <summary>Polytopia의 6종 습도(맵 타입) 프리셋 이름 + 대표 습도값(docs/PolytopiaMapGeneration.md
+        /// 2절 범위의 중간값). CSV에는 저장하지 않는 전역 생성 파라미터 — 맵 크기와 같은 이유로 Sandbox
+        /// UI 순환 버튼으로만 선택한다. Continents(0.55)를 배율 1.0의 기준으로 삼는다
+        /// (TerrainGenerationSystem.Generate의 wetnessMultiplier = 선택값 / Continents값).</summary>
+        private static readonly (string Name, float Wetness)[] WetnessPresets =
+        {
+            ("Drylands", 0.05f), ("Lakes", 0.275f), ("Continents", 0.55f), ("Pangea", 0.50f), ("Archipelago", 0.70f), ("Waterworld", 0.95f)
+        };
+        private const int WetnessBaselineIndex = 2; // "Continents"
+        private int _selectedWetnessIndex = WetnessBaselineIndex;
 
         private CityResourceHud _cityResourceHud;
         private CityResourceData _playerCity;
@@ -308,11 +333,19 @@ namespace TacticsECS
             _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
+            _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
             _sandboxHud.SetSelectedTeam(Team.Player);
             _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
 
             InitMapSizeSelection();
             _sandboxHud.SetMapSizeLabel(MapSizePresets[_selectedMapSizeIndex].Name, MapSizePresets[_selectedMapSizeIndex].Size);
+            _sandboxHud.SetWetnessLabel(WetnessPresets[_selectedWetnessIndex].Name);
+        }
+
+        private void HandleWetnessCycle()
+        {
+            _selectedWetnessIndex = (_selectedWetnessIndex + 1) % WetnessPresets.Length;
+            _sandboxHud.SetWetnessLabel(WetnessPresets[_selectedWetnessIndex].Name);
         }
 
         /// <summary>현재 gridWidth(인스펙터 값)와 가장 가까운 프리셋을 기본 선택값으로 삼는다.</summary>
@@ -384,7 +417,9 @@ namespace TacticsECS
         /// <summary>불러온 바이옴 목록으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와
         /// 다르면 먼저 그리드 자체를 다시 만든다(RebuildGridForSize). 이미 유닛이 놓인 칸은
         /// TerrainGenerationSystem이 알아서 건드리지 않으므로(크기가 그대로라면) 배치 중에 눌러도
-        /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.</summary>
+        /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.
+        /// 지형 생성 직후 반환되는 바이옴 앵커로 StructureGenerationSystem(수도/유적/자원/불가사리)까지
+        /// 이어서 실행한다.</summary>
         private void HandleGenerateTerrain()
         {
             if (_loadedBiomes == null || _loadedBiomes.Count == 0)
@@ -397,11 +432,26 @@ namespace TacticsECS
             if (targetSize != _grid.Width && !RebuildGridForSize(targetSize))
                 return;
 
+            float wetnessMultiplier = WetnessPresets[_selectedWetnessIndex].Wetness / WetnessPresets[WetnessBaselineIndex].Wetness;
             int seed = System.Environment.TickCount;
-            TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed);
+            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier);
             _gridView.RefreshTerrain(_grid);
-            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, seed={seed}).");
+
+            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed);
+            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
+
+            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, " +
+                $"습도={WetnessPresets[_selectedWetnessIndex].Name}, seed={seed}).");
         }
+
+        private Dictionary<string, GameObject> BuildStructurePrefabsById() => new Dictionary<string, GameObject>
+        {
+            [StructureGenerationSystem.CapitalStructureId] = capitalStructurePrefab,
+            ["Ruin"] = ruinStructurePrefab,
+            ["Resource_Food"] = resourceFoodStructurePrefab,
+            ["Resource_Ore"] = resourceOreStructurePrefab,
+            ["Starfish"] = starfishStructurePrefab
+        };
 
         /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다
         /// (맵 크기는 유닛을 배치하기 전에만 바꿀 수 있다는 안전 규칙 — TerrainGenerationSystem이 점유 칸을

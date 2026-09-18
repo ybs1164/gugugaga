@@ -21,12 +21,19 @@ namespace TacticsECS
         /// 기존 Terrain 2색 표시로 폴백한다 — Terrain(이동 판정)과 독립된 순수 표시/생성용 값이다.</summary>
         public string TileTypeId;
 
+        /// <summary>바이옴 절차 생성이 채워 넣는, 타일 위에 얹히는 구조물 키(예: "Capital"/"Ruin"/
+        /// "Resource_Food"/"Resource_Ore"/"Starfish" — Systems/StructureGenerationSystem.cs 참고).
+        /// TileTypeId와 마찬가지로 이동/점유 판정과 무관한 순수 표시용 값이다(이번 범위에서 구조물은
+        /// 상호작용/이동 차단 같은 게임 로직을 갖지 않는다).</summary>
+        public string StructureId;
+
         public static TileData Default => new TileData
         {
             Walkable = true,
             OccupantId = NoOccupant,
             Terrain = TerrainType.Land,
-            TileTypeId = string.Empty
+            TileTypeId = string.Empty,
+            StructureId = string.Empty
         };
     }
 }

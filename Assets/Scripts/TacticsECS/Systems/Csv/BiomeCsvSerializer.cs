@@ -15,10 +15,13 @@ namespace TacticsECS
     /// 지원하지 않는 단순 Split(',') 파서로도 안전하게 왕복된다.
     /// 타일 엔트리 필드 순서: TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:ExcludeAdjacent
     /// (docs/PolytopiaMapGeneration.md 기준 2차 재정비 — BiomeCsvRow.cs 필드별 주석 참고).
+    /// Structures 컬럼(3차 재정비)도 같은 구분자 체계를 재사용한다 — 엔트리 필드 순서:
+    /// StructureId:AllowedTileTypes(파이프 목록):Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin.
     /// </summary>
     public static class BiomeCsvSerializer
     {
-        private static readonly string[] Header = { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "Tiles" };
+        private static readonly string[] Header =
+            { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "Tiles", "Structures" };
 
         private const char TileEntrySeparator = ';';
         private const char TileFieldSeparator = ':';
@@ -60,7 +63,8 @@ namespace TacticsECS
             Octaves = ParseInt(Col(c, 4)),
             SeedOffset = ParseInt(Col(c, 5)),
             InnerRadius = ParseInt(Col(c, 6)),
-            Tiles = ParseTiles(Col(c, 7))
+            Tiles = ParseTiles(Col(c, 7)),
+            Structures = ParseStructures(Col(c, 8))
         };
 
         private static string WriteRow(BiomeCsvRow row) => string.Join(",", new[]
@@ -72,7 +76,8 @@ namespace TacticsECS
             row.Octaves.ToString(CultureInfo.InvariantCulture),
             row.SeedOffset.ToString(CultureInfo.InvariantCulture),
             row.InnerRadius.ToString(CultureInfo.InvariantCulture),
-            WriteTiles(row.Tiles)
+            WriteTiles(row.Tiles),
+            WriteStructures(row.Structures)
         });
 
         private static List<BiomeTileEntry> ParseTiles(string s)
@@ -119,6 +124,48 @@ namespace TacticsECS
             entry.MinDistance.ToString(CultureInfo.InvariantCulture),
             entry.EdgeMargin.ToString(CultureInfo.InvariantCulture),
             entry.ExcludeAdjacent == null ? string.Empty : string.Join(ExcludeSeparator.ToString(), entry.ExcludeAdjacent)
+        });
+
+        private static List<BiomeStructureEntry> ParseStructures(string s)
+        {
+            var result = new List<BiomeStructureEntry>();
+            if (string.IsNullOrEmpty(s)) return result;
+
+            foreach (var token in s.Split(TileEntrySeparator))
+            {
+                var entry = token.Trim();
+                if (entry.Length == 0) continue;
+
+                var f = entry.Split(TileFieldSeparator);
+                result.Add(new BiomeStructureEntry
+                {
+                    StructureId = FieldCol(f, 0),
+                    AllowedTileTypes = ParseExclude(FieldCol(f, 1)),
+                    Weight = ParseFloat(FieldCol(f, 2)),
+                    MinCount = ParseInt(FieldCol(f, 3)),
+                    CountPerTiles = ParseFloat(FieldCol(f, 4)),
+                    MinDistance = ParseInt(FieldCol(f, 5)),
+                    EdgeMargin = ParseInt(FieldCol(f, 6))
+                });
+            }
+            return result;
+        }
+
+        private static string WriteStructures(List<BiomeStructureEntry> structures)
+        {
+            if (structures == null || structures.Count == 0) return string.Empty;
+            return string.Join(TileEntrySeparator.ToString(), structures.Select(WriteStructureEntry));
+        }
+
+        private static string WriteStructureEntry(BiomeStructureEntry entry) => string.Join(TileFieldSeparator.ToString(), new[]
+        {
+            entry.StructureId ?? string.Empty,
+            entry.AllowedTileTypes == null ? string.Empty : string.Join(ExcludeSeparator.ToString(), entry.AllowedTileTypes),
+            entry.Weight.ToString(CultureInfo.InvariantCulture),
+            entry.MinCount.ToString(CultureInfo.InvariantCulture),
+            entry.CountPerTiles.ToString(CultureInfo.InvariantCulture),
+            entry.MinDistance.ToString(CultureInfo.InvariantCulture),
+            entry.EdgeMargin.ToString(CultureInfo.InvariantCulture)
         });
 
         private static string[] ParseExclude(string s) =>

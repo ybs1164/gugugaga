@@ -21,7 +21,8 @@ namespace TacticsECS.EditorTools
                       VerifySingleBiomeRules() &
                       VerifyDeterministicSeed() &
                       VerifyMultiBiomeSmoke() &
-                      VerifyQuadrantFairness();
+                      VerifyQuadrantFairness() &
+                      VerifyWetnessMultiplier();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -58,7 +59,7 @@ namespace TacticsECS.EditorTools
                 var b = rewritten[i];
                 bool same = a.Id == b.Id && a.Name == b.Name && a.NoiseType == b.NoiseType &&
                     Mathf.Approximately(a.Frequency, b.Frequency) && a.Octaves == b.Octaves && a.SeedOffset == b.SeedOffset &&
-                    a.InnerRadius == b.InnerRadius && a.Tiles.Count == b.Tiles.Count;
+                    a.InnerRadius == b.InnerRadius && a.Tiles.Count == b.Tiles.Count && a.Structures.Count == b.Structures.Count;
 
                 if (same)
                 {
@@ -72,6 +73,21 @@ namespace TacticsECS.EditorTools
                             ta.MinDistance == tb.MinDistance && ta.EdgeMargin == tb.EdgeMargin &&
                             string.Join("|", ta.ExcludeAdjacent) == string.Join("|", tb.ExcludeAdjacent);
                         if (!tileSame) { same = false; break; }
+                    }
+                }
+
+                if (same)
+                {
+                    for (int s = 0; s < a.Structures.Count; s++)
+                    {
+                        var sa = a.Structures[s];
+                        var sb = b.Structures[s];
+                        bool structureSame = sa.StructureId == sb.StructureId &&
+                            string.Join("|", sa.AllowedTileTypes) == string.Join("|", sb.AllowedTileTypes) &&
+                            Mathf.Approximately(sa.Weight, sb.Weight) && sa.MinCount == sb.MinCount &&
+                            Mathf.Approximately(sa.CountPerTiles, sb.CountPerTiles) &&
+                            sa.MinDistance == sb.MinDistance && sa.EdgeMargin == sb.EdgeMargin;
+                        if (!structureSame) { same = false; break; }
                     }
                 }
 
@@ -292,6 +308,38 @@ namespace TacticsECS.EditorTools
 
             if (ok) Debug.Log("[TerrainGenerationVerification] quadrant fairness PASS");
             return ok;
+        }
+
+        /// <summary>습도 배율(BattleController.WetnessPresets, 3차 재정비)이 실제로 Water 타일 비율을
+        /// 바꾸는지 확인한다 — 같은 시드/바이옴으로 낮은 배율과 높은 배율 두 번 생성해서 Water 타일 수가
+        /// 유의미하게 달라지는지 비교한다.</summary>
+        private static bool VerifyWetnessMultiplier()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+
+            var dryGrid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(dryGrid, biomes, seed: 999, wetnessMultiplier: 0.1f);
+            int dryWaterCount = CountTileType(dryGrid, "Water");
+
+            var wetGrid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(wetGrid, biomes, seed: 999, wetnessMultiplier: 3.0f);
+            int wetWaterCount = CountTileType(wetGrid, "Water");
+
+            bool ok = wetWaterCount > dryWaterCount;
+            if (!ok)
+                Debug.LogError($"[TerrainGenerationVerification] wetness multiplier had no effect: dry={dryWaterCount} wet={wetWaterCount} (wet 배율이 더 많은 Water 타일을 만들어야 함)");
+            else
+                Debug.Log($"[TerrainGenerationVerification] wetness multiplier PASS (dry={dryWaterCount}, wet={wetWaterCount})");
+            return ok;
+        }
+
+        private static int CountTileType(GridWorld grid, string tileType)
+        {
+            int count = 0;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (grid.GetTileType(new Vector2Int(x, y)) == tileType) count++;
+            return count;
         }
     }
 }

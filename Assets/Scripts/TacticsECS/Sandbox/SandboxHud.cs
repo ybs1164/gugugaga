@@ -27,6 +27,7 @@ namespace TacticsECS
         public event Action<string> OnLoadBiomeClicked;
         public event Action OnGenerateTerrainClicked;
         public event Action OnMapSizeCycleClicked;
+        public event Action OnWetnessCycleClicked;
 
         [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
         [SerializeField] private GameObject paletteButtonPrefab;
@@ -38,6 +39,7 @@ namespace TacticsECS
 
         private Text _statusText;
         private Text _mapSizeLabel;
+        private Text _wetnessLabel;
         private Button _playerButton;
         private Button _enemyButton;
         private Image _playerButtonBg;
@@ -91,6 +93,10 @@ namespace TacticsECS
             mapSizeButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnMapSizeCycleClicked?.Invoke());
             _mapSizeLabel = mapSizeButtonTransform.Find("Label").GetComponent<Text>();
 
+            var wetnessButtonTransform = panel.Find("습도Button");
+            wetnessButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnWetnessCycleClicked?.Invoke());
+            _wetnessLabel = wetnessButtonTransform.Find("Label").GetComponent<Text>();
+
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
 
             _statusText = panel.Find("Status").GetComponent<Text>();
@@ -99,6 +105,10 @@ namespace TacticsECS
         /// <summary>"맵 크기" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleMapSizeCycle이
         /// 클릭마다 호출).</summary>
         public void SetMapSizeLabel(string name, int size) => _mapSizeLabel.text = $"크기: {name} ({size}x{size})";
+
+        /// <summary>"습도" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleWetnessCycle이
+        /// 클릭마다 호출).</summary>
+        public void SetWetnessLabel(string name) => _wetnessLabel.text = $"습도: {name}";
 
         /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
         /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>

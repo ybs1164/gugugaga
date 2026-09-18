@@ -11,7 +11,13 @@ namespace TacticsECS
     {
         [SerializeField] private float tileGap = 0.05f;
 
+        /// <summary>구조물(수도/유적/자원/불가사리) 프리팹을 타일 위에 얼마나 축소해서 놓을지 —
+        /// 타일 전체를 채우지 않고 한쪽에 얹힌 장식처럼 보이도록 하는 값.</summary>
+        private const float StructureLocalScale = 0.6f;
+        private const float StructureLocalHeight = 0.05f;
+
         private TileView[] _tileViews;
+        private GameObject[] _structureObjects;
         private GridWorld _grid;
 
         /// <summary>landTilePrefab/waterTilePrefab은 GridView 자신이 아니라 BattleController가 들고 있는
@@ -70,6 +76,49 @@ namespace TacticsECS
                     _tileViews[grid.Index(pos)].Init(pos, grid.GetTerrain(pos), grid.GetTileType(pos));
                 }
             }
+        }
+
+        /// <summary>구조물(수도/유적/자원/불가사리, StructureGenerationSystem 참고) 오브젝트를 타일마다
+        /// 다시 배치한다 — 이전 구조물을 지우고, grid.GetStructure(pos)가 있으면 그 프리팹을 타일의
+        /// 자식으로 축소 인스턴스화한다. TileView(색상)와 완전히 별개 오브젝트라 하이라이트/색 로직에는
+        /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 조용히 건너뛴다(에셋 미배정 상태에서도
+        /// 예외 없이 동작).</summary>
+        public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType)
+        {
+            if (_structureObjects == null) _structureObjects = new GameObject[grid.Width * grid.Height];
+
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    int index = grid.Index(pos);
+
+                    if (_structureObjects[index] != null)
+                    {
+                        DestroySafe(_structureObjects[index]);
+                        _structureObjects[index] = null;
+                    }
+
+                    var structureId = grid.GetStructure(pos);
+                    if (string.IsNullOrEmpty(structureId)) continue;
+                    if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null) continue;
+
+                    var structureGo = Object.Instantiate(prefab, _tileViews[index].transform);
+                    structureGo.name = "Structure_" + structureId;
+                    structureGo.transform.localPosition = new Vector3(0f, StructureLocalHeight, 0f);
+                    structureGo.transform.localScale = Vector3.one * StructureLocalScale;
+                    _structureObjects[index] = structureGo;
+                }
+            }
+        }
+
+        /// <summary>Play 모드에서는 Destroy, Edit 모드(배치모드 검증 스크립트 등)에서는 DestroyImmediate —
+        /// BattleController.DestroySafe와 같은 이유(Edit 모드에서 Destroy를 부르면 무시되고 에러만 남는다).</summary>
+        private static void DestroySafe(Object obj)
+        {
+            if (Application.isPlaying) Destroy(obj);
+            else DestroyImmediate(obj);
         }
 
         public void ClearHighlights()

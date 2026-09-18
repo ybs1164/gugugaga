@@ -422,8 +422,10 @@ namespace TacticsECS
         /// TerrainGenerationSystem이 알아서 건드리지 않으므로(크기가 그대로라면) 배치 중에 눌러도
         /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.
         /// 지형 생성 직후 반환되는 바이옴 앵커로 StructureGenerationSystem(수도/유적/자원/불가사리)까지
-        /// 이어서 실행한다. 습도가 "Pangea"면 TerrainGenerationSystem이 완전히 다른 경로(중앙 대륙 +
-        /// 외곽 바다 랜드마스 마스크)를 타도록 pangeaShape를 함께 넘긴다.</summary>
+        /// 이어서 실행한다. 습도 프리셋 이름이 Pangea/Lakes/Continents/Archipelago/Waterworld 중 하나면
+        /// TerrainGenerationSystem이 완전히 다른 경로(랜드마스 마스크로 모양 자체를 확정)를 타도록
+        /// ResolveShapeMode로 매핑한 MapShapeMode를 함께 넘긴다. Drylands는 물이 거의 없어(목표 0~10%)
+        /// 마스크 없이도 기존 방식으로 충분해 Freeform(습도 배율)만 쓴다.</summary>
         private void HandleGenerateTerrain()
         {
             if (_loadedBiomes == null || _loadedBiomes.Count == 0)
@@ -437,10 +439,10 @@ namespace TacticsECS
                 return;
 
             var selectedWetness = WetnessPresets[_selectedWetnessIndex];
-            bool pangeaShape = selectedWetness.Name == "Pangea";
+            var shapeMode = ResolveShapeMode(selectedWetness.Name);
             float wetnessMultiplier = selectedWetness.Wetness / WetnessPresets[WetnessBaselineIndex].Wetness;
             int seed = System.Environment.TickCount;
-            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, pangeaShape, selectedWetness.Wetness);
+            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, shapeMode, selectedWetness.Wetness);
             _gridView.RefreshTerrain(_grid);
 
             StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed);
@@ -449,6 +451,18 @@ namespace TacticsECS
             _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, " +
                 $"습도={WetnessPresets[_selectedWetnessIndex].Name}, seed={seed}).");
         }
+
+        /// <summary>습도 프리셋 이름 -> TerrainGenerationSystem.MapShapeMode. Drylands만 Freeform(마스크
+        /// 없이 습도 배율만 적용)이고, 나머지 5종은 같은 이름의 마스크 모드로 1:1 매핑한다.</summary>
+        private static TerrainGenerationSystem.MapShapeMode ResolveShapeMode(string wetnessPresetName) => wetnessPresetName switch
+        {
+            "Pangea" => TerrainGenerationSystem.MapShapeMode.Pangea,
+            "Lakes" => TerrainGenerationSystem.MapShapeMode.Lakes,
+            "Continents" => TerrainGenerationSystem.MapShapeMode.Continents,
+            "Archipelago" => TerrainGenerationSystem.MapShapeMode.Archipelago,
+            "Waterworld" => TerrainGenerationSystem.MapShapeMode.Waterworld,
+            _ => TerrainGenerationSystem.MapShapeMode.Freeform,
+        };
 
         private Dictionary<string, GameObject> BuildStructurePrefabsById() => new Dictionary<string, GameObject>
         {

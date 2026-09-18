@@ -419,6 +419,44 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   3바이옴이 하나의 중앙 대륙을 이루고 외곽 전체가 연결된 바다로 감싸는 모양을 육안으로도 확인
   (검증용 임시 스크립트는 확인 후 삭제).
 
+### 랜드마스 마스크 5개 프리셋으로 일반화 — 6차 재정비
+
+5차 재정비에서 Pangea 전용으로 만든 "랜드마스 마스크"(순위 기반으로 목표 물 비율을 정확히 맞추고,
+Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 이어지게 하는 기법)를 다른 5개 습도
+프리셋 전부에 대해 확인해보니, Pangea와 똑같은 근본 원인(Water 타일 `MinDistance`)으로 전부 깨져 있었다
+— Waterworld(목표 90~100%)조차 실제로는 8%밖에 물이 안 나올 정도로 심각했고, 6개 프리셋이 전부 시각적
+으로 구분이 안 됐다. Drylands(목표 0~10%)는 원래도 물이 거의 없어 마스크가 필요 없으므로 그대로 두고,
+나머지 4개(Lakes/Continents/Archipelago/Waterworld)에 마스크 기법을 일반화해서 적용했다.
+
+- [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs):
+  `GeneratePangea`/`GeneratePangeaLandMask`를 `GenerateWithShape`/`GenerateMapShapeLandMask`로 일반화하고,
+  `MapShapeMode`(Freeform/Pangea/Lakes/Continents/Archipelago/Waterworld) enum과 `MapShapeParams`(중심점
+  개수/방사형-노이즈 비중/가장자리 강제 육지/앵커 보호)로 프리셋별 마스크 파라미터를 분리했다.
+  `Generate(..., bool pangeaShape, float pangeaWaterFraction)`는 `Generate(..., MapShapeMode shapeMode,
+  float targetWaterFraction)`로 교체(Pangea 전용 API를 일반 API로 승격, 하위호환 유지 안 함 — 실사용
+  호출부가 BattleController 한 곳뿐이라 지금이 정리할 시점).
+  - **Pangea**: 중심점 1개(맵 정중앙), 방사형 비중 0.65 — 기존 그대로.
+  - **Lakes**: 중심점 0개(순수 노이즈, 중심 없이 흩어진 모양) + `ForceBorderLand`(맨 바깥 테두리 칸은
+    점수에 큰 보너스를 줘 항상 육지로 남게 — "가장자리 육지 다리").
+  - **Continents**: 중심점을 바이옴 수만큼 쿼드런트로 흩어 각자 뚜렷한 대륙 하나씩, 방사형 비중 0.6(노이즈
+    비중 낮아 윤곽이 비교적 또렷).
+  - **Archipelago**: Continents와 같은 중심점 수지만 방사형 비중 0.25로 낮춰 노이즈가 지배적 —
+    조각조각 흩어진 섬 모양.
+  - **Waterworld**: 목표 물 비율이 90~100%로 극단적이라 `ProtectAnchors`(바이옴 앵커 주변 1칸은 점수에
+    큰 보너스를 줘 수도가 물에 잠기지 않도록 보장)까지 추가.
+- [`BattleController.cs`](Assets/Scripts/TacticsECS/BattleController.cs)에 `ResolveShapeMode(string)` 헬퍼
+  추가 — 습도 프리셋 이름을 `MapShapeMode`로 1:1 매핑(Drylands만 Freeform, 나머지 5개는 같은 이름의
+  마스크 모드). `HandleGenerateTerrain`이 새 API로 호출하도록 갱신.
+- **검증**: `TerrainGenerationVerification.VerifyOtherMapShapes` 신규 추가 —
+  (1) Lakes/Continents/Archipelago/Waterworld 각각 목표 물 비율 ±0.15 이내인지, (2) Lakes의 맨 바깥
+  테두리 칸이 90% 이상 육지인지(`ForceBorderLand` 확인), (3) Waterworld에서 바이옴 앵커가 전부 육지에
+  있는지(`ProtectAnchors`/`SnapAnchorsToLand` 확인), (4) 4방향 flood-fill로 연결된 육지 덩어리 개수를 세어
+  Archipelago가 Continents보다 실제로 더 잘게 쪼개지는지 확인. `VerifyPangeaShape`도 새 API로 갱신.
+  Unity CLI 배치모드로 전체 스위트(`TerrainGenerationVerification`/`StructureGenerationVerification`/
+  `UIVerification`/`UnitCsvVerification`) 전부 PASS 확인. Sandbox 씬을 Edit Mode로 재현한 스크린샷(맵 크기
+  Huge(20x20))으로 4개 프리셋이 서로 뚜렷이 구분되는 모양(호수 모양 물줄기, 3개로 갈라진 대륙, 흩어진
+  섬들, 거의 전부 물+작은 육지 점)을 육안으로 확인(검증용 임시 스크립트는 확인 후 삭제).
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -491,6 +529,28 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-18: 랜드마스 마스크 기법을 5개 습도 프리셋으로 일반화 — 6차 재정비.
+  - **동기**: "이제 다른 지형들도 이같은 단계로 잘 생성되는지 확인해줘" 요청을 받아 5차 재정비에서 만든
+    Pangea 전용 랜드마스 마스크 기법을 기준으로 나머지 5개 습도 프리셋(Drylands/Lakes/Continents/
+    Pangea 제외/Archipelago/Waterworld)을 같은 방식으로 점검한 결과, Pangea를 깨뜨렸던 것과 똑같은
+    원인(Water 타일 `MinDistance` 제약이 물끼리 인접을 금지)이 전부에 걸려 있었다 — Waterworld는 목표
+    90~100% 물인데 실제로는 8%만 나왔고, 6개 프리셋이 전부 시각적으로 구분되지 않았다. "ㄱㄱ" 승인을
+    받아 Pangea 전용 코드를 5개 프리셋(Drylands 제외 — 물이 거의 없어 마스크가 필요 없음)이 재사용할
+    수 있게 파라미터화했다.
+  - `TerrainGenerationSystem.GeneratePangea`/`GeneratePangeaLandMask`를 `GenerateWithShape`/
+    `GenerateMapShapeLandMask`로 일반화하고, `MapShapeMode` enum + `MapShapeParams`(중심점 개수/방사형-
+    노이즈 비중/가장자리 강제 육지/앵커 보호)로 프리셋별 마스크 차이를 표현했다. `Generate`의 공개
+    시그니처를 `bool pangeaShape` -> `MapShapeMode shapeMode`로 교체(호출부가 `BattleController` 한 곳뿐이라
+    하위호환 없이 정리). `BattleController.ResolveShapeMode`로 습도 프리셋 이름을 모드에 매핑.
+  - **검증**: `TerrainGenerationVerification.VerifyOtherMapShapes` 신규 — 4개 프리셋 각각 목표 물 비율
+    ±0.15 이내, Lakes 테두리 90%+ 육지(`ForceBorderLand`), Waterworld 앵커 전부 육지(`ProtectAnchors`),
+    flood-fill로 Archipelago가 Continents보다 더 잘게 쪼개지는지까지 확인. 전체 스위트
+    (`TerrainGenerationVerification`/`StructureGenerationVerification`/`UIVerification`/
+    `UnitCsvVerification`) PASS. Sandbox 씬을 Edit Mode로 재현한 스크린샷(Huge 20x20)으로 Lakes(가운데를
+    가르는 물줄기 + 육지 테두리), Continents(3개로 뚜렷이 갈라진 대륙), Archipelago(흩어진 작은 섬들),
+    Waterworld(거의 전부 물 + 앵커 주변 작은 육지 점) 각각 고유 모양이 나오는 것을 육안으로 확인
+    (검증용 임시 스크립트는 확인 후 삭제).
 
 - 2026-09-18: 판게아 실제 랜드마스 셰이프(중앙 대륙 + 외곽 바다) 구현 — 5차 재정비.
   - **동기**: "판게아 지형 특성 다시 체크하고 왜 그렇게 안나오는지 분석해" 요청을 받아

@@ -19,28 +19,28 @@ namespace TacticsECS
         /// <summary>이미 놓인 이웃 타입이 없을 때도 완전히 0이 되지 않도록 노이즈 가중치에 더하는 바닥값.</summary>
         private const float NoiseWeightFloor = 0.25f;
 
-        /// <summary>Pangea 랜드마스 모양(중앙 대륙 + 외곽 바다)을 만들 때 쓰는 방사형 감쇠와 노이즈의
-        /// 혼합 비율 — 값이 클수록 원형에 가깝고 작을수록 해안선이 더 들쭉날쭉해진다.</summary>
-        private const float PangeaRadialWeight = 0.65f;
+        /// <summary>docs/PolytopiaMapGeneration.md 2절의 6종 맵 타입 중, 개별 타일 확률(+MinDistance)에
+        /// 맡기지 않고 전용 "랜드마스 마스크"로 모양 자체를 만드는 타입들. Drylands는 원래도 물이 거의
+        /// 없어(목표 0~10%) 기존 방식으로 충분해 여기 포함하지 않는다 — 마스크가 필요 없다.</summary>
+        public enum MapShapeMode { Freeform, Pangea, Lakes, Continents, Archipelago, Waterworld }
 
         /// <summary>지형을 생성하고, 바이옴별 앵커를 반환한다 — StructureGenerationSystem이 수도(Capital)
         /// 배치와 구조물 영역 판정에 같은 앵커를 재사용한다.
-        /// wetnessMultiplier(습도 프리셋, BattleController.WetnessPresets)는 1.0이면 CSV 값 그대로,
-        /// 그 외에는 TerrainType이 Water인 엔트리의 InnerWeight/OuterWeight/CountPerTiles에만 배율을
-        /// 적용한 임시 복사본으로 생성한다 — 원본 CSV 데이터(biomes)는 건드리지 않는다.
-        /// pangeaShape가 true면 완전히 다른 경로를 탄다(docs/PolytopiaMapGeneration.md 7.5절) — 쿼드런트
-        /// 앵커/개별 타일 확률/MinDistance에 맡기는 대신, 맵 중앙에서 노이즈로 퍼진 "랜드마스 마스크"를
-        /// 먼저 확정하고 그 모양에 맞춰 Land/Water를 강제한다. wetnessMultiplier는 이 경로에서는 쓰이지
-        /// 않고 pangeaWaterFraction(기본 0.5 = "습도 약 50%")이 대신 목표 물 비율을 정한다.</summary>
+        /// wetnessMultiplier(습도 프리셋, BattleController.WetnessPresets)는 shapeMode가 Freeform일 때만
+        /// 쓰인다 — 1.0이면 CSV 값 그대로, 그 외에는 TerrainType이 Water인 엔트리의 InnerWeight/
+        /// OuterWeight/CountPerTiles에만 배율을 적용한 임시 복사본으로 생성한다(원본 CSV는 불변).
+        /// shapeMode가 Freeform이 아니면 완전히 다른 경로(GenerateWithShape)를 탄다 — 쿼드런트 앵커를
+        /// 시작점 삼아 랜드마스 마스크를 먼저 확정하고 그 모양에 맞춰 Land/Water를 강제한다. 이 경로에서
+        /// wetnessMultiplier는 쓰이지 않고 targetWaterFraction이 대신 목표 물 비율을 정한다.</summary>
         public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier = 1f,
-            bool pangeaShape = false, float pangeaWaterFraction = 0.5f)
+            MapShapeMode shapeMode = MapShapeMode.Freeform, float targetWaterFraction = 0.5f)
         {
             if (grid == null || biomes == null || biomes.Count == 0) return Array.Empty<Vector2Int>();
 
             var rng = new Random(seed);
 
-            if (pangeaShape)
-                return GeneratePangea(grid, biomes, rng, pangeaWaterFraction);
+            if (shapeMode != MapShapeMode.Freeform)
+                return GenerateWithShape(grid, biomes, rng, shapeMode, targetWaterFraction);
 
             var effectiveBiomes = Mathf.Approximately(wetnessMultiplier, 1f) ? biomes : ApplyWetness(biomes, wetnessMultiplier);
 
@@ -56,18 +56,63 @@ namespace TacticsECS
             return anchors;
         }
 
-        /// <summary>Pangea 전용 파이프라인. (1) 방사형 감쇠 + 노이즈로 "중앙에 뭉친" 랜드마스 마스크를
-        /// 목표 물 비율에 정확히 맞춰 만들고, (2) 쿼드런트로 뽑은 앵커를 각자 가장 가까운 육지 칸으로
-        /// 옮긴 뒤(완전히 바다인 구역에 앵커가 낙하하는 것을 방지 — 원문은 애초에 쿼드런트를 안 쓰지만,
-        /// 이 프로젝트의 바이옴별 색/스타일 분배 자체는 계속 필요해 앵커 개념은 유지하고 위치만 육지로
-        /// 보정하는 절충안을 택했다), (3) 마스크가 물인 칸은 그 칸이 속한 바이옴의 물 타일로 직접
-        /// 채우고(MinDistance 등 개별 제약을 건너뛰어 바다가 실제로 하나로 이어지게 함), (4) 마스크가
-        /// 육지인 칸은 기존 가중치 알고리즘으로 채우되 물 타일 엔트리는 후보에서 제외한다(마스크가 이미
-        /// 육지/바다를 결정했으므로 이중으로 물이 섞이지 않도록).</summary>
-        private static Vector2Int[] GeneratePangea(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Random rng, float waterFraction)
+        /// <summary>맵 타입별 랜드마스 마스크 파라미터. 전부 같은 "방사형 감쇠 + 노이즈 점수 -> 순위 컷"
+        /// 마스크 하나를 재사용하고, 타입마다 파라미터만 바꾼다(Pangea 전용 코드를 그대로 일반화한 것).</summary>
+        private readonly struct MapShapeParams
         {
+            /// <summary>랜드마스 중심점 개수. 0=순수 노이즈(중심 없음, Lakes), 1=맵 정중앙 한 점(Pangea),
+            /// 2 이상=쿼드런트로 흩어진 여러 중심점(Continents/Archipelago/Waterworld — 바이옴마다 자기
+            /// 땅덩이를 갖는 효과).</summary>
+            public readonly int CenterCount;
+            /// <summary>방사형 감쇠와 노이즈의 혼합 비율(0~1) — 클수록 중심점 주변에 둥글게 뭉치고,
+            /// 작을수록 노이즈가 지배적이라 해안선이 조각조각 들쭉날쭉해진다.</summary>
+            public readonly float RadialWeight;
+            /// <summary>true면 맨 바깥 테두리 칸에 큰 점수 보너스를 줘서 순위 컷에서 거의 항상 육지로
+            /// 살아남게 한다(Lakes의 "가장자리 육지 다리" 규칙).</summary>
+            public readonly bool ForceBorderLand;
+            /// <summary>true면 바이옴 앵커(수도가 놓일 자리) 주변 anchorProtectRadius 칸에 큰 점수
+            /// 보너스를 줘서 물이 압도적으로 많은 상황(Waterworld)에서도 수도 주변엔 육지가 남게 한다.</summary>
+            public readonly bool ProtectAnchors;
+            public readonly int AnchorProtectRadius;
+
+            public MapShapeParams(int centerCount, float radialWeight, bool forceBorderLand, bool protectAnchors, int anchorProtectRadius)
+            {
+                CenterCount = centerCount;
+                RadialWeight = radialWeight;
+                ForceBorderLand = forceBorderLand;
+                ProtectAnchors = protectAnchors;
+                AnchorProtectRadius = anchorProtectRadius;
+            }
+        }
+
+        private static MapShapeParams GetShapeParams(MapShapeMode mode, int biomeCount) => mode switch
+        {
+            // 중앙 대륙 + 외곽 바다(2/7.5절).
+            MapShapeMode.Pangea => new MapShapeParams(centerCount: 1, radialWeight: 0.65f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
+            // 순수 노이즈(중심 없음)로 흩어진 호수 모양 + 가장자리는 항상 육지("육지 다리").
+            MapShapeMode.Lakes => new MapShapeParams(centerCount: 0, radialWeight: 0f, forceBorderLand: true, protectAnchors: false, anchorProtectRadius: 0),
+            // 바이옴 수만큼 중심점을 흩어 각자 뚜렷한 대륙 하나씩 — 노이즈 비중은 낮아 윤곽이 비교적 뚜렷함.
+            MapShapeMode.Continents => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.6f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
+            // Continents와 같은 중심점 수지만 노이즈 비중이 훨씬 높아 조각조각 흩어진 섬 모양이 됨.
+            MapShapeMode.Archipelago => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.25f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
+            // 거의 전부 물(목표 90~100%)이라 수도가 물에 갇히지 않도록 앵커 주변만 강제로 육지 확보.
+            MapShapeMode.Waterworld => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.5f, forceBorderLand: false, protectAnchors: true, anchorProtectRadius: 1),
+            _ => new MapShapeParams(1, 0.65f, false, false, 0)
+        };
+
+        /// <summary>랜드마스 마스크 기반 파이프라인(공통, Pangea 전용 코드를 일반화). (1) 맵 타입별
+        /// 파라미터로 랜드마스 마스크를 목표 물 비율에 정확히 맞춰 만들고, (2) 쿼드런트로 뽑은 앵커를
+        /// 각자 가장 가까운 육지 칸으로 옮긴 뒤(완전히 바다인 구역에 앵커가 낙하하는 것을 방지 — 원문은
+        /// 이런 맵 타입들에서 애초에 쿼드런트를 안 쓰지만, 이 프로젝트의 바이옴별 색/스타일 분배 자체는
+        /// 계속 필요해 앵커 개념은 유지하고 위치만 육지로 보정하는 절충안을 택했다), (3) 마스크가 물인
+        /// 칸은 그 칸이 속한 바이옴의 물 타일로 직접 채우고(MinDistance 등 개별 제약을 건너뛰어 바다가
+        /// 실제로 하나로 이어지게 함), (4) 마스크가 육지인 칸은 기존 가중치 알고리즘으로 채우되 물 타일
+        /// 엔트리는 후보에서 제외한다(마스크가 이미 육지/바다를 결정했으므로 이중으로 물이 섞이지 않도록).</summary>
+        private static Vector2Int[] GenerateWithShape(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Random rng, MapShapeMode mode, float waterFraction)
+        {
+            var shapeParams = GetShapeParams(mode, biomes.Count);
             var rawAnchors = GenerateQuadrantAnchors(grid, biomes.Count, rng);
-            var landMask = GeneratePangeaLandMask(grid, rng, waterFraction);
+            var landMask = GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, rawAnchors);
             var anchors = SnapAnchorsToLand(grid, rawAnchors, landMask);
             var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
 
@@ -84,15 +129,21 @@ namespace TacticsECS
             return anchors;
         }
 
-        /// <summary>맵 중앙에서 멀어질수록 낮아지는 방사형 점수 + 노이즈를 섞어 칸마다 "육지 점수"를
-        /// 매기고, 점수 상위 (1-waterFraction) 비율만큼을 육지로 확정한다 — 임계값을 눈대중으로 튜닝하는
-        /// 대신 정확히 목표 물 비율을 맞추기 위해 순위 기반으로 자른다. 결과적으로 중앙은 육지 확률이
-        /// 높고 가장자리로 갈수록 바다가 되는, "중앙 대륙 + 외곽 바다" 모양이 나온다.</summary>
-        private static bool[] GeneratePangeaLandMask(GridWorld grid, Random rng, float waterFraction)
+        /// <summary>중심점(들)로부터의 방사형 감쇠 + 노이즈를 섞어 칸마다 "육지 점수"를 매기고, 점수 상위
+        /// (1-waterFraction) 비율만큼을 육지로 확정한다 — 임계값을 눈대중으로 튜닝하는 대신 정확히 목표
+        /// 물 비율을 맞추기 위해 순위 기반으로 자른다. CenterCount==0이면 방사형 항 없이 순수 노이즈만
+        /// 쓴다(Lakes). ForceBorderLand/ProtectAnchors는 순위 컷 전에 해당 칸들 점수에 큰 보너스를 더해
+        /// 사실상 육지로 보장한다.</summary>
+        private static bool[] GenerateMapShapeLandMask(GridWorld grid, Random rng, float waterFraction, MapShapeParams shapeParams, Vector2Int[] rawAnchors)
         {
-            var center = new Vector2((grid.Width - 1) * 0.5f, (grid.Height - 1) * 0.5f);
-            float maxDist = center.magnitude; // 중심에서 모서리까지 거리 — 방사형 값을 0~1로 정규화하는 기준
+            Vector2Int[] centers;
+            if (shapeParams.CenterCount <= 0) centers = Array.Empty<Vector2Int>();
+            else if (shapeParams.CenterCount == 1) centers = new[] { new Vector2Int(Mathf.RoundToInt((grid.Width - 1) * 0.5f), Mathf.RoundToInt((grid.Height - 1) * 0.5f)) };
+            else centers = GenerateQuadrantAnchors(grid, shapeParams.CenterCount, rng);
+
+            float maxDist = new Vector2(grid.Width, grid.Height).magnitude;
             int noiseSeedOffset = rng.Next(0, 1_000_000);
+            const float GuaranteeBonus = 10f; // 순위 컷에서 거의 항상 살아남을 만큼 큰 보너스(점수 범위 0~1보다 훨씬 큼)
 
             var order = new List<int>(grid.Width * grid.Height);
             var scores = new float[grid.Width * grid.Height];
@@ -100,15 +151,39 @@ namespace TacticsECS
             {
                 for (int x = 0; x < grid.Width; x++)
                 {
-                    int index = grid.Index(new Vector2Int(x, y));
-                    float dist = Vector2.Distance(new Vector2(x, y), center);
-                    float radial = maxDist > 0f ? 1f - Mathf.Clamp01(dist / maxDist) : 1f;
+                    var pos = new Vector2Int(x, y);
+                    int index = grid.Index(pos);
                     float noise = NoiseSystem.Sample(x, y, frequency: 0.12f, octaves: 3, noiseSeedOffset);
-                    scores[index] = radial * PangeaRadialWeight + noise * (1f - PangeaRadialWeight);
+
+                    float score;
+                    if (centers.Length == 0)
+                    {
+                        score = noise;
+                    }
+                    else
+                    {
+                        float nearestDist = float.MaxValue;
+                        foreach (var c in centers)
+                        {
+                            float d = Vector2.Distance(new Vector2(x, y), c);
+                            if (d < nearestDist) nearestDist = d;
+                        }
+                        float radial = maxDist > 0f ? 1f - Mathf.Clamp01(nearestDist / maxDist) : 1f;
+                        score = radial * shapeParams.RadialWeight + noise * (1f - shapeParams.RadialWeight);
+                    }
+
+                    if (shapeParams.ForceBorderLand && ProceduralGenerationUtil.DistanceToEdge(grid, pos) == 0)
+                        score += GuaranteeBonus;
+
+                    if (shapeParams.ProtectAnchors)
+                        foreach (var a in rawAnchors)
+                            if (ProceduralGenerationUtil.ChebyshevDistance(pos, a) <= shapeParams.AnchorProtectRadius) { score += GuaranteeBonus; break; }
+
+                    scores[index] = score;
                     order.Add(index);
                 }
             }
-            order.Sort((a, b) => scores[b].CompareTo(scores[a])); // 점수 내림차순 — 점수 높은 칸(=중앙에 가깝고 노이즈도 우호적)부터 육지
+            order.Sort((a, b) => scores[b].CompareTo(scores[a])); // 점수 내림차순 — 점수 높은 칸부터 육지
 
             int landCount = Mathf.RoundToInt(order.Count * (1f - waterFraction));
             var mask = new bool[grid.Width * grid.Height];

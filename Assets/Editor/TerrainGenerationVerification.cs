@@ -23,7 +23,8 @@ namespace TacticsECS.EditorTools
                       VerifyMultiBiomeSmoke() &
                       VerifyQuadrantFairness() &
                       VerifyWetnessMultiplier() &
-                      VerifyPangeaShape();
+                      VerifyPangeaShape() &
+                      VerifyOtherMapShapes();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -357,7 +358,7 @@ namespace TacticsECS.EditorTools
         {
             var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
             var grid = new GridWorld(20, 20, 1f);
-            TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, pangeaShape: true, pangeaWaterFraction: 0.5f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Pangea, targetWaterFraction: 0.5f);
 
             bool ok = true;
 
@@ -401,7 +402,7 @@ namespace TacticsECS.EditorTools
 
             // (4) 시드 결정론.
             var gridB = new GridWorld(20, 20, 1f);
-            TerrainGenerationSystem.Generate(gridB, biomes, seed: 4242, wetnessMultiplier: 1f, pangeaShape: true, pangeaWaterFraction: 0.5f);
+            TerrainGenerationSystem.Generate(gridB, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Pangea, targetWaterFraction: 0.5f);
             for (int y = 0; y < grid.Height; y++)
                 for (int x = 0; x < grid.Width; x++)
                 {
@@ -415,6 +416,151 @@ namespace TacticsECS.EditorTools
 
             if (ok) Debug.Log($"[TerrainGenerationVerification] Pangea shape PASS (water={waterFraction:F2}, center land={centerLandFraction:F2}, corner land={cornerLandFraction:F2})");
             return ok;
+        }
+
+        /// <summary>Pangea 랜드마스 마스크 기법을 일반화한 나머지 4종(Lakes/Continents/Archipelago/
+        /// Waterworld — Drylands는 마스크가 필요 없어 제외)이 각자 목표 물 비율에 근접하면서 그 타입
+        /// 고유의 모양 특징도 나타내는지 확인한다. BattleController.WetnessPresets의 대표 습도값을
+        /// 그대로 목표치로 쓴다.</summary>
+        private static bool VerifyOtherMapShapes()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            bool ok = true;
+
+            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, targetWaterFraction: 0.275f, tolerance: 0.15f, seed: 111);
+            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Continents, targetWaterFraction: 0.55f, tolerance: 0.15f, seed: 222);
+            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Archipelago, targetWaterFraction: 0.70f, tolerance: 0.15f, seed: 333);
+            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Waterworld, targetWaterFraction: 0.95f, tolerance: 0.15f, seed: 444);
+
+            // Lakes: 가장자리 육지 다리(ForceBorderLand)가 실제로 걸리는지 — 맨 바깥 테두리 칸 대부분이 육지여야 함.
+            {
+                var grid = new GridWorld(20, 20, 1f);
+                TerrainGenerationSystem.Generate(grid, biomes, seed: 111, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Lakes, targetWaterFraction: 0.275f);
+                int borderLand = 0, borderTotal = 0;
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    borderTotal += 2;
+                    if (grid.GetTerrain(new Vector2Int(x, 0)) == TerrainType.Land) borderLand++;
+                    if (grid.GetTerrain(new Vector2Int(x, grid.Height - 1)) == TerrainType.Land) borderLand++;
+                }
+                for (int y = 1; y < grid.Height - 1; y++)
+                {
+                    borderTotal += 2;
+                    if (grid.GetTerrain(new Vector2Int(0, y)) == TerrainType.Land) borderLand++;
+                    if (grid.GetTerrain(new Vector2Int(grid.Width - 1, y)) == TerrainType.Land) borderLand++;
+                }
+                float borderLandFraction = (float)borderLand / borderTotal;
+                if (borderLandFraction < 0.9f)
+                {
+                    Debug.LogError($"[TerrainGenerationVerification] Lakes border-land fraction too low: {borderLandFraction:F2} (ForceBorderLand이 안 먹히는 듯)");
+                    ok = false;
+                }
+                else
+                {
+                    Debug.Log($"[TerrainGenerationVerification] Lakes border-land PASS (border land={borderLandFraction:F2})");
+                }
+            }
+
+            // Waterworld: 거의 전부 물인 상황에서도 바이옴 앵커(수도 자리)는 항상 육지에 있어야 함(ProtectAnchors).
+            {
+                var grid = new GridWorld(20, 20, 1f);
+                var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed: 444, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Waterworld, targetWaterFraction: 0.95f);
+                bool allAnchorsOnLand = true;
+                foreach (var a in anchors)
+                    if (grid.GetTerrain(a) != TerrainType.Land) allAnchorsOnLand = false;
+                if (!allAnchorsOnLand)
+                {
+                    Debug.LogError("[TerrainGenerationVerification] Waterworld: some biome anchors landed on Water (ProtectAnchors/SnapAnchorsToLand 실패)");
+                    ok = false;
+                }
+                else
+                {
+                    Debug.Log("[TerrainGenerationVerification] Waterworld anchors-on-land PASS");
+                }
+            }
+
+            // Archipelago: 노이즈 비중이 높아 Continents보다 육지가 더 잘게 쪼개져야 함(연결된 육지 덩어리 개수 비교).
+            {
+                var continentsGrid = new GridWorld(20, 20, 1f);
+                TerrainGenerationSystem.Generate(continentsGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Continents, targetWaterFraction: 0.55f);
+                var archipelagoGrid = new GridWorld(20, 20, 1f);
+                TerrainGenerationSystem.Generate(archipelagoGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Archipelago, targetWaterFraction: 0.70f);
+
+                int continentsComponents = CountConnectedLandComponents(continentsGrid);
+                int archipelagoComponents = CountConnectedLandComponents(archipelagoGrid);
+                if (archipelagoComponents <= continentsComponents)
+                {
+                    Debug.LogError($"[TerrainGenerationVerification] Archipelago not more fragmented than Continents: archipelago={archipelagoComponents} continents={continentsComponents}");
+                    ok = false;
+                }
+                else
+                {
+                    Debug.Log($"[TerrainGenerationVerification] Archipelago fragmentation PASS (archipelago components={archipelagoComponents}, continents components={continentsComponents})");
+                }
+            }
+
+            return ok;
+        }
+
+        /// <summary>주어진 MapShapeMode로 생성해서 물 비율이 목표치 ±tolerance 안에 들고, 물 타일끼리
+        /// 실제로 인접 가능한지(target이 0에 가깝지 않은 한) 확인하는 공통 검사.</summary>
+        private static bool VerifyMapShapeWaterFraction(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, float tolerance, int seed)
+        {
+            var grid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed: seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction);
+
+            int waterCount = 0, totalCount = grid.Width * grid.Height;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (grid.GetTerrain(new Vector2Int(x, y)) == TerrainType.Water) waterCount++;
+            float waterFraction = (float)waterCount / totalCount;
+
+            bool ok = true;
+            if (Mathf.Abs(waterFraction - targetWaterFraction) > tolerance)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] {mode} water fraction off target: {waterFraction:F2} (목표 {targetWaterFraction:F2} ±{tolerance:F2})");
+                ok = false;
+            }
+            else
+            {
+                Debug.Log($"[TerrainGenerationVerification] {mode} water fraction PASS ({waterFraction:F2}, 목표 {targetWaterFraction:F2})");
+            }
+            return ok;
+        }
+
+        /// <summary>4방향 flood-fill로 연결된 육지(Land) 덩어리 개수를 센다 — Continents/Archipelago의
+        /// 파편화 정도를 비교하는 데 쓴다.</summary>
+        private static int CountConnectedLandComponents(GridWorld grid)
+        {
+            var visited = new bool[grid.Width * grid.Height];
+            int components = 0;
+            var stack = new Stack<Vector2Int>();
+
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var start = new Vector2Int(x, y);
+                    int startIndex = grid.Index(start);
+                    if (visited[startIndex] || grid.GetTerrain(start) != TerrainType.Land) continue;
+
+                    components++;
+                    stack.Push(start);
+                    visited[startIndex] = true;
+                    while (stack.Count > 0)
+                    {
+                        var cur = stack.Pop();
+                        foreach (var n in grid.GetNeighbors(cur, allowDiagonal: false))
+                        {
+                            int nIndex = grid.Index(n);
+                            if (visited[nIndex] || grid.GetTerrain(n) != TerrainType.Land) continue;
+                            visited[nIndex] = true;
+                            stack.Push(n);
+                        }
+                    }
+                }
+            }
+            return components;
         }
 
         private static float SampleLandFraction(GridWorld grid, int cx, int cy, int radius)

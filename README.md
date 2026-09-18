@@ -257,6 +257,10 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 
 ## 절차적 지형 생성 (바이옴)
 
+> 전체 파이프라인(타일 생성 + 구조물 생성 + 랜드마스 마스크 + UI 연동)을 한 번에 훑어볼 수 있는 요약은
+> [`docs/TerrainGenerationSummary.md`](docs/TerrainGenerationSummary.md) 참고. 아래는 재정비 회차별
+> 변경 이력이다.
+
 Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으로 `GridWorld`를 절차적으로 채우는 기능.
 1차 구현(바이옴별 노이즈 + 가중치 랜덤 + 인접 배제 + 최소 개수, 경량 WFC 변형) 이후,
 [`docs/PolytopiaMapGeneration.md`](docs/PolytopiaMapGeneration.md)(Polytopia Wiki의 맵 생성 규칙 요약)를

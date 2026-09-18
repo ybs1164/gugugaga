@@ -120,6 +120,14 @@ namespace TacticsECS
         private bool _placementActive;
         private List<BiomeCsvRow> _loadedBiomes;
 
+        /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
+        /// (docs/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
+        private static readonly (string Name, int Size)[] MapSizePresets =
+        {
+            ("Tiny", 11), ("Small", 14), ("Normal", 16), ("Large", 18), ("Huge", 20), ("Massive", 30)
+        };
+        private int _selectedMapSizeIndex;
+
         private CityResourceHud _cityResourceHud;
         private CityResourceData _playerCity;
 
@@ -299,8 +307,31 @@ namespace TacticsECS
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
+            _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.SetSelectedTeam(Team.Player);
             _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
+
+            InitMapSizeSelection();
+            _sandboxHud.SetMapSizeLabel(MapSizePresets[_selectedMapSizeIndex].Name, MapSizePresets[_selectedMapSizeIndex].Size);
+        }
+
+        /// <summary>현재 gridWidth(인스펙터 값)와 가장 가까운 프리셋을 기본 선택값으로 삼는다.</summary>
+        private void InitMapSizeSelection()
+        {
+            _selectedMapSizeIndex = 0;
+            int bestDiff = int.MaxValue;
+            for (int i = 0; i < MapSizePresets.Length; i++)
+            {
+                int diff = Mathf.Abs(MapSizePresets[i].Size - gridWidth);
+                if (diff < bestDiff) { bestDiff = diff; _selectedMapSizeIndex = i; }
+            }
+        }
+
+        private void HandleMapSizeCycle()
+        {
+            _selectedMapSizeIndex = (_selectedMapSizeIndex + 1) % MapSizePresets.Length;
+            var preset = MapSizePresets[_selectedMapSizeIndex];
+            _sandboxHud.SetMapSizeLabel(preset.Name, preset.Size);
         }
 
         private void HandleSandboxLoad(string path)
@@ -350,9 +381,10 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>불러온 바이옴 목록으로 그리드를 다시 채운다. 이미 유닛이 놓인 칸은
-        /// TerrainGenerationSystem이 알아서 건드리지 않으므로 배치 중에 눌러도 안전하다. 매번 새 시드를
-        /// 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.</summary>
+        /// <summary>불러온 바이옴 목록으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와
+        /// 다르면 먼저 그리드 자체를 다시 만든다(RebuildGridForSize). 이미 유닛이 놓인 칸은
+        /// TerrainGenerationSystem이 알아서 건드리지 않으므로(크기가 그대로라면) 배치 중에 눌러도
+        /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.</summary>
         private void HandleGenerateTerrain()
         {
             if (_loadedBiomes == null || _loadedBiomes.Count == 0)
@@ -361,10 +393,48 @@ namespace TacticsECS
                 return;
             }
 
+            int targetSize = MapSizePresets[_selectedMapSizeIndex].Size;
+            if (targetSize != _grid.Width && !RebuildGridForSize(targetSize))
+                return;
+
             int seed = System.Environment.TickCount;
             TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed);
             _gridView.RefreshTerrain(_grid);
-            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, seed={seed}).");
+            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, seed={seed}).");
+        }
+
+        /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다
+        /// (맵 크기는 유닛을 배치하기 전에만 바꿀 수 있다는 안전 규칙 — TerrainGenerationSystem이 점유 칸을
+        /// 건드리지 않는 것과 같은 이유). 성공하면 GridWorld/GridView를 새로 만들고 카메라를 재배치한다.</summary>
+        private bool RebuildGridForSize(int size)
+        {
+            if (_viewsById.Count > 0)
+            {
+                _sandboxHud.SetStatus("맵 크기를 바꾸려면 먼저 배치된 유닛을 모두 치우세요.");
+                return false;
+            }
+
+            DestroySafe(_gridView.gameObject);
+
+            gridWidth = size;
+            gridHeight = size;
+            _grid = new GridWorld(gridWidth, gridHeight, tileSize);
+
+            var gridViewGo = new GameObject("GridView");
+            gridViewGo.transform.SetParent(transform, false);
+            _gridView = gridViewGo.AddComponent<GridView>();
+            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
+
+            PositionCamera();
+            return true;
+        }
+
+        /// <summary>Play 모드에서는 Destroy(다음 프레임 파괴), Edit 모드(배치모드 검증 스크립트 등)에서는
+        /// DestroyImmediate를 써야 한다 — Edit 모드에서 Destroy를 부르면 Unity가 무시하고 에러만 남긴다.</summary>
+        private static void DestroySafe(Object obj)
+        {
+            if (Application.isPlaying) Destroy(obj);
+            else DestroyImmediate(obj);
         }
 
         private void HandleSandboxUnitSelected(int index)

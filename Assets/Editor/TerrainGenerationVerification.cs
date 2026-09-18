@@ -5,10 +5,11 @@ using UnityEngine;
 namespace TacticsECS.EditorTools
 {
     /// <summary>
-    /// 바이옴 지형 생성 파이프라인(CSV 왕복, 노이즈/가중치/인접배제/최소개수 규칙 준수, 시드 재현성)을
-    /// 자동으로 검증하는 배치모드 전용 스크립트. UnitCsvVerification과 같은 패턴 — Play 모드 없이
-    /// Console 로그의 PASS/FAIL만 확인하면 된다.
-    /// 사용법: unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.TerrainGenerationVerification.Run -quit
+    /// 바이옴 지형 생성 파이프라인(CSV 왕복, 노이즈/Inner-Outer 가중치/제약(인접배제·최소거리·가장자리
+    /// 여백)/맵 크기 비례 개수/쿼드런트 공정 배치/시드 재현성)을 자동으로 검증하는 배치모드 전용
+    /// 스크립트. UnitCsvVerification과 같은 패턴 — Play 모드 없이 Console 로그의 PASS/FAIL만 확인하면
+    /// 된다. docs/PolytopiaMapGeneration.md 기준 2차 재정비 반영.
+    /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.TerrainGenerationVerification.Run -quit
     /// </summary>
     public static class TerrainGenerationVerification
     {
@@ -19,13 +20,14 @@ namespace TacticsECS.EditorTools
             bool ok = VerifyRoundTrip() &
                       VerifySingleBiomeRules() &
                       VerifyDeterministicSeed() &
-                      VerifyMultiBiomeSmoke();
+                      VerifyMultiBiomeSmoke() &
+                      VerifyQuadrantFairness();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
         private static string ReadCsv(string relativePath) => File.ReadAllText(Path.Combine(Application.dataPath, "..", relativePath));
 
-        /// <summary>Parse -> Write -> 재파싱해서 값이 그대로 보존되는지 확인한다(UnitCsvVerification.VerifyRoundTrip과 같은 방식).</summary>
+        /// <summary>Parse -> Write -> 재파싱해서 값이 그대로 보존되는지 확인한다(새 필드 전부 포함).</summary>
         private static bool VerifyRoundTrip()
         {
             var absolutePath = Path.Combine(Application.dataPath, "..", SampleCsvRelativePath);
@@ -56,7 +58,7 @@ namespace TacticsECS.EditorTools
                 var b = rewritten[i];
                 bool same = a.Id == b.Id && a.Name == b.Name && a.NoiseType == b.NoiseType &&
                     Mathf.Approximately(a.Frequency, b.Frequency) && a.Octaves == b.Octaves && a.SeedOffset == b.SeedOffset &&
-                    a.Tiles.Count == b.Tiles.Count;
+                    a.InnerRadius == b.InnerRadius && a.Tiles.Count == b.Tiles.Count;
 
                 if (same)
                 {
@@ -65,7 +67,9 @@ namespace TacticsECS.EditorTools
                         var ta = a.Tiles[t];
                         var tb = b.Tiles[t];
                         bool tileSame = ta.TileId == tb.TileId && ta.TerrainType == tb.TerrainType &&
-                            Mathf.Approximately(ta.Weight, tb.Weight) && ta.MinCount == tb.MinCount &&
+                            Mathf.Approximately(ta.InnerWeight, tb.InnerWeight) && Mathf.Approximately(ta.OuterWeight, tb.OuterWeight) &&
+                            ta.MinCount == tb.MinCount && Mathf.Approximately(ta.CountPerTiles, tb.CountPerTiles) &&
+                            ta.MinDistance == tb.MinDistance && ta.EdgeMargin == tb.EdgeMargin &&
                             string.Join("|", ta.ExcludeAdjacent) == string.Join("|", tb.ExcludeAdjacent);
                         if (!tileSame) { same = false; break; }
                     }
@@ -82,25 +86,30 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>바이옴 1개짜리 그리드(Voronoi 분할이 개입하지 않아 인접 배제 판정이 모호하지 않음)로
-        /// MinCount/ExcludeAdjacent가 실제로 지켜지는지 정확히 검증한다.</summary>
+        /// <summary>바이옴 1개짜리 그리드(Voronoi 분할이 개입하지 않아 판정이 모호하지 않음)로 MinCount/
+        /// ExcludeAdjacent/MinDistance/EdgeMargin/CountPerTiles가 전부 실제로 지켜지는지 정확히 검증한다.</summary>
         private static bool VerifySingleBiomeRules()
         {
             var biome = new BiomeCsvRow
             {
-                Id = "Grassland", Name = "평원", NoiseType = "Perlin", Frequency = 0.15f, Octaves = 3, SeedOffset = 101,
+                Id = "Grassland", Name = "평원", NoiseType = "Perlin", Frequency = 0.15f, Octaves = 3, SeedOffset = 101, InnerRadius = 3,
                 Tiles = new List<BiomeTileEntry>
                 {
-                    new BiomeTileEntry { TileId = "Grass", TerrainType = TerrainType.Land, Weight = 0.6f, MinCount = 0, ExcludeAdjacent = new string[0] },
-                    new BiomeTileEntry { TileId = "Forest", TerrainType = TerrainType.Land, Weight = 0.3f, MinCount = 3, ExcludeAdjacent = new[] { "Water" } },
-                    new BiomeTileEntry { TileId = "Water", TerrainType = TerrainType.Water, Weight = 0.1f, MinCount = 2, ExcludeAdjacent = new[] { "Forest" } },
+                    new BiomeTileEntry { TileId = "Grass", TerrainType = TerrainType.Land, InnerWeight = 0.6f, OuterWeight = 0.6f },
+                    new BiomeTileEntry { TileId = "Forest", TerrainType = TerrainType.Land, InnerWeight = 0.1f, OuterWeight = 0.35f, MinCount = 3, ExcludeAdjacent = new[] { "Water" } },
+                    new BiomeTileEntry { TileId = "Water", TerrainType = TerrainType.Water, InnerWeight = 0.1f, OuterWeight = 0.15f, MinCount = 2, ExcludeAdjacent = new[] { "Forest" } },
+                    // EdgeMargin=1/MinDistance=3인 상태로 12x12(단일 바이옴이라 영역 크기=144) 전체에서
+                    // CountPerTiles=30 -> round(144/30)=5개를 목표로 한다. 여백 뺀 유효 영역(10칸 폭)에서도
+                    // 3칸 간격 격자(0,3,6,9)가 4x4=16자리 나오므로 5개는 넉넉히 배치 가능해야 한다.
+                    new BiomeTileEntry { TileId = "Ruin", TerrainType = TerrainType.Land, InnerWeight = 0.05f, OuterWeight = 0.05f, CountPerTiles = 30f, MinDistance = 3, EdgeMargin = 1 },
                 }
             };
 
-            var grid = new GridWorld(10, 10, 1f);
+            var grid = new GridWorld(12, 12, 1f);
             TerrainGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, seed: 42);
 
             var counts = new Dictionary<string, int>();
+            var ruinPositions = new List<Vector2Int>();
             bool ok = true;
 
             for (int y = 0; y < grid.Height; y++)
@@ -116,6 +125,7 @@ namespace TacticsECS.EditorTools
                         continue;
                     }
                     counts[tileType] = counts.TryGetValue(tileType, out var c) ? c + 1 : 1;
+                    if (tileType == "Ruin") ruinPositions.Add(pos);
 
                     foreach (var n in grid.GetNeighbors(pos, allowDiagonal: false))
                     {
@@ -144,8 +154,33 @@ namespace TacticsECS.EditorTools
                 Debug.LogError($"[TerrainGenerationVerification] Water MinCount(2) not satisfied, got {(counts.TryGetValue("Water", out var wc) ? wc : 0)}");
                 ok = false;
             }
+            if (ruinPositions.Count < 5)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] Ruin CountPerTiles(30 on 144 tiles -> 5) not satisfied, got {ruinPositions.Count}");
+                ok = false;
+            }
+            for (int i = 0; i < ruinPositions.Count; i++)
+            {
+                var p = ruinPositions[i];
+                int distToEdge = Mathf.Min(Mathf.Min(p.x, p.y), Mathf.Min(grid.Width - 1 - p.x, grid.Height - 1 - p.y));
+                if (distToEdge < 1)
+                {
+                    Debug.LogError($"[TerrainGenerationVerification] Ruin {p} violates EdgeMargin(1)");
+                    ok = false;
+                }
+                for (int j = i + 1; j < ruinPositions.Count; j++)
+                {
+                    var q = ruinPositions[j];
+                    int dist = Mathf.Max(Mathf.Abs(p.x - q.x), Mathf.Abs(p.y - q.y));
+                    if (dist < 3)
+                    {
+                        Debug.LogError($"[TerrainGenerationVerification] Ruin {p} and {q} violate MinDistance(3): dist={dist}");
+                        ok = false;
+                    }
+                }
+            }
 
-            if (ok) Debug.Log($"[TerrainGenerationVerification] single-biome rules PASS (Forest={forestCount}, Water={waterCount})");
+            if (ok) Debug.Log($"[TerrainGenerationVerification] single-biome rules PASS (Forest={forestCount}, Water={waterCount}, Ruin={ruinPositions.Count})");
             return ok;
         }
 
@@ -153,8 +188,8 @@ namespace TacticsECS.EditorTools
         private static bool VerifyDeterministicSeed()
         {
             var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
-            var gridA = new GridWorld(12, 12, 1f);
-            var gridB = new GridWorld(12, 12, 1f);
+            var gridA = new GridWorld(16, 16, 1f);
+            var gridB = new GridWorld(16, 16, 1f);
             TerrainGenerationSystem.Generate(gridA, biomes, seed: 777);
             TerrainGenerationSystem.Generate(gridB, biomes, seed: 777);
 
@@ -175,46 +210,87 @@ namespace TacticsECS.EditorTools
         }
 
         /// <summary>docs/sample_biomes.csv 3바이옴을 넓은 그리드에 실제로 생성해서 예외 없이 끝나고
-        /// 모든 칸이 채워지는지, 각 타일 타입의 전역 등장 수가 선언된 MinCount 합보다 작지 않은지 확인하는
-        /// 통합 스모크 테스트(바이옴 경계에서의 교차 인접은 바이옴별로 다른 규칙이라 여기서는 검증하지
-        /// 않는다 — 그 부분은 VerifySingleBiomeRules가 모호함 없이 다룬다).</summary>
+        /// 모든 칸이 채워지는지 확인하는 통합 스모크 테스트(각 바이옴이 CountPerTiles로 개수를 정하므로
+        /// 정확한 개수 하한 검증은 VerifySingleBiomeRules가 모호함 없이 다룬다).</summary>
         private static bool VerifyMultiBiomeSmoke()
         {
             var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
             var grid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(grid, biomes, seed: 2024);
 
-            var minCountByTile = new Dictionary<string, int>();
-            foreach (var biome in biomes)
-                foreach (var entry in biome.Tiles)
-                    minCountByTile[entry.TileId] = minCountByTile.TryGetValue(entry.TileId, out var v) ? v + entry.MinCount : entry.MinCount;
-
-            var counts = new Dictionary<string, int>();
             bool ok = true;
             for (int y = 0; y < grid.Height; y++)
                 for (int x = 0; x < grid.Width; x++)
                 {
-                    var tileType = grid.GetTileType(new Vector2Int(x, y));
-                    if (string.IsNullOrEmpty(tileType))
+                    if (string.IsNullOrEmpty(grid.GetTileType(new Vector2Int(x, y))))
                     {
                         Debug.LogError($"[TerrainGenerationVerification] multi-biome: cell ({x},{y}) left empty");
                         ok = false;
-                        continue;
                     }
-                    counts[tileType] = counts.TryGetValue(tileType, out var c) ? c + 1 : 1;
                 }
 
-            foreach (var kv in minCountByTile)
+            if (ok) Debug.Log("[TerrainGenerationVerification] multi-biome smoke PASS");
+            return ok;
+        }
+
+        /// <summary>바이옴 수만큼의 앵커가 서로 다른 쿼드런트(구역)에 배치되는지(공정성 규칙) 확인한다.
+        /// TerrainGenerationSystem은 앵커를 외부에 노출하지 않으므로, 바이옴마다 서로 다른(겹치지 않는)
+        /// 단일 TileId만 쓰는 합성 바이옴 4개를 만들어(sample_biomes.csv는 여러 바이옴이 "Water"를
+        /// 공유해서 칸 -> 바이옴 역추적이 모호함) 생성 결과에서 각 바이옴이 차지한 칸들이 가장 많이 몰린
+        /// 구역(사분면)을 그 바이옴의 근거지로 보고, 서로 다른 바이옴끼리 근거지가 겹치지 않는지로
+        /// 간접 확인한다 — 완전 랜덤 시드였다면(1차 구현) 우연히 겹칠 수 있지만 쿼드런트 배치는 이를
+        /// 구조적으로 방지한다.</summary>
+        private static bool VerifyQuadrantFairness()
+        {
+            var biomes = new List<BiomeCsvRow>();
+            string[] tileIds = { "TileA", "TileB", "TileC", "TileD" };
+            foreach (var tileId in tileIds)
             {
-                int actual = counts.TryGetValue(kv.Key, out var c) ? c : 0;
-                if (actual < kv.Value)
+                biomes.Add(new BiomeCsvRow
                 {
-                    Debug.LogError($"[TerrainGenerationVerification] multi-biome: tile '{kv.Key}' total MinCount {kv.Value} not met, got {actual}");
+                    Id = tileId, Name = tileId, Frequency = 0.1f, Octaves = 2, SeedOffset = 1, InnerRadius = 1,
+                    Tiles = new List<BiomeTileEntry> { new BiomeTileEntry { TileId = tileId, TerrainType = TerrainType.Land, InnerWeight = 1f, OuterWeight = 1f } }
+                });
+            }
+
+            var grid = new GridWorld(24, 24, 1f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed: 55);
+
+            // 4개 바이옴 -> quadrantsPerSide = ceil(sqrt(4)) = 2, 즉 2x2=4구역에 하나씩 배정되어야 함.
+            var cellCountPerQuadrantPerBiome = new int[tileIds.Length, 4];
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var tileType = grid.GetTileType(new Vector2Int(x, y));
+                    int biomeIdx = System.Array.IndexOf(tileIds, tileType);
+                    if (biomeIdx < 0) continue;
+                    int quadrant = (x < grid.Width / 2 ? 0 : 1) + (y < grid.Height / 2 ? 0 : 2);
+                    cellCountPerQuadrantPerBiome[biomeIdx, quadrant]++;
+                }
+            }
+
+            var homeQuadrantByBiome = new int[tileIds.Length];
+            for (int b = 0; b < tileIds.Length; b++)
+            {
+                int bestQuadrant = -1, bestCount = -1;
+                for (int q = 0; q < 4; q++)
+                    if (cellCountPerQuadrantPerBiome[b, q] > bestCount) { bestCount = cellCountPerQuadrantPerBiome[b, q]; bestQuadrant = q; }
+                homeQuadrantByBiome[b] = bestQuadrant;
+            }
+
+            bool ok = true;
+            var seenQuadrants = new HashSet<int>();
+            for (int b = 0; b < tileIds.Length; b++)
+            {
+                if (!seenQuadrants.Add(homeQuadrantByBiome[b]))
+                {
+                    Debug.LogError($"[TerrainGenerationVerification] quadrant fairness violation: biome '{tileIds[b]}' shares home quadrant {homeQuadrantByBiome[b]} with another biome");
                     ok = false;
                 }
             }
 
-            if (ok) Debug.Log("[TerrainGenerationVerification] multi-biome smoke PASS");
+            if (ok) Debug.Log("[TerrainGenerationVerification] quadrant fairness PASS");
             return ok;
         }
     }

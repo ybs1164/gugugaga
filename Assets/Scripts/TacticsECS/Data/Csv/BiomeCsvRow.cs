@@ -24,11 +24,18 @@ namespace TacticsECS
         /// CSV로 직접 지정하는 값이다.</summary>
         public int SeedOffset;
 
+        /// <summary>이 바이옴의 앵커(쿼드런트 내 랜덤 지점, Polytopia의 "수도" 역할 —
+        /// TerrainGenerationSystem.AssignBiomeRegions 참고)로부터 이 반경(체비쇼프 거리) 이내를
+        /// "Inner"로, 그 밖을 "Outer"로 취급한다. BiomeTileEntry.InnerWeight/OuterWeight 참고.</summary>
+        public int InnerRadius;
+
         public List<BiomeTileEntry> Tiles = new List<BiomeTileEntry>();
     }
 
-    /// <summary>바이옴 하나에 속한 타일 타입 하나의 생성 규칙. Weight(확률 계수)/MinCount(최소 개수)/
-    /// ExcludeAdjacent(인접 배제 규칙)는 전부 사용자가 대화로 확정한 3가지 요구사항 그대로다.</summary>
+    /// <summary>바이옴 하나에 속한 타일 타입 하나의 생성 규칙. Polytopia 맵 생성 규칙(docs/
+    /// PolytopiaMapGeneration.md) 중 이 프로젝트에 맞게 채택한 것들 — Inner/Outer 이중 확률, 맵 크기
+    /// 비례 개수(CountPerTiles), 같은 타입끼리 최소 거리(MinDistance), 가장자리 여백(EdgeMargin),
+    /// 인접 배제(ExcludeAdjacent, 1차 구현부터 유지).</summary>
     public struct BiomeTileEntry
     {
         public string TileId;
@@ -37,8 +44,23 @@ namespace TacticsECS
         /// 타입이 늘어나도 PathfindingSystem 등 이동 로직은 이 값 하나만 보고 그대로 동작한다.</summary>
         public TerrainType TerrainType;
 
-        public float Weight;
+        /// <summary>바이옴 앵커 기준 Inner/Outer 영역(BiomeCsvRow.InnerRadius)에서 각각 쓰이는 기본
+        /// 확률 계수. 노이즈로 한 번 더 보정된다(TerrainGenerationSystem.ComputeWeight).</summary>
+        public float InnerWeight;
+        public float OuterWeight;
+
         public int MinCount;
+
+        /// <summary>0보다 크면 "이 바이옴에 배정된 영역 칸 수 / 이 값" 개수만큼(반올림) 자동으로 최소
+        /// 개수를 늘린다 — 맵 전체 크기가 아니라 바이옴 영역 크기 기준이라, 바이옴이 몇 개든 밀도가
+        /// 일정하게 유지된다. MinCount와 비교해 더 큰 쪽을 쓴다(TerrainGenerationSystem 참고). 0이면 비활성.</summary>
+        public float CountPerTiles;
+
+        /// <summary>같은 TileId끼리 유지해야 하는 최소 거리(체비쇼프). 0이면 제약 없음.</summary>
+        public int MinDistance;
+
+        /// <summary>맵 가장자리로부터 최소 이 거리 이상 떨어진 칸에만 배치 가능. 0이면 제약 없음.</summary>
+        public int EdgeMargin;
 
         /// <summary>이 타일과 인접(상하좌우)할 수 없는 다른 TileId 목록. 비어있으면 제약 없음.</summary>
         public string[] ExcludeAdjacent;

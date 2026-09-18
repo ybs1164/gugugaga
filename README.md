@@ -258,42 +258,58 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 ## 절차적 지형 생성 (바이옴)
 
 Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으로 `GridWorld`를 절차적으로 채우는 기능.
-알고리즘은 노이즈 기반 지형 생성 여러 방식(Perlin/Simplex 노이즈, Cellular Automata, Voronoi, Wave
-Function Collapse 등)을 비교한 뒤, "타일 종류가 늘어나고 인접 배제 규칙 + 최소 개수 + 확률 가중치가
-바이옴마다 다른 노이즈로 지정된다"는 요구사항에 맞춰 **바이옴별 노이즈 + 가중치 랜덤 + 제약 필터링**
-조합(경량 WFC 변형)으로 확정했다.
+1차 구현(바이옴별 노이즈 + 가중치 랜덤 + 인접 배제 + 최소 개수, 경량 WFC 변형) 이후,
+[`docs/PolytopiaMapGeneration.md`](docs/PolytopiaMapGeneration.md)(Polytopia Wiki의 맵 생성 규칙 요약)를
+기준으로 공정성/제약 규칙을 반영해 2차 재정비했다 — Polytopia 특유의 랜드마스 모양(Pangea/Archipelago 등)
+자체는 구현하지 않고, "쿼드런트 기반 공정 배치 / Inner-Outer 이중 확률 / 일반화된 거리 제약 / 맵 크기
+비례 개수"라는 설계 원칙만 채택했다.
 
 - [`Core/TileData.cs`](Assets/Scripts/TacticsECS/Core/TileData.cs): `TileTypeId`(예: "Grass"/"Forest"/"Sand")
-  필드 추가. 기존 `Terrain`(육지/물, 이동 판정)과 독립적인 순수 표시/생성용 값이라 `PathfindingSystem`/
+  필드. 기존 `Terrain`(육지/물, 이동 판정)과 독립적인 순수 표시/생성용 값이라 `PathfindingSystem`/
   `MoveAction` 등 이동 로직은 전혀 건드리지 않았다.
 - [`Data/Csv/BiomeCsvRow.cs`](Assets/Scripts/TacticsECS/Data/Csv/BiomeCsvRow.cs) +
   [`Systems/Csv/BiomeCsvSerializer.cs`](Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs):
   `UnitCsvRow`/`UnitCsvSerializer`와 같은 패턴의 바이옴 CSV 파서. 컬럼:
-  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,Tiles` — `Tiles`는 `TileId:TerrainType:Weight:MinCount:Exclude1|Exclude2`
+  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles` — `Tiles`는
+  `TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:Exclude1|Exclude2`
   형식의 엔트리를 세미콜론으로 나열한다(콤마를 쓰지 않아 따옴표 없이도 안전하게 파싱). 예시:
   [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland 3바이옴, 각 3타일).
 - [`Systems/NoiseSystem.cs`](Assets/Scripts/TacticsECS/Systems/NoiseSystem.cs): 옥타브를 누적하는 순수
   프랙탈 Perlin 노이즈 함수 하나(무상태).
 - [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs):
-  무상태 정적 시스템. (1) 바이옴이 여러 개면 랜덤 시드점 기준 간단한 Voronoi로 영역을 나누고, (2) 같은
-  바이옴 안에서도 타일 엔트리마다 독립된 노이즈장(SeedOffset을 엔트리별로 다르게)을 써서 패치처럼
-  뭉치게 하고, (3) MinCount가 있는 타일부터 인접 배제 규칙을 만족하는 빈 칸에 우선 배치한 뒤, (4) 남은
-  칸을 노이즈 가중치로 랜덤 채운다(막힌 칸은 바이옴 첫 엔트리로 폴백). 유닛이 점유한 칸은 절대 건드리지
-  않는다.
+  무상태 정적 시스템.
+  1. **쿼드런트 기반 앵커 배치** — 완전 랜덤 Voronoi 시드 대신, 바이옴 수만큼 그리드를 균등 구역으로
+     나누고 구역마다 하나씩 랜덤 앵커를 배정한다(Polytopia의 "인원수에 따라 4/9/16구역, 구역당 수도
+     하나" 공정성 규칙과 같은 원리). 이후 각 칸은 기존처럼 가장 가까운 앵커의 바이옴에 배정(Voronoi).
+  2. **Inner/Outer 이중 확률** — 칸이 자기 바이옴 앵커로부터 `InnerRadius`(체비쇼프 거리) 이내면
+     `InnerWeight`, 밖이면 `OuterWeight`를 기준 확률로 쓰고, 엔트리별 독립 노이즈로 한 번 더 보정해
+     패치처럼 뭉치게 한다.
+  3. **일반화된 거리 제약** — 기존 `ExcludeAdjacent`(바로 인접한 다른 타입 배제)에 더해 `MinDistance`
+     (같은 타입끼리 최소 거리)와 `EdgeMargin`(맵 가장자리로부터 최소 거리)을 함께 검사한다.
+  4. **맵 크기 비례 개수** — `MinCount`와 `CountPerTiles`(그 바이옴에 배정된 영역 크기 / 이 값, 반올림)
+     중 큰 값을 목표 개수로 쓴다 — 맵 크기나 바이옴 개수가 달라져도 밀도가 일정하게 유지된다.
+  5. 목표 개수가 있는 타일부터 제약을 만족하는 빈 칸에 우선 배치한 뒤, 남은 칸을 Inner/Outer+노이즈
+     가중치로 랜덤 채운다(막힌 칸은 바이옴 첫 엔트리로 폴백). 유닛이 점유한 칸은 절대 건드리지 않는다.
 - 비주얼: 새 에셋 다운로드 없이 기존 `Assets/Art/Tiles/Kenney/tile.fbx`(이미 육지/물 타일이 재사용
   중이던 그 메시)를 그대로 쓰고, [`View/TileView.cs`](Assets/Scripts/TacticsECS/View/TileView.cs)의
   `TileTypeId`별 색 테이블로만 구분한다(Grass=초록/Forest=진초록/Sand=황토/Rock=회색/Snow=흰색/
   Water=파랑). [`View/GridView.cs`](Assets/Scripts/TacticsECS/View/GridView.cs)에 `RefreshTerrain`을
   추가해 타일 오브젝트를 파괴/재생성하지 않고 색만 다시 입힌다.
-- UI: `SandboxHud` 툴바에 "바이옴 불러오기"(OS 파일 대화상자로 CSV 선택)/"지형 생성"(클릭마다 새
-  시드로 재생성) 버튼 2개 추가 — 기존 유닛 CSV 불러오기/내보내기와 같은 패턴. `Assets/Editor/UIPrefabSetup.cs`의
-  `BuildSandboxToolbar`를 수정해 `-executeMethod`로 `SandboxHud.prefab`을 다시 구웠다(CLAUDE.md 규칙 1 —
-  프리팹을 에디터 GUI로 손으로 만들지 않음).
-- 검증: `Assets/Editor/TerrainGenerationVerification.cs`(배치모드, `-executeMethod`)로 CSV 왕복 파싱,
-  단일 바이옴 인접 배제/최소 개수 정확성, 시드 결정론적 재현, 3바이옴 통합 스모크 테스트까지 전부 PASS
-  확인. Sandbox 씬에서 "바이옴 불러오기 -> 지형 생성" 흐름을 Edit Mode로 동기 재현하고 RenderTexture로
-  스크린샷을 찍어 3개 바이옴이 영역별로 뭉쳐 생성되는 것을 육안으로도 확인했다(Play Mode는
-  `-executeMethod` 호출을 못 버티므로 사용하지 않음).
+- **맵 크기 프리셋**: Polytopia의 6종 이름/타일 수를 그대로 채택(Tiny 11x11 ~ Massive 30x30,
+  `BattleController.MapSizePresets`). Sandbox 툴바의 "맵 크기" 버튼을 누르면 순환하고, "지형 생성"을
+  누르면 선택된 크기가 현재 그리드와 다를 때만 `BattleController.RebuildGridForSize`가 `GridWorld`/
+  `GridView`를 다시 만들고 카메라를 재배치한 뒤 지형을 생성한다. 이미 유닛이 배치된 상태에서는 좌표가
+  깨지므로 크기 변경을 거부한다(배치 전에만 맵 크기를 바꿀 수 있다는 안전 규칙).
+- UI: `SandboxHud` 툴바에 "바이옴 불러오기"(OS 파일 대화상자로 CSV 선택)/"맵 크기"(프리셋 순환)/
+  "지형 생성"(필요하면 리사이즈 후 새 시드로 재생성) 버튼 추가 — 기존 유닛 CSV 불러오기/내보내기와 같은
+  패턴. `Assets/Editor/UIPrefabSetup.cs`의 `BuildSandboxToolbar`를 수정해 `-executeMethod`로
+  `SandboxHud.prefab`을 다시 구웠다(CLAUDE.md 규칙 1 — 프리팹을 에디터 GUI로 손으로 만들지 않음).
+- 검증: `Assets/Editor/TerrainGenerationVerification.cs`(배치모드, `-executeMethod`)로 CSV 왕복 파싱
+  (새 필드 전부 포함), 단일 바이옴 기준 인접 배제/최소 거리/가장자리 여백/맵 크기 비례 개수 정확성,
+  시드 결정론적 재현, 3바이옴 통합 스모크, 쿼드런트 공정 배치(합성 4바이옴이 서로 다른 구역을 차지하는지)
+  까지 전부 PASS 확인. Sandbox 씬에서 "바이옴 불러오기 -> 맵 크기 순환 -> 지형 생성" 흐름을 Edit Mode로
+  동기 재현하고 RenderTexture로 스크린샷을 찍어 리사이즈와 3바이옴 분산 배치를 육안으로도 확인했다
+  (Play Mode는 `-executeMethod` 호출을 못 버티므로 사용하지 않음).
 
 ## 도시 발전 자원 (플레이스홀더)
 
@@ -367,6 +383,30 @@ Function Collapse 등)을 비교한 뒤, "타일 종류가 늘어나고 인접 �
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-18: Polytopia 맵 생성 규칙을 반영해 절차적 지형 생성 2차 재정비.
+  - **동기**: [Polytopia Wiki의 맵 생성 규칙](https://polytopia.fandom.com/wiki/Map_Generation)을
+    요약해달라는 요청을 받아 [`docs/PolytopiaMapGeneration.md`](docs/PolytopiaMapGeneration.md)로 정리한
+    뒤, 그 요약을 기준으로 1차 지형 생성 구현을 재정비했다. 맵 타입별(Drylands/Lakes/Pangea/…) 고유
+    랜드마스 모양은 범위 밖으로 두고, 공정성/제약 규칙만 채택하기로 사용자와 확인.
+  - `BiomeCsvRow`/`BiomeCsvSerializer`의 타일 엔트리 포맷을 `Weight` 하나에서
+    `InnerWeight/OuterWeight/MinCount/CountPerTiles/MinDistance/EdgeMargin/ExcludeAdjacent`로 확장
+    (하위호환 유지 안 함 — `docs/sample_biomes.csv`도 새 포맷으로 재작성). `BiomeCsvRow`에 `InnerRadius` 추가.
+  - `TerrainGenerationSystem.AssignBiomeRegions`를 완전 랜덤 Voronoi 시드에서 쿼드런트(구역) 기반 앵커
+    배치로 교체(Polytopia의 "인원수별 4/9/16구역, 구역당 수도 하나" 공정성 규칙). 앵커 기준 Inner/Outer
+    이중 확률, `MinDistance`/`EdgeMargin` 제약, `CountPerTiles`(바이옴 영역 크기 비례 개수) 추가.
+    `CountPerTiles`는 맵 전체가 아니라 **그 바이옴에 배정된 영역 크기** 기준으로 계산하도록 설계했다 —
+    맵 전체 기준으로 하면 바이옴이 여러 개일 때 바이옴마다 독립적으로 같은 절대 개수를 채우려 해서
+    바이옴 수에 비례해 밀도가 과도해지는 문제가 있었다(구현 중 자체 발견/수정).
+  - `BattleController`에 Polytopia 6종 맵 크기 프리셋(Tiny~Massive, `MapSizePresets`)과
+    `RebuildGridForSize`(그리드/뷰/카메라 재생성, 유닛이 이미 배치돼 있으면 거부) 추가. `SandboxHud`
+    툴바에 "맵 크기" 순환 버튼 추가, "지형 생성"은 필요 시 리사이즈까지 함께 수행하도록 확장.
+  - **검증**: Unity CLI 배치모드로 (1) `TerrainGenerationVerification`(CSV 왕복 새 필드 포함, 단일
+    바이옴 기준 인접배제/최소거리/가장자리여백/개수 정확성, 시드 결정론, 3바이옴 스모크, 합성 4바이옴
+    쿼드런트 공정 배치) 전부 PASS, (2) `UIPrefabSetup.GenerateAll` 재생성 후 (3) 기존
+    `UIVerification`/`UnitCsvVerification` 재실행해 회귀 없음 확인, (4) Sandbox 씬을 Edit Mode로
+    재현(맵 크기 순환 2회 + 바이옴 로드/생성)해 리사이즈와 3바이옴 분산을 스크린샷으로 육안 확인
+    (검증용 임시 스크립트는 확인 후 삭제).
 
 - 2026-09-17: 절차적 타일맵 지형 생성(바이옴 CSV 기반) 추가.
   - **동기**: 앞으로 타일 종류가 많아지고, "특정 타일에 인접 불가" 같은 배제 규칙, 플레이어가 지정하는

@@ -13,10 +13,12 @@ namespace TacticsECS
     /// = 엔트리 구분(UnitCsvSerializer의 Actions 컬럼과 동일), 콜론(:) = 엔트리 안의 필드 구분, 파이프(|) =
     /// ExcludeAdjacent 안의 타일 이름 여러 개 구분. 콤마(CSV 컬럼 구분자)를 전혀 쓰지 않으므로 따옴표 CSV를
     /// 지원하지 않는 단순 Split(',') 파서로도 안전하게 왕복된다.
+    /// 타일 엔트리 필드 순서: TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:ExcludeAdjacent
+    /// (docs/PolytopiaMapGeneration.md 기준 2차 재정비 — BiomeCsvRow.cs 필드별 주석 참고).
     /// </summary>
     public static class BiomeCsvSerializer
     {
-        private static readonly string[] Header = { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "Tiles" };
+        private static readonly string[] Header = { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "Tiles" };
 
         private const char TileEntrySeparator = ';';
         private const char TileFieldSeparator = ':';
@@ -57,7 +59,8 @@ namespace TacticsECS
             Frequency = ParseFloat(Col(c, 3)),
             Octaves = ParseInt(Col(c, 4)),
             SeedOffset = ParseInt(Col(c, 5)),
-            Tiles = ParseTiles(Col(c, 6))
+            InnerRadius = ParseInt(Col(c, 6)),
+            Tiles = ParseTiles(Col(c, 7))
         };
 
         private static string WriteRow(BiomeCsvRow row) => string.Join(",", new[]
@@ -68,6 +71,7 @@ namespace TacticsECS
             row.Frequency.ToString(CultureInfo.InvariantCulture),
             row.Octaves.ToString(CultureInfo.InvariantCulture),
             row.SeedOffset.ToString(CultureInfo.InvariantCulture),
+            row.InnerRadius.ToString(CultureInfo.InvariantCulture),
             WriteTiles(row.Tiles)
         });
 
@@ -86,9 +90,13 @@ namespace TacticsECS
                 {
                     TileId = FieldCol(f, 0),
                     TerrainType = ParseTerrainType(FieldCol(f, 1)),
-                    Weight = ParseFloat(FieldCol(f, 2)),
-                    MinCount = ParseInt(FieldCol(f, 3)),
-                    ExcludeAdjacent = ParseExclude(FieldCol(f, 4))
+                    InnerWeight = ParseFloat(FieldCol(f, 2)),
+                    OuterWeight = ParseFloat(FieldCol(f, 3)),
+                    MinCount = ParseInt(FieldCol(f, 4)),
+                    CountPerTiles = ParseFloat(FieldCol(f, 5)),
+                    MinDistance = ParseInt(FieldCol(f, 6)),
+                    EdgeMargin = ParseInt(FieldCol(f, 7)),
+                    ExcludeAdjacent = ParseExclude(FieldCol(f, 8))
                 });
             }
             return result;
@@ -104,8 +112,12 @@ namespace TacticsECS
         {
             entry.TileId ?? string.Empty,
             entry.TerrainType.ToString(),
-            entry.Weight.ToString(CultureInfo.InvariantCulture),
+            entry.InnerWeight.ToString(CultureInfo.InvariantCulture),
+            entry.OuterWeight.ToString(CultureInfo.InvariantCulture),
             entry.MinCount.ToString(CultureInfo.InvariantCulture),
+            entry.CountPerTiles.ToString(CultureInfo.InvariantCulture),
+            entry.MinDistance.ToString(CultureInfo.InvariantCulture),
+            entry.EdgeMargin.ToString(CultureInfo.InvariantCulture),
             entry.ExcludeAdjacent == null ? string.Empty : string.Join(ExcludeSeparator.ToString(), entry.ExcludeAdjacent)
         });
 

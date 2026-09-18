@@ -1,4 +1,4 @@
-Id,Name,NoiseType,Frequency,Octaves,SeedOffset,Tiles
-Grassland,평원,Perlin,0.15,3,101,Grass:Land:0.6:0:;Forest:Land:0.3:3:Water;Water:Water:0.1:2:Forest
-Desert,사막,Perlin,0.12,2,202,Sand:Land:0.7:0:;Rock:Land:0.2:2:Water;Water:Water:0.1:1:Rock
-Highland,고지대,Perlin,0.18,3,303,Rock:Land:0.5:0:;Snow:Land:0.3:2:Water;Water:Water:0.2:1:Snow
+Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles
+Grassland,평원,Perlin,0.15,3,101,3,Grass:Land:0.7:0.5:0:0:0:0:;Forest:Land:0.1:0.35:0:15:2:0:Water;Water:Water:0.2:0.15:0:25:2:1:Forest
+Desert,사막,Perlin,0.12,2,202,2,Sand:Land:0.8:0.65:0:0:0:0:;Rock:Land:0.05:0.25:0:20:2:0:Water;Water:Water:0.15:0.1:0:35:3:1:Rock
+Highland,고지대,Perlin,0.18,3,303,3,Rock:Land:0.6:0.45:0:0:0:0:;Snow:Land:0.15:0.35:0:18:2:0:Water;Water:Water:0.25:0.2:0:30:3:1:Snow

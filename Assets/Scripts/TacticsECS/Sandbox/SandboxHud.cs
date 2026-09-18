@@ -26,6 +26,7 @@ namespace TacticsECS
         public event Action OnStartBattleClicked;
         public event Action<string> OnLoadBiomeClicked;
         public event Action OnGenerateTerrainClicked;
+        public event Action OnMapSizeCycleClicked;
 
         [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
         [SerializeField] private GameObject paletteButtonPrefab;
@@ -36,6 +37,7 @@ namespace TacticsECS
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
 
         private Text _statusText;
+        private Text _mapSizeLabel;
         private Button _playerButton;
         private Button _enemyButton;
         private Image _playerButtonBg;
@@ -84,10 +86,19 @@ namespace TacticsECS
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
             panel.Find("바이옴불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadBiomeClicked);
+
+            var mapSizeButtonTransform = panel.Find("맵크기Button");
+            mapSizeButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnMapSizeCycleClicked?.Invoke());
+            _mapSizeLabel = mapSizeButtonTransform.Find("Label").GetComponent<Text>();
+
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
 
             _statusText = panel.Find("Status").GetComponent<Text>();
         }
+
+        /// <summary>"맵 크기" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleMapSizeCycle이
+        /// 클릭마다 호출).</summary>
+        public void SetMapSizeLabel(string name, int size) => _mapSizeLabel.text = $"크기: {name} ({size}x{size})";
 
         /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
         /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>

@@ -354,6 +354,36 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   실제로 달라지는지) 추가. Sandbox 씬 Edit Mode 재현 스크린샷으로 타일 위 구조물(금색 수도/청록 광물/회색
   유적)이 실제로 보이는 것까지 육안 확인.
 
+### 구조물 갭 보강 — 4차 재정비
+
+3차 재정비 이후 docs/PolytopiaMapGeneration.md를 절 단위로 다시 대조해 놓친 규칙 6가지를 전부 반영했다.
+`BiomeStructureEntry`에 필드 4개가 추가됐고(CSV `Structures` 엔트리 필드 순서가 11개로 늘어남 —
+`StructureId:AllowedTileTypes:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:MaxDistanceFromAnchor:MaxWaterFraction:FillRemaining:ExcludeAdjacentStructures`),
+새 자동 배치 규칙(외딴 섬 마을)이 추가됐다.
+
+| 놓쳤던 규칙 | 반영 방법 |
+|---|---|
+| 3절 "자원은 수도 2칸 이내에서만 스폰" | `BiomeStructureEntry.MaxDistanceFromAnchor` — 앵커 기준 체비쇼프 거리 상한 |
+| 9/10절 "다른 유적/불가사리가 마을과 바로 인접 불가" | `BiomeStructureEntry.ExcludeAdjacentStructures` — 다른 StructureId와의 4방향 인접 배제(`BiomeTileEntry.ExcludeAdjacent`와 같은 개념을 구조물 간에 적용) |
+| 10절 "불가사리는 물 타일 25칸당 1개" | `CountPerTiles`의 분모를 바이옴 영역 전체 크기 → `AllowedTileTypes`에 해당하는 칸 수(Starfish는 곧 물 타일 수)로 변경 |
+| 7절 "마을(Suburb/Pre-terrain/Post-terrain)" | 별도 3단계 파이프라인 대신, 기존 Structures 엔트리에 `FillRemaining`(true면 목표 개수를 무시하고 제약을 만족하는 칸이 없을 때까지 계속 채움 — Post-terrain 마을의 "포화까지 채움" 규칙을 일반화)을 추가하고 `Village` 구조물로 CSV에서 직접 정의 |
+| 8절 "외딴 섬 마을" | `StructureGenerationSystem.PlaceTinyIslandVillages` — 4방향 이웃이 전부 물인 고립된 물 타일을 찾아 육지로 바꾸고 마을 배치. 맵 크기별 개수표(Tiny=0~Massive=9) 그대로 채택 |
+| 9절 "Lakes 맵은 유적 최대 1/3만 물 위" | `BiomeStructureEntry.MaxWaterFraction`(0~1, `float?`) — 이 구조물이 물 타일에 배치되는 비율 상한. 지금까지 배치한 것 중 물 위 비율이 상한을 넘으면 그 칸에서는 후보에서 제외 |
+
+- 에셋: Village는 Capital과 같은 Tower Defense Kit(이미 다운로드된 팩)의 `wood-structure.fbx`를 추가로
+  가져와 갈색으로 구분(수도보다 소박한 나무 구조물).
+- **버그 발견 및 수정**: `MaxWaterFraction`을 처음엔 `float`(기본값 0)로 만들었는데, CSV를 거치지 않고
+  코드에서 `BiomeStructureEntry`를 직접 만들 때(검증 스크립트 등) 이 필드를 안 채우면 C# 구조체 기본값
+  0이 그대로 "물에는 0%만 허용"으로 해석되어 Starfish가 물 위에 전혀 배치되지 못하는 버그가 있었다
+  (CSV 파서는 빈 칸을 1로 치환하는 방어 코드가 있었지만, 구조체를 직접 만드는 코드에는 그런 안전장치가
+  없었다). `float?`(nullable)로 바꿔 "설정 안 함 = null = 제약 없음"이 자연스러운 기본값이 되도록 고쳐
+  이 함정 자체를 없앴다.
+- 검증: `StructureGenerationVerification`에 6가지 새 규칙 각각의 전용 테스트 추가(MaxDistanceFromAnchor,
+  ExcludeAdjacentStructures, FillRemaining 포화 여부, MaxWaterFraction 상한, 외딴 섬 마을 개수 — 뒤 두
+  테스트는 확률적 지형 생성에 기대지 않도록 GridWorld를 직접 구성해 결정론적으로 검증). Sandbox 씬에서
+  "맵 크기: Huge(20x20) + 습도: Pangea + 바이옴 불러오기 → 지형 생성" 흐름을 Edit Mode로 재현한
+  스크린샷으로 3바이옴 + 모든 구조물(수도/마을/유적/자원/불가사리)이 실제로 보이는 것까지 육안 확인.
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -426,6 +456,28 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-18: docs/PolytopiaMapGeneration.md 재대조 후 놓친 규칙 6가지 전부 반영 — 구조물 갭 보강 4차 재정비.
+  - **동기**: "markdown 파일 읽고 빠뜨린 거 없나 체크해줘" 요청을 받아 절 단위로 재검토한 결과, 3차
+    재정비에서 자원/수도/유적/불가사리는 구조물로 옮겼지만 (1) 자원-수도 거리 제약, (2) 구조물 간
+    인접 배제, (3) 불가사리 밀도 기준(물 타일 수 vs 영역 전체), (4) 마을 체계, (5) 외딴 섬 마을,
+    (6) 유적의 물 배치 비율 상한 6가지를 놓쳤다는 걸 발견했다 — 자세한 체크리스트는 위 [구조물 갭 보강](#구조물-갭-보강--4차-재정비) 참고.
+  - `BiomeStructureEntry`에 `MaxDistanceFromAnchor`/`MaxWaterFraction`/`FillRemaining`/
+    `ExcludeAdjacentStructures` 4개 필드 추가, `StructureGenerationSystem.PlaceTinyIslandVillages` 신규
+    (외딴 섬 마을), `CountPerTiles` 분모를 AllowedTileTypes 기준 칸 수로 정정.
+  - Village 구조물 추가(Tower Defense Kit `wood-structure.fbx`, 갈색) — CSV `FillRemaining` 엔트리로
+    "포화까지 채우는 마을"과, 자동 배치되는 "외딴 섬 마을" 양쪽에 재사용.
+  - **버그 발견 및 수정**: `MaxWaterFraction`을 `float`(기본값 0)로 선언했다가, CSV가 아니라 코드에서
+    `BiomeStructureEntry`를 직접 만드는 곳(검증 스크립트)에서 이 필드를 안 채우면 "물에는 0%만 허용"으로
+    해석돼 Starfish가 물 위에 전혀 못 놓이는 버그를 만들었다 — 검증 테스트가 바로 이 버그를 잡아냈다.
+    `float?`(nullable)로 바꿔 "설정 안 함 = 제약 없음"이 저절로 기본값이 되도록 고쳤다.
+  - **검증**: Unity CLI 배치모드로 (1) `StructureAssetSetup.GenerateAll`(Village 프리팹 추가) -> (2)
+    `TerrainGenerationVerification`(Structures 필드 4개 추가된 왕복 비교 포함) -> (3)
+    `StructureGenerationVerification`(6가지 새 규칙 전용 테스트, 확률적 노이즈에 기대지 않도록 일부는
+    GridWorld를 직접 구성해 결정론적으로 검증) -> (4) 기존 `UIVerification`/`UnitCsvVerification`(회귀)
+    순서로 전부 PASS. Sandbox 씬에서 "맵 크기: Huge(20x20) + 습도: Pangea + 예시 바이옴 불러오기 → 지형
+    생성" 흐름을 Edit Mode로 재현한 스크린샷으로 3바이옴 + 전체 구조물이 실제로 보이는 것까지 육안 확인
+    (검증용 임시 스크립트는 확인 후 삭제).
 
 - 2026-09-18: 타일 위 구조물(수도/유적/자원/불가사리) + 습도 UI — 지형 생성 3차 재정비.
   - **동기**: docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절은 "타일 자체"가 아니라

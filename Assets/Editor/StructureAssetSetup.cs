@@ -6,13 +6,15 @@ using UnityEngine;
 namespace TacticsECS.EditorTools
 {
     /// <summary>
-    /// 타일 위 구조물(수도/유적/자원/불가사리) 프리팹 5종을 만들어주는 1회성 배치 도구. TileAssetSetup과
+    /// 타일 위 구조물(수도/유적/자원/불가사리/마을) 프리팹 6종을 만들어주는 1회성 배치 도구. TileAssetSetup과
     /// 같은 이유로 Unity CLI(-executeMethod)로만 실행한다(에디터 GUI 직접 조작 금지 — CLAUDE.md 규칙 1).
     /// 사용법: unity run . -- -executeMethod TacticsECS.EditorTools.StructureAssetSetup.GenerateAll
     ///
     /// 메시 출처(전부 CC0, Kenney):
     /// - Capital: Assets/Art/Castle/Kenney/tower-round-build-f.fbx (Tower Defense Kit, 이미 tile.fbx로 일부
     ///   임포트되어 있던 팩 전체를 다시 받아 추가한 성/타워 조각)
+    /// - Village: Assets/Art/Castle/Kenney/wood-structure.fbx (Tower Defense Kit, Capital보다 소박한
+    ///   나무 구조물로 구분)
     /// - Ruin: Assets/Art/Nature/Kenney/statue_columnDamaged.fbx (Nature Kit)
     /// - Resource_Food: Assets/Art/Nature/Kenney/mushroom_redGroup.fbx (Nature Kit)
     /// - Resource_Ore: Assets/Art/Nature/Kenney/rock_largeA.fbx (Nature Kit)
@@ -26,6 +28,7 @@ namespace TacticsECS.EditorTools
     public static class StructureAssetSetup
     {
         private const string CapitalMeshPath = "Assets/Art/Castle/Kenney/tower-round-build-f.fbx";
+        private const string VillageMeshPath = "Assets/Art/Castle/Kenney/wood-structure.fbx";
         private const string RuinMeshPath = "Assets/Art/Nature/Kenney/statue_columnDamaged.fbx";
         private const string ResourceFoodMeshPath = "Assets/Art/Nature/Kenney/mushroom_redGroup.fbx";
         private const string ResourceOreMeshPath = "Assets/Art/Nature/Kenney/rock_largeA.fbx";
@@ -36,6 +39,7 @@ namespace TacticsECS.EditorTools
         private const string SandboxScenePath = "Assets/Scenes/Sandbox.unity";
 
         private static readonly Color CapitalColor = new Color(0.85f, 0.7f, 0.15f);       // 금색 — 눈에 띄는 랜드마크
+        private static readonly Color VillageColor = new Color(0.55f, 0.4f, 0.25f);       // 갈색 나무 — 수도보다 소박
         private static readonly Color RuinColor = new Color(0.6f, 0.6f, 0.6f);            // 회색 돌
         private static readonly Color ResourceFoodColor = new Color(0.8f, 0.25f, 0.3f);   // 붉은 버섯
         private static readonly Color ResourceOreColor = new Color(0.3f, 0.75f, 0.75f);   // 청록 광물(Rock 지형의 회색과 구분)
@@ -48,6 +52,7 @@ namespace TacticsECS.EditorTools
             EnsureFolder("Assets", "Materials");
 
             var capital = GenerateFromMesh("Structure_Capital", CapitalMeshPath, CapitalColor);
+            var village = GenerateFromMesh("Structure_Village", VillageMeshPath, VillageColor);
             var ruin = GenerateFromMesh("Structure_Ruin", RuinMeshPath, RuinColor);
             var resourceFood = GenerateFromMesh("Structure_ResourceFood", ResourceFoodMeshPath, ResourceFoodColor);
             var resourceOre = GenerateFromMesh("Structure_ResourceOre", ResourceOreMeshPath, ResourceOreColor);
@@ -56,8 +61,8 @@ namespace TacticsECS.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            if (capital != null && ruin != null && resourceFood != null && resourceOre != null && starfish != null)
-                AssignToSandboxScene(capital, ruin, resourceFood, resourceOre, starfish);
+            if (capital != null && village != null && ruin != null && resourceFood != null && resourceOre != null && starfish != null)
+                AssignToSandboxScene(capital, village, ruin, resourceFood, resourceOre, starfish);
 
             Debug.Log("[StructureAssetSetup] GenerateAll done");
         }
@@ -167,7 +172,7 @@ namespace TacticsECS.EditorTools
 
         /// <summary>Sandbox 씬의 BattleController에 구조물 프리팹 5종을 채워 넣는다(TileAssetSetup.AssignToScene과
         /// 같은 패턴). SampleScene은 지형 생성 자체를 쓰지 않아 배정하지 않는다.</summary>
-        private static void AssignToSandboxScene(GameObject capital, GameObject ruin, GameObject resourceFood, GameObject resourceOre, GameObject starfish)
+        private static void AssignToSandboxScene(GameObject capital, GameObject village, GameObject ruin, GameObject resourceFood, GameObject resourceOre, GameObject starfish)
         {
             if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) == null) return;
 
@@ -180,6 +185,7 @@ namespace TacticsECS.EditorTools
             }
 
             SetPrivateField(controller, "capitalStructurePrefab", capital);
+            SetPrivateField(controller, "villageStructurePrefab", village);
             SetPrivateField(controller, "ruinStructurePrefab", ruin);
             SetPrivateField(controller, "resourceFoodStructurePrefab", resourceFood);
             SetPrivateField(controller, "resourceOreStructurePrefab", resourceOre);

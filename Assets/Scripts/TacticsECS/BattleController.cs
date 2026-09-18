@@ -49,6 +49,9 @@ namespace TacticsECS
         [SerializeField] private GameObject resourceOreStructurePrefab;
         [Tooltip("바이옴 CSV의 \"Starfish\" 구조물 모델. Assets/Prefabs/Structures/Structure_Starfish.prefab.")]
         [SerializeField] private GameObject starfishStructurePrefab;
+        [Tooltip("바이옴 CSV의 \"Village\" 구조물 및 외딴 섬 마을(StructureGenerationSystem.PlaceTinyIslandVillages) " +
+            "모델. Assets/Prefabs/Structures/Structure_Village.prefab.")]
+        [SerializeField] private GameObject villageStructurePrefab;
 
         [Header("Unit Prefabs")]
         [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
@@ -450,7 +453,8 @@ namespace TacticsECS
             ["Ruin"] = ruinStructurePrefab,
             ["Resource_Food"] = resourceFoodStructurePrefab,
             ["Resource_Ore"] = resourceOreStructurePrefab,
-            ["Starfish"] = starfishStructurePrefab
+            ["Starfish"] = starfishStructurePrefab,
+            [StructureGenerationSystem.VillageStructureId] = villageStructurePrefab
         };
 
         /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다

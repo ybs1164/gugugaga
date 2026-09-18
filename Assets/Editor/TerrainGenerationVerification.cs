@@ -86,7 +86,12 @@ namespace TacticsECS.EditorTools
                             string.Join("|", sa.AllowedTileTypes) == string.Join("|", sb.AllowedTileTypes) &&
                             Mathf.Approximately(sa.Weight, sb.Weight) && sa.MinCount == sb.MinCount &&
                             Mathf.Approximately(sa.CountPerTiles, sb.CountPerTiles) &&
-                            sa.MinDistance == sb.MinDistance && sa.EdgeMargin == sb.EdgeMargin;
+                            sa.MinDistance == sb.MinDistance && sa.EdgeMargin == sb.EdgeMargin &&
+                            sa.MaxDistanceFromAnchor == sb.MaxDistanceFromAnchor &&
+                            sa.MaxWaterFraction.HasValue == sb.MaxWaterFraction.HasValue &&
+                            (!sa.MaxWaterFraction.HasValue || Mathf.Approximately(sa.MaxWaterFraction.Value, sb.MaxWaterFraction.Value)) &&
+                            sa.FillRemaining == sb.FillRemaining &&
+                            string.Join("|", sa.ExcludeAdjacentStructures) == string.Join("|", sb.ExcludeAdjacentStructures);
                         if (!structureSame) { same = false; break; }
                     }
                 }

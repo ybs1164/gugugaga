@@ -384,6 +384,41 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   "맵 크기: Huge(20x20) + 습도: Pangea + 바이옴 불러오기 → 지형 생성" 흐름을 Edit Mode로 재현한
   스크린샷으로 3바이옴 + 모든 구조물(수도/마을/유적/자원/불가사리)이 실제로 보이는 것까지 육안 확인.
 
+### 판게아 실제 랜드마스 셰이프 — 5차 재정비
+
+3차 재정비의 "습도" 버튼은 Water 타일의 확률 가중치만 올리는 다이얼이라, Pangea를 골라도 "중앙 대륙 +
+외곽 바다"(docs/PolytopiaMapGeneration.md 2/7.5절)라는 실제 모양은 전혀 안 나왔다(습도 % 숫자만
+근사했을 뿐 공간적 배치는 여전히 쿼드런트+개별 타일 확률에 맡겨져 있었고, 특히 Water 타일의
+`MinDistance` 제약이 바다끼리 인접을 금지해서 **바다가 절대 하나로 이어질 수 없는** 구조였다 — 판게아가
+필요로 하는 것과 정반대). 스크린샷으로 재확인한 뒤 원인을 분석하고, Pangea 전용 파이프라인을 새로
+추가했다.
+
+- [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs)에
+  `Generate(..., bool pangeaShape, float pangeaWaterFraction)` 오버로드 추가. `pangeaShape=true`면 완전히
+  다른 경로(`GeneratePangea`)를 탄다:
+  1. **랜드마스 마스크**: 맵 중심에서의 거리(방사형 감쇠, 가까울수록 점수 높음) + 노이즈를 섞어 칸마다
+     "육지 점수"를 매기고, 점수 상위 `(1-waterFraction)` 비율만큼을 순위 기반으로 육지로 확정한다
+     (임계값을 눈대중으로 맞추는 대신 정확히 목표 물 비율에 맞도록).
+  2. **앵커를 육지로 스냅**: 쿼드런트로 뽑은 앵커가 바다 칸에 떨어지면 가장 가까운 육지 칸으로 옮긴다
+     (완전한 절충 — 원문은 Pangea에서 쿼드런트 자체를 안 쓰지만, 바이옴별 색/스타일 분배는 계속
+     필요해서 앵커 개념은 유지하고 위치만 육지로 보정했다).
+  3. **바다 칸은 개별 제약을 건너뛰고 직접 채움**: 마스크가 물인 칸은 그 칸이 속한 바이옴의 물 타일로
+     `MinDistance` 등 개별 검사 없이 바로 채운다 — 이래야 바다가 실제로 하나로 이어진다.
+  4. **육지 칸은 물 타일 엔트리를 뺀 채로 기존 가중치 알고리즘 재사용**: `StripWaterTiles`로 Water
+     엔트리를 제거한 바이옴 목록을 만들어 `PlaceMinCountQuota`/`FillRemaining`에 그대로 넘긴다(마스크가
+     이미 육지/바다를 결정했으므로 이중으로 물이 섞이지 않게).
+  5. 쿼드런트 앵커 뽑기(`GenerateQuadrantAnchors`)와 Voronoi 배정(`ComputeBiomeIndexPerCell`)은 기존
+     `AssignBiomeRegions`에서 재사용 가능하도록 두 함수로 분리했다(자유 배치 모드도 그대로 이 둘을
+     합쳐서 쓴다 — 동작 변화 없음).
+- 다른 5개 프리셋(Drylands/Lakes/Continents/Archipelago/Waterworld)은 여전히 기존 "습도 배율만" 방식을
+  쓴다 — 각 프리셋 고유의 랜드마스 모양(대륙 여러 개, 조각 군도 등)까지 전부 구현하는 건 이번 범위
+  밖이고, 명확한 문제 제기(스크린샷이 이상하다)가 있었던 Pangea만 우선 고쳤다.
+- 검증: `TerrainGenerationVerification.VerifyPangeaShape`로 (1) 실제 물 비율이 목표(0.5)에 근접하는지,
+  (2) 물 타일끼리 실제로 인접 가능한지(이전엔 구조적으로 불가능했던 부분 — 이번 수정의 핵심 증거),
+  (3) 중앙이 가장자리보다 육지 비율이 뚜렷하게 높은지, (4) 시드 결정론까지 PASS. Sandbox 씬 스크린샷으로
+  3바이옴이 하나의 중앙 대륙을 이루고 외곽 전체가 연결된 바다로 감싸는 모양을 육안으로도 확인
+  (검증용 임시 스크립트는 확인 후 삭제).
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -456,6 +491,27 @@ docs/PolytopiaMapGeneration.md 3(자원)/6(수도)/9(유적)/10(불가사리)절
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-18: 판게아 실제 랜드마스 셰이프(중앙 대륙 + 외곽 바다) 구현 — 5차 재정비.
+  - **동기**: "판게아 지형 특성 다시 체크하고 왜 그렇게 안나오는지 분석해" 요청을 받아
+    docs/PolytopiaMapGeneration.md 2/7.5절을 재확인한 결과, 지금까지의 "습도" 버튼은 Water 타일 확률
+    가중치만 올리는 다이얼일 뿐 공간적 랜드마스 모양(중앙 대륙 + 외곽 바다)은 전혀 생성하지 않는다는
+    걸 확인했다. 결정적으로 `docs/sample_biomes.csv`의 Water 타일에 걸린 `MinDistance`(2~3) 제약이
+    물 타일끼리 인접을 금지해서 **바다가 절대 하나로 이어질 수 없는** 구조였다 — 판게아가 필요로 하는
+    것과 정반대 효과였다. 분석 후 "진행해" 승인을 받아 바로 구현했다.
+  - `TerrainGenerationSystem.Generate`에 `pangeaShape`/`pangeaWaterFraction` 파라미터를 추가하고, 선택되면
+    완전히 별도 경로(`GeneratePangea`)를 탄다 — 방사형 감쇠+노이즈로 순위 기반 랜드마스 마스크를 만들고
+    (목표 물 비율에 정확히 맞도록), 쿼드런트 앵커를 가장 가까운 육지로 스냅하고, 바다 칸은 개별 제약
+    없이 직접 채우고, 육지 칸은 물 타일 엔트리를 뺀 채로 기존 가중치 알고리즘을 재사용한다.
+    `BattleController.HandleGenerateTerrain`이 선택된 습도가 "Pangea"일 때 이 경로를 켠다.
+  - 다른 5개 습도 프리셋은 그대로 기존 "배율만" 방식 — 전체 6종의 고유 랜드마스 모양을 다 구현하는
+    건 범위 밖이고, 실제로 문제가 확인된 Pangea만 우선 고쳤다.
+  - **검증**: Unity CLI 배치모드로 `TerrainGenerationVerification.VerifyPangeaShape`(목표 물 비율 근접,
+    물 타일 인접 가능 여부 — 수정의 핵심 증거, 중앙/가장자리 육지 비율 대비, 시드 결정론) 신규 추가 후
+    전체 스위트(`TerrainGenerationVerification`/`StructureGenerationVerification`/`UIVerification`/
+    `UnitCsvVerification`) 전부 PASS 확인. Sandbox 씬을 Edit Mode로 재현한 스크린샷(맵 크기 Huge(20x20)
+    + 습도 Pangea)으로 3바이옴이 하나의 중앙 대륙을 이루고 외곽 전체가 연결된 바다로 감싸는 모양을
+    수정 전/후 비교까지 육안으로 확인(검증용 임시 스크립트는 확인 후 삭제).
 
 - 2026-09-18: docs/PolytopiaMapGeneration.md 재대조 후 놓친 규칙 6가지 전부 반영 — 구조물 갭 보강 4차 재정비.
   - **동기**: "markdown 파일 읽고 빠뜨린 거 없나 체크해줘" 요청을 받아 절 단위로 재검토한 결과, 3차

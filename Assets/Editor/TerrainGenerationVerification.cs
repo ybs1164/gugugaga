@@ -22,7 +22,8 @@ namespace TacticsECS.EditorTools
                       VerifyDeterministicSeed() &
                       VerifyMultiBiomeSmoke() &
                       VerifyQuadrantFairness() &
-                      VerifyWetnessMultiplier();
+                      VerifyWetnessMultiplier() &
+                      VerifyPangeaShape();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -345,6 +346,87 @@ namespace TacticsECS.EditorTools
                 for (int x = 0; x < grid.Width; x++)
                     if (grid.GetTileType(new Vector2Int(x, y)) == tileType) count++;
             return count;
+        }
+
+        /// <summary>판게아 모드(docs/PolytopiaMapGeneration.md 7.5절 "중앙 대륙 + 외곽 바다")가 실제로
+        /// 그 모양을 만드는지 확인한다 — (1) 목표 물 비율에 가깝게 맞는지, (2) 물 타일끼리 실제로 서로
+        /// 인접할 수 있는지(기존 MinDistance 제약 때문에 판게아 이전엔 불가능했던 부분 — 이게 이번
+        /// 수정의 핵심), (3) 중앙이 가장자리보다 육지 비율이 확실히 높은지(방사형 중앙 집중 확인),
+        /// (4) 같은 시드면 같은 결과가 나오는지.</summary>
+        private static bool VerifyPangeaShape()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var grid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, pangeaShape: true, pangeaWaterFraction: 0.5f);
+
+            bool ok = true;
+
+            // (1) 목표 물 비율(0.5)에 근접하는지 — 반올림/바이옴별 Water 타일 유무 오차를 감안해 ±0.1 허용.
+            int waterCount = 0, totalCount = grid.Width * grid.Height;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (grid.GetTerrain(new Vector2Int(x, y)) == TerrainType.Water) waterCount++;
+            float waterFraction = (float)waterCount / totalCount;
+            if (Mathf.Abs(waterFraction - 0.5f) > 0.1f)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] Pangea water fraction off target: {waterFraction:F2} (목표 0.5 ±0.1)");
+                ok = false;
+            }
+
+            // (2) 물 타일끼리 실제로 인접 가능한지 — 기존 MinDistance 제약이라면 절대 불가능했던 부분.
+            bool foundAdjacentWater = false;
+            for (int y = 0; y < grid.Height && !foundAdjacentWater; y++)
+                for (int x = 0; x < grid.Width && !foundAdjacentWater; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    if (grid.GetTerrain(pos) != TerrainType.Water) continue;
+                    foreach (var n in grid.GetNeighbors(pos, allowDiagonal: false))
+                        if (grid.GetTerrain(n) == TerrainType.Water) { foundAdjacentWater = true; break; }
+                }
+            if (!foundAdjacentWater)
+            {
+                Debug.LogError("[TerrainGenerationVerification] Pangea: no two Water tiles are adjacent — 바다가 하나로 안 이어짐(MinDistance가 여전히 걸리고 있을 가능성)");
+                ok = false;
+            }
+
+            // (3) 중앙이 가장자리(네 모서리)보다 육지 비율이 뚜렷하게 높은지.
+            float centerLandFraction = SampleLandFraction(grid, grid.Width / 2, grid.Height / 2, radius: 3);
+            float cornerLandFraction = (SampleLandFraction(grid, 0, 0, 2) + SampleLandFraction(grid, grid.Width - 1, 0, 2) +
+                SampleLandFraction(grid, 0, grid.Height - 1, 2) + SampleLandFraction(grid, grid.Width - 1, grid.Height - 1, 2)) / 4f;
+            if (centerLandFraction <= cornerLandFraction)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] Pangea center-vs-corner land fraction not concentrated: center={centerLandFraction:F2} corners={cornerLandFraction:F2}");
+                ok = false;
+            }
+
+            // (4) 시드 결정론.
+            var gridB = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(gridB, biomes, seed: 4242, wetnessMultiplier: 1f, pangeaShape: true, pangeaWaterFraction: 0.5f);
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    if (grid.GetTerrain(pos) != gridB.GetTerrain(pos) || grid.GetTileType(pos) != gridB.GetTileType(pos))
+                    {
+                        Debug.LogError($"[TerrainGenerationVerification] Pangea seed determinism mismatch at {pos}");
+                        ok = false;
+                    }
+                }
+
+            if (ok) Debug.Log($"[TerrainGenerationVerification] Pangea shape PASS (water={waterFraction:F2}, center land={centerLandFraction:F2}, corner land={cornerLandFraction:F2})");
+            return ok;
+        }
+
+        private static float SampleLandFraction(GridWorld grid, int cx, int cy, int radius)
+        {
+            int land = 0, total = 0;
+            for (int y = Mathf.Max(0, cy - radius); y <= Mathf.Min(grid.Height - 1, cy + radius); y++)
+                for (int x = Mathf.Max(0, cx - radius); x <= Mathf.Min(grid.Width - 1, cx + radius); x++)
+                {
+                    total++;
+                    if (grid.GetTerrain(new Vector2Int(x, y)) == TerrainType.Land) land++;
+                }
+            return total > 0 ? (float)land / total : 0f;
         }
     }
 }

@@ -19,18 +19,31 @@ namespace TacticsECS
         /// <summary>이미 놓인 이웃 타입이 없을 때도 완전히 0이 되지 않도록 노이즈 가중치에 더하는 바닥값.</summary>
         private const float NoiseWeightFloor = 0.25f;
 
-        /// <summary>지형을 생성하고, 바이옴별 앵커(쿼드런트 내 랜덤 지점)를 반환한다 —
-        /// StructureGenerationSystem이 수도(Capital) 배치와 구조물 영역 판정에 같은 앵커를 재사용한다.
+        /// <summary>Pangea 랜드마스 모양(중앙 대륙 + 외곽 바다)을 만들 때 쓰는 방사형 감쇠와 노이즈의
+        /// 혼합 비율 — 값이 클수록 원형에 가깝고 작을수록 해안선이 더 들쭉날쭉해진다.</summary>
+        private const float PangeaRadialWeight = 0.65f;
+
+        /// <summary>지형을 생성하고, 바이옴별 앵커를 반환한다 — StructureGenerationSystem이 수도(Capital)
+        /// 배치와 구조물 영역 판정에 같은 앵커를 재사용한다.
         /// wetnessMultiplier(습도 프리셋, BattleController.WetnessPresets)는 1.0이면 CSV 값 그대로,
         /// 그 외에는 TerrainType이 Water인 엔트리의 InnerWeight/OuterWeight/CountPerTiles에만 배율을
-        /// 적용한 임시 복사본으로 생성한다 — 원본 CSV 데이터(biomes)는 건드리지 않는다.</summary>
-        public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier = 1f)
+        /// 적용한 임시 복사본으로 생성한다 — 원본 CSV 데이터(biomes)는 건드리지 않는다.
+        /// pangeaShape가 true면 완전히 다른 경로를 탄다(docs/PolytopiaMapGeneration.md 7.5절) — 쿼드런트
+        /// 앵커/개별 타일 확률/MinDistance에 맡기는 대신, 맵 중앙에서 노이즈로 퍼진 "랜드마스 마스크"를
+        /// 먼저 확정하고 그 모양에 맞춰 Land/Water를 강제한다. wetnessMultiplier는 이 경로에서는 쓰이지
+        /// 않고 pangeaWaterFraction(기본 0.5 = "습도 약 50%")이 대신 목표 물 비율을 정한다.</summary>
+        public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier = 1f,
+            bool pangeaShape = false, float pangeaWaterFraction = 0.5f)
         {
             if (grid == null || biomes == null || biomes.Count == 0) return Array.Empty<Vector2Int>();
 
+            var rng = new Random(seed);
+
+            if (pangeaShape)
+                return GeneratePangea(grid, biomes, rng, pangeaWaterFraction);
+
             var effectiveBiomes = Mathf.Approximately(wetnessMultiplier, 1f) ? biomes : ApplyWetness(biomes, wetnessMultiplier);
 
-            var rng = new Random(seed);
             var (biomeIndexPerCell, anchors) = AssignBiomeRegions(grid, effectiveBiomes.Count, rng);
             var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, effectiveBiomes.Count);
 
@@ -41,6 +54,175 @@ namespace TacticsECS
             FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
 
             return anchors;
+        }
+
+        /// <summary>Pangea 전용 파이프라인. (1) 방사형 감쇠 + 노이즈로 "중앙에 뭉친" 랜드마스 마스크를
+        /// 목표 물 비율에 정확히 맞춰 만들고, (2) 쿼드런트로 뽑은 앵커를 각자 가장 가까운 육지 칸으로
+        /// 옮긴 뒤(완전히 바다인 구역에 앵커가 낙하하는 것을 방지 — 원문은 애초에 쿼드런트를 안 쓰지만,
+        /// 이 프로젝트의 바이옴별 색/스타일 분배 자체는 계속 필요해 앵커 개념은 유지하고 위치만 육지로
+        /// 보정하는 절충안을 택했다), (3) 마스크가 물인 칸은 그 칸이 속한 바이옴의 물 타일로 직접
+        /// 채우고(MinDistance 등 개별 제약을 건너뛰어 바다가 실제로 하나로 이어지게 함), (4) 마스크가
+        /// 육지인 칸은 기존 가중치 알고리즘으로 채우되 물 타일 엔트리는 후보에서 제외한다(마스크가 이미
+        /// 육지/바다를 결정했으므로 이중으로 물이 섞이지 않도록).</summary>
+        private static Vector2Int[] GeneratePangea(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Random rng, float waterFraction)
+        {
+            var rawAnchors = GenerateQuadrantAnchors(grid, biomes.Count, rng);
+            var landMask = GeneratePangeaLandMask(grid, rng, waterFraction);
+            var anchors = SnapAnchorsToLand(grid, rawAnchors, landMask);
+            var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
+
+            ClearGeneratedTiles(grid);
+            var placedPositionsByType = BuildInitialPlacedPositions(grid);
+
+            ApplyLandmassMask(grid, biomes, biomeIndexPerCell, landMask, placedPositionsByType);
+
+            var landOnlyBiomes = StripWaterTiles(biomes);
+            var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, biomes.Count);
+            PlaceMinCountQuota(grid, landOnlyBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
+            FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
+
+            return anchors;
+        }
+
+        /// <summary>맵 중앙에서 멀어질수록 낮아지는 방사형 점수 + 노이즈를 섞어 칸마다 "육지 점수"를
+        /// 매기고, 점수 상위 (1-waterFraction) 비율만큼을 육지로 확정한다 — 임계값을 눈대중으로 튜닝하는
+        /// 대신 정확히 목표 물 비율을 맞추기 위해 순위 기반으로 자른다. 결과적으로 중앙은 육지 확률이
+        /// 높고 가장자리로 갈수록 바다가 되는, "중앙 대륙 + 외곽 바다" 모양이 나온다.</summary>
+        private static bool[] GeneratePangeaLandMask(GridWorld grid, Random rng, float waterFraction)
+        {
+            var center = new Vector2((grid.Width - 1) * 0.5f, (grid.Height - 1) * 0.5f);
+            float maxDist = center.magnitude; // 중심에서 모서리까지 거리 — 방사형 값을 0~1로 정규화하는 기준
+            int noiseSeedOffset = rng.Next(0, 1_000_000);
+
+            var order = new List<int>(grid.Width * grid.Height);
+            var scores = new float[grid.Width * grid.Height];
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    int index = grid.Index(new Vector2Int(x, y));
+                    float dist = Vector2.Distance(new Vector2(x, y), center);
+                    float radial = maxDist > 0f ? 1f - Mathf.Clamp01(dist / maxDist) : 1f;
+                    float noise = NoiseSystem.Sample(x, y, frequency: 0.12f, octaves: 3, noiseSeedOffset);
+                    scores[index] = radial * PangeaRadialWeight + noise * (1f - PangeaRadialWeight);
+                    order.Add(index);
+                }
+            }
+            order.Sort((a, b) => scores[b].CompareTo(scores[a])); // 점수 내림차순 — 점수 높은 칸(=중앙에 가깝고 노이즈도 우호적)부터 육지
+
+            int landCount = Mathf.RoundToInt(order.Count * (1f - waterFraction));
+            var mask = new bool[grid.Width * grid.Height];
+            for (int i = 0; i < landCount; i++) mask[order[i]] = true;
+            return mask;
+        }
+
+        /// <summary>앵커가 이미 육지 칸이면 그대로, 바다 칸이면 가장 가까운 육지 칸으로 옮긴다 — 완전히
+        /// 바다인 구역에 앵커(그리고 그 위에 자동 배치되는 수도)가 떨어지는 것을 막는다.</summary>
+        private static Vector2Int[] SnapAnchorsToLand(GridWorld grid, Vector2Int[] anchors, bool[] landMask)
+        {
+            var result = new Vector2Int[anchors.Length];
+            for (int i = 0; i < anchors.Length; i++)
+                result[i] = landMask[grid.Index(anchors[i])] ? anchors[i] : FindNearestLandCell(grid, anchors[i], landMask);
+            return result;
+        }
+
+        /// <summary>start를 중심으로 점점 넓어지는 정사각 테두리(체비쇼프 반지름)를 훑어 가장 가까운
+        /// 육지 칸을 찾는다. 그리드가 작아(최대 30x30) 성능 문제는 없다.</summary>
+        private static Vector2Int FindNearestLandCell(GridWorld grid, Vector2Int start, bool[] landMask)
+        {
+            int maxRadius = grid.Width + grid.Height;
+            for (int radius = 1; radius <= maxRadius; radius++)
+            {
+                for (int dx = -radius; dx <= radius; dx++)
+                {
+                    for (int dy = -radius; dy <= radius; dy++)
+                    {
+                        if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != radius) continue; // 테두리만
+                        var p = start + new Vector2Int(dx, dy);
+                        if (!grid.InBounds(p)) continue;
+                        if (landMask[grid.Index(p)]) return p;
+                    }
+                }
+            }
+            return start; // 이론상 도달 안 함(육지가 하나도 없을 때만) — 안전한 폴백
+        }
+
+        private static int[] ComputeBiomeIndexPerCell(GridWorld grid, Vector2Int[] anchors)
+        {
+            var result = new int[grid.Width * grid.Height];
+            if (anchors.Length <= 1) return result;
+
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    result[grid.Index(pos)] = ProceduralGenerationUtil.NearestAnchorIndex(anchors, pos);
+                }
+            return result;
+        }
+
+        /// <summary>랜드마스 마스크가 물인 칸을 그 칸이 속한 바이옴의 물 타일로 직접 채운다 — 개별 타일의
+        /// MinDistance/가중치 계산을 거치지 않으므로, 이 칸들이 실제로 하나로 이어진 바다를 이룰 수 있다
+        /// (기존 방식은 물 타일끼리 MinDistance 제약이 있어 바다가 절대 뭉칠 수 없었다 — 판게아가
+        /// 의도한 것과 정반대였던 원인).</summary>
+        private static void ApplyLandmassMask(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
+            bool[] landMask, Dictionary<string, List<Vector2Int>> placedPositionsByType)
+        {
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    int index = grid.Index(pos);
+                    if (landMask[index]) continue; // 육지 칸은 이후 PlaceMinCountQuota/FillRemaining이 채움
+                    if (grid.IsOccupied(pos)) continue;
+
+                    var biome = biomes[biomeIndexPerCell[index]];
+                    string waterTileId = FindFirstWaterTileId(biome);
+                    if (waterTileId == null)
+                    {
+                        Debug.LogWarning($"[TerrainGenerationSystem] biome '{biome.Id}'에 Water 타입 타일이 정의되어 있지 않아 판게아 바다 칸 {pos}을 채우지 못했습니다.");
+                        continue;
+                    }
+
+                    grid.SetTerrain(pos, TerrainType.Water);
+                    grid.SetTileType(pos, waterTileId);
+                    AddPlacedPosition(placedPositionsByType, waterTileId, pos);
+                }
+            }
+        }
+
+        private static string FindFirstWaterTileId(BiomeCsvRow biome)
+        {
+            foreach (var tile in biome.Tiles)
+                if (tile.TerrainType == TerrainType.Water) return tile.TileId;
+            return null;
+        }
+
+        /// <summary>바이옴 목록을 복제하되 TerrainType이 Water인 타일 엔트리를 전부 뺀다 — 판게아 모드의
+        /// 육지 채우기 단계는 랜드마스 마스크가 이미 "여긴 육지"라고 확정한 칸만 다루므로, 물 타일이
+        /// 후보로 섞여 들어오면 안 된다.</summary>
+        private static List<BiomeCsvRow> StripWaterTiles(IReadOnlyList<BiomeCsvRow> biomes)
+        {
+            var result = new List<BiomeCsvRow>(biomes.Count);
+            foreach (var biome in biomes)
+            {
+                var clone = new BiomeCsvRow
+                {
+                    Id = biome.Id,
+                    Name = biome.Name,
+                    NoiseType = biome.NoiseType,
+                    Frequency = biome.Frequency,
+                    Octaves = biome.Octaves,
+                    SeedOffset = biome.SeedOffset,
+                    InnerRadius = biome.InnerRadius,
+                    Structures = biome.Structures
+                };
+                foreach (var entry in biome.Tiles)
+                    if (entry.TerrainType != TerrainType.Water) clone.Tiles.Add(entry);
+                result.Add(clone);
+            }
+            return result;
         }
 
         /// <summary>Water 타입 엔트리만 배율을 적용한 바이옴 목록 복제본을 만든다. InnerWeight/OuterWeight는
@@ -115,6 +297,15 @@ namespace TacticsECS
         /// 앵커의 바이옴에 배정된다(Voronoi).</summary>
         private static (int[] BiomeIndexPerCell, Vector2Int[] Anchors) AssignBiomeRegions(GridWorld grid, int biomeCount, Random rng)
         {
+            var anchors = GenerateQuadrantAnchors(grid, biomeCount, rng);
+            var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
+            return (biomeIndexPerCell, anchors);
+        }
+
+        /// <summary>바이옴 수만큼 쿼드런트를 나눠 서로 다른 구역에서 앵커를 하나씩 뽑는다(공정성 배치).
+        /// 판게아 모드(GeneratePangea)도 같은 함수로 시작점을 뽑은 뒤 육지로 스냅한다.</summary>
+        private static Vector2Int[] GenerateQuadrantAnchors(GridWorld grid, int biomeCount, Random rng)
+        {
             int quadrantsPerSide = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(biomeCount)));
             var quadrantIndices = new List<int>();
             for (int i = 0; i < quadrantsPerSide * quadrantsPerSide; i++) quadrantIndices.Add(i);
@@ -130,18 +321,7 @@ namespace TacticsECS
                 var (yMin, yMax) = QuadrantRange(grid.Height, quadrantsPerSide, qy);
                 anchors[b] = new Vector2Int(rng.Next(xMin, xMax), rng.Next(yMin, yMax));
             }
-
-            var biomeIndexPerCell = new int[grid.Width * grid.Height];
-            if (biomeCount > 1)
-            {
-                for (int y = 0; y < grid.Height; y++)
-                    for (int x = 0; x < grid.Width; x++)
-                    {
-                        var pos = new Vector2Int(x, y);
-                        biomeIndexPerCell[grid.Index(pos)] = ProceduralGenerationUtil.NearestAnchorIndex(anchors, pos);
-                    }
-            }
-            return (biomeIndexPerCell, anchors);
+            return anchors;
         }
 
         /// <summary>totalSize를 quadrantsPerSide등분한 구간 중 quadrantIndex번째의 [min, max) 범위.

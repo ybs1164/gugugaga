@@ -12,8 +12,9 @@ namespace TacticsECS
         [SerializeField] private float tileGap = 0f;
 
         /// <summary>구조물(수도/유적/자원/불가사리) 프리팹을 타일 위에 얼마나 축소해서 놓을지 —
-        /// 타일 전체를 채우지 않고 한쪽에 얹힌 장식처럼 보이도록 하는 값.</summary>
-        private const float StructureLocalScale = 0.6f;
+        /// 타일 가장자리에 살짝 여백만 남기고 대부분을 채운 건물처럼 보이도록 하는 값(각 프리팹은
+        /// StructureAssetSetup에서 이미 1x1 타일 기준 발자국에 맞춰 만들어져 있다).</summary>
+        private const float StructureLocalScale = 0.85f;
         private const float StructureLocalHeight = 0.05f;
 
         private TileView[] _tileViews;

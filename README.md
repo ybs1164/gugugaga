@@ -1323,3 +1323,37 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
     (`TechTreeScreenshot.cs`, Edit 모드에서 임시 Camera+RenderTexture로 패널을 렌더링해 PNG 저장, 확인
     후 삭제)로 스크린샷을 3차례 반복 캡처하며 라벨 겹침을 잡았다(처음엔 라벨 폭이 노드 간격보다 넓어
     사방이 뒤엉켰고, 두 번째 시도에선 2티어->3티어 연결선이 라벨을 가로질렀다 — 위 반지름 조정으로 해결).
+
+- 2026-09-22: 타일 위 구조물(수도/유적/자원/마을) 모델링이 "비직관적이고 타일에 비해 너무 작다"는
+  피드백을 받아 `StructureAssetSetup`을 다시 만들고 타일 발자국 스케일을 올림.
+  - **동기**: 사용자가 "적어도 타일의 2/3은 채울 부피", "건물 이름에 맞는 확실히 직관적인 모델"을 요청.
+    `Assets/Editor/_TempMeshInspector.cs`(1회성, 실행 후 삭제)로 실측해보니 tower-round-build-f(Capital)/
+    wood-structure(옛 Village)는 이미 1x1 타일 발자국을 꽉 채우는데, statue_columnDamaged(Ruin,
+    0.3x0.3)/mushroom_redGroup(Resource_Food, 0.27x0.25)은 발자국이 타일의 1/10도 안 돼 전역 스케일만
+    올려서는 해결이 안 됐다.
+  - [`GridView.StructureLocalScale`](Assets/Scripts/TacticsECS/View/GridView.cs)을 0.6 -> 0.85로 올림 —
+    "타일 한쪽에 얹힌 장식" 의도였던 기존 주석을 "타일 가장자리에 여백만 남기고 채운 건물"로 바꿈.
+  - **Village 전면 교체**: 프로젝트에 "집"처럼 보이는 기성 모델이 없어(wood-structure.fbx는 Tower
+    Defense Kit의 범용 구조물이라 마을보다 초소에 가까움), 큐브 2개로 만드는 흔한 저폴리 오두막 기법
+    (벽 큐브 + Z축 45도 돌린 큐브 지붕 — 회전된 정사각형의 대각선 폭 때문에 처마가 저절로 벽 밖으로
+    튀어나온다, `StructureAssetSetup.CreateHut`)으로 오두막 3채를 만들어 흩어 심고, 기존 wood-structure는
+    오두막 사이 창고 소품으로 축소해 재활용. 벽/지붕을 각각 다른 색(밝은 나무색/테라코타)으로 칠했는데,
+    처음엔 지붕을 짙은 갈색으로 칠했다가 등각 카메라(`BattleController.isoPitchDegrees`=35.264도, 위에서
+    내려다보는 각도)로 보면 지붕 윗면만 보여서 오두막들이 뭉뚱그려진 어두운 덩어리로 보였다 — 채도 높은
+    테라코타로 바꿔 해결(`TempStructureShot.cs`로 확인, 아래 검증 참고).
+  - **Ruin/Resource_Food/Resource_Ore 군집화**: 발자국이 작은 메시들은 같은 메시를 2~3개 스케일/회전을
+    바꿔 흩뿌린 군집 프리팹으로 교체(`StructureAssetSetup.GenerateClusterPrefab`, 공용 배치 헬퍼
+    `InstantiateMeshChild`). Ruin은 전부 세워두면 부러진 느낌 없이 오벨리스크 숲처럼 보여서, 기둥 1개는
+    세워두고 2개는 X축을 90도 가까이 돌려 옆으로 쓰러뜨렸다(눕은 기둥은 원래 세로축 반지름만큼 y를
+    띄워야 바닥을 파고들지 않음). 처음엔 조각 사이 간격을 넓게 흩어놨다가 등각 카메라로 보니 서로 이어지지
+    않는 점처럼 보여서(`TempStructureShot.cs`로 확인) 간격을 좁혀 한 덩어리처럼 묶었다 — Resource_Food도
+    같은 이유로 3무더기 넓은 산개 대신 2무더기를 가깝게 겹쳐 심는 것으로 바꿈.
+  - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
+    TacticsECS.EditorTools.StructureAssetSetup.GenerateAll`(컴파일 에러 없음, 6종 프리팹 재생성 및
+    `Sandbox.unity` 배정 확인) → `unity run . -- -nographics -executeMethod
+    TacticsECS.EditorTools.StructureGenerationVerification.Run`(`ALL PASS`, 배치 로직은 시각과 무관해
+    영향 없음을 확인). 시각 확인용 1회성 스크립트 `_TempStructureShot.cs`(Edit 모드 RenderTexture로
+    `BattleController.PositionCamera`와 같은 등각 구도를 재현해 흰 타일 위에 놓고 렌더링, 확인 후 삭제)로
+    세 차례 스크린샷을 반복하며 위 색상/간격 문제를 잡았다 — `-nographics`로는 RenderTexture 생성 자체가
+    실패해(그래픽 디바이스 없음) 빈 회색 이미지만 나온다는 것도 이번에 확인(스크린샷 캡처는 `-nographics`
+    없이 실행해야 함).

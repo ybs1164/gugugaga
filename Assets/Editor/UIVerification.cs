@@ -20,7 +20,8 @@ namespace TacticsECS.EditorTools
                       VerifyBattleHudRosterAndLog() &
                       VerifyUnitLabelAndDamagePopupWiring() &
                       VerifyCityResourceBar() &
-                      VerifyTechTreePanel();
+                      VerifyTechTreePanel() &
+                      VerifyStructurePanel();
             Debug.Log(ok ? "[UIVerification] ALL PASS" : "[UIVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -231,6 +232,60 @@ namespace TacticsECS.EditorTools
             }
 
             if (ok) Debug.Log("[UIVerification] tech tree panel PASS");
+            return ok;
+        }
+
+        /// <summary>BattleHud.ShowStructurePanel/HideStructurePanel(건물 선택 시 정보 패널)이 StructureDefinition
+        /// 테이블의 이름/설명을 그대로 반영하고, 정의되지 않은 StructureId는 패널을 띄우지 않으며, Hide 호출로
+        /// 실제로 비활성화되는지 확인한다.</summary>
+        private static bool VerifyStructurePanel()
+        {
+            var hudPrefab = AssetDatabase.LoadAssetAtPath<BattleHud>("Assets/Prefabs/UI/BattleHud.prefab");
+            var instance = Object.Instantiate(hudPrefab);
+            bool ok = true;
+
+            try
+            {
+                instance.Init();
+
+                var panel = instance.transform.Find("Canvas/StructurePanel");
+                if (panel == null) { Debug.LogError("[UIVerification] StructurePanel not found under BattleHud/Canvas"); return false; }
+                if (panel.gameObject.activeSelf)
+                {
+                    Debug.LogError("[UIVerification] StructurePanel should start hidden");
+                    ok = false;
+                }
+
+                instance.ShowStructurePanel("Village");
+                var nameText = panel.Find("NameText").GetComponent<Text>();
+                var descriptionText = panel.Find("DescriptionText").GetComponent<Text>();
+                if (!panel.gameObject.activeSelf || nameText.text != "마을" || string.IsNullOrEmpty(descriptionText.text))
+                {
+                    Debug.LogError($"[UIVerification] StructurePanel(Village) mismatch: active={panel.gameObject.activeSelf}, name='{nameText.text}', desc='{descriptionText.text}'");
+                    ok = false;
+                }
+
+                instance.ShowStructurePanel("NoSuchStructure");
+                if (panel.gameObject.activeSelf)
+                {
+                    Debug.LogError("[UIVerification] StructurePanel should hide for an unknown StructureId");
+                    ok = false;
+                }
+
+                instance.ShowStructurePanel("Capital");
+                instance.HideStructurePanel();
+                if (panel.gameObject.activeSelf)
+                {
+                    Debug.LogError("[UIVerification] HideStructurePanel did not deactivate the panel");
+                    ok = false;
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance.gameObject);
+            }
+
+            if (ok) Debug.Log("[UIVerification] structure panel PASS");
             return ok;
         }
     }

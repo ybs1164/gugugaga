@@ -65,6 +65,23 @@ namespace TacticsECS
             public RectTransform Rect;
         }
 
+        private GameObject _structurePanel;
+        private Image _structurePanelAccent;
+        private Text _structureNameText;
+        private Text _structureDescriptionText;
+
+        /// <summary>StructureAssetSetup이 3D 모델을 칠할 때 쓰는 색과 맞춘 정보 패널 강조색 — Core/Data
+        /// 계층은 UI 색을 몰라야 하므로(순수 데이터), 표시 전용인 이 값은 View인 BattleHud가 따로 갖는다.</summary>
+        private static readonly Dictionary<string, Color> StructureAccentColors = new Dictionary<string, Color>
+        {
+            ["Capital"] = new Color(0.85f, 0.7f, 0.15f),
+            ["Village"] = new Color(0.75f, 0.62f, 0.42f),
+            ["Ruin"] = new Color(0.6f, 0.6f, 0.6f),
+            ["Resource_Food"] = new Color(0.8f, 0.25f, 0.3f),
+            ["Resource_Ore"] = new Color(0.3f, 0.75f, 0.75f),
+            ["Starfish"] = new Color(0.9f, 0.5f, 0.2f),
+        };
+
         private PassiveBadge[] _passiveBadges;
         /// <summary>패시브 배지 줄의 anchoredPosition.y. UnitPanel 프리팹 레이아웃(능력치 4줄 + 여백)에서
         /// 계산되는 고정값이라 UIPrefabSetup.GenerateBattleHud와 이 값이 서로 어긋나지 않게 상수로 고정한다.</summary>
@@ -106,11 +123,13 @@ namespace TacticsECS
             WireUnitRoster(canvas);
             WireActionLog(canvas);
             WireUnitPanel(canvas);
+            WireStructurePanel(canvas);
             WireActionButtons(canvas);
             WireTooltip(canvas);
             WireBattleEndPanel(canvas);
 
             HideUnitPanel();
+            HideStructurePanel();
             SetUnitActions(ActionType.None, hasActed: true);
             SetDeselectVisible(false);
         }
@@ -395,6 +414,39 @@ namespace TacticsECS
         }
 
         public void HideUnitPanel() => _unitPanel.SetActive(false);
+
+        // ---------- 선택 구조물 정보 패널 (좌하단, UnitPanel과 같은 자리 — 유닛이 선택되지
+        // 않았을 때만 보이므로 화면 위치가 겹쳐도 상관없다) ----------
+
+        private void WireStructurePanel(Transform canvas)
+        {
+            var panel = canvas.Find("StructurePanel");
+            _structurePanel = panel.gameObject;
+            _structurePanelAccent = panel.Find("Accent").GetComponent<Image>();
+            _structureNameText = panel.Find("NameText").GetComponent<Text>();
+            _structureDescriptionText = panel.Find("DescriptionText").GetComponent<Text>();
+        }
+
+        /// <summary>StructureDefinition.All을 structureId로 선형 탐색해(TechTreeHud가 TechTreeDefinition.Nodes를
+        /// 찾는 것과 같은 방식 — 6개뿐이라 별도 인덱스/딕셔너리가 필요 없다) 이름/설명을 그대로 보여준다.
+        /// 정의되지 않은 StructureId가 넘어오면(에셋 미배정 등) 조용히 패널을 띄우지 않는다.</summary>
+        public void ShowStructurePanel(string structureId)
+        {
+            foreach (var info in StructureDefinition.All)
+            {
+                if (info.Id != structureId) continue;
+
+                _structurePanel.SetActive(true);
+                _structurePanelAccent.color = StructureAccentColors.TryGetValue(structureId, out var color) ? color : Color.white;
+                _structureNameText.text = info.Name;
+                _structureDescriptionText.text = info.Description;
+                return;
+            }
+
+            HideStructurePanel();
+        }
+
+        public void HideStructurePanel() => _structurePanel.SetActive(false);
 
         // ---------- 행동 버튼 (우하단, 아이콘만) ----------
 

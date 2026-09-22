@@ -282,6 +282,7 @@ namespace TacticsECS.EditorTools
             BuildUnitRoster(canvasRoot);
             BuildActionLog(canvasRoot);
             BuildUnitPanel(font, canvasRoot);
+            BuildStructurePanel(font, canvasRoot);
             BuildActionButtons(canvasRoot);
             BuildTooltip(font, canvasRoot);
             BuildBattleEndPanel(font, canvasRoot);
@@ -410,6 +411,53 @@ namespace TacticsECS.EditorTools
             top -= rowH;
             foreach (var def in PassiveDefs)
                 CreatePassiveBadgePlaceholder(panel, def.Icon, def.Tooltip);
+        }
+
+        /// <summary>구조물 클릭 시 뜨는 정보 패널(이름 + 설명 한두 줄). UnitPanel과 같은 좌하단 자리에
+        /// 두는데 — 유닛이 선택되면 이 패널은 숨겨지므로(BattleController.SelectUnit) 화면 위치가 겹쳐도
+        /// 상관없다. UnitPanel(150폭)보다 넓게(280) 잡은 건 Description이 한 줄 넘게 줄바꿈될 수 있어서다.</summary>
+        private static void BuildStructurePanel(Font font, Transform root)
+        {
+            var panel = CreateRect("StructurePanel", root);
+            panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
+            panel.pivot = new Vector2(0f, 0f);
+            panel.anchoredPosition = new Vector2(16f, 16f);
+            panel.sizeDelta = new Vector2(280f, 96f);
+            CreatePanelImage(panel, PanelBackground);
+
+            var accent = CreateRect("Accent", panel);
+            accent.anchorMin = new Vector2(0f, 0f);
+            accent.anchorMax = new Vector2(0f, 1f);
+            accent.pivot = new Vector2(0f, 0.5f);
+            accent.sizeDelta = new Vector2(5f, 0f);
+            accent.anchoredPosition = Vector2.zero;
+            CreatePanelImage(accent, PlayerAccent);
+
+            var name = CreateRect("NameText", panel);
+            name.anchorMin = new Vector2(0f, 1f);
+            name.anchorMax = new Vector2(1f, 1f);
+            name.pivot = new Vector2(0f, 1f);
+            name.anchoredPosition = new Vector2(16f, -10f);
+            name.sizeDelta = new Vector2(-28f, 28f);
+            var nameText = name.gameObject.AddComponent<Text>();
+            nameText.font = font;
+            nameText.fontSize = 22;
+            nameText.color = Color.white;
+            nameText.alignment = TextAnchor.UpperLeft;
+            nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            var description = CreateRect("DescriptionText", panel);
+            description.anchorMin = new Vector2(0f, 0f);
+            description.anchorMax = new Vector2(1f, 1f);
+            description.offsetMin = new Vector2(16f, 10f);
+            description.offsetMax = new Vector2(-12f, -40f);
+            var descriptionText = description.gameObject.AddComponent<Text>();
+            descriptionText.font = font;
+            descriptionText.fontSize = 16;
+            descriptionText.color = new Color(1f, 1f, 1f, 0.85f);
+            descriptionText.alignment = TextAnchor.UpperLeft;
+            descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descriptionText.verticalOverflow = VerticalWrapMode.Overflow;
         }
 
         private static void CreatePassiveBadgePlaceholder(Transform parent, string iconName, string tooltip)

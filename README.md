@@ -1377,3 +1377,25 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
   - 검증: StructureAssetSetup.GenerateAll -> StructureGenerationVerification.Run(ALL PASS) 순으로
     재실행, _TempStructureShot.cs로 클로즈업 + 등각 카메라 스크린샷을 찍어 지붕/창문/굴뚝이 제대로
     붙었는지 육안 확인(둘 다 확인 후 삭제).
+
+- 2026-09-22: 타일 위 건물(구조물)을 클릭하면 이름/설명 정보 패널이 뜨도록 추가.
+  - 동기: 사용자 요청 "건물 선택했을 때 정보 뜨도록 수정해줘". 조사해보니 지금까지 클릭 처리
+    (BattleController.OnTileClicked)는 유닛이 선택된 상태에서 이동 목적지를 정할 때만 동작했고, 유닛 없이
+    빈 칸(구조물이 있는 칸 포함)을 클릭하면 아무 반응이 없었다. 구조물 이름/설명을 담은 표도 프로젝트
+    어디에도 없었다(StructureId는 지금까지 "Capital"/"Village" 같은 순수 키 문자열로만 쓰였다).
+  - StructureInfo(Core, 이름/설명 순수 데이터) + StructureDefinition(Data, 6종 고정 표 — TechNodeData/
+    TechTreeDefinition과 같은 계층 분리 패턴)을 새로 추가.
+  - BattleController.OnTileClicked: 유닛이 선택되지 않은 상태에서 빈 칸을 클릭하면 그 칸의
+    GridWorld.GetStructure로 StructureId를 조회해 있으면 BattleHud.ShowStructurePanel, 없으면
+    HideStructurePanel을 호출하도록 분기 추가. 유닛 선택(SelectUnit)/선택 해제(ClearSelection) 시에도
+    구조물 패널을 같이 숨겨서 유닛 패널과 동시에 뜨지 않게 함(둘 다 좌하단 같은 자리를 쓴다).
+  - BattleHud.cs에 StructurePanel 배선(UnitPanel과 같은 Wire*/Show*/Hide* 패턴) + StructureAssetSetup의
+    3D 모델 색과 맞춘 강조색 표(StructureAccentColors, Core/Data가 UI 색을 몰라야 하므로 View인
+    BattleHud가 따로 가짐) 추가. UIPrefabSetup.BuildStructurePanel이 UnitPanel과 같은 좌하단 자리에
+    이름(큰 글씨) + 설명(줄바꿈 가능한 작은 글씨) 두 줄짜리 패널을 만든다.
+  - 검증: `unity run . -- -nographics`(컴파일 에러 없음) → `UIPrefabSetup.GenerateAll`(프리팹 재생성) →
+    `UIVerification.Run`(새로 추가한 VerifyStructurePanel 포함 `ALL PASS` — 알려진 StructureId는 이름/설명이
+    반영되고 뜨는지, 모르는 StructureId는 패널이 안 뜨는지, HideStructurePanel로 실제 비활성화되는지 확인)
+    순으로 실행. 1회성 스크린샷 스크립트(`_TempHudShot.cs`, ScreenSpaceOverlay Canvas를
+    ScreenSpaceCamera로 임시 전환해 RenderTexture로 캡처 — Unity CLI 메모의 알려진 우회법)로 실제 레이아웃
+    (좌하단, 마을 이름 + 설명 + 강조색 테두리)을 육안 확인 후 삭제.

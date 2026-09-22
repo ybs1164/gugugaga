@@ -886,9 +886,20 @@ namespace TacticsECS
 
         private void OnTileClicked(Vector2Int pos)
         {
-            if (_state != SelectState.UnitSelected) return;
-            if (_reachableTiles != null && _reachableTiles.Contains(pos))
-                MoveSelectedUnit(pos);
+            if (_state == SelectState.UnitSelected)
+            {
+                if (_reachableTiles != null && _reachableTiles.Contains(pos))
+                    MoveSelectedUnit(pos);
+                return;
+            }
+
+            // 유닛이 선택되지 않은 상태에서 빈 칸을 클릭하면(구조물이든 아니든) 구조물 정보 패널을
+            // 켜거나 끈다 — 순수 표시용 상호작용이라 TileData.StructureId 조회 외에 다른 판정은 없다.
+            string structureId = _grid.GetStructure(pos);
+            if (!string.IsNullOrEmpty(structureId))
+                _hud.ShowStructurePanel(structureId);
+            else
+                _hud.HideStructurePanel();
         }
 
         // ---------- Selection / actions ----------
@@ -897,6 +908,7 @@ namespace TacticsECS
         {
             _selectedUnitId = unitId;
             _state = SelectState.UnitSelected;
+            if (_hud != null) _hud.HideStructurePanel();
             RecomputeHighlights();
         }
 
@@ -1053,6 +1065,7 @@ namespace TacticsECS
             if (_hud != null)
             {
                 _hud.HideUnitPanel();
+                _hud.HideStructurePanel();
                 _hud.SetDeselectVisible(false);
                 _hud.SetUnitActions(ActionType.None, hasActed: true);
             }

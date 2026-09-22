@@ -13,10 +13,13 @@ namespace TacticsECS.EditorTools
     /// 메시 출처(전부 CC0, Kenney):
     /// - Capital: Assets/Art/Castle/Kenney/tower-round-build-f.fbx 하나 — 실측 발자국이 이미 1x1 타일
     ///   전체를 채워서(bounds size=(1,1.79,1)) 그대로 랜드마크로 쓴다.
-    /// - Village: 에셋에 "집"처럼 보이는 기성 모델이 없어(wood-structure.fbx는 Tower Defense Kit의 범용
-    ///   나무 구조물이라 마을이라기보다 초소/비계에 가깝다), 큐브 2개(벽+지붕, 지붕은 큐브를 Z축 45도
-    ///   회전시켜 만드는 저폴리 오두막 기법)로 직접 만든 오두막 3채를 크기/회전을 다르게 흩어 심는다.
-    ///   기존에 쓰던 wood-structure.fbx는 오두막들 사이에 작은 창고 겸용 소품으로 재활용한다.
+    /// - Village: 기존엔 Castle Kenney 팩의 wood-structure.fbx(범용 목재 구조물이라 마을보다 초소에
+    ///   가까움)나 직접 만든 큐브 오두막을 썼는데 둘 다 "마을"로 안 읽혀서, Kenney의 모듈형 Fantasy Town
+    ///   Kit(Assets/Art/Village/Kenney, CC0)을 새로 받아 벽/문/창문/지붕 조각으로 오두막 2채(CreateCottage)를
+    ///   조립하고 장터 좌판(stall.fbx)을 곁들인다. 벽 조각은 1x1x1 셀의 -X면에 놓이도록 만들어져 있어서
+    ///   (MeshInspector로 실측: wall.fbx bounds size=(0.1,1,1)) Y회전 0/90/180/270으로 4면을 두르면 저절로
+    ///   상자가 닫힌다. roof-gable-end.fbx는 처마 삼각벽까지 포함된 완결형 1칸 지붕이라(roof-gable.fbx와
+    ///   크기가 거의 같음 — 이어붙이는 중간 조각이 아니다) 한 채당 하나만 얹으면 된다.
     /// - Ruin/Resource_Food/Resource_Ore: 단일 메시 하나로는(각각 실측 발자국 0.3x0.3, 0.27x0.25,
     ///   0.78x1.02 — MeshInspector로 실측) 타일의 절반도 못 채워서, 같은 메시를 크기/회전을 바꿔 2~3개
     ///   흩뿌린 군집으로 만든다. "유적 한 무더기"/"버섯 군락"/"바위 노두"처럼 이름에 맞는 모양도 되고
@@ -30,7 +33,12 @@ namespace TacticsECS.EditorTools
     public static class StructureAssetSetup
     {
         private const string CapitalMeshPath = "Assets/Art/Castle/Kenney/tower-round-build-f.fbx";
-        private const string VillageAccentMeshPath = "Assets/Art/Castle/Kenney/wood-structure.fbx";
+        private const string VillageWallMeshPath = "Assets/Art/Village/Kenney/wall.fbx";
+        private const string VillageWallDoorMeshPath = "Assets/Art/Village/Kenney/wall-door.fbx";
+        private const string VillageWallWindowMeshPath = "Assets/Art/Village/Kenney/wall-window-shutters.fbx";
+        private const string VillageRoofMeshPath = "Assets/Art/Village/Kenney/roof-gable-end.fbx";
+        private const string VillageChimneyMeshPath = "Assets/Art/Village/Kenney/chimney.fbx";
+        private const string VillageStallMeshPath = "Assets/Art/Village/Kenney/stall.fbx";
         private const string RuinMeshPath = "Assets/Art/Nature/Kenney/statue_columnDamaged.fbx";
         private const string ResourceFoodMeshPath = "Assets/Art/Nature/Kenney/mushroom_redGroup.fbx";
         private const string ResourceOreMeshPath = "Assets/Art/Nature/Kenney/rock_largeA.fbx";
@@ -136,8 +144,8 @@ namespace TacticsECS.EditorTools
             return saved;
         }
 
-        /// <summary>Village는 기성 "집" 모델이 없어 오두막 3채(CreateHut)를 직접 만들어 흩어 심고, 원래
-        /// 쓰던 wood-structure.fbx는 오두막 사이 창고 소품으로 축소해 재활용한다.</summary>
+        /// <summary>Village는 Fantasy Town Kit 벽/지붕 조각으로 오두막 2채(CreateCottage)를 조립해
+        /// 흩어 심고, 장터 좌판(stall.fbx)을 하나 곁들인다.</summary>
         private static GameObject GenerateVillagePrefab()
         {
             var wallMat = GenerateOrLoadMaterial("Structure_Village", VillageWallColor);
@@ -145,12 +153,11 @@ namespace TacticsECS.EditorTools
 
             var root = new GameObject("Structure_Village");
 
-            CreateHut(root.transform, new Vector3(-0.13f, 0f, -0.11f), 15f, new Vector3(0.42f, 0.28f, 0.36f), wallMat, roofMat);
-            CreateHut(root.transform, new Vector3(0.16f, 0f, 0.08f), -25f, new Vector3(0.34f, 0.24f, 0.30f), wallMat, roofMat);
-            CreateHut(root.transform, new Vector3(-0.03f, 0f, 0.22f), 55f, new Vector3(0.28f, 0.20f, 0.26f), wallMat, roofMat);
+            CreateCottage(root.transform, new Vector3(-0.20f, 0f, -0.15f), 15f, 0.48f, wallMat, roofMat, withChimney: true);
+            CreateCottage(root.transform, new Vector3(0.20f, 0f, 0.12f), -30f, 0.42f, wallMat, roofMat, withChimney: false);
 
-            var accent = InstantiateMeshChild(VillageAccentMeshPath, root.transform, new Vector3(0.10f, 0f, -0.24f), new Vector3(0f, 10f, 0f), Vector3.one * 0.32f);
-            if (accent != null) TintAllRenderers(accent, roofMat);
+            var stall = InstantiateMeshChild(VillageStallMeshPath, root.transform, new Vector3(-0.05f, 0f, 0.32f), new Vector3(0f, 100f, 0f), Vector3.one * 0.4f);
+            if (stall != null) TintAllRenderers(stall, roofMat);
 
             string path = $"{PrefabFolder}/Structure_Village.prefab";
             var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -158,33 +165,25 @@ namespace TacticsECS.EditorTools
             return saved;
         }
 
-        /// <summary>벽(큐브)과 지붕(큐브를 Z축 45도 돌려 삼각 단면으로 만드는 흔한 저폴리 오두막 기법 —
-        /// 지붕 피벗을 벽 꼭대기에 두면 회전된 정사각형의 대각선 폭 때문에 처마가 벽 밖으로 살짝
-        /// 튀어나온다) 두 개로 이루어진 오두막을 parent 아래 만든다.</summary>
-        private static void CreateHut(Transform parent, Vector3 localPos, float rotationY, Vector3 wallSize, Material wallMat, Material roofMat)
+        /// <summary>벽 4장(문 1 + 창문 2 + 막힌 벽 1, Y회전 0/90/180/270으로 1x1x1 셀을 두름) + 지붕
+        /// 1개(+선택적으로 굴뚝)로 오두막 하나를 조립한다. 벽 조각의 원점이 셀 중심이라(-X면에 걸침)
+        /// 그대로 4번 회전시키면 상자가 저절로 닫힌다 — StructureAssetSetup 클래스 문서의 실측값 참고.</summary>
+        private static void CreateCottage(Transform parent, Vector3 localPos, float rotationY, float scale, Material wallMat, Material roofMat, bool withChimney)
         {
-            var hut = new GameObject("Hut");
-            hut.transform.SetParent(parent, false);
-            hut.transform.localPosition = localPos;
-            hut.transform.localRotation = Quaternion.Euler(0f, rotationY, 0f);
+            var cottage = new GameObject("Cottage");
+            cottage.transform.SetParent(parent, false);
+            cottage.transform.localPosition = localPos;
+            cottage.transform.localRotation = Quaternion.Euler(0f, rotationY, 0f);
+            cottage.transform.localScale = Vector3.one * scale;
 
-            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            wall.name = "Wall";
-            Object.DestroyImmediate(wall.GetComponent<Collider>());
-            wall.transform.SetParent(hut.transform, false);
-            wall.transform.localScale = wallSize;
-            wall.transform.localPosition = new Vector3(0f, wallSize.y * 0.5f, 0f);
-            wall.GetComponent<Renderer>().sharedMaterial = wallMat;
+            TintAllRenderers(InstantiateMeshChild(VillageWallDoorMeshPath, cottage.transform, Vector3.zero, new Vector3(0f, 0f, 0f), Vector3.one), wallMat);
+            TintAllRenderers(InstantiateMeshChild(VillageWallMeshPath, cottage.transform, Vector3.zero, new Vector3(0f, 180f, 0f), Vector3.one), wallMat);
+            TintAllRenderers(InstantiateMeshChild(VillageWallWindowMeshPath, cottage.transform, Vector3.zero, new Vector3(0f, 90f, 0f), Vector3.one), wallMat);
+            TintAllRenderers(InstantiateMeshChild(VillageWallWindowMeshPath, cottage.transform, Vector3.zero, new Vector3(0f, 270f, 0f), Vector3.one), wallMat);
+            TintAllRenderers(InstantiateMeshChild(VillageRoofMeshPath, cottage.transform, new Vector3(0f, 1f, 0f), Vector3.zero, Vector3.one), roofMat);
 
-            var roof = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            roof.name = "Roof";
-            Object.DestroyImmediate(roof.GetComponent<Collider>());
-            roof.transform.SetParent(hut.transform, false);
-            float roofSpan = wallSize.x * 0.78f;
-            roof.transform.localScale = new Vector3(roofSpan, roofSpan, wallSize.z * 1.08f);
-            roof.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
-            roof.transform.localPosition = new Vector3(0f, wallSize.y, 0f);
-            roof.GetComponent<Renderer>().sharedMaterial = roofMat;
+            if (withChimney)
+                TintAllRenderers(InstantiateMeshChild(VillageChimneyMeshPath, cottage.transform, new Vector3(0.3f, 1f, -0.3f), Vector3.zero, Vector3.one), roofMat);
         }
 
         /// <summary>meshPath의 프리팹을 parent 아래 인스턴스화하고 로컬 위치/오일러 회전/스케일을
@@ -281,6 +280,7 @@ namespace TacticsECS.EditorTools
         /// 남는다.</summary>
         private static void TintAllRenderers(GameObject root, Material tinted)
         {
+            if (root == null) return;
             foreach (var renderer in root.GetComponentsInChildren<Renderer>())
             {
                 var materials = new Material[Mathf.Max(1, renderer.sharedMaterials.Length)];

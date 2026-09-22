@@ -1357,3 +1357,23 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
     세 차례 스크린샷을 반복하며 위 색상/간격 문제를 잡았다 — `-nographics`로는 RenderTexture 생성 자체가
     실패해(그래픽 디바이스 없음) 빈 회색 이미지만 나온다는 것도 이번에 확인(스크린샷 캡처는 `-nographics`
     없이 실행해야 함).
+
+- 2026-09-22: 위 결과를 스크린샷으로 확인한 사용자가 "더 사실적인 모델이면 좋겠다"고 해서, 큐브로 직접
+  만든 Village 오두막을 Kenney의 모듈형 건물 에셋인 Fantasy Town Kit(CC0, kenney.nl)의 실제
+  벽/문/창문/지붕 조각으로 교체.
+  - 동기: 사용자에게 다운로드 허용 여부를 먼저 물었고("네, 받아와도 됩니다"), kenney.nl에서
+    kenney_fantasy-town-kit_2.0.zip(약 3.7MB, CC0)을 받아 벽/문/창문/지붕/굴뚝/좌판 조각 8개만
+    Assets/Art/Village/Kenney에 추가했다(전체 160종 중 마을에 필요한 것만 - 담장/분수/도로 등은
+    가져오지 않음). 이 팩은 완성된 "집.fbx"가 아니라 벽 1장/지붕 1장씩 조합해서 짓는 모듈형 키트라,
+    _TempMeshInspector2.cs(1회성)로 실측해 조립 규칙을 먼저 파악했다: wall.fbx는 1x1x1 셀의 -X면에
+    걸치도록 만들어져 있어(bounds size=(0.1,1,1)) Y회전 0/90/180/270으로 4장을 두르면 저절로 상자가
+    닫히고, roof-gable-end.fbx는 처마 삼각벽까지 포함된 완결형 1칸 지붕이라(roof-gable.fbx와 크기가
+    거의 같음 - 이어붙이는 중간 조각이 아니다) 한 채당 한 장만 얹으면 된다. (참고: windmill.fbx는 통짜
+    풍차가 아니라 날개 부분만 따로 있는 조각이라 탑 몸체를 따로 조립해야 해서 이번엔 보류.)
+  - StructureAssetSetup.CreateCottage(Assets/Editor/StructureAssetSetup.cs)가 문 벽 1 + 막힌 벽 1 +
+    창문 벽 2 + 지붕 1(+선택적 굴뚝)을 조립해 오두막 하나를 만들고, GenerateVillagePrefab이 이걸 크기/
+    회전을 다르게 2채 배치 + 장터 좌판(stall.fbx) 하나를 곁들인다. 기존 CreateHut(큐브 조립)과
+    wood-structure.fbx 소품은 제거.
+  - 검증: StructureAssetSetup.GenerateAll -> StructureGenerationVerification.Run(ALL PASS) 순으로
+    재실행, _TempStructureShot.cs로 클로즈업 + 등각 카메라 스크린샷을 찍어 지붕/창문/굴뚝이 제대로
+    붙었는지 육안 확인(둘 다 확인 후 삭제).

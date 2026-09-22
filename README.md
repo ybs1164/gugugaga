@@ -260,8 +260,10 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 ## 절차적 지형 생성 (바이옴)
 
 > 전체 파이프라인(타일 생성 + 구조물 생성 + 랜드마스 마스크 + UI 연동)을 한 번에 훑어볼 수 있는 요약은
-> [`docs/TerrainGenerationSummary.md`](docs/TerrainGenerationSummary.md) 참고. 아래는 재정비 회차별
-> 변경 이력이다.
+> [`docs/TerrainGenerationSummary.md`](docs/TerrainGenerationSummary.md) 참고. 기획자가 바이옴 CSV를 직접
+> 작성/편집하는 방법(컬럼 명세, `Tiles`/`Structures` 서브필드, 등록된 `TileId`/`StructureId` 목록)은
+> [`docs/BiomeCsvSandbox.md`](docs/BiomeCsvSandbox.md)에 `UnitCsvSandbox.md`와 같은 형식으로 정리했다.
+> 아래는 재정비 회차별 변경 이력이다.
 
 Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으로 `GridWorld`를 절차적으로 채우는 기능.
 1차 구현(바이옴별 노이즈 + 가중치 랜덤 + 인접 배제 + 최소 개수, 경량 WFC 변형) 이후,
@@ -1416,3 +1418,14 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
   - 검증: `unity run . -- -nographics`(컴파일 에러 없음) → `UIPrefabSetup.GenerateAll` →
     `UIVerification.Run`(새로 추가한 VerifySandboxStructurePanel 포함 `ALL PASS`) → 1회성 스크린샷 스크립트로
     좌하단 패널이 Toolbar/Palette(좌상단)/전투 시작 버튼(우하단)과 겹치지 않는지 육안 확인 후 삭제.
+
+- 2026-09-22: 기획자용 바이옴 CSV 작성 가이드 [`docs/BiomeCsvSandbox.md`](docs/BiomeCsvSandbox.md) 신규 작성.
+  - 동기: 사용자 요청 "sample_biomes.csv 와 같은 작성법을 UnitCsvSandbox.md 내용을 참고해서, 어떤 방식으로
+    작성해서 적용하면 되는지 md 파일 작성" — 코드/주석에만 있던 `Tiles`/`Structures` 서브필드 순서
+    (`BiomeCsvSerializer` 클래스 주석)와 사용법(`BattleController.HandleBiomeLoad`/`HandleGenerateTerrain`)을
+    `UnitCsvSandbox.md`와 같은 "기획자가 읽고 바로 CSV를 편집할 수 있는" 형식으로 정리했다.
+    문서 자체를 새로 쓰는 작업이라 코드 변경은 없음.
+  - 컬럼 명세(최상위 9컬럼 + `Tiles` 9필드 + `Structures` 11필드) 표, 화면에 실제로 색/모델로 표시되는
+    등록된 `TileId`(`TileView.TileTypeColors`) 6종/`StructureId`(`BattleController.BuildStructurePrefabsById`)
+    6종 목록(등록 안 된 값은 에러 없이 조용히 폴백/미표시된다는 점 명시), `docs/sample_biomes.csv`의
+    `Grassland` 행을 필드별로 풀어 쓴 예시를 포함.

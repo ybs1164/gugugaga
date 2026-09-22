@@ -413,9 +413,12 @@ namespace TacticsECS.EditorTools
                 CreatePassiveBadgePlaceholder(panel, def.Icon, def.Tooltip);
         }
 
-        /// <summary>구조물 클릭 시 뜨는 정보 패널(이름 + 설명 한두 줄). UnitPanel과 같은 좌하단 자리에
-        /// 두는데 — 유닛이 선택되면 이 패널은 숨겨지므로(BattleController.SelectUnit) 화면 위치가 겹쳐도
-        /// 상관없다. UnitPanel(150폭)보다 넓게(280) 잡은 건 Description이 한 줄 넘게 줄바꿈될 수 있어서다.</summary>
+        /// <summary>구조물 정보 패널(이름 + 설명 한두 줄) — BattleHud(전투 중, 타일 클릭)와 SandboxHud
+        /// (전투 시작 전, 타일 호버) 양쪽에서 똑같이 쓰는 뼈대라 공용 메서드로 뺐다. BattleHud에서는
+        /// UnitPanel과 같은 좌하단 자리를 쓰는데 — 유닛이 선택되면 이 패널은 숨겨지므로
+        /// (BattleController.SelectUnit) 화면 위치가 겹쳐도 상관없다. SandboxHud에서는 Toolbar/Palette가
+        /// 왼쪽 위 칸을 이미 쓰고 있어 좌하단이 비어 있다. UnitPanel(150폭)보다 넓게(280) 잡은 건
+        /// Description이 한 줄 넘게 줄바꿈될 수 있어서다.</summary>
         private static void BuildStructurePanel(Font font, Transform root)
         {
             var panel = CreateRect("StructurePanel", root);
@@ -607,6 +610,7 @@ namespace TacticsECS.EditorTools
             var canvasRoot = CreateCanvas(root.transform);
             BuildSandboxToolbar(font, canvasRoot);
             BuildSandboxPalette(canvasRoot);
+            BuildStructurePanel(font, canvasRoot);
             BuildSandboxStartButton(font, canvasRoot);
 
             SetPrivateField(hud, "paletteButtonPrefab", paletteButtonPrefab);

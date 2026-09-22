@@ -1399,3 +1399,20 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
     순으로 실행. 1회성 스크린샷 스크립트(`_TempHudShot.cs`, ScreenSpaceOverlay Canvas를
     ScreenSpaceCamera로 임시 전환해 RenderTexture로 캡처 — Unity CLI 메모의 알려진 우회법)로 실제 레이아웃
     (좌하단, 마을 이름 + 설명 + 강조색 테두리)을 육안 확인 후 삭제.
+
+- 2026-09-22: 전투 시작 전(배치 단계)에도 건물 정보가 뜨도록 추가 — 이번엔 클릭이 아니라 마우스로
+  가리키기만 해도(호버) 뜨는 방식.
+  - 동기: 사용자 요청 "전투 시작 전에는 건물 정보가 호버링으로 보여지도록 만들어줘". 배치 단계
+    (BattleController._placementActive)에서는 클릭이 이미 유닛 배치(UnitPlacementController.HandleGridClick)에
+    쓰이고 있어서, 전투 중처럼 "클릭하면 뜨는" 방식을 그대로 못 쓴다.
+  - UIPrefabSetup.BuildStructurePanel(지난 커밋에서 BattleHud용으로 만든 것)을 SandboxHud.prefab
+    생성에도 그대로 재사용 — Toolbar/Palette가 왼쪽 위를 이미 쓰고 있어 좌하단이 비어 있었다.
+  - SandboxHud.cs에 BattleHud와 같은 ShowStructurePanel/HideStructurePanel(+ StructureAccentColors 표,
+    PlayerAccent/EnemyAccent처럼 View마다 따로 두는 기존 관례를 그대로 따름) 추가.
+  - BattleController.UpdateStructureHover: 배치 단계 Update()에서 클릭 처리와 별개로 매 프레임 마우스가
+    가리키는 칸을 TryScreenToGridPos로 계산해 GridWorld.GetStructure로 조회하고, 있으면
+    SandboxHud.ShowStructurePanel, 없으면(빈 칸을 가리키거나 그리드 밖) HideStructurePanel을 호출한다 —
+    전투 중 OnTileClicked와 조회 로직은 같고 트리거(클릭 vs 매 프레임 호버)만 다르다.
+  - 검증: `unity run . -- -nographics`(컴파일 에러 없음) → `UIPrefabSetup.GenerateAll` →
+    `UIVerification.Run`(새로 추가한 VerifySandboxStructurePanel 포함 `ALL PASS`) → 1회성 스크린샷 스크립트로
+    좌하단 패널이 Toolbar/Palette(좌상단)/전투 시작 버튼(우하단)과 겹치지 않는지 육안 확인 후 삭제.

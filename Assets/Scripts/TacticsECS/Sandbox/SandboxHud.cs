@@ -49,6 +49,25 @@ namespace TacticsECS
         private ScrollRect _paletteScrollRect;
         private readonly List<(Button Button, Image Bg)> _paletteButtons = new List<(Button, Image)>();
 
+        private GameObject _structurePanel;
+        private Image _structurePanelAccent;
+        private Text _structureNameText;
+        private Text _structureDescriptionText;
+
+        /// <summary>BattleHud.StructureAccentColors와 같은 값 — StructureAssetSetup이 3D 모델을 칠할 때
+        /// 쓰는 색과 맞춘 정보 패널 강조색. Core/Data 계층은 UI 색을 몰라야 하므로 표시 전용인 이 값은
+        /// View(SandboxHud/BattleHud)가 각자 갖는다(PlayerAccent/EnemyAccent도 이미 두 클래스에 따로
+        /// 있는 것과 같은 이유).</summary>
+        private static readonly Dictionary<string, Color> StructureAccentColors = new Dictionary<string, Color>
+        {
+            ["Capital"] = new Color(0.85f, 0.7f, 0.15f),
+            ["Village"] = new Color(0.75f, 0.62f, 0.42f),
+            ["Ruin"] = new Color(0.6f, 0.6f, 0.6f),
+            ["Resource_Food"] = new Color(0.8f, 0.25f, 0.3f),
+            ["Resource_Ore"] = new Color(0.3f, 0.75f, 0.75f),
+            ["Starfish"] = new Color(0.9f, 0.5f, 0.2f),
+        };
+
         private const float RowH = 30f;
         private const float PanelWidth = 220f;
         private const float PaletteHeight = 300f;
@@ -66,7 +85,10 @@ namespace TacticsECS
 
             WireToolbar(canvas);
             WirePalette(canvas);
+            WireStructurePanel(canvas);
             WireStartButton(canvas);
+
+            HideStructurePanel();
         }
 
         // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------
@@ -194,6 +216,38 @@ namespace TacticsECS
             for (int i = 0; i < _paletteButtons.Count; i++)
                 _paletteButtons[i].Bg.color = i == index ? ButtonSelected : ButtonIdle;
         }
+
+        // ---------- 구조물 정보 패널 (좌하단, 마우스로 가리키면 뜬다) ----------
+
+        private void WireStructurePanel(Transform canvas)
+        {
+            var panel = canvas.Find("StructurePanel");
+            _structurePanel = panel.gameObject;
+            _structurePanelAccent = panel.Find("Accent").GetComponent<Image>();
+            _structureNameText = panel.Find("NameText").GetComponent<Text>();
+            _structureDescriptionText = panel.Find("DescriptionText").GetComponent<Text>();
+        }
+
+        /// <summary>BattleHud.ShowStructurePanel과 같은 방식(StructureDefinition.All 선형 탐색) — 전투
+        /// 시작 전 배치 단계에서는 클릭이 이미 유닛 배치에 쓰이므로, BattleController가 매 프레임 마우스가
+        /// 가리키는 칸을 검사해(호버) 이 메서드를 호출한다.</summary>
+        public void ShowStructurePanel(string structureId)
+        {
+            foreach (var info in StructureDefinition.All)
+            {
+                if (info.Id != structureId) continue;
+
+                _structurePanel.SetActive(true);
+                _structurePanelAccent.color = StructureAccentColors.TryGetValue(structureId, out var color) ? color : Color.white;
+                _structureNameText.text = info.Name;
+                _structureDescriptionText.text = info.Description;
+                return;
+            }
+
+            HideStructurePanel();
+        }
+
+        public void HideStructurePanel() => _structurePanel.SetActive(false);
 
         // ---------- 전투 시작 ----------
 

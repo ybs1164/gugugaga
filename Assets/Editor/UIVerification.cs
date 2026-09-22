@@ -21,7 +21,8 @@ namespace TacticsECS.EditorTools
                       VerifyUnitLabelAndDamagePopupWiring() &
                       VerifyCityResourceBar() &
                       VerifyTechTreePanel() &
-                      VerifyStructurePanel();
+                      VerifyStructurePanel() &
+                      VerifySandboxStructurePanel();
             Debug.Log(ok ? "[UIVerification] ALL PASS" : "[UIVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -286,6 +287,51 @@ namespace TacticsECS.EditorTools
             }
 
             if (ok) Debug.Log("[UIVerification] structure panel PASS");
+            return ok;
+        }
+
+        /// <summary>SandboxHud(전투 시작 전 배치 단계)도 BattleHud와 같은 StructurePanel을 갖고, 같은
+        /// StructureDefinition 표를 보여주는지 확인한다 — BattleController.UpdateStructureHover가 매 프레임
+        /// 호출하는 대상이 이 메서드다.</summary>
+        private static bool VerifySandboxStructurePanel()
+        {
+            var hudPrefab = AssetDatabase.LoadAssetAtPath<SandboxHud>("Assets/Prefabs/UI/SandboxHud.prefab");
+            var instance = Object.Instantiate(hudPrefab);
+            bool ok = true;
+
+            try
+            {
+                instance.Init();
+
+                var panel = instance.transform.Find("Canvas/StructurePanel");
+                if (panel == null) { Debug.LogError("[UIVerification] SandboxHud StructurePanel not found under Canvas"); return false; }
+                if (panel.gameObject.activeSelf)
+                {
+                    Debug.LogError("[UIVerification] SandboxHud StructurePanel should start hidden");
+                    ok = false;
+                }
+
+                instance.ShowStructurePanel("Resource_Ore");
+                var nameText = panel.Find("NameText").GetComponent<Text>();
+                if (!panel.gameObject.activeSelf || nameText.text != "광물 자원")
+                {
+                    Debug.LogError($"[UIVerification] SandboxHud StructurePanel(Resource_Ore) mismatch: active={panel.gameObject.activeSelf}, name='{nameText.text}'");
+                    ok = false;
+                }
+
+                instance.HideStructurePanel();
+                if (panel.gameObject.activeSelf)
+                {
+                    Debug.LogError("[UIVerification] SandboxHud HideStructurePanel did not deactivate the panel");
+                    ok = false;
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance.gameObject);
+            }
+
+            if (ok) Debug.Log("[UIVerification] sandbox structure panel PASS");
             return ok;
         }
     }

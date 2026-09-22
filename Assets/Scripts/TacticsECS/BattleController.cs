@@ -818,6 +818,7 @@ namespace TacticsECS
             {
                 if (Mouse.current.leftButton.wasPressedThisFrame && TryScreenToGridPos(Mouse.current.position.ReadValue(), out var placePos))
                     _placementController.HandleGridClick(placePos);
+                UpdateStructureHover();
                 return;
             }
 
@@ -850,6 +851,24 @@ namespace TacticsECS
                 Mathf.RoundToInt((worldPoint.z - _grid.Origin.z) / tileSize));
 
             return _grid.InBounds(gridPos);
+        }
+
+        /// <summary>전투 시작 전(배치 단계)에는 클릭이 이미 유닛 배치에 쓰여서 구조물 정보를 클릭으로
+        /// 보여줄 자리가 없다 — 대신 마우스가 가리키는 칸을 매 프레임 검사해(호버) SandboxHud에 정보
+        /// 패널을 띄운다. 전투 중(OnTileClicked)의 클릭 방식과 트리거만 다를 뿐 조회 로직은 같다.</summary>
+        private void UpdateStructureHover()
+        {
+            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos))
+            {
+                _sandboxHud.HideStructurePanel();
+                return;
+            }
+
+            string structureId = _grid.GetStructure(pos);
+            if (!string.IsNullOrEmpty(structureId))
+                _sandboxHud.ShowStructurePanel(structureId);
+            else
+                _sandboxHud.HideStructurePanel();
         }
 
         private void HandleClick()

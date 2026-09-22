@@ -20,7 +20,8 @@ namespace TacticsECS.EditorTools
                       VerifyExcludeAdjacentStructures() &
                       VerifyFillRemaining() &
                       VerifyMaxWaterFraction() &
-                      VerifyTinyIslandVillages();
+                      VerifyTinyIslandVillages() &
+                      VerifyTinyIslandVillagesGatedByShapeMode();
             Debug.Log(ok ? "[StructureGenerationVerification] ALL PASS" : "[StructureGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -394,7 +395,10 @@ namespace TacticsECS.EditorTools
                 }
             var anchors = new[] { new Vector2Int(7, 7) };
 
-            StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 1);
+            // shapeMode 기본값(Freeform)은 외딴 섬 마을을 꺼버리므로(7차 재정비 — Continents/Pangea
+            // 전용이어야 함), 여기서는 명시적으로 Continents를 켜서 원래 의도(외딴 섬 마을 배치 검증)를 지킨다.
+            StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 1,
+                shapeMode: TerrainGenerationSystem.MapShapeMode.Continents);
 
             int villageCount = 0;
             for (int y = 0; y < grid.Height; y++)
@@ -414,6 +418,46 @@ namespace TacticsECS.EditorTools
             bool ok = villageCount == 1;
             if (!ok) Debug.LogError($"[StructureGenerationVerification] expected 1 tiny island village on a 14x14 all-water grid, got {villageCount}");
             else Debug.Log("[StructureGenerationVerification] tiny island villages PASS (1 placed on all-water 14x14 grid)");
+            return ok;
+        }
+
+        /// <summary>7차 재정비 버그 수정의 핵심 증거 — 외딴 섬 마을(8절)은 Continents/Pangea 전용이어야
+        /// 하는데 예전엔 프리셋과 무관하게 항상 실행됐다. VerifyTinyIslandVillages와 동일한 전체-물
+        /// 그리드로 shapeMode 기본값(Freeform)을 그대로 써서, 외딴 섬 마을이 단 하나도 배치되지 않는지
+        /// 확인한다.</summary>
+        private static bool VerifyTinyIslandVillagesGatedByShapeMode()
+        {
+            var biome = new BiomeCsvRow
+            {
+                Id = "Test", Name = "Test", Frequency = 0.15f, Octaves = 2, SeedOffset = 1, InnerRadius = 2,
+                Tiles = new List<BiomeTileEntry>
+                {
+                    new BiomeTileEntry { TileId = "Grass", TerrainType = TerrainType.Land, InnerWeight = 1f, OuterWeight = 1f },
+                    new BiomeTileEntry { TileId = "Water", TerrainType = TerrainType.Water, InnerWeight = 1f, OuterWeight = 1f }
+                }
+            };
+
+            var grid = new GridWorld(14, 14, 1f);
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    grid.SetTerrain(pos, TerrainType.Water);
+                    grid.SetTileType(pos, "Water");
+                }
+            var anchors = new[] { new Vector2Int(7, 7) };
+
+            // shapeMode를 생략 -> 기본값 Freeform -> 외딴 섬 마을 비활성이어야 함.
+            StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 1);
+
+            int villageCount = 0;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (grid.GetStructure(new Vector2Int(x, y)) == StructureGenerationSystem.VillageStructureId) villageCount++;
+
+            bool ok = villageCount == 0;
+            if (!ok) Debug.LogError($"[StructureGenerationVerification] tiny island villages should be gated off for non-Continents/Pangea shapeMode, but {villageCount} were placed");
+            else Debug.Log("[StructureGenerationVerification] tiny island villages gating PASS (0 placed with default Freeform shapeMode)");
             return ok;
         }
     }

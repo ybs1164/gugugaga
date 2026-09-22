@@ -24,36 +24,70 @@ namespace TacticsECS
         /// 없어(목표 0~10%) 기존 방식으로 충분해 여기 포함하지 않는다 — 마스크가 필요 없다.</summary>
         public enum MapShapeMode { Freeform, Pangea, Lakes, Continents, Archipelago, Waterworld }
 
-        /// <summary>지형을 생성하고, 바이옴별 앵커를 반환한다 — StructureGenerationSystem이 수도(Capital)
-        /// 배치와 구조물 영역 판정에 같은 앵커를 재사용한다.
-        /// wetnessMultiplier(습도 프리셋, BattleController.WetnessPresets)는 shapeMode가 Freeform일 때만
-        /// 쓰인다 — 1.0이면 CSV 값 그대로, 그 외에는 TerrainType이 Water인 엔트리의 InnerWeight/
-        /// OuterWeight/CountPerTiles에만 배율을 적용한 임시 복사본으로 생성한다(원본 CSV는 불변).
-        /// shapeMode가 Freeform이 아니면 완전히 다른 경로(GenerateWithShape)를 탄다 — 쿼드런트 앵커를
-        /// 시작점 삼아 랜드마스 마스크를 먼저 확정하고 그 모양에 맞춰 Land/Water를 강제한다. 이 경로에서
-        /// wetnessMultiplier는 쓰이지 않고 targetWaterFraction이 대신 목표 물 비율을 정한다.</summary>
+        /// <summary>지형을 생성하고, 바이옴별(수도) 앵커를 반환한다 — Suburb/Pre-terrain 마을 위치까지
+        /// 필요 없는 대부분의 호출부(검증 스크립트 등)를 위한 얇은 오버로드. 내부적으로 전체 오버로드에
+        /// 위임하고 마을 위치는 버린다.</summary>
         public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier = 1f,
             MapShapeMode shapeMode = MapShapeMode.Freeform, float targetWaterFraction = 0.5f)
+            => Generate(grid, biomes, seed, wetnessMultiplier, shapeMode, targetWaterFraction, out _, out _);
+
+        /// <summary>지형을 생성하고, 수도 앵커 + Suburb/Pre-terrain 마을 위치를 반환한다(7차 재정비 —
+        /// docs/PolytopiaMapGeneration.md 4절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
+        /// 뒤 지형을 채운다). 파이프라인:
+        /// 1. 쿼드런트 앵커(수도 후보)를 먼저 뽑는다(GenerateQuadrantAnchors).
+        /// 2. Suburb/Pre-terrain 마을 위치를 지형 없이 먼저 정한다(PlanPreTerrainVillages) — 맵 타입별로
+        ///    있을 수도/없을 수도 있다(7.1절 매트릭스).
+        /// 3. 수도+Suburb+Pre-terrain 마을 위치 전부를 "반드시 육지가 되어야 할 칸"(guaranteedLand)으로
+        ///    묶어, 지형 생성이 이 칸들을 육지로 보장하도록 한다 — shapeMode가 랜드마스 마스크 경로면
+        ///    마스크 점수에 보너스를 줘서(GenerateMapShapeLandMask), Freeform이면 채우기 완료 후 강제로
+        ///    덮어써서(ForceLandAt) 보장한다.
+        /// wetnessMultiplier는 Freeform 경로에서만 쓰이고(습도 프리셋 배율), 마스크 경로에서는
+        /// targetWaterFraction이 대신 목표 물 비율을 정한다.</summary>
+        public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier,
+            MapShapeMode shapeMode, float targetWaterFraction, out Vector2Int[] suburbPositions, out Vector2Int[] preTerrainVillagePositions)
         {
-            if (grid == null || biomes == null || biomes.Count == 0) return Array.Empty<Vector2Int>();
+            if (grid == null || biomes == null || biomes.Count == 0)
+            {
+                suburbPositions = Array.Empty<Vector2Int>();
+                preTerrainVillagePositions = Array.Empty<Vector2Int>();
+                return Array.Empty<Vector2Int>();
+            }
 
             var rng = new Random(seed);
+            var capitalAnchors = GenerateQuadrantAnchors(grid, biomes.Count, rng);
+            var (suburbs, preTerrain) = PlanPreTerrainVillages(grid, shapeMode, capitalAnchors, rng);
 
-            if (shapeMode != MapShapeMode.Freeform)
-                return GenerateWithShape(grid, biomes, rng, shapeMode, targetWaterFraction);
+            (Vector2Int[] Anchors, Vector2Int[] Suburbs, Vector2Int[] PreTerrain) result = shapeMode != MapShapeMode.Freeform
+                ? GenerateWithShape(grid, biomes, rng, shapeMode, targetWaterFraction, capitalAnchors, suburbs, preTerrain)
+                : GenerateFreeform(grid, biomes, rng, wetnessMultiplier, capitalAnchors, suburbs, preTerrain);
 
+            suburbPositions = result.Suburbs;
+            preTerrainVillagePositions = result.PreTerrain;
+            return result.Anchors;
+        }
+
+        /// <summary>자유 배치 경로(Drylands 포함 shapeMode==Freeform). 기존 쿼터 배치 + 나머지 채우기
+        /// 알고리즘은 그대로 두고, 마지막에 guaranteedLand(수도+Suburb+Pre-terrain 마을) 칸을 강제로
+        /// 육지로 덮어쓰는 단계만 추가한다(ForceLandAt) — 마스크가 없는 경로라 사전에 육지를 보장할
+        /// 방법이 없으므로 사후에 강제한다.</summary>
+        private static (Vector2Int[] Anchors, Vector2Int[] Suburbs, Vector2Int[] PreTerrain) GenerateFreeform(GridWorld grid,
+            IReadOnlyList<BiomeCsvRow> biomes, Random rng, float wetnessMultiplier, Vector2Int[] capitalAnchors, Vector2Int[] suburbs, Vector2Int[] preTerrain)
+        {
             var effectiveBiomes = Mathf.Approximately(wetnessMultiplier, 1f) ? biomes : ApplyWetness(biomes, wetnessMultiplier);
-
-            var (biomeIndexPerCell, anchors) = AssignBiomeRegions(grid, effectiveBiomes.Count, rng);
+            var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, capitalAnchors);
             var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, effectiveBiomes.Count);
 
             ClearGeneratedTiles(grid);
             var placedPositionsByType = BuildInitialPlacedPositions(grid);
 
             PlaceMinCountQuota(grid, effectiveBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
-            FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
+            FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, capitalAnchors, placedPositionsByType, rng);
 
-            return anchors;
+            ForceLandAt(grid, biomes, biomeIndexPerCell, capitalAnchors, placedPositionsByType);
+            ForceLandAt(grid, biomes, biomeIndexPerCell, suburbs, placedPositionsByType);
+            ForceLandAt(grid, biomes, biomeIndexPerCell, preTerrain, placedPositionsByType);
+
+            return (capitalAnchors, suburbs, preTerrain);
         }
 
         /// <summary>맵 타입별 랜드마스 마스크 파라미터. 전부 같은 "방사형 감쇠 + 노이즈 점수 -> 순위 컷"
@@ -70,50 +104,53 @@ namespace TacticsECS
             /// <summary>true면 맨 바깥 테두리 칸에 큰 점수 보너스를 줘서 순위 컷에서 거의 항상 육지로
             /// 살아남게 한다(Lakes의 "가장자리 육지 다리" 규칙).</summary>
             public readonly bool ForceBorderLand;
-            /// <summary>true면 바이옴 앵커(수도가 놓일 자리) 주변 anchorProtectRadius 칸에 큰 점수
-            /// 보너스를 줘서 물이 압도적으로 많은 상황(Waterworld)에서도 수도 주변엔 육지가 남게 한다.</summary>
-            public readonly bool ProtectAnchors;
-            public readonly int AnchorProtectRadius;
 
-            public MapShapeParams(int centerCount, float radialWeight, bool forceBorderLand, bool protectAnchors, int anchorProtectRadius)
+            public MapShapeParams(int centerCount, float radialWeight, bool forceBorderLand)
             {
                 CenterCount = centerCount;
                 RadialWeight = radialWeight;
                 ForceBorderLand = forceBorderLand;
-                ProtectAnchors = protectAnchors;
-                AnchorProtectRadius = anchorProtectRadius;
             }
         }
 
+        /// <summary>수도/Suburb/Pre-terrain 마을 위치(guaranteedLand)는 프리셋과 무관하게 항상 육지로
+        /// 보호해야 하므로(7차 재정비), 이전에 Waterworld 전용이었던 "앵커 보호" 플래그는 더 이상 프리셋별
+        /// 파라미터가 아니다 — GenerateMapShapeLandMask가 guaranteedLand 인자를 받아 항상 보호한다.</summary>
         private static MapShapeParams GetShapeParams(MapShapeMode mode, int biomeCount) => mode switch
         {
             // 중앙 대륙 + 외곽 바다(2/7.5절).
-            MapShapeMode.Pangea => new MapShapeParams(centerCount: 1, radialWeight: 0.65f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
+            MapShapeMode.Pangea => new MapShapeParams(centerCount: 1, radialWeight: 0.65f, forceBorderLand: false),
             // 순수 노이즈(중심 없음)로 흩어진 호수 모양 + 가장자리는 항상 육지("육지 다리").
-            MapShapeMode.Lakes => new MapShapeParams(centerCount: 0, radialWeight: 0f, forceBorderLand: true, protectAnchors: false, anchorProtectRadius: 0),
+            MapShapeMode.Lakes => new MapShapeParams(centerCount: 0, radialWeight: 0f, forceBorderLand: true),
             // 바이옴 수만큼 중심점을 흩어 각자 뚜렷한 대륙 하나씩 — 노이즈 비중은 낮아 윤곽이 비교적 뚜렷함.
-            MapShapeMode.Continents => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.6f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
+            MapShapeMode.Continents => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.6f, forceBorderLand: false),
             // Continents와 같은 중심점 수지만 노이즈 비중이 훨씬 높아 조각조각 흩어진 섬 모양이 됨.
-            MapShapeMode.Archipelago => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.25f, forceBorderLand: false, protectAnchors: false, anchorProtectRadius: 0),
-            // 거의 전부 물(목표 90~100%)이라 수도가 물에 갇히지 않도록 앵커 주변만 강제로 육지 확보.
-            MapShapeMode.Waterworld => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.5f, forceBorderLand: false, protectAnchors: true, anchorProtectRadius: 1),
-            _ => new MapShapeParams(1, 0.65f, false, false, 0)
+            MapShapeMode.Archipelago => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.25f, forceBorderLand: false),
+            // 거의 전부 물(목표 90~100%).
+            MapShapeMode.Waterworld => new MapShapeParams(centerCount: Mathf.Max(1, biomeCount), radialWeight: 0.5f, forceBorderLand: false),
+            _ => new MapShapeParams(1, 0.65f, false)
         };
 
         /// <summary>랜드마스 마스크 기반 파이프라인(공통, Pangea 전용 코드를 일반화). (1) 맵 타입별
-        /// 파라미터로 랜드마스 마스크를 목표 물 비율에 정확히 맞춰 만들고, (2) 쿼드런트로 뽑은 앵커를
-        /// 각자 가장 가까운 육지 칸으로 옮긴 뒤(완전히 바다인 구역에 앵커가 낙하하는 것을 방지 — 원문은
-        /// 이런 맵 타입들에서 애초에 쿼드런트를 안 쓰지만, 이 프로젝트의 바이옴별 색/스타일 분배 자체는
-        /// 계속 필요해 앵커 개념은 유지하고 위치만 육지로 보정하는 절충안을 택했다), (3) 마스크가 물인
-        /// 칸은 그 칸이 속한 바이옴의 물 타일로 직접 채우고(MinDistance 등 개별 제약을 건너뛰어 바다가
-        /// 실제로 하나로 이어지게 함), (4) 마스크가 육지인 칸은 기존 가중치 알고리즘으로 채우되 물 타일
-        /// 엔트리는 후보에서 제외한다(마스크가 이미 육지/바다를 결정했으므로 이중으로 물이 섞이지 않도록).</summary>
-        private static Vector2Int[] GenerateWithShape(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Random rng, MapShapeMode mode, float waterFraction)
+        /// 파라미터로 랜드마스 마스크를 목표 물 비율에 정확히 맞춰 만들되, 수도+Suburb+Pre-terrain
+        /// 마을 위치(guaranteedLand)는 항상 육지로 보호한다(7차 재정비 — 예전엔 Waterworld의 수도만
+        /// 보호했지만, 이제 모든 프리셋의 모든 "사전 확정된 마을/수도"가 보호 대상이다), (2) 그래도
+        /// 마스크 컷에서 탈락했을 경우를 대비해 가장 가까운 육지 칸으로 옮기는 안전망을 유지하고,
+        /// (3) 마스크가 물인 칸은 그 칸이 속한 바이옴의 물 타일로 직접 채우고(MinDistance 등 개별 제약을
+        /// 건너뛰어 바다가 실제로 하나로 이어지게 함), (4) 마스크가 육지인 칸은 기존 가중치 알고리즘으로
+        /// 채우되 물 타일 엔트리는 후보에서 제외한다(마스크가 이미 육지/바다를 결정했으므로 이중으로
+        /// 물이 섞이지 않도록).</summary>
+        private static (Vector2Int[] Anchors, Vector2Int[] Suburbs, Vector2Int[] PreTerrain) GenerateWithShape(GridWorld grid,
+            IReadOnlyList<BiomeCsvRow> biomes, Random rng, MapShapeMode mode, float waterFraction,
+            Vector2Int[] capitalAnchors, Vector2Int[] suburbs, Vector2Int[] preTerrain)
         {
             var shapeParams = GetShapeParams(mode, biomes.Count);
-            var rawAnchors = GenerateQuadrantAnchors(grid, biomes.Count, rng);
-            var landMask = GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, rawAnchors);
-            var anchors = SnapAnchorsToLand(grid, rawAnchors, landMask);
+            var guaranteedLand = Combine(capitalAnchors, suburbs, preTerrain);
+            var landMask = GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, guaranteedLand);
+
+            var anchors = SnapAllToLand(grid, capitalAnchors, landMask);
+            var snappedSuburbs = SnapAllToLand(grid, suburbs, landMask);
+            var snappedPreTerrain = SnapAllToLand(grid, preTerrain, landMask);
             var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
 
             ClearGeneratedTiles(grid);
@@ -126,15 +163,24 @@ namespace TacticsECS
             PlaceMinCountQuota(grid, landOnlyBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
             FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
 
-            return anchors;
+            return (anchors, snappedSuburbs, snappedPreTerrain);
+        }
+
+        private static Vector2Int[] Combine(Vector2Int[] a, Vector2Int[] b, Vector2Int[] c)
+        {
+            var result = new Vector2Int[a.Length + b.Length + c.Length];
+            a.CopyTo(result, 0);
+            b.CopyTo(result, a.Length);
+            c.CopyTo(result, a.Length + b.Length);
+            return result;
         }
 
         /// <summary>중심점(들)로부터의 방사형 감쇠 + 노이즈를 섞어 칸마다 "육지 점수"를 매기고, 점수 상위
         /// (1-waterFraction) 비율만큼을 육지로 확정한다 — 임계값을 눈대중으로 튜닝하는 대신 정확히 목표
         /// 물 비율을 맞추기 위해 순위 기반으로 자른다. CenterCount==0이면 방사형 항 없이 순수 노이즈만
-        /// 쓴다(Lakes). ForceBorderLand/ProtectAnchors는 순위 컷 전에 해당 칸들 점수에 큰 보너스를 더해
-        /// 사실상 육지로 보장한다.</summary>
-        private static bool[] GenerateMapShapeLandMask(GridWorld grid, Random rng, float waterFraction, MapShapeParams shapeParams, Vector2Int[] rawAnchors)
+        /// 쓴다(Lakes). ForceBorderLand는 순위 컷 전에 테두리 칸 점수에, guaranteedLand는 그 칸들 점수에
+        /// 큰 보너스를 더해 사실상 육지로 보장한다.</summary>
+        private static bool[] GenerateMapShapeLandMask(GridWorld grid, Random rng, float waterFraction, MapShapeParams shapeParams, Vector2Int[] guaranteedLand)
         {
             Vector2Int[] centers;
             if (shapeParams.CenterCount <= 0) centers = Array.Empty<Vector2Int>();
@@ -144,6 +190,10 @@ namespace TacticsECS
             float maxDist = new Vector2(grid.Width, grid.Height).magnitude;
             int noiseSeedOffset = rng.Next(0, 1_000_000);
             const float GuaranteeBonus = 10f; // 순위 컷에서 거의 항상 살아남을 만큼 큰 보너스(점수 범위 0~1보다 훨씬 큼)
+
+            var guaranteedSet = new HashSet<int>();
+            foreach (var p in guaranteedLand)
+                if (grid.InBounds(p)) guaranteedSet.Add(grid.Index(p));
 
             var order = new List<int>(grid.Width * grid.Height);
             var scores = new float[grid.Width * grid.Height];
@@ -175,9 +225,8 @@ namespace TacticsECS
                     if (shapeParams.ForceBorderLand && ProceduralGenerationUtil.DistanceToEdge(grid, pos) == 0)
                         score += GuaranteeBonus;
 
-                    if (shapeParams.ProtectAnchors)
-                        foreach (var a in rawAnchors)
-                            if (ProceduralGenerationUtil.ChebyshevDistance(pos, a) <= shapeParams.AnchorProtectRadius) { score += GuaranteeBonus; break; }
+                    if (guaranteedSet.Contains(index))
+                        score += GuaranteeBonus;
 
                     scores[index] = score;
                     order.Add(index);
@@ -191,13 +240,14 @@ namespace TacticsECS
             return mask;
         }
 
-        /// <summary>앵커가 이미 육지 칸이면 그대로, 바다 칸이면 가장 가까운 육지 칸으로 옮긴다 — 완전히
-        /// 바다인 구역에 앵커(그리고 그 위에 자동 배치되는 수도)가 떨어지는 것을 막는다.</summary>
-        private static Vector2Int[] SnapAnchorsToLand(GridWorld grid, Vector2Int[] anchors, bool[] landMask)
+        /// <summary>각 위치가 이미 육지 칸이면 그대로, 바다 칸이면 가장 가까운 육지 칸으로 옮긴다 —
+        /// GenerateMapShapeLandMask의 guaranteedLand 보너스가 극단적인 물 비율(예: Waterworld) 아래서도
+        /// 거의 항상 육지를 보장하지만, 혹시 컷에서 탈락했을 경우의 안전망이다.</summary>
+        private static Vector2Int[] SnapAllToLand(GridWorld grid, Vector2Int[] positions, bool[] landMask)
         {
-            var result = new Vector2Int[anchors.Length];
-            for (int i = 0; i < anchors.Length; i++)
-                result[i] = landMask[grid.Index(anchors[i])] ? anchors[i] : FindNearestLandCell(grid, anchors[i], landMask);
+            var result = new Vector2Int[positions.Length];
+            for (int i = 0; i < positions.Length; i++)
+                result[i] = landMask[grid.Index(positions[i])] ? positions[i] : FindNearestLandCell(grid, positions[i], landMask);
             return result;
         }
 
@@ -271,6 +321,111 @@ namespace TacticsECS
         {
             foreach (var tile in biome.Tiles)
                 if (tile.TerrainType == TerrainType.Water) return tile.TileId;
+            return null;
+        }
+
+        /// <summary>Freeform 경로 전용 — 마스크가 없어 사전에 육지를 보장할 수 없으므로, 채우기가 끝난
+        /// 뒤 positions의 각 칸을 그 칸이 속한 바이옴의 첫 Land 타일로 강제 덮어쓴다(ApplyLandmassMask가
+        /// 물 칸을 강제로 채우는 것과 대칭되는 육지판). 이미 유닛이 점유한 칸은 건드리지 않는다.</summary>
+        private static void ForceLandAt(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
+            Vector2Int[] positions, Dictionary<string, List<Vector2Int>> placedPositionsByType)
+        {
+            foreach (var pos in positions)
+            {
+                if (!grid.InBounds(pos) || grid.IsOccupied(pos)) continue;
+                if (grid.GetTerrain(pos) == TerrainType.Land) continue; // 이미 육지면 손댈 필요 없음
+
+                var biome = biomes[biomeIndexPerCell[grid.Index(pos)]];
+                string landTileId = FindFirstLandTileId(biome);
+                if (landTileId == null)
+                {
+                    Debug.LogWarning($"[TerrainGenerationSystem] biome '{biome.Id}'에 Land 타입 타일이 정의되어 있지 않아 수도/마을 칸 {pos}을 육지로 강제하지 못했습니다.");
+                    continue;
+                }
+
+                grid.SetTerrain(pos, TerrainType.Land);
+                grid.SetTileType(pos, landTileId);
+                AddPlacedPosition(placedPositionsByType, landTileId, pos);
+            }
+        }
+
+        private static string FindFirstLandTileId(BiomeCsvRow biome)
+        {
+            foreach (var tile in biome.Tiles)
+                if (tile.TerrainType == TerrainType.Land) return tile.TileId;
+            return null;
+        }
+
+        /// <summary>docs/PolytopiaMapGeneration.md 4.2~4.4절 — 지형이 생기기 전에 먼저 정해지는 마을
+        /// 두 종류(Suburb/Pre-terrain)를 계산한다. 7.1절 매트릭스대로 맵 타입마다 있을 수도/없을 수도
+        /// 있다: Suburb는 Lakes/Archipelago 전용, Pre-terrain은 Lakes/Archipelago/Waterworld 전용,
+        /// 나머지(Drylands/Pangea/Continents)는 둘 다 없음(빈 배열).</summary>
+        private static (Vector2Int[] Suburbs, Vector2Int[] PreTerrain) PlanPreTerrainVillages(GridWorld grid, MapShapeMode shapeMode, Vector2Int[] capitalAnchors, Random rng)
+        {
+            bool hasSuburbs = shapeMode == MapShapeMode.Lakes || shapeMode == MapShapeMode.Archipelago;
+            bool hasPreTerrain = shapeMode == MapShapeMode.Lakes || shapeMode == MapShapeMode.Archipelago || shapeMode == MapShapeMode.Waterworld;
+
+            var reserved = new List<Vector2Int>(capitalAnchors);
+            var suburbs = new List<Vector2Int>();
+            if (hasSuburbs)
+            {
+                foreach (var capital in capitalAnchors)
+                {
+                    int count = rng.Next(0, 3); // 0~2개(4.3절 "0개나 1개도 나올 수 있지만 보통 2개")
+                    for (int i = 0; i < count; i++)
+                    {
+                        var pos = FindNearbyFreeCell(grid, capital, radius: 3, reserved, rng);
+                        if (!pos.HasValue) continue;
+                        suburbs.Add(pos.Value);
+                        reserved.Add(pos.Value);
+                    }
+                }
+            }
+
+            var preTerrain = new List<Vector2Int>();
+            if (hasPreTerrain)
+            {
+                float density = shapeMode == MapShapeMode.Waterworld ? 0.1f : 0.3f; // 4.4절 밀도 계수
+                int widthThird = Mathf.FloorToInt(grid.Width / 3f);
+                int target = Mathf.Max(0, Mathf.RoundToInt((widthThird * widthThird - reserved.Count) * density));
+
+                var candidates = new List<Vector2Int>();
+                for (int y = 0; y < grid.Height; y++)
+                    for (int x = 0; x < grid.Width; x++)
+                        candidates.Add(new Vector2Int(x, y));
+                ProceduralGenerationUtil.Shuffle(candidates, rng);
+
+                foreach (var pos in candidates)
+                {
+                    if (preTerrain.Count >= target) break;
+                    if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < 1) continue; // 4.4절: 가장자리 최소 1칸
+
+                    bool tooClose = false;
+                    foreach (var r in reserved)
+                        if (ProceduralGenerationUtil.ChebyshevDistance(r, pos) < 2) { tooClose = true; break; } // 4.4절: 다른 마을/수도로부터 최소 2칸
+                    if (tooClose) continue;
+
+                    preTerrain.Add(pos);
+                    reserved.Add(pos);
+                }
+            }
+
+            return (suburbs.ToArray(), preTerrain.ToArray());
+        }
+
+        /// <summary>center 주변 반경 radius 안에서 reserved에 없는 빈(격자 안, 중복 아닌) 칸을 몇 번
+        /// 재시도해 찾는다 — 못 찾으면 null(억지로 안 채움, Suburb는 "0개나 1개도 나올 수 있음"이라
+        /// 실패해도 괜찮다).</summary>
+        private static Vector2Int? FindNearbyFreeCell(GridWorld grid, Vector2Int center, int radius, List<Vector2Int> reserved, Random rng)
+        {
+            const int MaxAttempts = 12;
+            for (int attempt = 0; attempt < MaxAttempts; attempt++)
+            {
+                var candidate = center + new Vector2Int(rng.Next(-radius, radius + 1), rng.Next(-radius, radius + 1));
+                if (!grid.InBounds(candidate)) continue;
+                if (reserved.Contains(candidate)) continue;
+                return candidate;
+            }
             return null;
         }
 
@@ -366,19 +521,8 @@ namespace TacticsECS
             return result;
         }
 
-        /// <summary>바이옴 수만큼 쿼드런트(구역)를 나눠 서로 다른 구역에 앵커를 하나씩 배정한다
-        /// (Polytopia의 "인원수에 따라 4/9/16구역, 구역당 수도 하나" 규칙과 같은 원리 — 완전 랜덤 시드보다
-        /// 바이옴들이 맵 전체에 고르게 퍼지는 것을 보장한다). 앵커가 정해지면 각 칸은 기존처럼 가장 가까운
-        /// 앵커의 바이옴에 배정된다(Voronoi).</summary>
-        private static (int[] BiomeIndexPerCell, Vector2Int[] Anchors) AssignBiomeRegions(GridWorld grid, int biomeCount, Random rng)
-        {
-            var anchors = GenerateQuadrantAnchors(grid, biomeCount, rng);
-            var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
-            return (biomeIndexPerCell, anchors);
-        }
-
         /// <summary>바이옴 수만큼 쿼드런트를 나눠 서로 다른 구역에서 앵커를 하나씩 뽑는다(공정성 배치).
-        /// 판게아 모드(GeneratePangea)도 같은 함수로 시작점을 뽑은 뒤 육지로 스냅한다.</summary>
+        /// 랜드마스 마스크 경로도 같은 함수로 시작점을 뽑은 뒤 육지로 스냅한다.</summary>
         private static Vector2Int[] GenerateQuadrantAnchors(GridWorld grid, int biomeCount, Random rng)
         {
             int quadrantsPerSide = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(biomeCount)));

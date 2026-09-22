@@ -24,12 +24,23 @@ namespace TacticsECS
             (11, 0), (14, 1), (16, 2), (18, 3), (20, 4), (30, 9)
         };
 
-        public static void Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Vector2Int[] anchors, int seed)
+        /// <summary>7차 재정비 — docs/PolytopiaMapGeneration.md 4절 순서(수도 -> 마을 -> 지형 -> 자원 ->
+        /// 유적/불가사리)대로, 지형 생성 전에 이미 확정된 Suburb/Pre-terrain 마을 위치
+        /// (TerrainGenerationSystem.Generate의 out 파라미터)를 받아 Village 구조물로 먼저 배치한다 —
+        /// 기존 8개 이상의 호출부는 뒤 3개 인자를 생략해도 그대로 컴파일된다(null=빈 배열,
+        /// shapeMode 기본값 Freeform=외딴 섬 마을 비활성).
+        /// shapeMode는 외딴 섬 마을(8절, Continents/Pangea 전용)을 게이팅하는 데만 쓴다 — 예전엔
+        /// 프리셋과 무관하게 항상 실행돼 위키 사양을 위반했다.</summary>
+        public static void Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Vector2Int[] anchors, int seed,
+            Vector2Int[] suburbPositions = null, Vector2Int[] preTerrainVillagePositions = null,
+            TerrainGenerationSystem.MapShapeMode shapeMode = TerrainGenerationSystem.MapShapeMode.Freeform)
         {
             if (grid == null || biomes == null || anchors == null || anchors.Length == 0) return;
 
             ClearGeneratedStructures(grid);
             PlaceCapitals(grid, anchors);
+            PlaceVillagesAt(grid, suburbPositions);
+            PlaceVillagesAt(grid, preTerrainVillagePositions);
 
             var biomeIndexPerCell = new int[grid.Width * grid.Height];
             for (int y = 0; y < grid.Height; y++)
@@ -43,7 +54,23 @@ namespace TacticsECS
             for (int biomeIdx = 0; biomeIdx < biomes.Count; biomeIdx++)
                 PlaceBiomeStructures(grid, biomes[biomeIdx], biomeIndexPerCell, biomeIdx, anchors[biomeIdx], rng);
 
-            PlaceTinyIslandVillages(grid, biomes, biomeIndexPerCell, rng);
+            if (shapeMode == TerrainGenerationSystem.MapShapeMode.Pangea || shapeMode == TerrainGenerationSystem.MapShapeMode.Continents)
+                PlaceTinyIslandVillages(grid, biomes, biomeIndexPerCell, rng);
+        }
+
+        /// <summary>Suburb/Pre-terrain 마을 위치(지형 생성 단계에서 이미 육지로 확정된 칸)마다 Village
+        /// 구조물을 배치한다 — PlaceCapitals와 같은 패턴. 이후 PlaceBiomeStructures의 eligibleCells
+        /// 계산이 "구조물 없는 칸"만 후보로 삼으므로, 여기서 먼저 채워두면 자원/유적/불가사리가 자동으로
+        /// 이 칸들을 피해간다.</summary>
+        private static void PlaceVillagesAt(GridWorld grid, Vector2Int[] positions)
+        {
+            if (positions == null) return;
+            foreach (var pos in positions)
+            {
+                if (!grid.InBounds(pos) || grid.IsOccupied(pos)) continue;
+                if (!string.IsNullOrEmpty(grid.GetStructure(pos))) continue;
+                grid.SetStructure(pos, VillageStructureId);
+            }
         }
 
         /// <summary>수도는 자동 배치라 재생성 시마다 초기화해야 하고, 나머지 구조물도 이전 결과가 남아
@@ -59,9 +86,9 @@ namespace TacticsECS
                 }
         }
 
-        /// <summary>바이옴 앵커(Polytopia의 "수도 역할" — TerrainGenerationSystem.AssignBiomeRegions
-        /// 참고)마다 그 칸에 수도를 자동 배치한다. CSV 엔트리가 아니다 — 앵커 자체가 이미 그 바이옴의
-        /// 중심점이라는 의미를 갖고 있어서 별도 규칙 없이 그대로 재사용한다.</summary>
+        /// <summary>바이옴 앵커(Polytopia의 "수도 역할" — TerrainGenerationSystem.Generate가 지형 생성
+        /// 전에 미리 뽑아 반환한 위치)마다 그 칸에 수도를 자동 배치한다. CSV 엔트리가 아니다 — 앵커
+        /// 자체가 이미 그 바이옴의 중심점이라는 의미를 갖고 있어서 별도 규칙 없이 그대로 재사용한다.</summary>
         private static void PlaceCapitals(GridWorld grid, Vector2Int[] anchors)
         {
             foreach (var anchor in anchors)

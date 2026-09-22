@@ -421,11 +421,12 @@ namespace TacticsECS
         /// 다르면 먼저 그리드 자체를 다시 만든다(RebuildGridForSize). 이미 유닛이 놓인 칸은
         /// TerrainGenerationSystem이 알아서 건드리지 않으므로(크기가 그대로라면) 배치 중에 눌러도
         /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.
-        /// 지형 생성 직후 반환되는 바이옴 앵커로 StructureGenerationSystem(수도/유적/자원/불가사리)까지
-        /// 이어서 실행한다. 습도 프리셋 이름이 Pangea/Lakes/Continents/Archipelago/Waterworld 중 하나면
-        /// TerrainGenerationSystem이 완전히 다른 경로(랜드마스 마스크로 모양 자체를 확정)를 타도록
-        /// ResolveShapeMode로 매핑한 MapShapeMode를 함께 넘긴다. Drylands는 물이 거의 없어(목표 0~10%)
-        /// 마스크 없이도 기존 방식으로 충분해 Freeform(습도 배율)만 쓴다.</summary>
+        /// 지형 생성 직후 반환되는 바이옴 앵커 + Suburb/Pre-terrain 마을 위치(7차 재정비 — 수도/마을을
+        /// 지형보다 먼저 확정하고, 지형 생성이 그 위치를 육지로 보장한다)로 StructureGenerationSystem
+        /// (수도/마을/유적/자원/불가사리)까지 이어서 실행한다. 습도 프리셋 이름이 Pangea/Lakes/Continents/
+        /// Archipelago/Waterworld 중 하나면 TerrainGenerationSystem이 완전히 다른 경로(랜드마스 마스크로
+        /// 모양 자체를 확정)를 타도록 ResolveShapeMode로 매핑한 MapShapeMode를 함께 넘긴다. Drylands는
+        /// 물이 거의 없어(목표 0~10%) 마스크 없이도 기존 방식으로 충분해 Freeform(습도 배율)만 쓴다.</summary>
         private void HandleGenerateTerrain()
         {
             if (_loadedBiomes == null || _loadedBiomes.Count == 0)
@@ -442,10 +443,11 @@ namespace TacticsECS
             var shapeMode = ResolveShapeMode(selectedWetness.Name);
             float wetnessMultiplier = selectedWetness.Wetness / WetnessPresets[WetnessBaselineIndex].Wetness;
             int seed = System.Environment.TickCount;
-            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, shapeMode, selectedWetness.Wetness);
+            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, shapeMode, selectedWetness.Wetness,
+                out var suburbPositions, out var preTerrainVillagePositions);
             _gridView.RefreshTerrain(_grid);
 
-            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed);
+            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed, suburbPositions, preTerrainVillagePositions, shapeMode);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
             _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, " +

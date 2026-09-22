@@ -465,6 +465,46 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
   Huge(20x20))으로 4개 프리셋이 서로 뚜렷이 구분되는 모양(호수 모양 물줄기, 3개로 갈라진 대륙, 흩어진
   섬들, 거의 전부 물+작은 육지 점)을 육안으로 확인(검증용 임시 스크립트는 확인 후 삭제).
 
+### 생성 순서 재정비 — 수도/마을을 지형보다 먼저 결정 (7차 재정비)
+
+docs/PolytopiaMapGeneration.md와 현재 구현을 항목별로 대조해보니, 가장 큰 구조적 차이는 **생성 순서**였다
+— Polytopia는 수도 → 마을(Suburb/Pre-terrain/Post-terrain) → 지형 → 자원 → 유적/불가사리 순으로,
+마을이 이미 정해진 뒤 지형이 그 위치를 육지로 보장하며 채워진다. 이 프로젝트는 6차 재정비까지도 지형을
+먼저 전부 채운 뒤 그 위에 수도/마을/구조물을 얹는 반대 순서였고, 수도 위치(앵커)조차 Waterworld를
+제외하면 육지로 보장되지 않았다(사후에 가장 가까운 육지로 옮길 뿐). Suburb/Pre-terrain 마을 개념
+자체도 없었다.
+
+- [`Systems/TerrainGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/TerrainGenerationSystem.cs)
+  `Generate`가 이제 **수도 → 마을 → 지형** 순으로 동작한다:
+  1. 쿼드런트 앵커(수도 후보)를 먼저 뽑는다(기존과 동일).
+  2. **`PlanPreTerrainVillages`(신규)**: 지형 없이 먼저 마을 위치를 정한다 — Suburb(Lakes/Archipelago
+     전용, 수도마다 근처에 0~2개)와 Pre-terrain 마을(Lakes/Archipelago/Waterworld 전용,
+     `(floor(맵너비/3)^2 - 수도-Suburb 수) × 밀도계수` 공식, Waterworld는 0.1 나머지는 0.3, 다른
+     마을/수도로부터 최소 거리 2·가장자리 여백 1 제약) 둘 다 7.1절 매트릭스대로 프리셋마다 있을
+     수도/없을 수도 있다.
+  3. 수도+Suburb+Pre-terrain 위치 전부를 "반드시 육지가 되어야 할 칸"으로 묶어 지형 생성에 넘긴다 —
+     랜드마스 마스크 경로(Pangea/Lakes/Continents/Archipelago/Waterworld)는 이 칸들 점수에 큰 보너스를
+     줘 순위 컷에서 항상 육지로 살아남게 하고(예전엔 Waterworld의 수도만 이렇게 보호했는데, 이제 모든
+     프리셋의 모든 사전 확정 위치가 보호 대상), Freeform(Drylands)은 마스크가 없어 채우기가 끝난 뒤
+     그 칸들을 강제로 육지 타일로 덮어쓴다(`ForceLandAt`, 신규).
+  4. 기존 시그니처(`Generate(..., MapShapeMode, float)`)는 그대로 유지하고(대부분의 검증 호출부가 이걸
+     그대로 씀), Suburb/Pre-terrain 위치까지 돌려주는 `out` 파라미터 오버로드를 추가해 `BattleController`
+     만 새 오버로드를 쓴다 — 기존 20개 이상의 검증 호출부는 손대지 않아도 그대로 컴파일된다.
+- [`Systems/StructureGenerationSystem.cs`](Assets/Scripts/TacticsECS/Systems/StructureGenerationSystem.cs)
+  `Generate`에 `suburbPositions`/`preTerrainVillagePositions`/`shapeMode` 선택 인자 추가(기본값 생략 시
+  기존 동작 그대로). 수도 배치 직후 이 위치들에 먼저 `Village` 구조물을 배치해, 이후 자원/유적/불가사리
+  배치가 자동으로 이 칸들을 피해가게 했다(구조물 있는 칸은 후보에서 제외하는 기존 필터 재사용).
+- **버그 수정**: 외딴 섬 마을(`PlaceTinyIslandVillages`)이 Continents/Pangea 전용이어야 하는데(8절)
+  프리셋과 무관하게 항상 실행되고 있었다 — `shapeMode`로 게이팅해서 두 프리셋에서만 실행되도록 고쳤다.
+- **검증**: `TerrainGenerationVerification`에 `VerifyPreTerrainVillagePlanning`(7.1절 매트릭스대로
+  프리셋별 있음/없음 및 거리·여백 제약 확인), `VerifyGuaranteedLandAtReservedPositions`(6개 프리셋 전부
+  수도/마을 위치가 항상 육지인지 확인) 신규 추가. `StructureGenerationVerification`에
+  `VerifyTinyIslandVillagesGatedByShapeMode`(기본값 Freeform에서 외딴 섬 마을이 0개인지 — 버그 수정의
+  핵심 증거) 신규 추가. 전체 스위트 PASS. Sandbox 씬 스크린샷(Lakes/Archipelago, Huge 20x20)으로
+  수도(성 모델) 주변에 마을(집 모델)이 실제로 배치된 것을 육안 확인 — 처음엔 일부 마을이 물 위에 뜬
+  것처럼 보였으나, 임시 디버그 로그로 전수 검사한 결과 전부 육지 위였고 isometric 카메라 각도가 만든
+  착시였음을 확인(검증용 임시 스크립트는 확인 후 삭제).
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -537,6 +577,27 @@ Water 타일의 `MinDistance` 제약을 우회해 바다가 실제로 하나로 
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-22: 생성 순서 재정비 — 수도/마을을 지형보다 먼저 결정 (7차 재정비).
+  - **동기**: "지금까지의 지형 생성 로직 요약해서 md 파일 생성" 요청으로 `docs/TerrainGenerationSummary.md`를
+    만든 뒤, "현재 지형 생성 알고리즘과 어떤 차이가 있는지 분석하고 Polytopia Wiki 기준으로 비교
+    분석해달라"는 요청을 받아 `docs/PolytopiaMapGeneration.md`와 항목별로 재대조했다. 가장 큰 구조적
+    차이가 **생성 순서**(원작: 수도→마을→지형→자원→유적, 이 프로젝트: 지형→구조물 반대 순서)라고
+    보고했고, "생성 순서를 재정비해줘" 승인을 받아 계획 모드로 설계한 뒤 구현했다.
+  - `TerrainGenerationSystem.Generate`가 쿼드런트 앵커(수도) → `PlanPreTerrainVillages`(신규, Suburb/
+    Pre-terrain 마을을 지형 없이 먼저 계획) → 지형 생성(이 위치들을 항상 육지로 보장) 순으로 재구성됐다.
+    랜드마스 마스크 경로는 마스크 점수 보너스를 캐피탈뿐 아니라 모든 사전 확정 위치로 일반화했고,
+    Freeform 경로는 채우기 후 `ForceLandAt`으로 강제 덮어쓴다. 기존 시그니처는 얇은 오버로드로 유지해
+    20개 이상의 기존 검증 호출부는 손대지 않고 그대로 컴파일됐다.
+  - `StructureGenerationSystem.Generate`가 Suburb/Pre-terrain 위치에 `Village` 구조물을 수도 배치 직후
+    먼저 놓아, 이후 자원/유적/불가사리가 자동으로 그 칸을 피해가게 했다.
+  - **버그 발견 및 수정**: 외딴 섬 마을이 Continents/Pangea 전용이어야 하는데(8절) 모든 프리셋에서
+    무조건 실행되고 있었다 — `shapeMode` 게이팅으로 수정.
+  - **검증**: 신규 테스트 3개(`VerifyPreTerrainVillagePlanning`/`VerifyGuaranteedLandAtReservedPositions`/
+    `VerifyTinyIslandVillagesGatedByShapeMode`) 포함 전체 스위트 PASS. Sandbox 스크린샷(Lakes/Archipelago,
+    Huge 20x20)으로 수도 주변에 마을이 지형 생성 전 확정된 위치에 실제로 배치된 것을 확인 — 일부 마을이
+    isometric 카메라 각도 때문에 물 위에 뜬 것처럼 보였으나, 임시 디버그 로그로 전수 검사해 전부 육지
+    위임을 확인(착시였고 실제 버그 아님).
 
 - 2026-09-18: 랜드마스 마스크 기법을 5개 습도 프리셋으로 일반화 — 6차 재정비.
   - **동기**: "이제 다른 지형들도 이같은 단계로 잘 생성되는지 확인해줘" 요청을 받아 5차 재정비에서 만든

@@ -24,7 +24,9 @@ namespace TacticsECS.EditorTools
                       VerifyQuadrantFairness() &
                       VerifyWetnessMultiplier() &
                       VerifyPangeaShape() &
-                      VerifyOtherMapShapes();
+                      VerifyOtherMapShapes() &
+                      VerifyPreTerrainVillagePlanning() &
+                      VerifyGuaranteedLandAtReservedPositions();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -573,6 +575,119 @@ namespace TacticsECS.EditorTools
                     if (grid.GetTerrain(new Vector2Int(x, y)) == TerrainType.Land) land++;
                 }
             return total > 0 ? (float)land / total : 0f;
+        }
+
+        /// <summary>7차 재정비 — docs/PolytopiaMapGeneration.md 7.1절 매트릭스대로, Suburb/Pre-terrain
+        /// 마을이 맵 타입마다 있을 수도/없을 수도 있는지 확인한다. Drylands(Freeform)/Pangea/Continents는
+        /// 둘 다 없어야 하고, Lakes/Archipelago/Waterworld는 Pre-terrain이 있어야 하며(Suburb는
+        /// Waterworld만 없음), 있는 경우 서로/수도로부터 최소 거리 2, 가장자리 여백 1을 지켜야 한다.</summary>
+        private static bool VerifyPreTerrainVillagePlanning()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            bool ok = true;
+
+            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f, seed: 601);
+            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f, seed: 602);
+            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, seed: 603);
+
+            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f, seed: 604, expectSuburbs: true);
+            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f, seed: 605, expectSuburbs: true);
+            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f, seed: 606, expectSuburbs: false);
+
+            return ok;
+        }
+
+        private static bool VerifyNoPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed)
+        {
+            var grid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
+                out var suburbs, out var preTerrain);
+
+            bool ok = suburbs.Length == 0 && preTerrain.Length == 0;
+            if (!ok)
+                Debug.LogError($"[TerrainGenerationVerification] {mode} should have no Suburb/Pre-terrain villages, got suburbs={suburbs.Length} preTerrain={preTerrain.Length}");
+            else
+                Debug.Log($"[TerrainGenerationVerification] {mode} pre-terrain village absence PASS");
+            return ok;
+        }
+
+        private static bool VerifyHasPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed, bool expectSuburbs)
+        {
+            var grid = new GridWorld(20, 20, 1f);
+            var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
+                out var suburbs, out var preTerrain);
+
+            bool ok = true;
+            if (expectSuburbs && suburbs.Length > anchors.Length * 2)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] {mode} suburb count {suburbs.Length} exceeds max(2 per capital, {anchors.Length} capitals)");
+                ok = false;
+            }
+            if (!expectSuburbs && suburbs.Length != 0)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] {mode} should have no suburbs, got {suburbs.Length}");
+                ok = false;
+            }
+
+            var allReserved = new List<Vector2Int>(anchors);
+            allReserved.AddRange(suburbs);
+            allReserved.AddRange(preTerrain);
+
+            foreach (var pos in preTerrain)
+            {
+                if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < 1)
+                {
+                    Debug.LogError($"[TerrainGenerationVerification] {mode} pre-terrain village {pos} violates edge margin(1)");
+                    ok = false;
+                }
+                foreach (var other in allReserved)
+                {
+                    if (other == pos) continue;
+                    if (ProceduralGenerationUtil.ChebyshevDistance(other, pos) < 2)
+                    {
+                        Debug.LogError($"[TerrainGenerationVerification] {mode} pre-terrain village {pos} too close to {other}(min distance 2)");
+                        ok = false;
+                    }
+                }
+            }
+
+            if (ok) Debug.Log($"[TerrainGenerationVerification] {mode} pre-terrain village planning PASS (suburbs={suburbs.Length}, preTerrain={preTerrain.Length})");
+            return ok;
+        }
+
+        /// <summary>7차 재정비 핵심 — 수도/Suburb/Pre-terrain 마을 위치는 어떤 맵 타입이든 항상 육지여야
+        /// 한다(마스크 경로는 GenerateMapShapeLandMask의 보호 보너스로, Freeform은 ForceLandAt으로 보장).</summary>
+        private static bool VerifyGuaranteedLandAtReservedPositions()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var modes = new[]
+            {
+                (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f),
+                (TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f),
+                (TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f),
+                (TerrainGenerationSystem.MapShapeMode.Continents, 0.55f),
+                (TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f),
+                (TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f),
+            };
+
+            bool ok = true;
+            int seed = 701;
+            foreach (var (mode, targetWaterFraction) in modes)
+            {
+                var grid = new GridWorld(20, 20, 1f);
+                var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed++, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
+                    out var suburbs, out var preTerrain);
+
+                foreach (var pos in anchors)
+                    if (grid.GetTerrain(pos) != TerrainType.Land) { Debug.LogError($"[TerrainGenerationVerification] {mode}: capital anchor {pos} is not Land"); ok = false; }
+                foreach (var pos in suburbs)
+                    if (grid.GetTerrain(pos) != TerrainType.Land) { Debug.LogError($"[TerrainGenerationVerification] {mode}: suburb {pos} is not Land"); ok = false; }
+                foreach (var pos in preTerrain)
+                    if (grid.GetTerrain(pos) != TerrainType.Land) { Debug.LogError($"[TerrainGenerationVerification] {mode}: pre-terrain village {pos} is not Land"); ok = false; }
+            }
+
+            if (ok) Debug.Log("[TerrainGenerationVerification] guaranteed land at reserved positions PASS (all 6 modes)");
+            return ok;
         }
     }
 }

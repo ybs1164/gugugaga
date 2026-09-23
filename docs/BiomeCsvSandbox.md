@@ -50,6 +50,15 @@ CSV 파일 편집만으로 맵의 바이옴(지형 타입) 구성과 타일/구�
 | `InnerRadius` | O | 바이옴 앵커(수도 자리) 기준 "Inner" 반경(체비쇼프 거리). 이 안쪽/바깥쪽에 따라 타일 확률이 달라짐 | 자연수 (예: `3`) |
 | `Tiles` | O | 이 바이옴에 속한 타일 타입들의 생성 규칙 목록 | `;`로 구분된 타일 엔트리 (아래 4번 참고) |
 | `Structures` | 선택 | 이 바이옴에 얹히는 구조물 생성 규칙 목록 (수도 제외) | `;`로 구분된 구조물 엔트리 (아래 5번 참고) |
+| `MountainRate` | 선택 | 산 스폰 배수(Polytopia 종족 배수와 같은 의미). `1`이면 육지의 14%가 `Mountain` 타일 | 0 이상 실수 (예: `1`, `1.5`). 비우면 `0` = 산 없음 |
+| `ForestRate` | 선택 | 숲 스폰 배수. `1`이면 육지의 38%가 `Forest` 타일(산 배수를 먼저 반영해 비례 보정) | 0 이상 실수 (예: `1`, `0.5`). 비우면 `0` = 숲 없음 |
+
+> **숲/산 레이어**: `Tiles`로 육지를 채운 뒤, 바이옴 영역마다 수도/마을 칸을 뺀 육지 중 정확히
+> `산 = 14% × MountainRate`, `숲 = 38% × (100%−산%)/86% × ForestRate` 만큼을 `Mountain`/`Forest` 타일로 바꿉니다
+> (확률이 아니라 개수 쿼터). 노이즈 순위로 골라서 산맥/숲 덩어리로 뭉쳐 나옵니다. 나머지 육지 타일(`Grass`/`Sand`/…)이
+> "평지" 역할입니다. 따라서 `Tiles`에는 `Forest` 엔트리를 따로 넣지 않는 것을 권장합니다. 두 컬럼이 없는 예전 CSV도
+> 그대로 불러와지며(레이어 꺼짐), 산/숲 칸은 `Structures`의 `AllowedTileTypes`에 `Mountain`/`Forest`로 지정할 수 있습니다
+> (예: 광물은 `Mountain`, 식량은 `Grass|Forest`).
 
 ---
 
@@ -100,17 +109,22 @@ StructureId:AllowedTileTypes:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargi
 | 10 | `FillRemaining` | 선택 | `1`이면 `MinCount`/`CountPerTiles` 목표를 무시하고, 제약을 만족하는 칸이 남지 않을 때까지 계속 배치 | `0` 또는 `1` |
 | 11 | `ExcludeAdjacentStructures` | 선택 | 상하좌우로 인접할 수 없는 다른 `StructureId` 목록 (예: 유적/자원이 수도 바로 옆에 못 놓이게) | 파이프(`\|`)로 구분 (예: `Capital`) |
 
+> **도시 간격 고정 규칙**: `Village`는 CSV의 `MinDistance`와 상관없이 **모든 수도/마을(다른 바이옴 영역 포함)과
+> 체비쇼프 거리 2 이상**(대각선 포함 인접 금지)을 항상 지킵니다. `MinDistance`가 더 크면 그 값을 씁니다.
+> `MinDistance` 검사는 이제 바이옴 영역 안이 아니라 맵 전체 기준입니다.
+
 ---
 
 ## 6. 화면에 색으로 표시되는 `TileId` 목록
 
-`Tiles` 엔트리의 `TileId`에 아무 문자열이나 적을 수 있지만, 아래 6개 키만 고유 색으로 표시됩니다.
+`Tiles` 엔트리의 `TileId`에 아무 문자열이나 적을 수 있지만, 아래 7개 키만 고유 색으로 표시됩니다.
 등록되지 않은 `TileId`는 에러 없이 그냥 `TerrainType` 기본색(육지=회색, 물=파랑)으로 폴백합니다.
 
 | `TileId` | 표시 색 |
 |---|---|
 | `Grass` | 연두색 |
-| `Forest` | 진녹색 |
+| `Forest` | 녹색 + 나무 3그루 모델 (숲/산 레이어가 자동 생성) |
+| `Mountain` | 갈회색 + 설산 봉우리 모델 (숲/산 레이어가 자동 생성) |
 | `Sand` | 황토색 |
 | `Rock` | 회색 |
 | `Snow` | 흰색 |
@@ -137,19 +151,20 @@ StructureId:AllowedTileTypes:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargi
 ## 8. 예시 (`docs/sample_biomes.csv`의 `Grassland` 행 풀어보기)
 
 ```
-Grassland,평원,Perlin,0.15,3,101,3,Grass:Land:0.7:0.5:0:0:0:0:;Forest:Land:0.1:0.35:0:15:2:0:Water;Water:Water:0.2:0.15:0:25:2:1:Forest,Ruin:Grass|Forest:0.1:1:40:5:2:0:1:0:Capital;Resource_Food:Grass|Forest:0.3:1:10:2:0:2:1:0:Capital;Starfish:Water:0.2:1:25:2:0:0:1:0:Capital;Village:Grass|Forest:0.15:0:0:3:2:0:1:1:Capital|Ruin
+Grassland,평원,Perlin,0.15,3,101,3,Grass:Land:0.7:0.5:0:0:0:0:;Water:Water:0.2:0.15:0:25:2:1:,Ruin:Grass|Forest|Mountain:0.1:1:40:5:2:0:1:0:Capital;Resource_Food:Grass|Forest:0.3:1:10:2:0:2:1:0:Capital;Resource_Ore:Mountain:0.3:0:10:2:0:2:1:0:Capital;Starfish:Water:0.2:1:25:2:0:0:1:0:Capital;Village:Grass:0.15:0:0:3:2:0:1:1:Capital|Ruin,1,1
 ```
 
-- **바이옴**: `Id=Grassland`, `Name=평원`, `Perlin` 노이즈, `Frequency=0.15`, `Octaves=3`, `SeedOffset=101`, `InnerRadius=3`.
-- **Tiles** (3개 타일 엔트리):
-  - `Grass:Land:0.7:0.5:0:0:0:0:` — 육지, Inner 확률 0.7 / Outer 확률 0.5, 최소 개수 제약 없음, 인접 배제 없음.
-  - `Forest:Land:0.1:0.35:0:15:2:0:Water` — 육지, 바이옴 영역 15칸당 1개 이상 되도록 자동 보정, 숲끼리 최소 거리 2, `Water`와는 인접 불가.
-  - `Water:Water:0.2:0.15:0:25:2:1:Forest` — 물, 25칸당 1개 이상, 물끼리 최소 거리 2, 가장자리에서 최소 1칸 이상 떨어짐, `Forest`와 인접 불가.
-- **Structures** (4개 구조물 엔트리, 전부 `Grass`/`Forest`/`Water` 위에만 놓임, 전부 `Capital`과는 인접 불가):
-  - `Ruin`: 가중치 0.1, 최소 40칸당 1개, 유적끼리 최소 거리 5, 가장자리 2칸 이상, 물 배치 비율 상한 100%(사실상 무제한).
-  - `Resource_Food`: 가중치 0.3, 10칸당 1개, 최소 거리 2, 앵커(수도)로부터 최대 2칸 이내.
+- **바이옴**: `Id=Grassland`, `Name=평원`, `Perlin` 노이즈, `Frequency=0.15`, `Octaves=3`, `SeedOffset=101`, `InnerRadius=3`,
+  `MountainRate=1`, `ForestRate=1`(Polytopia 기준값 — 육지의 14%가 산, 38%가 숲).
+- **Tiles** (2개 타일 엔트리 — 숲/산은 레이어가 만들므로 넣지 않음):
+  - `Grass:Land:0.7:0.5:0:0:0:0:` — 육지(평지), Inner 확률 0.7 / Outer 확률 0.5, 최소 개수 제약 없음, 인접 배제 없음.
+  - `Water:Water:0.2:0.15:0:25:2:1:` — 물, 25칸당 1개 이상, 물끼리 최소 거리 2, 가장자리에서 최소 1칸 이상 떨어짐.
+- **Structures** (5개 구조물 엔트리, 전부 `Capital`과는 인접 불가):
+  - `Ruin`: 평지/숲/산 위, 가중치 0.1, 최소 40칸당 1개, 유적끼리 최소 거리 5, 가장자리 2칸 이상.
+  - `Resource_Food`: 평지/숲 위, 가중치 0.3, 10칸당 1개, 최소 거리 2, 앵커(수도)로부터 최대 2칸 이내.
+  - `Resource_Ore`: 산 위에만, 가중치 0.3, 산 10칸당 1개, 앵커로부터 최대 2칸 이내.
   - `Starfish`: 물 위에만, 가중치 0.2, 25칸당 1개.
-  - `Village`: 가중치 0.15, 최소 거리 3, 앵커로부터 최대 2칸 이내, `Ruin`과도 인접 불가(`Capital|Ruin`), `FillRemaining=1`이라 목표 개수를 넘어 자리가 남는 한 계속 채움.
+  - `Village`: 평지(`Grass`) 위에만, 가중치 0.15, 다른 모든 도시와 최소 거리 3, 가장자리 2칸 이상, `Ruin`과도 인접 불가, `FillRemaining=1`이라 자리가 남는 한 계속 채움.
 
 ---
 

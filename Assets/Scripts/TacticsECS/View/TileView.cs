@@ -29,7 +29,8 @@ namespace TacticsECS
         private static readonly Dictionary<string, Color> TileTypeColors = new Dictionary<string, Color>
         {
             ["Grass"] = new Color(0.42f, 0.68f, 0.35f),
-            ["Forest"] = new Color(0.18f, 0.38f, 0.18f),
+            ["Forest"] = new Color(0.30f, 0.52f, 0.26f),
+            ["Mountain"] = new Color(0.50f, 0.47f, 0.42f),
             ["Sand"] = new Color(0.85f, 0.75f, 0.45f),
             ["Rock"] = new Color(0.55f, 0.55f, 0.55f),
             ["Snow"] = new Color(0.92f, 0.94f, 0.96f),

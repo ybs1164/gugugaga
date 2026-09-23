@@ -18,11 +18,13 @@ namespace TacticsECS
     /// Structures 컬럼도 같은 구분자 체계를 재사용한다 — 엔트리 필드 순서(구조물 갭 보강 반영):
     /// StructureId:AllowedTileTypes(파이프):Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:
     /// MaxDistanceFromAnchor:MaxWaterFraction:FillRemaining:ExcludeAdjacentStructures(파이프).
+    /// MountainRate/ForestRate(8차 재정비, 숲/산 레이어 배수)는 맨 뒤 컬럼이라 두 컬럼이 없는 예전 CSV도
+    /// 그대로 읽힌다(없으면 0 = 레이어 없음).
     /// </summary>
     public static class BiomeCsvSerializer
     {
         private static readonly string[] Header =
-            { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "Tiles", "Structures" };
+            { "Id", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "Tiles", "Structures", "MountainRate", "ForestRate" };
 
         private const char TileEntrySeparator = ';';
         private const char TileFieldSeparator = ':';
@@ -65,7 +67,9 @@ namespace TacticsECS
             SeedOffset = ParseInt(Col(c, 5)),
             InnerRadius = ParseInt(Col(c, 6)),
             Tiles = ParseTiles(Col(c, 7)),
-            Structures = ParseStructures(Col(c, 8))
+            Structures = ParseStructures(Col(c, 8)),
+            MountainRate = ParseFloat(Col(c, 9)),
+            ForestRate = ParseFloat(Col(c, 10))
         };
 
         private static string WriteRow(BiomeCsvRow row) => string.Join(",", new[]
@@ -78,7 +82,9 @@ namespace TacticsECS
             row.SeedOffset.ToString(CultureInfo.InvariantCulture),
             row.InnerRadius.ToString(CultureInfo.InvariantCulture),
             WriteTiles(row.Tiles),
-            WriteStructures(row.Structures)
+            WriteStructures(row.Structures),
+            row.MountainRate.ToString(CultureInfo.InvariantCulture),
+            row.ForestRate.ToString(CultureInfo.InvariantCulture)
         });
 
         private static List<BiomeTileEntry> ParseTiles(string s)

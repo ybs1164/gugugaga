@@ -29,6 +29,14 @@ namespace TacticsECS
         /// "Inner"로, 그 밖을 "Outer"로 취급한다. BiomeTileEntry.InnerWeight/OuterWeight 참고.</summary>
         public int InnerRadius;
 
+        /// <summary>산 스폰 배수(Polytopia 종족 배수와 같은 의미, docs/PolytopiaMapGeneration.md 4/12.1절).
+        /// 1.0이면 기준값(육지의 14%가 산), 0이면(비워두면) 산 없음 — 기존 CSV와 호환되도록 0이 기본값이다.</summary>
+        public float MountainRate;
+
+        /// <summary>숲 스폰 배수. 1.0이면 기준값(육지의 38%가 숲, 산 배수 적용 후 비례 보정), 0이면 숲 레이어
+        /// 없음(CSV 타일 목록에 직접 넣은 "Forest" 엔트리는 이와 무관하게 그대로 동작).</summary>
+        public float ForestRate;
+
         public List<BiomeTileEntry> Tiles = new List<BiomeTileEntry>();
 
         /// <summary>타일 자체가 아니라 타일 "위에" 얹히는 구조물(자원/유적/불가사리) 생성 규칙 —

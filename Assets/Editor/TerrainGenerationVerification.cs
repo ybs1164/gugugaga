@@ -26,7 +26,10 @@ namespace TacticsECS.EditorTools
                       VerifyPangeaShape() &
                       VerifyOtherMapShapes() &
                       VerifyPreTerrainVillagePlanning() &
-                      VerifyGuaranteedLandAtReservedPositions();
+                      VerifyGuaranteedLandAtReservedPositions() &
+                      VerifyCapitalPlacementRules() &
+                      VerifyCitiesNeverAdjacent() &
+                      VerifyForestMountainLayer();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -63,7 +66,8 @@ namespace TacticsECS.EditorTools
                 var b = rewritten[i];
                 bool same = a.Id == b.Id && a.Name == b.Name && a.NoiseType == b.NoiseType &&
                     Mathf.Approximately(a.Frequency, b.Frequency) && a.Octaves == b.Octaves && a.SeedOffset == b.SeedOffset &&
-                    a.InnerRadius == b.InnerRadius && a.Tiles.Count == b.Tiles.Count && a.Structures.Count == b.Structures.Count;
+                    a.InnerRadius == b.InnerRadius && a.Tiles.Count == b.Tiles.Count && a.Structures.Count == b.Structures.Count &&
+                    Mathf.Approximately(a.MountainRate, b.MountainRate) && Mathf.Approximately(a.ForestRate, b.ForestRate);
 
                 if (same)
                 {
@@ -687,6 +691,214 @@ namespace TacticsECS.EditorTools
             }
 
             if (ok) Debug.Log("[TerrainGenerationVerification] guaranteed land at reserved positions PASS (all 6 modes)");
+            return ok;
+        }
+
+        private static readonly (TerrainGenerationSystem.MapShapeMode Mode, float Water)[] AllModes =
+        {
+            (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f),
+            (TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f),
+            (TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f),
+            (TerrainGenerationSystem.MapShapeMode.Continents, 0.55f),
+            (TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f),
+            (TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f),
+        };
+
+        private static readonly int[] MapSizes = { 11, 14, 16, 18, 20, 30 };
+
+        /// <summary>sample_biomes.csv를 count개가 될 때까지 복제한다(Id만 바꿔서) — 수도 4/9개 케이스 검증용.</summary>
+        private static List<BiomeCsvRow> SampleBiomesOfCount(int count)
+        {
+            var sample = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var result = new List<BiomeCsvRow>();
+            for (int i = 0; i < count; i++)
+            {
+                var src = BiomeCsvSerializer.Parse(BiomeCsvSerializer.Write(new[] { sample[i % sample.Count] }))[0];
+                src.Id = src.Id + "_" + i;
+                result.Add(src);
+            }
+            return result;
+        }
+
+        /// <summary>8차 재정비(docs/PolytopiaMapGeneration.md 12절 보강 1~3) — 모든 맵 타입/크기/바이옴 수에서
+        /// (1) 수도가 가장자리로부터 2칸 이상, (2) 수도가 9칸 이상 육지 덩어리 위(쿼드런트 맵은 3x3 전체가 육지),
+        /// (3) 수도끼리 충분히 떨어져 있는지(쿼드런트 맵: 구역 한 변의 절반 이상, Pangea/Continents: 육지 면적/수도 수의 제곱근 x 0.9 이상).</summary>
+        private static bool VerifyCapitalPlacementRules()
+        {
+            bool ok = true;
+            int checkedMaps = 0;
+            int seed = 801;
+            foreach (int biomeCount in new[] { 2, 3, 4, 9 })
+            {
+                var biomes = SampleBiomesOfCount(biomeCount);
+                foreach (var (mode, water) in AllModes)
+                {
+                    foreach (int size in MapSizes)
+                    {
+                        if (biomeCount == 9 && size < 16) continue; // 9명은 Tiny/Small에 안 맞음(원문: Tiny 최대 9명이지만 여기선 생략)
+                        for (int rep = 0; rep < 3; rep++)
+                        {
+                            var grid = new GridWorld(size, size, 1f);
+                            var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed++, 1f, mode, water, out _, out _);
+                            checkedMaps++;
+                            string tag = $"{mode} {size}x{size} biomes={biomeCount} seed={seed - 1}";
+                            bool quadrantMode = mode != TerrainGenerationSystem.MapShapeMode.Pangea && mode != TerrainGenerationSystem.MapShapeMode.Continents;
+
+                            foreach (var a in anchors)
+                            {
+                                if (ProceduralGenerationUtil.DistanceToEdge(grid, a) < TerrainGenerationSystem.CapitalEdgeMargin)
+                                { Debug.LogError($"[TerrainGenerationVerification] {tag}: capital {a} too close to map edge"); ok = false; }
+
+                                int landmass = LandComponentSize(grid, a);
+                                if (landmass < TerrainGenerationSystem.MinCapitalLandmassSize)
+                                { Debug.LogError($"[TerrainGenerationVerification] {tag}: capital {a} on tiny landmass ({landmass} tiles)"); ok = false; }
+
+                                if (quadrantMode)
+                                    for (int dy = -1; dy <= 1; dy++)
+                                        for (int dx = -1; dx <= 1; dx++)
+                                        {
+                                            var p = a + new Vector2Int(dx, dy);
+                                            if (grid.InBounds(p) && grid.GetTerrain(p) != TerrainType.Land)
+                                            { Debug.LogError($"[TerrainGenerationVerification] {tag}: capital {a} 3x3 has water at {p}"); ok = false; }
+                                        }
+                            }
+
+                            int perSide = biomeCount <= 4 ? 2 : 3;
+                            // Pangea/Continents는 땅(약 절반)에만 수도를 놓으므로, 땅 면적을 수도 수로 나눈 "1인당 정사각형"
+                            // 한 변의 90%를 기대 간격으로 삼는다(9명 + 물 절반이면 물리적으로 맵 한 변의 1/4도 안 됨).
+                            int landCount = 0;
+                            for (int y = 0; y < size; y++)
+                                for (int x = 0; x < size; x++)
+                                    if (grid.GetTerrain(new Vector2Int(x, y)) == TerrainType.Land) landCount++;
+                            int minExpected = quadrantMode
+                                ? Mathf.Max(3, (size / perSide) / 2)
+                                : Mathf.Max(3, Mathf.FloorToInt(Mathf.Sqrt(landCount / (float)anchors.Length) * 0.9f));
+                            for (int i = 0; i < anchors.Length; i++)
+                                for (int j = i + 1; j < anchors.Length; j++)
+                                {
+                                    int d = ProceduralGenerationUtil.ChebyshevDistance(anchors[i], anchors[j]);
+                                    if (d < minExpected)
+                                    { Debug.LogError($"[TerrainGenerationVerification] {tag}: capitals {anchors[i]} and {anchors[j]} only {d} apart (expected >= {minExpected})"); ok = false; }
+                                }
+                        }
+                    }
+                }
+            }
+
+            if (ok) Debug.Log($"[TerrainGenerationVerification] capital placement rules PASS ({checkedMaps} maps: edge margin, landmass, spacing)");
+            return ok;
+        }
+
+        private static int LandComponentSize(GridWorld grid, Vector2Int start)
+        {
+            if (grid.GetTerrain(start) != TerrainType.Land) return 0;
+            var seen = new HashSet<Vector2Int> { start };
+            var stack = new Stack<Vector2Int>();
+            stack.Push(start);
+            while (stack.Count > 0)
+            {
+                var p = stack.Pop();
+                foreach (var n in grid.GetNeighbors(p, allowDiagonal: false))
+                    if (grid.GetTerrain(n) == TerrainType.Land && seen.Add(n)) stack.Push(n);
+            }
+            return seen.Count;
+        }
+
+        /// <summary>8차 재정비(12절 보강 4) — 지형+구조물까지 전부 생성한 뒤, 모든 수도/마을(Suburb/Pre-terrain/
+        /// Post-terrain/외딴 섬 포함)이 서로 체비쇼프 거리 2 이상(인접 금지)인지 확인한다.</summary>
+        private static bool VerifyCitiesNeverAdjacent()
+        {
+            bool ok = true;
+            int seed = 901;
+            int totalCities = 0;
+            foreach (int biomeCount in new[] { 3, 4 })
+            {
+                var biomes = SampleBiomesOfCount(biomeCount);
+                foreach (var (mode, water) in AllModes)
+                    foreach (int size in MapSizes)
+                        for (int rep = 0; rep < 2; rep++)
+                        {
+                            var grid = new GridWorld(size, size, 1f);
+                            int s = seed++;
+                            var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, mode, water, out var suburbs, out var preTerrain);
+                            StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, preTerrain, mode);
+
+                            var cities = new List<Vector2Int>();
+                            for (int y = 0; y < grid.Height; y++)
+                                for (int x = 0; x < grid.Width; x++)
+                                {
+                                    var id = grid.GetStructure(new Vector2Int(x, y));
+                                    if (id == StructureGenerationSystem.CapitalStructureId || id == StructureGenerationSystem.VillageStructureId)
+                                        cities.Add(new Vector2Int(x, y));
+                                }
+                            totalCities += cities.Count;
+
+                            for (int i = 0; i < cities.Count; i++)
+                                for (int j = i + 1; j < cities.Count; j++)
+                                    if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < TerrainGenerationSystem.CityMinDistance)
+                                    {
+                                        Debug.LogError($"[TerrainGenerationVerification] {mode} {size}x{size} seed={s}: cities {cities[i]}({grid.GetStructure(cities[i])}) and {cities[j]}({grid.GetStructure(cities[j])}) are adjacent");
+                                        ok = false;
+                                    }
+
+                            foreach (var c in cities)
+                                if (grid.GetTileType(c) == TerrainGenerationSystem.MountainTileId)
+                                { Debug.LogError($"[TerrainGenerationVerification] {mode} {size}x{size} seed={s}: city {c} placed on a Mountain"); ok = false; }
+                        }
+            }
+
+            if (ok) Debug.Log($"[TerrainGenerationVerification] cities never adjacent PASS ({totalCities} cities checked)");
+            return ok;
+        }
+
+        /// <summary>숲/산 레이어(12.1절) — 합성 단일 바이옴(평지 하나)으로 산 14%/숲 38% 쿼터가 정확히 지켜지는지,
+        /// 배수(1.5/0.5)의 비율 계산이 4절 순서(산 먼저 -> 숲 비례 보정)대로인지, 배수 0이면 레이어가 꺼지는지,
+        /// sample_biomes.csv로도 실제로 숲/산이 생기는지 확인한다.</summary>
+        private static bool VerifyForestMountainLayer()
+        {
+            bool ok = true;
+
+            var biome = new BiomeCsvRow
+            {
+                Id = "Plain", Name = "Plain", Frequency = 0.15f, Octaves = 2, SeedOffset = 7, InnerRadius = 2, MountainRate = 1f, ForestRate = 1f,
+                Tiles = new List<BiomeTileEntry> { new BiomeTileEntry { TileId = "Grass", TerrainType = TerrainType.Land, InnerWeight = 1f, OuterWeight = 1f } }
+            };
+            var grid = new GridWorld(20, 20, 1f);
+            var anchors = TerrainGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, seed: 42);
+            int landCells = grid.Width * grid.Height - anchors.Length; // 전부 육지, 수도 칸만 제외
+            int mountains = CountTileType(grid, TerrainGenerationSystem.MountainTileId);
+            int forests = CountTileType(grid, TerrainGenerationSystem.ForestTileId);
+            int expectedMountains = Mathf.RoundToInt(landCells * 0.14f);
+            int expectedForests = Mathf.RoundToInt(landCells * 0.38f);
+            if (mountains != expectedMountains || forests != expectedForests)
+            {
+                Debug.LogError($"[TerrainGenerationVerification] forest/mountain quota mismatch: mountain {mountains}/{expectedMountains}, forest {forests}/{expectedForests}");
+                ok = false;
+            }
+            foreach (var a in anchors)
+                if (grid.GetTileType(a) == TerrainGenerationSystem.MountainTileId || grid.GetTileType(a) == TerrainGenerationSystem.ForestTileId)
+                { Debug.LogError($"[TerrainGenerationVerification] capital {a} was turned into {grid.GetTileType(a)}"); ok = false; }
+
+            var (m, f) = TerrainGenerationSystem.ComputeFeatureFractions(1.5f, 0.5f);
+            float expectedForest = 0.38f * (1f - 0.21f) / 0.86f * 0.5f;
+            if (!Mathf.Approximately(m, 0.21f) || Mathf.Abs(f - expectedForest) > 0.0001f)
+            { Debug.LogError($"[TerrainGenerationVerification] ComputeFeatureFractions(1.5,0.5) = ({m},{f}), expected (0.21,{expectedForest})"); ok = false; }
+
+            biome.MountainRate = 0f;
+            biome.ForestRate = 0f;
+            var offGrid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(offGrid, new List<BiomeCsvRow> { biome }, seed: 42);
+            if (CountTileType(offGrid, TerrainGenerationSystem.MountainTileId) + CountTileType(offGrid, TerrainGenerationSystem.ForestTileId) != 0)
+            { Debug.LogError("[TerrainGenerationVerification] MountainRate/ForestRate=0 should disable the forest/mountain layer"); ok = false; }
+
+            var sampleGrid = new GridWorld(20, 20, 1f);
+            TerrainGenerationSystem.Generate(sampleGrid, BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath)), seed: 43);
+            int sampleMountains = CountTileType(sampleGrid, TerrainGenerationSystem.MountainTileId);
+            int sampleForests = CountTileType(sampleGrid, TerrainGenerationSystem.ForestTileId);
+            if (sampleMountains == 0 || sampleForests == 0)
+            { Debug.LogError($"[TerrainGenerationVerification] sample_biomes.csv produced no forest/mountain (mountain={sampleMountains}, forest={sampleForests})"); ok = false; }
+
+            if (ok) Debug.Log($"[TerrainGenerationVerification] forest/mountain layer PASS (quota mountain={mountains}, forest={forests} of {landCells}; sample mountain={sampleMountains}, forest={sampleForests})");
             return ok;
         }
     }

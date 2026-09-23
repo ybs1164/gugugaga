@@ -19,6 +19,30 @@ namespace TacticsECS
         /// <summary>이미 놓인 이웃 타입이 없을 때도 완전히 0이 되지 않도록 노이즈 가중치에 더하는 바닥값.</summary>
         private const float NoiseWeightFloor = 0.25f;
 
+        /// <summary>숲/산 레이어(docs/PolytopiaMapGeneration.md 12.1절)가 쓰는 TileTypeId. TerrainType은 Land 그대로다.</summary>
+        public const string ForestTileId = "Forest";
+        public const string MountainTileId = "Mountain";
+
+        /// <summary>Polytopia 기준 스폰 비율(3절, Luxidoor 기준값) — 육지 중 산 14%, 숲 38%, 나머지 평지.</summary>
+        private const float BaseMountainFraction = 0.14f;
+        private const float BaseForestFraction = 0.38f;
+
+        /// <summary>수도는 맵 가장자리로부터 최소 이 거리(12절 보강 3 — "수도가 벽에 붙는 문제").</summary>
+        public const int CapitalEdgeMargin = 2;
+        /// <summary>쿼드런트 맵에서 수도 주변 이 반경(체비쇼프)까지 육지로 강제 — 1이면 3x3(12절 보강 2).</summary>
+        public const int CapitalLandRadius = 1;
+        /// <summary>Pangea/Continents에서 수도가 설 수 있는 육지 덩어리(4방향 연결)의 최소 크기(12절 보강 2).</summary>
+        public const int MinCapitalLandmassSize = 9;
+        /// <summary>수도끼리 최소 거리(체비쇼프) — 쿼드런트 중심부 샘플링과 함께 간격을 고르게 한다(12절 보강 1).</summary>
+        private const int CapitalMinDistance = 3;
+        /// <summary>수도/마을(모든 "도시")끼리 최소 거리(체비쇼프) — 2면 바로 인접(대각선 포함) 금지(12절 보강 4).
+        /// StructureGenerationSystem도 같은 값을 쓴다.</summary>
+        public const int CityMinDistance = 2;
+        /// <summary>Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프).</summary>
+        private const int SuburbRadius = 3;
+        /// <summary>Pangea/Continents 수도 선택 시도 횟수 — 가장 고르게 퍼진(최소 쌍 거리가 가장 큰) 조합을 쓴다.</summary>
+        private const int CapitalSelectionTrials = 12;
+
         /// <summary>docs/PolytopiaMapGeneration.md 2절의 6종 맵 타입 중, 개별 타일 확률(+MinDistance)에
         /// 맡기지 않고 전용 "랜드마스 마스크"로 모양 자체를 만드는 타입들. Drylands는 원래도 물이 거의
         /// 없어(목표 0~10%) 기존 방식으로 충분해 여기 포함하지 않는다 — 마스크가 필요 없다.</summary>
@@ -54,7 +78,10 @@ namespace TacticsECS
             }
 
             var rng = new Random(seed);
-            var capitalAnchors = GenerateQuadrantAnchors(grid, biomes.Count, rng);
+            // Pangea/Continents는 쿼드런트를 쓰지 않는다(7.1/7.5절) — 땅을 먼저 만든 뒤 GenerateWithShape가
+            // SelectCapitalsOnLand로 수도를 고른다. 그 외는 지형보다 먼저 쿼드런트로 수도를 정한다.
+            bool capitalsAfterLand = shapeMode == MapShapeMode.Pangea || shapeMode == MapShapeMode.Continents;
+            var capitalAnchors = capitalsAfterLand ? Array.Empty<Vector2Int>() : GenerateQuadrantAnchors(grid, biomes.Count, rng);
             var (suburbs, preTerrain) = PlanPreTerrainVillages(grid, shapeMode, capitalAnchors, rng);
 
             (Vector2Int[] Anchors, Vector2Int[] Suburbs, Vector2Int[] PreTerrain) result = shapeMode != MapShapeMode.Freeform
@@ -83,10 +110,11 @@ namespace TacticsECS
             PlaceMinCountQuota(grid, effectiveBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
             FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, capitalAnchors, placedPositionsByType, rng);
 
-            ForceLandAt(grid, biomes, biomeIndexPerCell, capitalAnchors, placedPositionsByType);
+            ForceLandAt(grid, biomes, biomeIndexPerCell, ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, suburbs, placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, preTerrain, placedPositionsByType);
 
+            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, Combine(capitalAnchors, suburbs, preTerrain), rng);
             return (capitalAnchors, suburbs, preTerrain);
         }
 
@@ -145,10 +173,14 @@ namespace TacticsECS
             Vector2Int[] capitalAnchors, Vector2Int[] suburbs, Vector2Int[] preTerrain)
         {
             var shapeParams = GetShapeParams(mode, biomes.Count);
-            var guaranteedLand = Combine(capitalAnchors, suburbs, preTerrain);
+            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), suburbs, preTerrain);
             var landMask = GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, guaranteedLand);
 
-            var anchors = SnapAllToLand(grid, capitalAnchors, landMask);
+            // 쿼드런트로 미리 정한 수도가 있으면 그대로(안전망 스냅만), 없으면(Pangea/Continents) 만들어진 땅
+            // 위에서 수도를 고른다.
+            var anchors = capitalAnchors.Length > 0
+                ? SnapAllToLand(grid, capitalAnchors, landMask)
+                : SelectCapitalsOnLand(grid, landMask, biomes.Count, preferDistinctLandmass: mode == MapShapeMode.Continents, rng);
             var snappedSuburbs = SnapAllToLand(grid, suburbs, landMask);
             var snappedPreTerrain = SnapAllToLand(grid, preTerrain, landMask);
             var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
@@ -163,6 +195,7 @@ namespace TacticsECS
             PlaceMinCountQuota(grid, landOnlyBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
             FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
 
+            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, Combine(anchors, snappedSuburbs, snappedPreTerrain), rng);
             return (anchors, snappedSuburbs, snappedPreTerrain);
         }
 
@@ -189,7 +222,8 @@ namespace TacticsECS
 
             float maxDist = new Vector2(grid.Width, grid.Height).magnitude;
             int noiseSeedOffset = rng.Next(0, 1_000_000);
-            const float GuaranteeBonus = 10f; // 순위 컷에서 거의 항상 살아남을 만큼 큰 보너스(점수 범위 0~1보다 훨씬 큼)
+            const float BorderBonus = 10f; // 순위 컷에서 거의 항상 살아남을 만큼 큰 보너스(점수 범위 0~1보다 훨씬 큼)
+            const float GuaranteeBonus = 20f; // 테두리 보너스보다도 커서 항상 가장 먼저 육지가 된다
 
             var guaranteedSet = new HashSet<int>();
             foreach (var p in guaranteedLand)
@@ -223,7 +257,7 @@ namespace TacticsECS
                     }
 
                     if (shapeParams.ForceBorderLand && ProceduralGenerationUtil.DistanceToEdge(grid, pos) == 0)
-                        score += GuaranteeBonus;
+                        score += BorderBonus;
 
                     if (guaranteedSet.Contains(index))
                         score += GuaranteeBonus;
@@ -234,7 +268,9 @@ namespace TacticsECS
             }
             order.Sort((a, b) => scores[b].CompareTo(scores[a])); // 점수 내림차순 — 점수 높은 칸부터 육지
 
-            int landCount = Mathf.RoundToInt(order.Count * (1f - waterFraction));
+            // 보장 칸(수도 3x3/마을)은 목표 물 비율보다 우선한다 — Waterworld처럼 육지 목표가 보장 칸 수보다
+            // 적어도 전부 육지가 되도록("Waterworld: 도시 자리의 땅은 강제로 생성", 2절).
+            int landCount = Mathf.Max(Mathf.RoundToInt(order.Count * (1f - waterFraction)), guaranteedSet.Count);
             var mask = new bool[grid.Width * grid.Height];
             for (int i = 0; i < landCount; i++) mask[order[i]] = true;
             return mask;
@@ -374,7 +410,7 @@ namespace TacticsECS
                     int count = rng.Next(0, 3); // 0~2개(4.3절 "0개나 1개도 나올 수 있지만 보통 2개")
                     for (int i = 0; i < count; i++)
                     {
-                        var pos = FindNearbyFreeCell(grid, capital, radius: 3, reserved, rng);
+                        var pos = FindSuburbCell(grid, capital, reserved, rng);
                         if (!pos.HasValue) continue;
                         suburbs.Add(pos.Value);
                         reserved.Add(pos.Value);
@@ -402,7 +438,7 @@ namespace TacticsECS
 
                     bool tooClose = false;
                     foreach (var r in reserved)
-                        if (ProceduralGenerationUtil.ChebyshevDistance(r, pos) < 2) { tooClose = true; break; } // 4.4절: 다른 마을/수도로부터 최소 2칸
+                        if (ProceduralGenerationUtil.ChebyshevDistance(r, pos) < CityMinDistance) { tooClose = true; break; } // 7.3절: 다른 마을/수도로부터 2칸
                     if (tooClose) continue;
 
                     preTerrain.Add(pos);
@@ -413,20 +449,45 @@ namespace TacticsECS
             return (suburbs.ToArray(), preTerrain.ToArray());
         }
 
-        /// <summary>center 주변 반경 radius 안에서 reserved에 없는 빈(격자 안, 중복 아닌) 칸을 몇 번
-        /// 재시도해 찾는다 — 못 찾으면 null(억지로 안 채움, Suburb는 "0개나 1개도 나올 수 있음"이라
-        /// 실패해도 괜찮다).</summary>
-        private static Vector2Int? FindNearbyFreeCell(GridWorld grid, Vector2Int center, int radius, List<Vector2Int> reserved, Random rng)
+        /// <summary>capital로부터 SuburbRadius 이내에서 Suburb 자리를 찾는다 — 가장자리 1칸 여백 + 이미 정해진
+        /// 수도/마을 전부와 CityMinDistance 이상(12절 보강 4: 예전엔 거리 검사가 없어 수도/다른 Suburb에 바로
+        /// 붙을 수 있었다). 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
+        private static Vector2Int? FindSuburbCell(GridWorld grid, Vector2Int capital, List<Vector2Int> reserved, Random rng)
         {
-            const int MaxAttempts = 12;
-            for (int attempt = 0; attempt < MaxAttempts; attempt++)
-            {
-                var candidate = center + new Vector2Int(rng.Next(-radius, radius + 1), rng.Next(-radius, radius + 1));
-                if (!grid.InBounds(candidate)) continue;
-                if (reserved.Contains(candidate)) continue;
-                return candidate;
-            }
-            return null;
+            var candidates = new List<Vector2Int>();
+            for (int dy = -SuburbRadius; dy <= SuburbRadius; dy++)
+                for (int dx = -SuburbRadius; dx <= SuburbRadius; dx++)
+                {
+                    var p = capital + new Vector2Int(dx, dy);
+                    if (!grid.InBounds(p) || ProceduralGenerationUtil.DistanceToEdge(grid, p) < 1) continue;
+                    if (IsWithinDistance(reserved, p, CityMinDistance)) continue;
+                    candidates.Add(p);
+                }
+            if (candidates.Count == 0) return null;
+            return candidates[rng.Next(candidates.Count)];
+        }
+
+        /// <summary>positions 중 pos와 체비쇼프 거리가 minDistance 미만인 것이 하나라도 있으면 true.</summary>
+        private static bool IsWithinDistance(IEnumerable<Vector2Int> positions, Vector2Int pos, int minDistance)
+        {
+            foreach (var other in positions)
+                if (ProceduralGenerationUtil.ChebyshevDistance(other, pos) < minDistance) return true;
+            return false;
+        }
+
+        /// <summary>각 위치를 중심으로 반경 radius(체비쇼프) 정사각형 안의 칸들을 중복 없이 모은다(격자 밖 제외).</summary>
+        private static Vector2Int[] ExpandToSquare(GridWorld grid, Vector2Int[] positions, int radius)
+        {
+            var result = new List<Vector2Int>();
+            var seen = new HashSet<Vector2Int>();
+            foreach (var center in positions)
+                for (int dy = -radius; dy <= radius; dy++)
+                    for (int dx = -radius; dx <= radius; dx++)
+                    {
+                        var p = center + new Vector2Int(dx, dy);
+                        if (grid.InBounds(p) && seen.Add(p)) result.Add(p);
+                    }
+            return result.ToArray();
         }
 
         /// <summary>바이옴 목록을 복제하되 TerrainType이 Water인 타일 엔트리를 전부 뺀다 — 판게아 모드의
@@ -446,6 +507,8 @@ namespace TacticsECS
                     Octaves = biome.Octaves,
                     SeedOffset = biome.SeedOffset,
                     InnerRadius = biome.InnerRadius,
+                    MountainRate = biome.MountainRate,
+                    ForestRate = biome.ForestRate,
                     Structures = biome.Structures
                 };
                 foreach (var entry in biome.Tiles)
@@ -473,6 +536,8 @@ namespace TacticsECS
                     Octaves = biome.Octaves,
                     SeedOffset = biome.SeedOffset,
                     InnerRadius = biome.InnerRadius,
+                    MountainRate = biome.MountainRate,
+                    ForestRate = biome.ForestRate,
                     Structures = biome.Structures
                 };
                 foreach (var entry in biome.Tiles)
@@ -521,26 +586,281 @@ namespace TacticsECS
             return result;
         }
 
-        /// <summary>바이옴 수만큼 쿼드런트를 나눠 서로 다른 구역에서 앵커를 하나씩 뽑는다(공정성 배치).
-        /// 랜드마스 마스크 경로도 같은 함수로 시작점을 뽑은 뒤 육지로 스냅한다.</summary>
+        /// <summary>바이옴(수도) 수만큼 쿼드런트를 나눠 서로 다른 구역에서 앵커를 하나씩 뽑는다(6절 공정성 배치).
+        /// 구역 수는 원문대로 1~4명=4, 5~9명=9, 10~16명=16. 8차 재정비(12절 보강 1/3) — 간격을 고르게 하려고
+        /// (1) 빈 구역이 남을 때는 서로 가장 먼 구역부터 채우고(PickSpreadQuadrants), (2) 구역 안에서도 구역
+        /// 중심 근처(구역 한 변의 1/5 반경)만 후보로 삼고 구역 경계 칸은 제외하며, (3) 맵 가장자리로부터
+        /// CapitalEdgeMargin 이상, 이미 뽑힌 앵커와 CapitalMinDistance 이상 떨어진 칸만 쓴다. 조건을 만족하는
+        /// 칸이 없으면(아주 작은 맵) 조건을 하나씩 풀어 폴백한다. 랜드마스 마스크의 대륙 중심점도 이 함수로 뽑는다.</summary>
         private static Vector2Int[] GenerateQuadrantAnchors(GridWorld grid, int biomeCount, Random rng)
         {
-            int quadrantsPerSide = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(biomeCount)));
-            var quadrantIndices = new List<int>();
-            for (int i = 0; i < quadrantsPerSide * quadrantsPerSide; i++) quadrantIndices.Add(i);
-            ProceduralGenerationUtil.Shuffle(quadrantIndices, rng);
+            int quadrantsPerSide = biomeCount <= 4 ? 2 : biomeCount <= 9 ? 3 : biomeCount <= 16 ? 4 : Mathf.CeilToInt(Mathf.Sqrt(biomeCount));
+            var quadrantIndices = PickSpreadQuadrants(quadrantsPerSide, biomeCount, rng);
 
             var anchors = new Vector2Int[biomeCount];
+            var chosen = new List<Vector2Int>();
             for (int b = 0; b < biomeCount; b++)
             {
-                int q = quadrantIndices[b % quadrantIndices.Count];
-                int qx = q % quadrantsPerSide;
-                int qy = q / quadrantsPerSide;
-                var (xMin, xMax) = QuadrantRange(grid.Width, quadrantsPerSide, qx);
-                var (yMin, yMax) = QuadrantRange(grid.Height, quadrantsPerSide, qy);
-                anchors[b] = new Vector2Int(rng.Next(xMin, xMax), rng.Next(yMin, yMax));
+                int q = quadrantIndices[b];
+                var (xMin, xMax) = QuadrantRange(grid.Width, quadrantsPerSide, q % quadrantsPerSide);
+                var (yMin, yMax) = QuadrantRange(grid.Height, quadrantsPerSide, q / quadrantsPerSide);
+                anchors[b] = PickCellInQuadrant(grid, xMin, xMax, yMin, yMax, chosen, rng);
+                chosen.Add(anchors[b]);
             }
             return anchors;
+        }
+
+        /// <summary>count개의 구역 인덱스를 고른다. 구역이 남으면(count &lt; 전체) 첫 구역은 랜덤, 이후로는 이미
+        /// 고른 구역들과의 최소 거리(구역 좌표 기준)가 가장 큰 구역을 고른다(동점은 랜덤) — 2명이면 대각선,
+        /// 3명이면 세 모서리가 된다. 구역이 모자라면(count &gt; 전체) 셔플한 전체 목록을 반복한다.</summary>
+        private static List<int> PickSpreadQuadrants(int quadrantsPerSide, int count, Random rng)
+        {
+            int total = quadrantsPerSide * quadrantsPerSide;
+            var all = new List<int>();
+            for (int i = 0; i < total; i++) all.Add(i);
+            ProceduralGenerationUtil.Shuffle(all, rng);
+
+            var result = new List<int>();
+            if (count >= total)
+            {
+                for (int i = 0; i < count; i++) result.Add(all[i % total]);
+                return result;
+            }
+
+            result.Add(all[0]);
+            while (result.Count < count)
+            {
+                int best = -1;
+                float bestDist = -1f;
+                foreach (var q in all) // 셔플된 순서라 동점이면 자연스럽게 랜덤
+                {
+                    if (result.Contains(q)) continue;
+                    float minDist = float.MaxValue;
+                    foreach (var r in result)
+                    {
+                        float d = Vector2.Distance(new Vector2(q % quadrantsPerSide, q / quadrantsPerSide), new Vector2(r % quadrantsPerSide, r / quadrantsPerSide));
+                        if (d < minDist) minDist = d;
+                    }
+                    if (minDist > bestDist + 0.001f) { bestDist = minDist; best = q; }
+                }
+                result.Add(best);
+            }
+            ProceduralGenerationUtil.Shuffle(result, rng); // 바이옴 -> 구역 배정 순서는 랜덤
+            return result;
+        }
+
+        /// <summary>[xMin,xMax)x[yMin,yMax) 구역에서 앵커 칸 하나를 고른다 — GenerateQuadrantAnchors 주석의
+        /// 조건(중심 근처/구역 경계 제외/가장자리 여백/앵커 간 최소 거리)을 엄격한 것부터 차례로 풀며 시도한다.</summary>
+        private static Vector2Int PickCellInQuadrant(GridWorld grid, int xMin, int xMax, int yMin, int yMax, List<Vector2Int> chosen, Random rng)
+        {
+            float cx = (xMin + xMax - 1) * 0.5f;
+            float cy = (yMin + yMax - 1) * 0.5f;
+            float radius = Mathf.Max(1, Mathf.Min(xMax - xMin, yMax - yMin) / 5) + 0.5f;
+
+            for (int tier = 0; tier < 4; tier++)
+            {
+                var candidates = new List<Vector2Int>();
+                for (int y = yMin; y < yMax; y++)
+                    for (int x = xMin; x < xMax; x++)
+                    {
+                        var p = new Vector2Int(x, y);
+                        if (tier < 1 && (Mathf.Abs(x - cx) > radius || Mathf.Abs(y - cy) > radius)) continue;
+                        if (tier < 2 && IsOnInnerQuadrantBorder(grid, p, xMin, xMax, yMin, yMax)) continue;
+                        if (tier < 3 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < CapitalEdgeMargin) continue;
+                        if (IsWithinDistance(chosen, p, tier < 3 ? CapitalMinDistance : 1)) continue;
+                        candidates.Add(p);
+                    }
+                if (candidates.Count > 0) return candidates[rng.Next(candidates.Count)];
+            }
+            return new Vector2Int(rng.Next(xMin, xMax), rng.Next(yMin, yMax));
+        }
+
+        /// <summary>p가 구역의 안쪽 경계(맵 가장자리가 아닌, 다른 구역과 맞닿은 줄) 위에 있는지 — 이웃 구역의
+        /// 앵커와 경계를 사이에 두고 딱 붙는 것을 막는다.</summary>
+        private static bool IsOnInnerQuadrantBorder(GridWorld grid, Vector2Int p, int xMin, int xMax, int yMin, int yMax) =>
+            (p.x == xMin && xMin > 0) || (p.x == xMax - 1 && xMax < grid.Width) ||
+            (p.y == yMin && yMin > 0) || (p.y == yMax - 1 && yMax < grid.Height);
+
+        /// <summary>Pangea/Continents 전용(7.5절) — 이미 만들어진 땅(landMask) 위에서 수도 count개를 고른다.
+        /// 후보: 가장자리로부터 CapitalEdgeMargin 이상 + 크기 MinCapitalLandmassSize 이상인 육지 덩어리에 속한 칸
+        /// (12절 보강 2/3 — 1칸 섬 수도 방지). 원문 기준 두 가지를 반영한다: (a) 수도끼리 최대한 멀리 — 첫 수도는
+        /// 랜덤, 이후는 기존 수도들과의 최소 거리가 가장 큰 칸(farthest-point)을 고르고, 이를 여러 번 시도해 최소 쌍
+        /// 거리가 가장 큰 조합을 채택(12절 보강 1), (b) 해안(물 인접) 선호 — 점수 보너스. Continents는 아직 수도가
+        /// 없는 대륙에 큰 보너스를 줘 가능하면 서로 다른 대륙에 놓는다. 후보가 모자라면 조건을 풀고, 그래도
+        /// 모자라면 쿼드런트 방식으로 뽑아 그 3x3을 마스크에서 육지로 바꾼다.</summary>
+        private static Vector2Int[] SelectCapitalsOnLand(GridWorld grid, bool[] landMask, int count, bool preferDistinctLandmass, Random rng)
+        {
+            var (componentPerCell, componentSizes) = LabelLandComponents(grid, landMask);
+
+            List<Vector2Int> candidates = null;
+            for (int tier = 0; tier < 3; tier++)
+            {
+                candidates = new List<Vector2Int>();
+                for (int y = 0; y < grid.Height; y++)
+                    for (int x = 0; x < grid.Width; x++)
+                    {
+                        var p = new Vector2Int(x, y);
+                        int index = grid.Index(p);
+                        if (!landMask[index]) continue;
+                        if (tier < 2 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < CapitalEdgeMargin) continue;
+                        if (tier < 1 && componentSizes[componentPerCell[index]] < MinCapitalLandmassSize) continue;
+                        candidates.Add(p);
+                    }
+                if (candidates.Count >= count) break;
+            }
+
+            if (candidates.Count < count)
+            {
+                var fallback = GenerateQuadrantAnchors(grid, count, rng);
+                foreach (var p in ExpandToSquare(grid, fallback, CapitalLandRadius)) landMask[grid.Index(p)] = true;
+                return fallback;
+            }
+
+            List<Vector2Int> best = null;
+            float bestEval = float.MinValue;
+            for (int trial = 0; trial < CapitalSelectionTrials; trial++)
+            {
+                var chosen = new List<Vector2Int> { candidates[rng.Next(candidates.Count)] };
+                var usedComponents = new HashSet<int> { componentPerCell[grid.Index(chosen[0])] };
+                while (chosen.Count < count)
+                {
+                    Vector2Int pick = default;
+                    float pickScore = float.MinValue;
+                    foreach (var c in candidates)
+                    {
+                        if (chosen.Contains(c)) continue;
+                        float score = MinEuclideanDistance(chosen, c)
+                                      + (IsCoastal(grid, c, landMask) ? 0.75f : 0f)
+                                      + (preferDistinctLandmass && !usedComponents.Contains(componentPerCell[grid.Index(c)]) ? 100f : 0f)
+                                      + (float)rng.NextDouble() * 0.25f;
+                        if (score > pickScore) { pickScore = score; pick = c; }
+                    }
+                    chosen.Add(pick);
+                    usedComponents.Add(componentPerCell[grid.Index(pick)]);
+                }
+
+                float minPair = chosen.Count < 2 ? 0f : float.MaxValue;
+                int coastal = 0;
+                for (int i = 0; i < chosen.Count; i++)
+                {
+                    if (IsCoastal(grid, chosen[i], landMask)) coastal++;
+                    for (int j = i + 1; j < chosen.Count; j++)
+                        minPair = Mathf.Min(minPair, Vector2.Distance(chosen[i], chosen[j]));
+                }
+                float eval = minPair + coastal * 0.3f;
+                if (eval > bestEval) { bestEval = eval; best = chosen; }
+            }
+            return best.ToArray();
+        }
+
+        private static float MinEuclideanDistance(List<Vector2Int> positions, Vector2Int pos)
+        {
+            float min = float.MaxValue;
+            foreach (var p in positions) min = Mathf.Min(min, Vector2.Distance(p, pos));
+            return min;
+        }
+
+        /// <summary>상하좌우 이웃 중 물(마스크 false) 칸이 하나라도 있으면 해안.</summary>
+        private static bool IsCoastal(GridWorld grid, Vector2Int pos, bool[] landMask)
+        {
+            foreach (var n in grid.GetNeighbors(pos, allowDiagonal: false))
+                if (!landMask[grid.Index(n)]) return true;
+            return false;
+        }
+
+        /// <summary>육지 칸을 4방향 연결 덩어리로 라벨링한다 — 칸별 덩어리 번호와 덩어리별 크기. 0번은 물 전용
+        /// 더미(크기 0)라 육지 덩어리 번호는 1부터 시작한다.</summary>
+        private static (int[] ComponentPerCell, List<int> ComponentSizes) LabelLandComponents(GridWorld grid, bool[] landMask)
+        {
+            var componentPerCell = new int[grid.Width * grid.Height];
+            var sizes = new List<int> { 0 };
+            var stack = new Stack<Vector2Int>();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var start = new Vector2Int(x, y);
+                    int startIndex = grid.Index(start);
+                    if (!landMask[startIndex] || componentPerCell[startIndex] != 0) continue;
+
+                    int id = sizes.Count;
+                    int size = 0;
+                    componentPerCell[startIndex] = id;
+                    stack.Push(start);
+                    while (stack.Count > 0)
+                    {
+                        var p = stack.Pop();
+                        size++;
+                        foreach (var n in grid.GetNeighbors(p, allowDiagonal: false))
+                        {
+                            int ni = grid.Index(n);
+                            if (!landMask[ni] || componentPerCell[ni] != 0) continue;
+                            componentPerCell[ni] = id;
+                            stack.Push(n);
+                        }
+                    }
+                    sizes.Add(size);
+                }
+            return (componentPerCell, sizes);
+        }
+
+        /// <summary>산/숲 배수 -> 실제 육지 대비 산/숲 비율(4절 적용 순서): 산 = 14% x MountainRate를 먼저 정하고,
+        /// 숲은 기준 38%를 "남은 비율(100%-산%)/86%"로 비례 보정한 뒤 ForestRate를 곱한다. 평지는 나머지.</summary>
+        public static (float Mountain, float Forest) ComputeFeatureFractions(float mountainRate, float forestRate)
+        {
+            float mountain = Mathf.Clamp01(BaseMountainFraction * Mathf.Max(0f, mountainRate));
+            float forest = BaseForestFraction * (1f - mountain) / (1f - BaseMountainFraction) * Mathf.Max(0f, forestRate);
+            return (mountain, Mathf.Clamp(forest, 0f, 1f - mountain));
+        }
+
+        /// <summary>숲/산 레이어(12.1절) — 바이옴 영역마다 육지 칸(수도/마을 칸 제외) 중 ComputeFeatureFractions
+        /// 비율만큼을 정확히(쿼터) 산, 그다음 숲으로 바꾼다(Balance Pass 2: "항상 비율대로"). 어느 칸이 될지는
+        /// 산/숲 각자의 노이즈 순위로 정해 산맥/숲 덩어리로 뭉치게 한다. MountainRate/ForestRate가 둘 다 0인
+        /// 바이옴(예전 CSV)은 건드리지 않는다.</summary>
+        private static void ApplyForestAndMountains(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell, Vector2Int[] cityCells, Random rng)
+        {
+            var citySet = new HashSet<Vector2Int>(cityCells);
+            for (int biomeIdx = 0; biomeIdx < biomes.Count; biomeIdx++)
+            {
+                var biome = biomes[biomeIdx];
+                if (biome.MountainRate <= 0f && biome.ForestRate <= 0f) continue;
+
+                var cells = new List<Vector2Int>();
+                for (int y = 0; y < grid.Height; y++)
+                    for (int x = 0; x < grid.Width; x++)
+                    {
+                        var p = new Vector2Int(x, y);
+                        if (biomeIndexPerCell[grid.Index(p)] != biomeIdx) continue;
+                        if (grid.GetTerrain(p) != TerrainType.Land || grid.IsOccupied(p) || citySet.Contains(p)) continue;
+                        if (string.IsNullOrEmpty(grid.GetTileType(p))) continue;
+                        cells.Add(p);
+                    }
+
+                var (mountainFraction, forestFraction) = ComputeFeatureFractions(biome.MountainRate, biome.ForestRate);
+                int mountainCount = Mathf.RoundToInt(cells.Count * mountainFraction);
+                int forestCount = Mathf.RoundToInt(cells.Count * forestFraction);
+                float frequency = biome.Frequency > 0f ? biome.Frequency : 0.15f;
+
+                var remaining = AssignTopByNoise(grid, cells, mountainCount, MountainTileId, frequency * 2f, rng.Next(0, 1_000_000), rng);
+                AssignTopByNoise(grid, remaining, forestCount, ForestTileId, frequency * 1.5f, rng.Next(0, 1_000_000), rng);
+            }
+        }
+
+        /// <summary>cells를 노이즈 점수(+작은 랜덤) 내림차순으로 정렬해 상위 count칸의 TileTypeId를 tileId로 바꾸고,
+        /// 나머지 칸 목록을 반환한다.</summary>
+        private static List<Vector2Int> AssignTopByNoise(GridWorld grid, List<Vector2Int> cells, int count, string tileId, float frequency, int seedOffset, Random rng)
+        {
+            var scored = new List<(Vector2Int Pos, float Score)>(cells.Count);
+            foreach (var p in cells)
+                scored.Add((p, NoiseSystem.Sample(p.x, p.y, frequency, 2, seedOffset) + (float)rng.NextDouble() * 0.15f));
+            scored.Sort((a, b) => b.Score.CompareTo(a.Score));
+
+            var remaining = new List<Vector2Int>(cells.Count);
+            for (int i = 0; i < scored.Count; i++)
+            {
+                if (i < count) grid.SetTileType(scored[i].Pos, tileId);
+                else remaining.Add(scored[i].Pos);
+            }
+            return remaining;
         }
 
         /// <summary>totalSize를 quadrantsPerSide등분한 구간 중 quadrantIndex번째의 [min, max) 범위.

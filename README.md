@@ -505,6 +505,40 @@ docs/PolytopiaMapGeneration.md와 현재 구현을 항목별로 대조해보니,
   것처럼 보였으나, 임시 디버그 로그로 전수 검사한 결과 전부 육지 위였고 isometric 카메라 각도가 만든
   착시였음을 확인(검증용 임시 스크립트는 확인 후 삭제).
 
+### 수도/마을 배치 보강 + 숲/산 레이어 (8차 재정비)
+
+[Polytopia Wiki 원문](https://polytopia.fandom.com/wiki/Map_Generation)(Fandom API로 받은 최신 위키텍스트)과
+[`docs/PolytopiaMapGeneration.md`](docs/PolytopiaMapGeneration.md)를 다시 대조해 누락/오역(종족 배수 4종 누락,
+Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Balance Pass 2의 "비율대로 정확히" 등)을 고치고,
+원문에 없는 이 프로젝트의 보강 규칙은 12절에 따로 모았다. 그 다음 아래 문제를 고쳤다.
+
+- **수도 간 간격이 들쭉날쭉** — 쿼드런트 수를 원문대로 4/9/16으로 맞추고, 빈 구역이 남을 때는 서로 가장 먼 구역부터
+  채우며(2개=대각선), 구역 안에서도 중심부(구역 한 변의 1/5 반경)만 후보로, 구역 경계 칸 제외, 수도끼리 3칸 이상
+  (`TerrainGenerationSystem.GenerateQuadrantAnchors`/`PickSpreadQuadrants`/`PickCellInQuadrant`).
+  Pangea/Continents는 원문대로 쿼드런트를 쓰지 않고 땅을 먼저 만든 뒤 `SelectCapitalsOnLand`로 수도를 고른다 —
+  farthest-point 선택을 12번 시도해 최소 쌍 거리가 가장 큰 조합을 채택, 해안 선호, Continents는 가능하면 서로 다른 대륙.
+- **수도가 1칸 섬에 생김** — 쿼드런트 맵은 수도 3x3 전체를 랜드마스 마스크의 최우선 보장 칸으로 넣고, 보장 칸 수가
+  목표 육지 수보다 많으면 보장 칸을 우선한다(Waterworld의 "도시 자리 땅은 강제 생성"). Pangea/Continents는 9칸 이상
+  육지 덩어리 위에서만 수도를 고른다.
+- **수도가 맵 벽(가장자리)에 붙음** — 수도는 가장자리로부터 최소 2칸(`CapitalEdgeMargin`).
+- **마을끼리 연속해서 붙음** — Suburb는 거리 검사 없이 수도 근처 아무 칸에나 놓였고, Post-terrain 마을의 `MinDistance`는
+  바이옴 영역 안에서만(같은 패스에서 놓은 것끼리만) 검사됐고, 외딴 섬 마을은 검사 자체가 없었다. 이제 수도/모든 마을을
+  "도시"로 묶어 맵 전체 기준 체비쇼프 거리 2 이상(인접 금지, `CityMinDistance`)을 항상 지킨다
+  (`FindSuburbCell`, `StructureGenerationSystem.IsTooCloseToCity`, 구조물 배치 목록을 바이옴 간 공유).
+- **숲/산 추가** — 바이옴 CSV에 `MountainRate`/`ForestRate` 컬럼(종족 배수와 같은 의미, 비우면 0 = 끔)을 추가.
+  지형 채우기 뒤 바이옴 영역마다 수도/마을 칸을 뺀 육지 중 `산 14%×배수`, `숲 38%×(100%−산%)/86%×배수`를 정확히
+  쿼터로 `Mountain`/`Forest` 타일로 바꾼다(`ApplyForestAndMountains` — 원문 4절 "산 배수 먼저 → 숲 → 나머지 평지",
+  Balance Pass 2 "항상 비율대로"). 노이즈 순위로 골라 산맥/숲 덩어리로 뭉친다. 화면에는 코드로 만든 로우폴리 원뿔
+  모델(나무 3그루 / 설산 봉우리)이 얹힌다([`View/TerrainFeatureView.cs`](Assets/Scripts/TacticsECS/View/TerrainFeatureView.cs)).
+  이동 판정(TerrainType)은 Land 그대로 — 산/숲의 이동 제약은 이번 범위 밖이다.
+- `docs/sample_biomes.csv`: Grassland 1.0/1.0, Desert 0.5/0.2, Highland 1.5/0.5. 광물은 산 위, 마을은 평지 타일 위에만.
+- **검증**: `TerrainGenerationVerification`에 `VerifyCapitalPlacementRules`(6개 맵 타입 × 6개 크기 × 바이옴 2/3/4/9개, 396개 맵:
+  가장자리 2칸, 9칸 이상 육지 덩어리/3x3 육지, 수도 간격), `VerifyCitiesNeverAdjacent`(지형+구조물 전체 생성 후 도시 2348개
+  인접 없음, 산 위 도시 없음), `VerifyForestMountainLayer`(쿼터 정확도, 배수 계산, 0이면 꺼짐) 신규 추가. 두 검증
+  스위트 ALL PASS. 16x16 Lakes/Pangea/Waterworld 렌더 스크린샷으로 수도 간격·해안 수도·3x3 섬·숲/산 덩어리를 육안 확인
+  (임시 스크립트는 확인 후 삭제).
+
+
 ## 도시 발전 자원 (플레이스홀더)
 
 도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 자원의 최소 구현. 타일/영토 시스템이 아직 없어
@@ -577,6 +611,15 @@ docs/PolytopiaMapGeneration.md와 현재 구현을 항목별로 대조해보니,
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-23: 수도/마을 배치 보강 + 숲/산 레이어 (8차 재정비).
+  - **동기**: "수도 간 간격이 일정하지 않음 / 수도가 1칸 섬에 생김 / 수도가 벽에 붙음 / 마을끼리 연속해서 붙음, 숲이랑 산도
+    추가, Polytopia Wiki 기준으로 문서 다시 보고 수정한 뒤 진행" 요청. WebFetch는 Fandom이 402로 막아 MediaWiki API로 원문
+    위키텍스트를 받아 `docs/PolytopiaMapGeneration.md`를 재대조·수정(12절에 보강 규칙 신설)한 뒤 구현했다.
+  - 원인: 수도 앵커가 구역 안 아무 칸이나 균등 랜덤(가장자리/구역 경계 포함), 수도 칸 하나만 육지 보장, Suburb 거리 검사 없음,
+    Post-terrain 마을 최소 거리가 바이옴 영역 안에서만 검사됨. 위 "8차 재정비" 절 참고.
+  - 숲/산은 CSV `MountainRate`/`ForestRate` 배수 기반 쿼터 레이어로 추가하고, 코드로 만든 로우폴리 모델로 표시.
+  - **검증**: 신규 테스트 3개 포함 `TerrainGenerationVerification`/`StructureGenerationVerification` ALL PASS, 렌더 스크린샷 육안 확인.
 
 - 2026-09-22: 생성 순서 재정비 — 수도/마을을 지형보다 먼저 결정 (7차 재정비).
   - **동기**: "지금까지의 지형 생성 로직 요약해서 md 파일 생성" 요청으로 `docs/TerrainGenerationSummary.md`를

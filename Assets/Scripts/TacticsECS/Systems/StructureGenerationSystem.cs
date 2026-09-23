@@ -50,12 +50,16 @@ namespace TacticsECS
                     biomeIndexPerCell[grid.Index(pos)] = ProceduralGenerationUtil.NearestAnchorIndex(anchors, pos);
                 }
 
+            // 8차 재정비(docs/PolytopiaMapGeneration.md 12절 보강 4) — MinDistance 판정용 배치 목록을 바이옴마다
+            // 새로 만들지 않고 맵 전체에서 하나로 공유한다(이미 놓인 수도/Suburb/Pre-terrain 마을 포함). 예전엔
+            // 바이옴 영역 안에서만 검사해서 영역 경계를 사이에 두고 마을끼리 바로 붙을 수 있었다.
+            var placedPositionsByStructure = CollectPlacedStructures(grid);
             var rng = new Random(seed);
             for (int biomeIdx = 0; biomeIdx < biomes.Count; biomeIdx++)
-                PlaceBiomeStructures(grid, biomes[biomeIdx], biomeIndexPerCell, biomeIdx, anchors[biomeIdx], rng);
+                PlaceBiomeStructures(grid, biomes[biomeIdx], biomeIndexPerCell, biomeIdx, anchors[biomeIdx], placedPositionsByStructure, rng);
 
             if (shapeMode == TerrainGenerationSystem.MapShapeMode.Pangea || shapeMode == TerrainGenerationSystem.MapShapeMode.Continents)
-                PlaceTinyIslandVillages(grid, biomes, biomeIndexPerCell, rng);
+                PlaceTinyIslandVillages(grid, biomes, biomeIndexPerCell, placedPositionsByStructure, rng);
         }
 
         /// <summary>Suburb/Pre-terrain 마을 위치(지형 생성 단계에서 이미 육지로 확정된 칸)마다 Village
@@ -71,6 +75,35 @@ namespace TacticsECS
                 if (!string.IsNullOrEmpty(grid.GetStructure(pos))) continue;
                 grid.SetStructure(pos, VillageStructureId);
             }
+        }
+
+        /// <summary>현재 그리드에 놓인 구조물 위치를 StructureId별로 모은다(MinDistance/도시 간격 판정의 초기 상태).</summary>
+        private static Dictionary<string, List<Vector2Int>> CollectPlacedStructures(GridWorld grid)
+        {
+            var result = new Dictionary<string, List<Vector2Int>>();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    var structureId = grid.GetStructure(pos);
+                    if (!string.IsNullOrEmpty(structureId)) AddPlacedPosition(result, structureId, pos);
+                }
+            return result;
+        }
+
+        private static bool IsCityStructure(string structureId) =>
+            structureId == CapitalStructureId || structureId == VillageStructureId;
+
+        /// <summary>pos가 이미 놓인 수도/마을 중 하나와 minDistance(체비쇼프) 미만으로 가까우면 true.</summary>
+        private static bool IsTooCloseToCity(Vector2Int pos, int minDistance, Dictionary<string, List<Vector2Int>> placedPositionsByStructure)
+        {
+            foreach (var cityId in new[] { CapitalStructureId, VillageStructureId })
+            {
+                if (!placedPositionsByStructure.TryGetValue(cityId, out var cities)) continue;
+                foreach (var other in cities)
+                    if (ProceduralGenerationUtil.ChebyshevDistance(other, pos) < minDistance) return true;
+            }
+            return false;
         }
 
         /// <summary>수도는 자동 배치라 재생성 시마다 초기화해야 하고, 나머지 구조물도 이전 결과가 남아
@@ -106,7 +139,8 @@ namespace TacticsECS
         /// 목표를 채우지 못한(또는 FillRemaining인) 엔트리들 중 Weight 비례로 하나를 뽑아 배치한다 —
         /// 여러 엔트리가 같은 타일 타입을 두고 경쟁할 때(예: Ruin과 Resource_Food가 둘 다 Grass에 놓일
         /// 수 있음) Weight가 실제로 승률에 반영되도록 이런 구조를 택했다.</summary>
-        private static void PlaceBiomeStructures(GridWorld grid, BiomeCsvRow biome, int[] biomeIndexPerCell, int biomeIdx, Vector2Int anchor, Random rng)
+        private static void PlaceBiomeStructures(GridWorld grid, BiomeCsvRow biome, int[] biomeIndexPerCell, int biomeIdx, Vector2Int anchor,
+            Dictionary<string, List<Vector2Int>> placedPositionsByStructure, Random rng)
         {
             if (biome.Structures == null || biome.Structures.Count == 0) return;
             var entries = biome.Structures;
@@ -146,7 +180,6 @@ namespace TacticsECS
                 }
             ProceduralGenerationUtil.Shuffle(eligibleCells, rng);
 
-            var placedPositionsByStructure = new Dictionary<string, List<Vector2Int>>();
             var totalPlacedByEntry = new int[entries.Count];
             var waterPlacedByEntry = new int[entries.Count];
 
@@ -187,6 +220,12 @@ namespace TacticsECS
 
             if (entry.MaxDistanceFromAnchor > 0 && ProceduralGenerationUtil.ChebyshevDistance(pos, anchor) > entry.MaxDistanceFromAnchor) return true;
 
+            // 수도/마을("도시")은 서로 종류가 달라도 같은 간격 규칙을 따르고, CSV 값이 작거나 0이어도 최소
+            // CityMinDistance(인접 금지)는 항상 지킨다(12절 보강 4).
+            if (IsCityStructure(entry.StructureId) &&
+                IsTooCloseToCity(pos, Mathf.Max(entry.MinDistance, TerrainGenerationSystem.CityMinDistance), placedPositionsByStructure))
+                return true;
+
             if (entry.MinDistance > 0 && placedPositionsByStructure.TryGetValue(entry.StructureId, out var placed))
                 foreach (var other in placed)
                     if (ProceduralGenerationUtil.ChebyshevDistance(other, pos) < entry.MinDistance) return true;
@@ -219,7 +258,8 @@ namespace TacticsECS
         /// <summary>본토와 육로로 연결되지 않은(4방향 이웃이 전부 물인) 물 타일을 찾아 그 칸을 육지로
         /// 바꾸고 마을을 배치한다(8절). 개수는 맵 크기(그리드 한 변 길이)로 정해진 표를 그대로 따른다.
         /// 육지로 바꿀 때 쓸 TileTypeId는 그 칸이 속한 바이옴의 첫 번째 육지 타일 엔트리를 재사용한다.</summary>
-        private static void PlaceTinyIslandVillages(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell, Random rng)
+        private static void PlaceTinyIslandVillages(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
+            Dictionary<string, List<Vector2Int>> placedPositionsByStructure, Random rng)
         {
             int count = 0;
             foreach (var (size, c) in TinyIslandCounts)
@@ -246,6 +286,7 @@ namespace TacticsECS
             foreach (var pos in candidates)
             {
                 if (placed >= count) break;
+                if (IsTooCloseToCity(pos, TerrainGenerationSystem.CityMinDistance, placedPositionsByStructure)) continue; // 다른 도시와 인접 금지
 
                 var biome = biomes[biomeIndexPerCell[grid.Index(pos)]];
                 string landTileId = FindFirstLandTileId(biome);
@@ -254,6 +295,7 @@ namespace TacticsECS
                 grid.SetTerrain(pos, TerrainType.Land);
                 grid.SetTileType(pos, landTileId);
                 grid.SetStructure(pos, VillageStructureId);
+                AddPlacedPosition(placedPositionsByStructure, VillageStructureId, pos);
                 placed++;
             }
         }

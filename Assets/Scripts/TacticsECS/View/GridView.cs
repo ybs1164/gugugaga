@@ -19,6 +19,7 @@ namespace TacticsECS
 
         private TileView[] _tileViews;
         private GameObject[] _structureObjects;
+        private GameObject[] _featureObjects;
         private GridWorld _grid;
 
         /// <summary>landTilePrefab/waterTilePrefab은 GridView 자신이 아니라 BattleController가 들고 있는
@@ -51,6 +52,7 @@ namespace TacticsECS
                     _tileViews[grid.Index(pos)] = view;
                 }
             }
+            RefreshFeatures(grid);
         }
 
         /// <summary>terrain에 맞는 타일 프리팹이 주어졌으면 그것을 인스턴스화하고(가로/세로만 타일 크기에
@@ -75,6 +77,28 @@ namespace TacticsECS
                 {
                     var pos = new Vector2Int(x, y);
                     _tileViews[grid.Index(pos)].Init(pos, grid.GetTerrain(pos), grid.GetTileType(pos));
+                }
+            }
+            RefreshFeatures(grid);
+        }
+
+        /// <summary>숲/산 타일 위의 장식 모델(TerrainFeatureView)을 다시 만든다 — 구조물과 같은 방식으로 타일의
+        /// 자식으로 붙고, 숲/산이 아닌 칸은 비워둔다.</summary>
+        private void RefreshFeatures(GridWorld grid)
+        {
+            if (_featureObjects == null) _featureObjects = new GameObject[grid.Width * grid.Height];
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    int index = grid.Index(pos);
+                    if (_featureObjects[index] != null)
+                    {
+                        DestroySafe(_featureObjects[index]);
+                        _featureObjects[index] = null;
+                    }
+                    _featureObjects[index] = TerrainFeatureView.Create(grid.GetTileType(pos), _tileViews[index].transform, pos, StructureLocalHeight);
                 }
             }
         }

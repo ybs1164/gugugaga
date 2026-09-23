@@ -323,7 +323,7 @@ namespace TacticsECS
                 ["SkeletonWarrior"] = skeletonWarriorPrefab,
                 ["SkeletonMage"] = skeletonMagePrefab
             };
-            _placementController = new UnitPlacementController(_grid, _world, _spawner, basePrefabsByName, _viewsById);
+            _placementController = new UnitPlacementController(_world, _spawner, basePrefabsByName, _viewsById);
 
             _sandboxHud = Instantiate(sandboxHudPrefab, transform);
             _sandboxHud.name = "SandboxHud";
@@ -819,7 +819,7 @@ namespace TacticsECS
             if (_placementActive)
             {
                 if (Mouse.current.leftButton.wasPressedThisFrame && TryScreenToGridPos(Mouse.current.position.ReadValue(), out var placePos))
-                    _placementController.HandleGridClick(placePos);
+                    _placementController.HandleGridClick(_grid, placePos);
                 UpdateStructureHover();
                 return;
             }

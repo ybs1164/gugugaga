@@ -612,6 +612,18 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 
 ## 작업 로그
 
+- 2026-09-23: 버그 수정 — 지형 생성(맵 크기 변경) 후 유닛 배치가 안 되던 문제.
+  - **원인**: `UnitPlacementController`가 배치 단계 진입 시점의 `GridWorld`를 생성자에서 캐시했는데, "지형 생성"이
+    선택된 맵 크기 프리셋과 현재 그리드 크기가 다르면 `BattleController.RebuildGridForSize`가 `_grid`를 새 객체로 교체한다.
+    컨트롤러는 계속 옛 그리드를 써서, 옛 범위 밖 칸을 클릭하면 `PlaceOccupant`가 `IndexOutOfRangeException`을 던져 배치가
+    실패(유닛 GameObject/엔티티만 남음)하고, 범위 안 칸은 옛 그리드에만 점유가 기록돼 전투(경로탐색/점유 판정)가 새 그리드에서
+    유닛을 인식하지 못했다.
+  - **수정**: 컨트롤러가 그리드를 캐시하지 않고 `HandleGridClick(GridWorld grid, Vector2Int pos)`로 매 호출마다 현재 그리드를
+    받는다([`UnitPlacementController.cs`](Assets/Scripts/TacticsECS/Sandbox/UnitPlacementController.cs), `BattleController.Update`).
+  - **검증**: `UnitCsvVerification`에 `VerifyPlacementAfterGridRebuild`(8x8 → 16x16 교체 후 옛 범위 밖/안 칸 배치, 새 그리드 점유,
+    옛 그리드 누수 없음) 추가. Unity CLI(`unity run . -- -nographics -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run`)
+    컴파일 에러 없음, ALL PASS.
+
 - 2026-09-23: 수도/마을 배치 보강 + 숲/산 레이어 (8차 재정비).
   - **동기**: "수도 간 간격이 일정하지 않음 / 수도가 1칸 섬에 생김 / 수도가 벽에 붙음 / 마을끼리 연속해서 붙음, 숲이랑 산도
     추가, Polytopia Wiki 기준으로 문서 다시 보고 수정한 뒤 진행" 요청. WebFetch는 Fandom이 402로 막아 MediaWiki API로 원문

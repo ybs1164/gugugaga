@@ -8,12 +8,13 @@ namespace TacticsECS
     /// 클릭해 놓거나(빈 칸) 치운다(이미 유닛이 있는 칸). BattleController(SandboxHud 이벤트를 받는 쪽)가
     /// 이 컨트롤러의 메서드를 그대로 호출해주기만 하면 되고, 배치 세부사항(어떤 프리팹을 베이스로 쓸지,
     /// 치울 때 그리드/EntityWorld를 어떻게 정리할지)은 전부 여기 안에 있다.
-    /// MonoBehaviour가 아닌 평범한 C# 클래스다 — BattleController가 이미 갖고 있는 GridWorld/EntityWorld/
-    /// UnitSpawner를 생성자로 받아 재사용할 뿐, 자신만의 씬 오브젝트를 갖지 않는다.
+    /// MonoBehaviour가 아닌 평범한 C# 클래스다 — BattleController가 이미 갖고 있는 EntityWorld/UnitSpawner를
+    /// 생성자로 받아 재사용할 뿐, 자신만의 씬 오브젝트를 갖지 않는다. GridWorld는 "지형 생성"에서 맵 크기가
+    /// 바뀌면 BattleController가 새로 만들어 교체하므로(RebuildGridForSize) 여기 캐시하지 않고 매 호출마다
+    /// 현재 그리드를 인자로 받는다 — 캐시하면 교체 이후 옛 그리드에 배치돼 범위 밖 예외/점유 누락이 난다.
     /// </summary>
     public class UnitPlacementController
     {
-        private readonly GridWorld _grid;
         private readonly EntityWorld _world;
         private readonly UnitSpawner _spawner;
         private readonly IReadOnlyDictionary<string, UnitView> _basePrefabsByName;
@@ -26,10 +27,9 @@ namespace TacticsECS
         public IReadOnlyList<UnitCsvRow> Rows => _rows;
         public Team SelectedTeam => _selectedTeam;
 
-        public UnitPlacementController(GridWorld grid, EntityWorld world, UnitSpawner spawner,
+        public UnitPlacementController(EntityWorld world, UnitSpawner spawner,
             IReadOnlyDictionary<string, UnitView> basePrefabsByName, Dictionary<int, UnitView> viewsById)
         {
-            _grid = grid;
             _world = world;
             _spawner = spawner;
             _basePrefabsByName = basePrefabsByName;
@@ -51,12 +51,12 @@ namespace TacticsECS
         public void SelectTeam(Team team) => _selectedTeam = team;
 
         /// <summary>빈 칸이면 현재 브러시(선택된 CSV 행 + 팀)로 스폰하고, 이미 유닛이 있는 칸이면 치운다.</summary>
-        public void HandleGridClick(Vector2Int pos)
+        public void HandleGridClick(GridWorld grid, Vector2Int pos)
         {
-            int occupant = _grid.GetOccupant(pos);
+            int occupant = grid.GetOccupant(pos);
             if (occupant != TileData.NoOccupant)
             {
-                RemoveUnit(occupant, pos);
+                RemoveUnit(grid, occupant, pos);
                 return;
             }
 
@@ -69,16 +69,16 @@ namespace TacticsECS
                 return;
             }
 
-            var view = _spawner.SpawnFromCsv(_grid, _world, _selectedTeam, basePrefab, row, pos);
+            var view = _spawner.SpawnFromCsv(grid, _world, _selectedTeam, basePrefab, row, pos);
             _viewsById[view.UnitId] = view;
         }
 
         /// <summary>이미 죽인 유닛과 똑같은 방식(Hp=0)으로 취급해 치운다 — EntityWorld는 엔티티를 삭제하는
         /// 개념이 없고, 모든 System이 이미 "Hp&lt;=0이면 죽은 유닛"으로 걸러내고 있으므로(UnitQueries.IsAlive)
         /// 배치 단계에서 치우는 것도 같은 규칙을 그대로 재사용하면 충분하다.</summary>
-        private void RemoveUnit(int unitId, Vector2Int pos)
+        private void RemoveUnit(GridWorld grid, int unitId, Vector2Int pos)
         {
-            _grid.RemoveOccupant(pos);
+            grid.RemoveOccupant(pos);
             _world.Set(unitId, new Hp { Value = 0 });
 
             if (_viewsById.TryGetValue(unitId, out var view))

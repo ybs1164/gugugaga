@@ -21,7 +21,8 @@ namespace TacticsECS.EditorTools
             bool ok = VerifyRoundTrip(SampleCsvRelativePath) &
                       VerifySpawnFromCsv(SampleCsvRelativePath) &
                       VerifyRoundTrip(SandboxCsvRelativePath) &
-                      VerifySpawnFromCsv(SandboxCsvRelativePath);
+                      VerifySpawnFromCsv(SandboxCsvRelativePath) &
+                      VerifyPlacementAfterGridRebuild(SampleCsvRelativePath);
             Debug.Log(ok ? "[UnitCsvVerification] ALL PASS" : "[UnitCsvVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -73,6 +74,62 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
+        private static Dictionary<string, UnitView> LoadBasePrefabs() => new Dictionary<string, UnitView>
+        {
+            ["Melee"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Melee.prefab"),
+            ["Ranged"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Ranged.prefab"),
+            ["Guard"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Guard.prefab"),
+            ["RogueHooded"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_RogueHooded.prefab"),
+            ["Mage"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Mage.prefab"),
+            ["SkeletonWarrior"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_SkeletonWarrior.prefab"),
+            ["SkeletonMage"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_SkeletonMage.prefab")
+        };
+
+        /// <summary>회귀 검증: 샌드박스에서 "지형 생성"이 맵 크기 프리셋 변경으로 GridWorld를 새로 만든 뒤에도
+        /// (BattleController.RebuildGridForSize) 배치 컨트롤러가 새 그리드에 유닛을 놓는지 확인한다. 예전에는
+        /// 컨트롤러가 생성 시점의 옛 그리드를 캐시해, 옛 범위 밖 칸은 IndexOutOfRange로 배치가 실패하고 범위 안
+        /// 칸은 옛 그리드에만 점유가 기록됐다.</summary>
+        private static bool VerifyPlacementAfterGridRebuild(string relativePath)
+        {
+            var rows = UnitCsvSerializer.Parse(ReadCsv(relativePath));
+            var world = new EntityWorld();
+            var viewsById = new Dictionary<int, UnitView>();
+            var spawnerGo = new GameObject("UnitCsvVerification_PlacementSpawner");
+            bool ok = true;
+
+            try
+            {
+                var spawner = spawnerGo.AddComponent<UnitSpawner>();
+                var controller = new UnitPlacementController(world, spawner, LoadBasePrefabs(), viewsById);
+                controller.SetRows(rows);
+
+                var oldGrid = new GridWorld(8, 8, 1f);
+                var newGrid = new GridWorld(16, 16, 1f);
+
+                var outsideOld = new Vector2Int(12, 12);
+                var insideOld = new Vector2Int(3, 3);
+                controller.HandleGridClick(newGrid, outsideOld);
+                controller.HandleGridClick(newGrid, insideOld);
+
+                if (viewsById.Count != 2) { Debug.LogError($"[UnitCsvVerification] placement after rebuild: expected 2 units, got {viewsById.Count}"); ok = false; }
+                if (!newGrid.IsOccupied(outsideOld)) { Debug.LogError("[UnitCsvVerification] placement after rebuild: new grid not occupied outside old bounds"); ok = false; }
+                if (!newGrid.IsOccupied(insideOld)) { Debug.LogError("[UnitCsvVerification] placement after rebuild: new grid not occupied inside old bounds"); ok = false; }
+                if (oldGrid.IsOccupied(insideOld)) { Debug.LogError("[UnitCsvVerification] placement after rebuild: unit leaked into old grid"); ok = false; }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[UnitCsvVerification] placement after rebuild threw: {e}");
+                ok = false;
+            }
+            finally
+            {
+                Object.DestroyImmediate(spawnerGo);
+            }
+
+            if (ok) Debug.Log("[UnitCsvVerification] placement after grid rebuild PASS");
+            return ok;
+        }
+
         private static bool VerifySpawnFromCsv(string relativePath)
         {
             var rows = UnitCsvSerializer.Parse(ReadCsv(relativePath));
@@ -82,16 +139,7 @@ namespace TacticsECS.EditorTools
                 return false;
             }
 
-            var basePrefabs = new Dictionary<string, UnitView>
-            {
-                ["Melee"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Melee.prefab"),
-                ["Ranged"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Ranged.prefab"),
-                ["Guard"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Guard.prefab"),
-                ["RogueHooded"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_RogueHooded.prefab"),
-                ["Mage"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Mage.prefab"),
-                ["SkeletonWarrior"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_SkeletonWarrior.prefab"),
-                ["SkeletonMage"] = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_SkeletonMage.prefab")
-            };
+var basePrefabs = LoadBasePrefabs();
 
             var grid = new GridWorld(8, 8, 1f);
             var world = new EntityWorld();

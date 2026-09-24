@@ -15,9 +15,14 @@ namespace TacticsECS
         /// 타일 가장자리에 살짝 여백만 남기고 대부분을 채운 건물처럼 보이도록 하는 값(각 프리팹은
         /// StructureAssetSetup에서 이미 1x1 타일 기준 발자국에 맞춰 만들어져 있다).</summary>
         private const float StructureLocalScale = 0.85f;
-        private const float StructureLocalHeight = 0.05f;
+        /// <summary>구조물/숲·산 장식을 타일 윗면에서 이만큼 띄운다(납작한 불가사리·물결이 윗면과 겹쳐 깜빡이지 않게).</summary>
+        private const float StructureLift = 0.005f;
 
         private TileView[] _tileViews;
+        /// <summary>타일마다 메시 윗면의 로컬 높이 — 구조물을 타일 오브젝트의 자식으로 이 높이에 얹는다. 예전엔 고정값
+        /// 0.05를 썼는데 타일 메시(Tile_Land/Water) 높이가 0.2라 모든 구조물이 0.15씩 타일 속에 묻혀 있었다(납작한
+        /// 불가사리는 아예 안 보였다).</summary>
+        private float[] _tileTopLocalY;
         private GameObject[] _structureObjects;
         private GameObject[] _featureObjects;
         private GridWorld _grid;
@@ -31,6 +36,7 @@ namespace TacticsECS
         {
             _grid = grid;
             _tileViews = new TileView[grid.Width * grid.Height];
+            _tileTopLocalY = new float[grid.Width * grid.Height];
 
             for (int y = 0; y < grid.Height; y++)
             {
@@ -50,9 +56,20 @@ namespace TacticsECS
                     var view = go.AddComponent<TileView>();
                     view.Init(pos, terrain, grid.GetTileType(pos));
                     _tileViews[grid.Index(pos)] = view;
+                    _tileTopLocalY[grid.Index(pos)] = TopLocalY(go);
                 }
             }
             RefreshFeatures(grid);
+        }
+
+        /// <summary>타일 오브젝트의 렌더러 윗면 높이를 그 오브젝트의 로컬 좌표로 환산한다(프리팹 타일은 0.2, 프리미티브
+        /// 큐브 폴백은 0.5).</summary>
+        private static float TopLocalY(GameObject tile)
+        {
+            var renderer = tile.GetComponentInChildren<Renderer>();
+            float scaleY = tile.transform.lossyScale.y;
+            if (renderer == null || Mathf.Approximately(scaleY, 0f)) return 0f;
+            return (renderer.bounds.max.y - tile.transform.position.y) / scaleY;
         }
 
         /// <summary>terrain에 맞는 타일 프리팹이 주어졌으면 그것을 인스턴스화하고(가로/세로만 타일 크기에
@@ -98,7 +115,7 @@ namespace TacticsECS
                         DestroySafe(_featureObjects[index]);
                         _featureObjects[index] = null;
                     }
-                    _featureObjects[index] = TerrainFeatureView.Create(grid.GetTileType(pos), _tileViews[index].transform, pos, StructureLocalHeight);
+                    _featureObjects[index] = TerrainFeatureView.Create(grid.GetTileType(pos), _tileViews[index].transform, pos, _tileTopLocalY[index] + StructureLift);
                 }
             }
         }
@@ -106,8 +123,8 @@ namespace TacticsECS
         /// <summary>구조물(수도/유적/자원/불가사리, StructureGenerationSystem 참고) 오브젝트를 타일마다
         /// 다시 배치한다 — 이전 구조물을 지우고, grid.GetStructure(pos)가 있으면 그 프리팹을 타일의
         /// 자식으로 축소 인스턴스화한다. TileView(색상)와 완전히 별개 오브젝트라 하이라이트/색 로직에는
-        /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 StructureFallbackView가 아는 Id(등대/물고기)면
-        /// 코드로 만든 간이 모델을, 모르는 Id면 아무것도 놓지 않는다(에셋 미배정 상태에서도 예외 없이 동작).</summary>
+        /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 조용히 건너뛴다(에셋 미배정 상태에서도
+        /// 예외 없이 동작).</summary>
         public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType)
         {
             if (_structureObjects == null) _structureObjects = new GameObject[grid.Width * grid.Height];
@@ -127,16 +144,11 @@ namespace TacticsECS
 
                     var structureId = grid.GetStructure(pos);
                     if (string.IsNullOrEmpty(structureId)) continue;
-                    if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null)
-                    {
-                        // 프리팹이 없는 구조물(등대/물고기)은 코드로 만든 간이 모델로 대신한다(없는 Id면 null).
-                        _structureObjects[index] = StructureFallbackView.Create(structureId, _tileViews[index].transform, StructureLocalHeight);
-                        continue;
-                    }
+                    if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null) continue;
 
                     var structureGo = Object.Instantiate(prefab, _tileViews[index].transform);
                     structureGo.name = "Structure_" + structureId;
-                    structureGo.transform.localPosition = new Vector3(0f, StructureLocalHeight, 0f);
+                    structureGo.transform.localPosition = new Vector3(0f, _tileTopLocalY[index] + StructureLift, 0f);
                     structureGo.transform.localScale = Vector3.one * StructureLocalScale;
                     _structureObjects[index] = structureGo;
                 }

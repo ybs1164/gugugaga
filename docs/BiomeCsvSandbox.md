@@ -175,17 +175,22 @@ Polytopia 원문 표(육지 전체 대비 %)를 **그 지형 칸 중 몇 %**로 
 
 ## 7. 모델로 표시되는 `StructureId`
 
-| `StructureId` | 비고 |
+| `StructureId` | 모델 |
 |---|---|
-| `Capital` | **CSV에 적지 않음** — 바이옴마다 자동 배치 |
-| `Village` | 마을 |
-| `Resource_Fruit` / `Resource_Crop` / `Resource_Animal` | 과일/작물/사냥감 — 지금은 식량 자원 모델을 같이 씀 |
-| `Resource_Metal` | 광물 — 광물 자원 모델 |
-| `Resource_Fish` | 물고기 — 전용 프리팹 없이 코드로 만든 간이 모델 |
-| `Lighthouse` | **CSV에 적지 않음** — 맵 네 모서리에 자동 배치(코드 간이 모델) |
-| `Ruin` | 유적 |
-| `Starfish` | 불가사리 |
-| `Resource_Food` / `Resource_Ore` | 예전 CSV 호환용 자원 Id(계속 표시됨) |
+| `Capital` | 금색 원형 탑 — **CSV에 적지 않음**, 바이옴마다 자동 배치 |
+| `Village` | 오두막 두 채 + 좌판 |
+| `Resource_Fruit` | 빨간 열매가 달린 초록 덤불 |
+| `Resource_Crop` | 흙 두둑 위 황금 밀밭 |
+| `Resource_Animal` | 뿔 달린 사슴 |
+| `Resource_Metal` | 청록 광맥이 박힌 바위 노두 |
+| `Resource_Fish` | 물결 위 금빛 물고기 세 마리 |
+| `Lighthouse` | 빨간 띠를 두른 흰 등대 — **CSV에 적지 않음**, 맵 네 모서리에 자동 배치 |
+| `Ruin` | 무너진 돌기둥 |
+| `Starfish` | 주황 불가사리 |
+| `Resource_Food` / `Resource_Ore` | 예전 CSV 호환용 자원 Id — 버섯 군락 / 바위 노두 |
+
+모델은 `StructureAssetSetup`(Editor)이 Unity CLI로 구워 `Assets/Prefabs/Structures`에 저장합니다. 과일·작물·사냥감·
+물고기·등대·불가사리는 기성 모델이 없어 저폴리 조각(`ProceduralPropMeshes`)으로 조립한 것입니다.
 
 등록되지 않은 `StructureId`는 그리드 데이터에만 남고 화면에는 안 보입니다.
 

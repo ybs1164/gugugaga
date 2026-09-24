@@ -473,6 +473,11 @@ MonoBehaviour:
   resourceOreStructurePrefab: {fileID: 4512571588350856658, guid: 50db16c2934ad5045b40e5301756a9b1, type: 3}
   starfishStructurePrefab: {fileID: 1875322032826083348, guid: 02492dcd3649259499e2cae831f08ea3, type: 3}
   villageStructurePrefab: {fileID: 1881079094271407576, guid: a7c92eca2cf3b7a40ac551338e5cfb7c, type: 3}
+  resourceFruitStructurePrefab: {fileID: 494011258422860907, guid: ebe8b31ba91c66444b817506b538f7c9, type: 3}
+  resourceCropStructurePrefab: {fileID: 4900100617959737523, guid: b2b108f7b1af4df4a9314f9d91d66616, type: 3}
+  resourceAnimalStructurePrefab: {fileID: 6152665383921636006, guid: 90ce17974037eff4eb700491c4559a3f, type: 3}
+  resourceFishStructurePrefab: {fileID: 8259802154725215515, guid: befd811815a484c4cac93b4cae5c92ab, type: 3}
+  lighthouseStructurePrefab: {fileID: 7808326219430783214, guid: ddf1d80a346c2e2439e4db0ed3c60415, type: 3}
   meleePrefab: {fileID: 3471446425503980103, guid: d8194f771098d1b439fa576e372b0dea, type: 3}
   rangedPrefab: {fileID: 3193695033754148919, guid: 782917be00c5a4a41b9a6f9291fef2fd, type: 3}
   guardPrefab: {fileID: 7992524672913923911, guid: b6826f38ee08ecc418c04b11fe6aade3, type: 3}

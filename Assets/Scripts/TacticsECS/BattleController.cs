@@ -52,6 +52,16 @@ namespace TacticsECS
         [Tooltip("바이옴 CSV의 \"Village\" 구조물 및 외딴 섬 마을(StructureGenerationSystem.PlaceTinyIslandVillages) " +
             "모델. Assets/Prefabs/Structures/Structure_Village.prefab.")]
         [SerializeField] private GameObject villageStructurePrefab;
+        [Tooltip("\"Resource_Fruit\"(과일 덤불). Assets/Prefabs/Structures/Structure_ResourceFruit.prefab — StructureAssetSetup.GenerateProceduralStructures가 생성.")]
+        [SerializeField] private GameObject resourceFruitStructurePrefab;
+        [Tooltip("\"Resource_Crop\"(밀밭). Assets/Prefabs/Structures/Structure_ResourceCrop.prefab.")]
+        [SerializeField] private GameObject resourceCropStructurePrefab;
+        [Tooltip("\"Resource_Animal\"(사슴). Assets/Prefabs/Structures/Structure_ResourceAnimal.prefab.")]
+        [SerializeField] private GameObject resourceAnimalStructurePrefab;
+        [Tooltip("\"Resource_Fish\"(물고기 떼). Assets/Prefabs/Structures/Structure_ResourceFish.prefab.")]
+        [SerializeField] private GameObject resourceFishStructurePrefab;
+        [Tooltip("맵 네 모서리에 자동 배치되는 등대. Assets/Prefabs/Structures/Structure_Lighthouse.prefab.")]
+        [SerializeField] private GameObject lighthouseStructurePrefab;
 
         [Header("Unit Prefabs")]
         [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
@@ -474,12 +484,13 @@ namespace TacticsECS
             ["Ruin"] = ruinStructurePrefab,
             ["Resource_Food"] = resourceFoodStructurePrefab,
             ["Resource_Ore"] = resourceOreStructurePrefab,
-            // 9차 재정비 자원 Id — 전용 모델이 생기기 전까지 기존 식량/광물 모델을 공유한다. 물고기/등대는
-            // 프리팹이 없어 GridView가 StructureFallbackView로 코드 모델을 만든다.
-            ["Resource_Fruit"] = resourceFoodStructurePrefab,
-            ["Resource_Crop"] = resourceFoodStructurePrefab,
-            ["Resource_Animal"] = resourceFoodStructurePrefab,
+            ["Resource_Fruit"] = resourceFruitStructurePrefab,
+            ["Resource_Crop"] = resourceCropStructurePrefab,
+            ["Resource_Animal"] = resourceAnimalStructurePrefab,
+            ["Resource_Fish"] = resourceFishStructurePrefab,
+            // 광물은 기존 광물 노두 모델이 곧 광물 모델이다.
             ["Resource_Metal"] = resourceOreStructurePrefab,
+            [StructureGenerationSystem.LighthouseStructureId] = lighthouseStructurePrefab,
             ["Starfish"] = starfishStructurePrefab,
             [StructureGenerationSystem.VillageStructureId] = villageStructurePrefab
         };

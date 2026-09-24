@@ -567,8 +567,7 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   8방향으로도 닿지 않게 1칸 이상 간격. 본토 마을은 대륙마다 최소 1개. Pangea/Continents 본토 마을은 수도를 포함한 채
   지형 전에 포화 배치해 `plannedVillagePositions`로 반환(`preTerrainVillagePositions`에서 이름 변경).
 - **타일 Inner/Outer** — 수도 하나가 아니라 가장 가까운 도시(수도 + 사전 마을) 기준. 샘플 CSV `InnerRadius`는 1.
-- **표시** — `Ocean` 색, 자원 5종 정의/강조색, 새 자원은 기존 식량·광물 프리팹 공유, 물고기·등대는 코드 간이 모델
-  ([`View/StructureFallbackView.cs`](Assets/Scripts/TacticsECS/View/StructureFallbackView.cs)). 구조물 단계가 지형을 바꾸므로
+- **표시** — `Ocean` 색, 자원 5종 정의/강조색(전용 모델은 아래 "자원/등대 모델링" 절). 구조물 단계가 지형을 바꾸므로
   `BattleController`는 구조물 생성 뒤에 지형 표시를 갱신한다(예전엔 외딴 섬 마을이 물 색 위에 보였다).
 - **문서** — `docs/PolytopiaMapGeneration.md`(원문 ↔ 구현 대응표, 해석 규칙 12.2, 원문 요약의 교차 참조·외딴 섬 맵 타입 오류
   수정), `docs/BiomeCsvSandbox.md`(13필드 구조물 명세, 처리 단계, 자원 비율 환산법·종족 배수 적용법, 새 Id 목록),
@@ -580,6 +579,31 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   재현성으로 재작성. Terrain/Structure/UI 세 스위트 ALL PASS. 20x20 Continents/Lakes/Pangea 렌더 스크린샷으로 물고기·등대·
   깊은 바다·외딴 섬을 육안 확인(임시 스크립트는 삭제). 이 과정에서 등대가 자원에 모서리를 뺏겨 3개만 생기던 문제와
   물고기 모델이 물 타일에 묻혀 안 보이던 문제를 발견해 고쳤다.
+
+### 자원/등대 모델링 + 구조물 높이 버그 수정
+
+9차 재정비에서 새로 생긴 자원(과일/작물/사냥감/물고기)과 등대는 전용 모델이 없었다(식량 버섯 모델 공유, 물고기·등대는
+코드 간이 도형). 가져온 Kenney 메시 중 맞는 게 없고 새 에셋을 내려받지 않기 위해, 불가사리 별 메시와 같은 방식으로
+저폴리 조각을 절차 생성해 조립했다.
+
+- [`Editor/ProceduralPropMeshes.cs`](Assets/Editor/ProceduralPropMeshes.cs) — 단위 저폴리 메시 5종(상자/원기둥/가늘어지는
+  원기둥/원뿔/8각 구, flat shading)을 `Assets/Art/Procedural/*.asset`으로 저장(다시 구우면 내용만 갱신해 GUID 유지).
+- [`Editor/StructureAssetSetup.cs`](Assets/Editor/StructureAssetSetup.cs)의 `GenerateProceduralStructures`(`GenerateAll`에서도
+  호출) — 조각을 조립해 프리팹 5종을 굽고 Sandbox 씬 `BattleController`에 배정한다.
+  - `Structure_ResourceFruit`: 초록 덤불 3개 + 빨간 열매 12개.
+  - `Structure_ResourceCrop`: 흙 두둑 + 황금 이삭 20포기(위치/기울기를 고정 패턴으로 흐트러뜨림).
+  - `Structure_ResourceAnimal`: 사슴(몸통/다리/목/머리/꼬리/뿔) — 등각 카메라에 옆모습이 보이게 45도 돌려 세움.
+  - `Structure_ResourceFish`: 물결 고리 위 금빛 물고기 세 마리(한 마리는 튀어 오르는 자세).
+  - `Structure_Lighthouse`: 바위 받침 + 가늘어지는 흰 탑 + 빨간 띠 2줄 + 난간 + 등불 + 빨간 지붕.
+  - `Resource_Metal`은 기존 광물 노두(`Structure_ResourceOre`)를 그대로 쓴다.
+- `BattleController`에 프리팹 필드 5개를 추가하고 새 Id를 매핑했다. 임시 코드 모델 `View/StructureFallbackView.cs`는 삭제했다.
+- **구조물 높이 버그**: `GridView`가 구조물/숲·산 장식을 타일 기준 고정 높이 0.05에 얹었는데 타일 메시(`Tile_Land`/`Water`)
+  높이가 0.2라 **모든 구조물이 0.15씩 타일 속에 묻혀 있었다.** 키 큰 건물은 윗부분이 보여 티가 덜 났지만 납작한 불가사리는
+  아예 안 보였다. 이제 타일마다 렌더러 윗면 높이를 재서(`TopLocalY`) 그 위에 얹는다.
+- **불가사리 메시 버그**: 별 메시 삼각형이 위에서 봤을 때 반시계 방향이라 윗면이 뒷면으로 컬링되고 있었다 — 감김 방향을
+  뒤집어 다시 구웠다. 두 버그가 겹쳐 불가사리는 지금까지 한 번도 화면에 보이지 않았다.
+- **검증**: Unity CLI로 프리팹 생성 후, 구조물 10종을 한 줄로 늘어놓은 쇼케이스와 20x20 Pangea 등각 렌더로 육안 확인
+  (임시 스크립트는 삭제). Terrain/Structure/UI 검증 ALL PASS.
 
 
 ## 도시 발전 자원 (플레이스홀더)
@@ -654,6 +678,12 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-24: 자원/등대 모델링 + 구조물 높이 버그 수정.
+  - **동기**: "물고기 자원도 없지? 모델링 없는 자원들 전부 모델링 적용" 요청. 과일/작물/사냥감/물고기/등대 프리팹을
+    저폴리 조각 조립으로 새로 만들었다(위 "자원/등대 모델링" 절).
+  - 렌더 확인 중 구조물이 전부 타일 속에 0.15씩 묻혀 있던 문제와 불가사리 메시가 뒷면 컬링되던 문제를 발견해 함께 고쳤다.
+  - **검증**: Terrain/Structure/UI ALL PASS, 쇼케이스/전체 맵 렌더 육안 확인.
 
 - 2026-09-24: Polytopia 위키 기준 지형/건물 생성 전면 점검 (9차 재정비).
   - **동기**: "위키 기준으로 현재 지형 생성과 건물 생성에 어떤 문제가 있는지 체크" → 12개 항목(자원이 수도 주변에만 +

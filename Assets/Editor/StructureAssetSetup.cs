@@ -6,7 +6,7 @@ using UnityEngine;
 namespace TacticsECS.EditorTools
 {
     /// <summary>
-    /// 타일 위 구조물(수도/유적/자원/불가사리/마을) 프리팹 6종을 만들어주는 1회성 배치 도구. TileAssetSetup과
+    /// 타일 위 구조물(수도/마을/유적/자원/등대/불가사리) 프리팹을 만들어주는 1회성 배치 도구. TileAssetSetup과
     /// 같은 이유로 Unity CLI(-executeMethod)로만 실행한다(에디터 GUI 직접 조작 금지 — CLAUDE.md 규칙 1).
     /// 사용법: unity run . -- -executeMethod TacticsECS.EditorTools.StructureAssetSetup.GenerateAll
     ///
@@ -26,6 +26,11 @@ namespace TacticsECS.EditorTools
     ///   GridView.StructureLocalScale(0.85)을 곱해도 타일 발자국의 대부분을 채운다.
     /// - Starfish: Nature Kit에 적당한 기성 모델이 없어, 여기서 5각 별 모양 평면 메시를 직접 생성한다
     ///   (RuntimeSprite.CreateCircle처럼 절차적으로 만드는 선례를 3D 메시로 확장).
+    /// - Resource_Fruit/Crop/Animal/Fish, Lighthouse(9차 재정비 자원 + 등대): 가져온 Kenney 메시 중 맞는 게
+    ///   없어서 ProceduralPropMeshes의 단위 저폴리 조각(상자/원기둥/원뿔/구)을 조립한다 — 과일 덤불(초록 덤불 +
+    ///   빨간 열매), 밀밭(흙 + 황금 이삭 20포기), 사슴(몸통/다리/목/머리/뿔), 물고기 세 마리(몸통 + 꼬리지느러미 +
+    ///   물결 고리), 등대(바위 받침 + 가늘어지는 흰 탑 + 빨간 띠 + 등불 + 지붕). Resource_Metal은 광물 노두
+    ///   (Structure_ResourceOre)를 그대로 쓴다. GenerateProceduralStructures만 따로 실행해도 된다.
     ///
     /// 색은 TileAssetSetup과 같은 이유로 RuntimeMaterial.CreateColored로 타입별 단색을 입힌다(프로젝트
     /// 전체가 저폴리+단색 스타일이라 텍스처 매핑 없이도 스타일이 일관됨). Village만 벽/지붕 두 톤을 쓴다.
@@ -57,6 +62,19 @@ namespace TacticsECS.EditorTools
         private static readonly Color ResourceFoodColor = new Color(0.8f, 0.25f, 0.3f);   // 붉은 버섯
         private static readonly Color ResourceOreColor = new Color(0.3f, 0.75f, 0.75f);   // 청록 광물(Rock 지형의 회색과 구분)
         private static readonly Color StarfishColor = new Color(0.9f, 0.5f, 0.2f);        // 주황 불가사리
+        private static readonly Color BushColor = new Color(0.22f, 0.5f, 0.22f);          // 과일 덤불(숲 타일보다 밝게)
+        private static readonly Color FruitColor = new Color(0.9f, 0.18f, 0.2f);          // 빨간 열매
+        private static readonly Color SoilColor = new Color(0.45f, 0.3f, 0.18f);          // 밭 흙
+        private static readonly Color WheatColor = new Color(0.93f, 0.78f, 0.3f);         // 황금 이삭
+        private static readonly Color DeerColor = new Color(0.58f, 0.36f, 0.18f);         // 사슴 몸통
+        private static readonly Color AntlerColor = new Color(0.92f, 0.87f, 0.74f);       // 뿔/꼬리
+        private static readonly Color FishColor = new Color(1f, 0.72f, 0.25f);            // 물 위에서 잘 보이는 금빛 물고기
+        private static readonly Color FinColor = new Color(0.95f, 0.5f, 0.18f);           // 꼬리지느러미
+        private static readonly Color RippleColor = new Color(0.78f, 0.9f, 1f);           // 물결
+        private static readonly Color LighthouseColor = new Color(0.96f, 0.96f, 0.93f);   // 흰 탑
+        private static readonly Color LighthouseBandColor = new Color(0.82f, 0.16f, 0.13f); // 빨간 띠/지붕
+        private static readonly Color LampColor = new Color(1f, 0.9f, 0.4f);              // 등불
+        private static readonly Color BaseRockColor = new Color(0.52f, 0.52f, 0.55f);     // 받침 바위
 
         public static void GenerateAll()
         {
@@ -97,7 +115,220 @@ namespace TacticsECS.EditorTools
             if (capital != null && village != null && ruin != null && resourceFood != null && resourceOre != null && starfish != null)
                 AssignToSandboxScene(capital, village, ruin, resourceFood, resourceOre, starfish);
 
+            GenerateProceduralStructures();
             Debug.Log("[StructureAssetSetup] GenerateAll done");
+        }
+
+        /// <summary>기성 메시가 없는 구조물 5종(과일/작물/사냥감/물고기/등대)을 ProceduralPropMeshes 조각으로
+        /// 조립해 프리팹으로 저장하고 Sandbox 씬의 BattleController에 배정한다. 기존 6종 프리팹은 건드리지 않는다.
+        /// 사용법: unity run . -- -executeMethod TacticsECS.EditorTools.StructureAssetSetup.GenerateProceduralStructures
+        /// 좌표는 프리팹 원점 = 타일 윗면 중심, 타일 한 칸 = 1(GridView가 0.85배로 줄여 얹는다).</summary>
+        public static void GenerateProceduralStructures()
+        {
+            EnsureFolder("Assets", "Prefabs");
+            EnsureFolder("Assets/Prefabs", "Structures");
+            EnsureFolder("Assets", "Materials");
+
+            var fruit = SavePrefab(BuildFruitBush());
+            var crop = SavePrefab(BuildWheatField());
+            var animal = SavePrefab(BuildDeer());
+            var fish = SavePrefab(BuildFishSchool());
+            var lighthouse = SavePrefab(BuildLighthouse());
+            // 불가사리도 절차적 메시라 같이 다시 굽는다(별 메시 감김 방향 수정 반영 — 같은 경로라 씬 참조는 유지).
+            GenerateStarfishPrefab();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            if (fruit != null && crop != null && animal != null && fish != null && lighthouse != null)
+                AssignProceduralToSandboxScene(fruit, crop, animal, fish, lighthouse);
+            Debug.Log("[StructureAssetSetup] GenerateProceduralStructures done");
+        }
+
+        private static GameObject SavePrefab(GameObject root)
+        {
+            string path = $"{PrefabFolder}/{root.name}.prefab";
+            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        private static GameObject AddPart(Transform parent, Mesh mesh, Material material, Vector3 pos, Vector3 euler, Vector3 scale)
+        {
+            var go = new GameObject(mesh.name);
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(euler);
+            go.transform.localScale = scale;
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = material;
+            return go;
+        }
+
+        /// <summary>과일: 크기가 다른 초록 덤불 3개를 겹쳐 심고, 각 덤불 윗반구 표면에 빨간 열매를 박는다.</summary>
+        private static GameObject BuildFruitBush()
+        {
+            var root = new GameObject("Structure_ResourceFruit");
+            var sphere = ProceduralPropMeshes.Sphere();
+            var bushMat = GenerateOrLoadMaterial("Structure_ResourceFruit_Bush", BushColor);
+            var fruitMat = GenerateOrLoadMaterial("Structure_ResourceFruit", FruitColor);
+
+            var bushes = new[]
+            {
+                (center: new Vector3(-0.12f, 0.17f, -0.05f), radius: new Vector3(0.26f, 0.2f, 0.26f), fruits: 5),
+                (center: new Vector3(0.17f, 0.14f, 0.13f), radius: new Vector3(0.21f, 0.16f, 0.21f), fruits: 4),
+                (center: new Vector3(0.1f, 0.11f, -0.24f), radius: new Vector3(0.16f, 0.12f, 0.16f), fruits: 3),
+            };
+            foreach (var bush in bushes)
+            {
+                AddPart(root.transform, sphere, bushMat, bush.center, Vector3.zero, bush.radius);
+                for (int i = 0; i < bush.fruits; i++)
+                {
+                    // 방위각을 고르게 돌리고 높이각은 번갈아 — 윗반구 표면에 흩어 박는다.
+                    float azimuth = (i * 360f / bush.fruits + 20f) * Mathf.Deg2Rad;
+                    float elevation = (i % 2 == 0 ? 30f : 55f) * Mathf.Deg2Rad;
+                    var dir = new Vector3(Mathf.Cos(elevation) * Mathf.Cos(azimuth), Mathf.Sin(elevation), Mathf.Cos(elevation) * Mathf.Sin(azimuth));
+                    var surface = bush.center + Vector3.Scale(dir, bush.radius) * 0.95f;
+                    AddPart(root.transform, sphere, fruitMat, surface, Vector3.zero, Vector3.one * 0.05f);
+                }
+            }
+            return root;
+        }
+
+        /// <summary>작물: 흙 두둑 위에 4줄 x 5포기 황금 이삭(가는 원뿔)을 심는다 — 위치/기울기를 고정 패턴으로
+        /// 살짝씩 흐트러뜨려 기계적으로 줄 선 느낌을 줄인다.</summary>
+        private static GameObject BuildWheatField()
+        {
+            var root = new GameObject("Structure_ResourceCrop");
+            var soilMat = GenerateOrLoadMaterial("Structure_ResourceCrop_Soil", SoilColor);
+            var wheatMat = GenerateOrLoadMaterial("Structure_ResourceCrop", WheatColor);
+
+            AddPart(root.transform, ProceduralPropMeshes.Box(), soilMat, new Vector3(0f, 0.015f, 0f), new Vector3(0f, 12f, 0f), new Vector3(0.7f, 0.03f, 0.56f));
+            var cone = ProceduralPropMeshes.Cone();
+            var rotation = Quaternion.Euler(0f, 12f, 0f);
+            for (int row = 0; row < 4; row++)
+                for (int col = 0; col < 5; col++)
+                {
+                    float jitterX = ((row * 7 + col * 3) % 5 - 2) * 0.008f;
+                    float jitterZ = ((row * 3 + col * 5) % 5 - 2) * 0.008f;
+                    var pos = rotation * new Vector3(-0.26f + col * 0.13f + jitterX, 0.03f, -0.19f + row * 0.127f + jitterZ);
+                    float height = 0.24f + ((row + col) % 3) * 0.03f;
+                    var tilt = new Vector3(((row + col * 2) % 3 - 1) * 6f, 0f, ((row * 2 + col) % 3 - 1) * 6f);
+                    AddPart(root.transform, cone, wheatMat, pos, tilt, new Vector3(0.035f, height, 0.035f));
+                }
+            return root;
+        }
+
+        /// <summary>사냥감: 상자 몸통/다리/목/머리/꼬리 + 원뿔 뿔로 조립한 사슴 한 마리(등각 시점에서 옆모습이
+        /// 보이게 살짝 돌려 세운다). 머리는 +X 방향.</summary>
+        private static GameObject BuildDeer()
+        {
+            var root = new GameObject("Structure_ResourceAnimal");
+            var deer = new GameObject("Deer").transform;
+            deer.SetParent(root.transform, false);
+            deer.localRotation = Quaternion.Euler(0f, 45f, 0f); // 머리(+X)가 화면 오른쪽 아래를 향해 등각 카메라에 옆모습이 보이게
+
+            var box = ProceduralPropMeshes.Box();
+            var cone = ProceduralPropMeshes.Cone();
+            var bodyMat = GenerateOrLoadMaterial("Structure_ResourceAnimal", DeerColor);
+            var antlerMat = GenerateOrLoadMaterial("Structure_ResourceAnimal_Antler", AntlerColor);
+
+            AddPart(deer, box, bodyMat, new Vector3(0f, 0.31f, 0f), Vector3.zero, new Vector3(0.42f, 0.17f, 0.15f));
+            foreach (var (x, z) in new[] { (0.15f, 0.05f), (0.15f, -0.05f), (-0.15f, 0.05f), (-0.15f, -0.05f) })
+                AddPart(deer, box, bodyMat, new Vector3(x, 0.12f, z), Vector3.zero, new Vector3(0.045f, 0.24f, 0.045f));
+            AddPart(deer, box, bodyMat, new Vector3(0.21f, 0.43f, 0f), new Vector3(0f, 0f, -28f), new Vector3(0.075f, 0.2f, 0.075f));
+            AddPart(deer, box, bodyMat, new Vector3(0.29f, 0.53f, 0f), new Vector3(0f, 0f, -10f), new Vector3(0.15f, 0.085f, 0.085f));
+            AddPart(deer, box, antlerMat, new Vector3(-0.225f, 0.36f, 0f), new Vector3(0f, 0f, 20f), new Vector3(0.04f, 0.07f, 0.05f));
+            foreach (float side in new[] { 1f, -1f })
+            {
+                AddPart(deer, cone, antlerMat, new Vector3(0.26f, 0.57f, 0.03f * side), new Vector3(25f * side, 0f, 18f), new Vector3(0.018f, 0.16f, 0.018f));
+                AddPart(deer, cone, antlerMat, new Vector3(0.28f, 0.64f, 0.06f * side), new Vector3(55f * side, 0f, -10f), new Vector3(0.012f, 0.08f, 0.012f));
+            }
+            return root;
+        }
+
+        /// <summary>물고기: 납작한 타원체 몸통 + 원뿔을 눕혀 만든 부채꼴 꼬리지느러미 + 등지느러미 세 마리를 물
+        /// 위에 띄우고, 가운데에 옅은 물결 고리를 깐다. 한 마리는 튀어 오르는 자세로 기울인다.</summary>
+        private static GameObject BuildFishSchool()
+        {
+            var root = new GameObject("Structure_ResourceFish");
+            var sphere = ProceduralPropMeshes.Sphere();
+            var cone = ProceduralPropMeshes.Cone();
+            var bodyMat = GenerateOrLoadMaterial("Structure_ResourceFish", FishColor);
+            var finMat = GenerateOrLoadMaterial("Structure_ResourceFish_Fin", FinColor);
+            var rippleMat = GenerateOrLoadMaterial("Structure_ResourceFish_Ripple", RippleColor);
+
+            AddPart(root.transform, ProceduralPropMeshes.Cylinder(), rippleMat, Vector3.zero, Vector3.zero, new Vector3(0.38f, 0.01f, 0.38f));
+
+            var fishes = new[]
+            {
+                (pos: new Vector3(-0.16f, 0.09f, 0.14f), yaw: 20f, pitch: 0f, size: 1.45f),
+                (pos: new Vector3(0.2f, 0.09f, -0.02f), yaw: 150f, pitch: 0f, size: 1.25f),
+                (pos: new Vector3(-0.04f, 0.26f, -0.2f), yaw: -60f, pitch: 30f, size: 1.3f),
+            };
+            foreach (var f in fishes)
+            {
+                var fish = new GameObject("Fish").transform;
+                fish.SetParent(root.transform, false);
+                fish.localPosition = f.pos;
+                fish.localRotation = Quaternion.Euler(0f, f.yaw, f.pitch);
+                fish.localScale = Vector3.one * f.size;
+                AddPart(fish, sphere, bodyMat, Vector3.zero, Vector3.zero, new Vector3(0.14f, 0.06f, 0.055f));
+                // 원뿔을 Z축 -90도로 눕히면 꼭짓점이 +X(몸통 쪽)를 향하고 바닥 부채꼴이 뒤로 펼쳐진다. 로컬 X(반지름)가
+                // 세로 폭, 로컬 Z가 두께라 얇은 세로 지느러미가 된다.
+                AddPart(fish, cone, finMat, new Vector3(-0.22f, 0f, 0f), new Vector3(0f, 0f, -90f), new Vector3(0.065f, 0.1f, 0.012f));
+                AddPart(fish, cone, finMat, new Vector3(-0.01f, 0.04f, 0f), new Vector3(0f, 0f, 20f), new Vector3(0.035f, 0.05f, 0.008f));
+            }
+            return root;
+        }
+
+        /// <summary>등대: 바위 받침 위에 위로 갈수록 가늘어지는 흰 탑, 빨간 띠 두 줄, 난간, 노란 등불, 빨간 지붕.</summary>
+        private static GameObject BuildLighthouse()
+        {
+            var root = new GameObject("Structure_Lighthouse");
+            var sphere = ProceduralPropMeshes.Sphere();
+            var cylinder = ProceduralPropMeshes.Cylinder();
+            var cone = ProceduralPropMeshes.Cone();
+            var towerMat = GenerateOrLoadMaterial("Structure_Lighthouse", LighthouseColor);
+            var bandMat = GenerateOrLoadMaterial("Structure_Lighthouse_Band", LighthouseBandColor);
+            var lampMat = GenerateOrLoadMaterial("Structure_Lighthouse_Lamp", LampColor);
+            var rockMat = GenerateOrLoadMaterial("Structure_Lighthouse_Rock", BaseRockColor);
+
+            AddPart(root.transform, sphere, rockMat, new Vector3(0f, 0.02f, 0f), Vector3.zero, new Vector3(0.32f, 0.09f, 0.3f));
+            AddPart(root.transform, sphere, rockMat, new Vector3(0.2f, 0.02f, -0.14f), new Vector3(0f, 30f, 0f), new Vector3(0.13f, 0.07f, 0.11f));
+            // 탑: 바닥 반지름 0.15, 윗면 0.105(TaperedCylinder 70%), y 0.05~0.65.
+            AddPart(root.transform, ProceduralPropMeshes.TaperedCylinder(), towerMat, new Vector3(0f, 0.05f, 0f), Vector3.zero, new Vector3(0.15f, 0.6f, 0.15f));
+            // 띠: 그 높이의 탑 반지름(y 0.2 -> 0.139, y 0.45 -> 0.12)보다 살짝 크게.
+            AddPart(root.transform, cylinder, bandMat, new Vector3(0f, 0.17f, 0f), Vector3.zero, new Vector3(0.142f, 0.07f, 0.142f));
+            AddPart(root.transform, cylinder, bandMat, new Vector3(0f, 0.42f, 0f), Vector3.zero, new Vector3(0.124f, 0.07f, 0.124f));
+            AddPart(root.transform, cylinder, rockMat, new Vector3(0f, 0.65f, 0f), Vector3.zero, new Vector3(0.14f, 0.025f, 0.14f));
+            AddPart(root.transform, cylinder, lampMat, new Vector3(0f, 0.675f, 0f), Vector3.zero, new Vector3(0.075f, 0.1f, 0.075f));
+            AddPart(root.transform, cone, bandMat, new Vector3(0f, 0.775f, 0f), Vector3.zero, new Vector3(0.11f, 0.13f, 0.11f));
+            return root;
+        }
+
+        /// <summary>GenerateProceduralStructures가 만든 5종을 Sandbox 씬 BattleController에 배정한다.</summary>
+        private static void AssignProceduralToSandboxScene(GameObject fruit, GameObject crop, GameObject animal, GameObject fish, GameObject lighthouse)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) == null) return;
+
+            var scene = EditorSceneManager.OpenScene(SandboxScenePath);
+            var controller = Object.FindFirstObjectByType<BattleController>(FindObjectsInactive.Include);
+            if (controller == null)
+            {
+                Debug.LogError("[StructureAssetSetup] BattleController not found in " + SandboxScenePath);
+                return;
+            }
+
+            SetPrivateField(controller, "resourceFruitStructurePrefab", fruit);
+            SetPrivateField(controller, "resourceCropStructurePrefab", crop);
+            SetPrivateField(controller, "resourceAnimalStructurePrefab", animal);
+            SetPrivateField(controller, "resourceFishStructurePrefab", fish);
+            SetPrivateField(controller, "lighthouseStructurePrefab", lighthouse);
+
+            EditorUtility.SetDirty(controller);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
         }
 
         private static GameObject GenerateFromMesh(string prefabName, string meshPath, Color color)
@@ -262,8 +493,8 @@ namespace TacticsECS.EditorTools
             {
                 int next = i + 1 == points * 2 ? 0 : i + 1;
                 triangles[i * 3] = 0;
-                triangles[i * 3 + 1] = i + 1;
-                triangles[i * 3 + 2] = next + 1;
+                triangles[i * 3 + 1] = next + 1; // 위에서 봤을 때 시계 방향이어야 윗면이 앞면(예전엔 반대라 뒷면 컬링으로 안 보였다)
+                triangles[i * 3 + 2] = i + 1;
             }
 
             var mesh = new Mesh { name = "StarfishMesh" };

@@ -23,6 +23,11 @@ namespace TacticsECS
         public const string ForestTileId = "Forest";
         public const string MountainTileId = "Mountain";
 
+        /// <summary>깊은 바다 TileTypeId(9차 재정비 — 원문 3/9절의 얕은 물/깊은 바다 구분). 육지와 8방향으로
+        /// 맞닿지 않은 물 칸이 이 타일이 되고(ClassifyWaterDepth), 육지와 맞닿은 물 칸은 바이옴 CSV의 물
+        /// 타일(얕은 물) 그대로 남는다. TerrainType은 둘 다 Water.</summary>
+        public const string OceanTileId = "Ocean";
+
         /// <summary>Polytopia 기준 스폰 비율(3절, Luxidoor 기준값) — 육지 중 산 14%, 숲 38%, 나머지 평지.</summary>
         private const float BaseMountainFraction = 0.14f;
         private const float BaseForestFraction = 0.38f;
@@ -36,10 +41,20 @@ namespace TacticsECS
         /// <summary>수도끼리 최소 거리(체비쇼프) — 쿼드런트 중심부 샘플링과 함께 간격을 고르게 한다(12절 보강 1).</summary>
         private const int CapitalMinDistance = 3;
         /// <summary>수도/마을(모든 "도시")끼리 최소 거리(체비쇼프) — 2면 바로 인접(대각선 포함) 금지(12절 보강 4).
-        /// StructureGenerationSystem도 같은 값을 쓴다.</summary>
+        /// 원문 7.3절 "Pre-terrain 마을은 다른 마을로부터 2칸"(Suburb 포함)의 값이고, 모든 도시가 지키는 하한이다.</summary>
         public const int CityMinDistance = 2;
+        /// <summary>Post-terrain 마을(외딴 섬 마을, Pangea/Continents 본토 마을 포함)의 도시 간 최소 거리 —
+        /// 원문 7.4절 "다른 마을로부터 2칸 이내에 놓이면 안 됨" = 거리 3 이상. CSV MinDistance가 더 크면 그 값.</summary>
+        public const int PostTerrainCityMinDistance = 3;
+        /// <summary>Post-terrain 마을의 가장자리 여백(원문 7.4절 "맵 가장자리로부터 2칸 이내 금지").</summary>
+        public const int PostTerrainVillageEdgeMargin = 2;
         /// <summary>Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프).</summary>
         private const int SuburbRadius = 3;
+        /// <summary>수도마다 시도하는 Suburb 수 — 원문 "최대 2개, 보통 2개". 자리가 없을 때만 0~1개가 된다.</summary>
+        private const int SuburbsPerCapital = 2;
+        /// <summary>Continents 대륙 한 덩어리의 크기 범위(원문 7.5절 "30~200타일").</summary>
+        private const int ContinentMinSize = 30;
+        private const int ContinentMaxSize = 200;
         /// <summary>Pangea/Continents 수도 선택 시도 횟수 — 가장 고르게 퍼진(최소 쌍 거리가 가장 큰) 조합을 쓴다.</summary>
         private const int CapitalSelectionTrials = 12;
 
@@ -55,25 +70,29 @@ namespace TacticsECS
             MapShapeMode shapeMode = MapShapeMode.Freeform, float targetWaterFraction = 0.5f)
             => Generate(grid, biomes, seed, wetnessMultiplier, shapeMode, targetWaterFraction, out _, out _);
 
-        /// <summary>지형을 생성하고, 수도 앵커 + Suburb/Pre-terrain 마을 위치를 반환한다(7차 재정비 —
-        /// docs/PolytopiaMapGeneration.md 4절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
+        /// <summary>지형을 생성하고, 수도 앵커 + Suburb/사전 확정 마을 위치를 반환한다(7차 재정비 —
+        /// docs/PolytopiaMapGeneration.md 5절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
         /// 뒤 지형을 채운다). 파이프라인:
-        /// 1. 쿼드런트 앵커(수도 후보)를 먼저 뽑는다(GenerateQuadrantAnchors).
+        /// 1. 쿼드런트 맵이면 수도를 먼저 뽑는다(GenerateQuadrantAnchors).
         /// 2. Suburb/Pre-terrain 마을 위치를 지형 없이 먼저 정한다(PlanPreTerrainVillages) — 맵 타입별로
         ///    있을 수도/없을 수도 있다(7.1절 매트릭스).
         /// 3. 수도+Suburb+Pre-terrain 마을 위치 전부를 "반드시 육지가 되어야 할 칸"(guaranteedLand)으로
         ///    묶어, 지형 생성이 이 칸들을 육지로 보장하도록 한다 — shapeMode가 랜드마스 마스크 경로면
         ///    마스크 점수에 보너스를 줘서(GenerateMapShapeLandMask), Freeform이면 채우기 완료 후 강제로
         ///    덮어써서(ForceLandAt) 보장한다.
-        /// wetnessMultiplier는 Freeform 경로에서만 쓰이고(습도 프리셋 배율), 마스크 경로에서는
-        /// targetWaterFraction이 대신 목표 물 비율을 정한다.</summary>
+        /// 4. Pangea/Continents는 땅을 먼저 만든 뒤, 원문 7.5절대로 본토에 마을을 포화 배치하고 그중 일부를
+        ///    수도로 전환한다 — 수도가 되지 않은 본토 마을은 plannedVillagePositions로 반환된다.
+        /// 5. 마지막에 물 칸을 얕은 물/깊은 바다(Ocean)로 분류한다(ClassifyWaterDepth).
+        /// plannedVillagePositions = Lakes/Archipelago/Waterworld의 Pre-terrain 마을, 또는 Pangea/Continents의
+        /// 본토 마을(둘 다 "타일을 채우기 전에 위치가 확정된 마을"). wetnessMultiplier는 Freeform 경로에서만
+        /// 쓰이고(습도 프리셋 배율), 마스크 경로에서는 targetWaterFraction이 대신 목표 물 비율을 정한다.</summary>
         public static Vector2Int[] Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int seed, float wetnessMultiplier,
-            MapShapeMode shapeMode, float targetWaterFraction, out Vector2Int[] suburbPositions, out Vector2Int[] preTerrainVillagePositions)
+            MapShapeMode shapeMode, float targetWaterFraction, out Vector2Int[] suburbPositions, out Vector2Int[] plannedVillagePositions)
         {
             if (grid == null || biomes == null || biomes.Count == 0)
             {
                 suburbPositions = Array.Empty<Vector2Int>();
-                preTerrainVillagePositions = Array.Empty<Vector2Int>();
+                plannedVillagePositions = Array.Empty<Vector2Int>();
                 return Array.Empty<Vector2Int>();
             }
 
@@ -88,9 +107,42 @@ namespace TacticsECS
                 ? GenerateWithShape(grid, biomes, rng, shapeMode, targetWaterFraction, capitalAnchors, suburbs, preTerrain)
                 : GenerateFreeform(grid, biomes, rng, wetnessMultiplier, capitalAnchors, suburbs, preTerrain);
 
+            ClassifyWaterDepth(grid, biomes, result.Anchors);
+
             suburbPositions = result.Suburbs;
-            preTerrainVillagePositions = result.PreTerrain;
+            plannedVillagePositions = result.PreTerrain;
             return result.Anchors;
+        }
+
+        /// <summary>물 칸을 얕은 물/깊은 바다로 나눈다(원문 3/9/10절 — 물고기는 얕은 물, 유적은 깊은 바다).
+        /// 8방향 이웃 중 육지가 하나라도 있으면 얕은 물(그 칸 바이옴의 첫 물 타일 Id), 없으면 OceanTileId.
+        /// 지형이 바뀐 뒤(외딴 섬 마을/Lakes 육지 다리 등) 다시 불러도 되도록 양방향으로 갱신한다 —
+        /// StructureGenerationSystem도 재사용한다. 유닛이 점유한 칸은 건드리지 않는다.</summary>
+        public static void ClassifyWaterDepth(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Vector2Int[] anchors)
+        {
+            if (grid == null || biomes == null || biomes.Count == 0) return;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    if (grid.IsOccupied(pos) || grid.GetTerrain(pos) != TerrainType.Water) continue;
+
+                    bool nearLand = false;
+                    foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
+                        if (grid.GetTerrain(n) == TerrainType.Land) { nearLand = true; break; }
+
+                    string current = grid.GetTileType(pos);
+                    if (!nearLand)
+                    {
+                        if (current != OceanTileId) grid.SetTileType(pos, OceanTileId);
+                    }
+                    else if (current == OceanTileId || string.IsNullOrEmpty(current))
+                    {
+                        int biomeIdx = anchors == null || anchors.Length == 0 ? 0 : ProceduralGenerationUtil.NearestAnchorIndex(anchors, pos);
+                        string shallowId = FindFirstWaterTileId(biomes[Mathf.Clamp(biomeIdx, 0, biomes.Count - 1)]);
+                        if (shallowId != null) grid.SetTileType(pos, shallowId);
+                    }
+                }
         }
 
         /// <summary>자유 배치 경로(Drylands 포함 shapeMode==Freeform). 기존 쿼터 배치 + 나머지 채우기
@@ -107,14 +159,15 @@ namespace TacticsECS
             ClearGeneratedTiles(grid);
             var placedPositionsByType = BuildInitialPlacedPositions(grid);
 
+            var cities = Combine(capitalAnchors, suburbs, preTerrain);
             PlaceMinCountQuota(grid, effectiveBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
-            FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, capitalAnchors, placedPositionsByType, rng);
+            FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, cities, placedPositionsByType, rng);
 
             ForceLandAt(grid, biomes, biomeIndexPerCell, ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, suburbs, placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, preTerrain, placedPositionsByType);
 
-            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, Combine(capitalAnchors, suburbs, preTerrain), rng);
+            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, cities, rng);
             return (capitalAnchors, suburbs, preTerrain);
         }
 
@@ -172,18 +225,35 @@ namespace TacticsECS
             IReadOnlyList<BiomeCsvRow> biomes, Random rng, MapShapeMode mode, float waterFraction,
             Vector2Int[] capitalAnchors, Vector2Int[] suburbs, Vector2Int[] preTerrain)
         {
-            var shapeParams = GetShapeParams(mode, biomes.Count);
             var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), suburbs, preTerrain);
-            var landMask = GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, guaranteedLand);
+            // Continents는 원문 7.5절(대륙 30~200칸, 서로 1칸 이상 떨어짐, 개수는 인원/습도/맵 크기로 결정)대로
+            // 전용 대륙 성장 방식으로, 나머지는 공통 "방사형 감쇠 + 노이즈 순위 컷" 마스크로 만든다.
+            var landMask = mode == MapShapeMode.Continents
+                ? GenerateContinentsLandMask(grid, rng, waterFraction, biomes.Count)
+                : GenerateMapShapeLandMask(grid, rng, waterFraction, GetShapeParams(mode, biomes.Count), guaranteedLand);
 
-            // 쿼드런트로 미리 정한 수도가 있으면 그대로(안전망 스냅만), 없으면(Pangea/Continents) 만들어진 땅
-            // 위에서 수도를 고른다.
-            var anchors = capitalAnchors.Length > 0
-                ? SnapAllToLand(grid, capitalAnchors, landMask)
-                : SelectCapitalsOnLand(grid, landMask, biomes.Count, preferDistinctLandmass: mode == MapShapeMode.Continents, rng);
-            var snappedSuburbs = SnapAllToLand(grid, suburbs, landMask);
-            var snappedPreTerrain = SnapAllToLand(grid, preTerrain, landMask);
+            Vector2Int[] anchors, snappedSuburbs, snappedPreTerrain;
+            if (capitalAnchors.Length > 0)
+            {
+                // 쿼드런트로 미리 정한 수도/마을 — 마스크 컷에서 탈락했을 때의 안전망 스냅 후, 스냅으로 서로
+                // 붙어버린 마을은 버린다(간격 규칙이 스냅보다 우선).
+                anchors = SnapAllToLand(grid, capitalAnchors, landMask);
+                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, CityMinDistance);
+                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), CityMinDistance);
+            }
+            else
+            {
+                // Pangea/Continents(원문 7.5절 "본토에 마을을 포화 배치 -> 그중 일부를 수도로 전환"). 결과(수도도 마을
+                // 간격 규칙을 지키는 도시 중 하나)는 같게 유지하되 순서를 뒤집었다 — 수도를 먼저 육지 전체에서 고르고
+                // (서로 최대한 멀리 + 해안 선호 + Continents는 서로 다른 대륙), 그 수도들을 포함한 채 본토 마을을 포화
+                // 배치한다. 수도 후보를 이미 놓인 마을 칸으로만 제한하면 격자처럼 듬성한 후보 때문에 수도 간격이
+                // 눈에 띄게 좁아졌다(검증에서 1칸씩 모자람).
+                anchors = SelectCapitalsOnLand(grid, landMask, biomes.Count, preferDistinctLandmass: mode == MapShapeMode.Continents, rng);
+                snappedSuburbs = Array.Empty<Vector2Int>();
+                snappedPreTerrain = PlanVillagesOnLand(grid, landMask, ensureEveryLandmass: mode == MapShapeMode.Continents, anchors, rng);
+            }
             var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
+            var cities = Combine(anchors, snappedSuburbs, snappedPreTerrain);
 
             ClearGeneratedTiles(grid);
             var placedPositionsByType = BuildInitialPlacedPositions(grid);
@@ -193,9 +263,9 @@ namespace TacticsECS
             var landOnlyBiomes = StripWaterTiles(biomes);
             var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, biomes.Count);
             PlaceMinCountQuota(grid, landOnlyBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
-            FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, anchors, placedPositionsByType, rng);
+            FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, cities, placedPositionsByType, rng);
 
-            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, Combine(anchors, snappedSuburbs, snappedPreTerrain), rng);
+            ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, cities, rng);
             return (anchors, snappedSuburbs, snappedPreTerrain);
         }
 
@@ -206,6 +276,188 @@ namespace TacticsECS
             b.CopyTo(result, a.Length);
             c.CopyTo(result, a.Length + b.Length);
             return result;
+        }
+
+        private static Vector2Int[] Concat(Vector2Int[] a, Vector2Int[] b) => Combine(a, b, Array.Empty<Vector2Int>());
+
+        /// <summary>positions를 순서대로 보며, existing과 이미 통과한 칸 전부로부터 minDistance(체비쇼프) 이상인
+        /// 것만 남긴다(중복 칸도 여기서 걸러진다).</summary>
+        private static Vector2Int[] FilterBySpacing(Vector2Int[] positions, Vector2Int[] existing, int minDistance)
+        {
+            var kept = new List<Vector2Int>(existing);
+            var result = new List<Vector2Int>();
+            foreach (var p in positions)
+            {
+                if (IsWithinDistance(kept, p, minDistance)) continue;
+                kept.Add(p);
+                result.Add(p);
+            }
+            return result.ToArray();
+        }
+
+        /// <summary>Pangea/Continents 본토 마을(원문 7.5절) — 육지 칸을 셔플된 순서로 보며, 가장자리 여백
+        /// (PostTerrainVillageEdgeMargin)과 도시 간 간격(PostTerrainCityMinDistance, 이미 정해진 수도 포함)을 지키는
+        /// 칸에 더 이상 자리가 없을 때까지 마을을 놓는다. ensureEveryLandmass면(Continents "모든 대륙에 최소 1개
+        /// 마을") 포화 전에 아직 도시가 없는 대륙(4방향 연결 육지 덩어리)마다 하나씩 먼저 놓는다 — 작은 대륙은
+        /// 가장자리 여백을 풀어서라도 놓는다. 새로 놓은 마을만 반환한다.</summary>
+        private static Vector2Int[] PlanVillagesOnLand(GridWorld grid, bool[] landMask, bool ensureEveryLandmass, Vector2Int[] capitals, Random rng)
+        {
+            var landCells = new List<Vector2Int>();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (landMask[grid.Index(new Vector2Int(x, y))]) landCells.Add(new Vector2Int(x, y));
+            ProceduralGenerationUtil.Shuffle(landCells, rng);
+
+            var cities = new List<Vector2Int>(capitals);
+            var villages = new List<Vector2Int>();
+            if (ensureEveryLandmass)
+            {
+                var (componentPerCell, componentSizes) = LabelLandComponents(grid, landMask);
+                var covered = new HashSet<int>();
+                foreach (var c in capitals) covered.Add(componentPerCell[grid.Index(c)]);
+                for (int component = 1; component < componentSizes.Count; component++)
+                {
+                    if (covered.Contains(component)) continue;
+                    for (int margin = PostTerrainVillageEdgeMargin; margin >= 0; margin--)
+                    {
+                        Vector2Int? pick = null;
+                        foreach (var p in landCells)
+                        {
+                            if (componentPerCell[grid.Index(p)] != component) continue;
+                            if (ProceduralGenerationUtil.DistanceToEdge(grid, p) < margin) continue;
+                            if (IsWithinDistance(cities, p, PostTerrainCityMinDistance)) continue;
+                            pick = p;
+                            break;
+                        }
+                        if (!pick.HasValue) continue;
+                        villages.Add(pick.Value);
+                        cities.Add(pick.Value);
+                        break;
+                    }
+                }
+            }
+
+            foreach (var p in landCells)
+            {
+                if (ProceduralGenerationUtil.DistanceToEdge(grid, p) < PostTerrainVillageEdgeMargin) continue;
+                if (IsWithinDistance(cities, p, PostTerrainCityMinDistance)) continue;
+                villages.Add(p);
+                cities.Add(p);
+            }
+            return villages.ToArray();
+        }
+
+        /// <summary>Continents 전용 랜드마스 마스크(원문 7.5절). 대륙 수 = 인원 수를 기본으로 하되, 대륙 하나가
+        /// ContinentMinSize~ContinentMaxSize(30~200칸)가 되도록 목표 육지 면적(= 맵 x (1-물 비율))으로 제한한다
+        /// (예: 196칸 + 2명 + 물 절반 -> 대륙 2개 x 약 50칸). 대륙 씨앗은 서로 최대한 멀리(farthest-point) 뽑고,
+        /// 라운드 로빈으로 한 칸씩 노이즈 점수가 가장 높은 경계 칸을 붙여 키운다. 다른 대륙 칸과 8방향으로 맞닿는
+        /// 칸은 붙이지 않아 대륙끼리 항상 1칸 이상 물로 떨어진다(그 틈이 원문의 "1칸 폭 얕은 물 줄기(강)").</summary>
+        private static bool[] GenerateContinentsLandMask(GridWorld grid, Random rng, float waterFraction, int playerCount)
+        {
+            int total = grid.Width * grid.Height;
+            int landTarget = Mathf.Clamp(Mathf.RoundToInt(total * (1f - waterFraction)), 1, total);
+            int minCount = Mathf.Max(1, Mathf.CeilToInt(landTarget / (float)ContinentMaxSize));
+            int maxCount = Mathf.Max(minCount, landTarget / ContinentMinSize);
+            int continentCount = Mathf.Clamp(Mathf.Max(1, playerCount), minCount, maxCount);
+
+            // 씨앗: 가장자리 2칸 안쪽에서 첫 칸은 랜덤, 이후는 기존 씨앗들과의 최소 거리가 가장 큰 칸.
+            var seedCandidates = new List<Vector2Int>();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var p = new Vector2Int(x, y);
+                    if (ProceduralGenerationUtil.DistanceToEdge(grid, p) >= CapitalEdgeMargin) seedCandidates.Add(p);
+                }
+            if (seedCandidates.Count == 0)
+                for (int y = 0; y < grid.Height; y++)
+                    for (int x = 0; x < grid.Width; x++)
+                        seedCandidates.Add(new Vector2Int(x, y));
+            ProceduralGenerationUtil.Shuffle(seedCandidates, rng);
+
+            var seeds = new List<Vector2Int> { seedCandidates[0] };
+            while (seeds.Count < continentCount && seeds.Count < seedCandidates.Count)
+            {
+                Vector2Int best = seedCandidates[0];
+                float bestDist = -1f;
+                foreach (var c in seedCandidates)
+                {
+                    float d = MinEuclideanDistance(seeds, c);
+                    if (d > bestDist) { bestDist = d; best = c; }
+                }
+                seeds.Add(best);
+            }
+
+            int noiseSeedOffset = rng.Next(0, 1_000_000);
+            var scores = new float[total];
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    scores[grid.Index(new Vector2Int(x, y))] = NoiseSystem.Sample(x, y, frequency: 0.18f, octaves: 3, noiseSeedOffset) + (float)rng.NextDouble() * 0.2f;
+
+            var owner = new int[total];
+            for (int i = 0; i < total; i++) owner[i] = -1;
+            var targets = new int[seeds.Count];
+            var sizes = new int[seeds.Count];
+            var frontiers = new List<HashSet<Vector2Int>>();
+            for (int c = 0; c < seeds.Count; c++)
+            {
+                targets[c] = landTarget / seeds.Count + (c < landTarget % seeds.Count ? 1 : 0);
+                frontiers.Add(new HashSet<Vector2Int>());
+            }
+
+            bool CanJoin(Vector2Int p, int c)
+            {
+                if (owner[grid.Index(p)] != -1) return false;
+                foreach (var n in grid.GetNeighbors(p, allowDiagonal: true))
+                {
+                    int o = owner[grid.Index(n)];
+                    if (o != -1 && o != c) return false;
+                }
+                return true;
+            }
+
+            void Claim(Vector2Int p, int c)
+            {
+                owner[grid.Index(p)] = c;
+                sizes[c]++;
+                frontiers[c].Remove(p);
+                foreach (var n in grid.GetNeighbors(p, allowDiagonal: false))
+                    if (owner[grid.Index(n)] == -1) frontiers[c].Add(n);
+            }
+
+            for (int c = 0; c < seeds.Count; c++)
+                if (CanJoin(seeds[c], c)) Claim(seeds[c], c);
+
+            bool grew = true;
+            while (grew)
+            {
+                grew = false;
+                for (int c = 0; c < seeds.Count; c++)
+                {
+                    if (sizes[c] == 0 || sizes[c] >= targets[c]) continue;
+                    Vector2Int? pick = null;
+                    float pickScore = float.MinValue;
+                    var blocked = new List<Vector2Int>();
+                    foreach (var p in frontiers[c])
+                    {
+                        if (!CanJoin(p, c)) { blocked.Add(p); continue; }
+                        float s = scores[grid.Index(p)];
+                        // 동점일 때 결과가 HashSet 순회 순서에 좌우되지 않도록 좌표로 순서를 고정한다(시드 재현성).
+                        if (s > pickScore || (Mathf.Approximately(s, pickScore) && pick.HasValue && (p.y < pick.Value.y || (p.y == pick.Value.y && p.x < pick.Value.x))))
+                        {
+                            pickScore = s;
+                            pick = p;
+                        }
+                    }
+                    foreach (var b in blocked) frontiers[c].Remove(b);
+                    if (!pick.HasValue) continue;
+                    Claim(pick.Value, c);
+                    grew = true;
+                }
+            }
+
+            var mask = new bool[total];
+            for (int i = 0; i < total; i++) mask[i] = owner[i] != -1;
+            return mask;
         }
 
         /// <summary>중심점(들)로부터의 방사형 감쇠 + 노이즈를 섞어 칸마다 "육지 점수"를 매기고, 점수 상위
@@ -407,8 +659,9 @@ namespace TacticsECS
             {
                 foreach (var capital in capitalAnchors)
                 {
-                    int count = rng.Next(0, 3); // 0~2개(4.3절 "0개나 1개도 나올 수 있지만 보통 2개")
-                    for (int i = 0; i < count; i++)
+                    // 항상 2개를 시도한다(7.2절 "최대 2개, 보통 2개") — 0~1개는 자리가 없어 실패했을 때만 나온다
+                    // (그래서 원문처럼 작은 맵일수록 1개가 더 흔하다).
+                    for (int i = 0; i < SuburbsPerCapital; i++)
                     {
                         var pos = FindSuburbCell(grid, capital, reserved, rng);
                         if (!pos.HasValue) continue;
@@ -687,7 +940,8 @@ namespace TacticsECS
         /// 랜덤, 이후는 기존 수도들과의 최소 거리가 가장 큰 칸(farthest-point)을 고르고, 이를 여러 번 시도해 최소 쌍
         /// 거리가 가장 큰 조합을 채택(12절 보강 1), (b) 해안(물 인접) 선호 — 점수 보너스. Continents는 아직 수도가
         /// 없는 대륙에 큰 보너스를 줘 가능하면 서로 다른 대륙에 놓는다. 후보가 모자라면 조건을 풀고, 그래도
-        /// 모자라면 쿼드런트 방식으로 뽑아 그 3x3을 마스크에서 육지로 바꾼다.</summary>
+        /// 모자라면 쿼드런트 방식으로 뽑아 그 3x3을 마스크에서 육지로 바꾼다. 본토 마을은 이 수도들을 포함한 채
+        /// 나중에 포화 배치된다(PlanVillagesOnLand).</summary>
         private static Vector2Int[] SelectCapitalsOnLand(GridWorld grid, bool[] landMask, int count, bool preferDistinctLandmass, Random rng)
         {
             var (componentPerCell, componentSizes) = LabelLandComponents(grid, landMask);
@@ -928,11 +1182,13 @@ namespace TacticsECS
         }
 
         /// <summary>남은 빈 칸을 셔플된 순서로 순회하며, 제약(EdgeMargin/MinDistance/ExcludeAdjacent)을
-        /// 위반하는 후보를 제거하고 남은 후보를 앵커 기준 Inner/Outer 가중치 + 노이즈로 랜덤 선택한다.
+        /// 위반하는 후보를 제거하고 남은 후보를 Inner/Outer 가중치 + 노이즈로 랜덤 선택한다. Inner/Outer는
+        /// 가장 가까운 "이미 위치가 정해진 도시"(수도 + Suburb + 사전 확정 마을) 기준이다(원문 3절 "도시/마을에
+        /// 인접한 칸" — 예전엔 수도 하나만 기준이었다).
         /// 후보가 하나도 안 남으면 그 바이옴의 첫 엔트리로 폴백한다(완전히 막힌 칸도 항상 무언가로
         /// 채워지도록).</summary>
         private static void FillRemaining(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
-            Vector2Int[] anchors, Dictionary<string, List<Vector2Int>> placedPositionsByType, Random rng)
+            Vector2Int[] cities, Dictionary<string, List<Vector2Int>> placedPositionsByType, Random rng)
         {
             var emptyCells = new List<Vector2Int>();
             for (int y = 0; y < grid.Height; y++)
@@ -950,14 +1206,15 @@ namespace TacticsECS
                 int biomeIdx = biomeIndexPerCell[grid.Index(pos)];
                 var biome = biomes[biomeIdx];
                 if (biome.Tiles.Count == 0) continue;
-                var anchor = anchors[biomeIdx];
+                int distToCity = int.MaxValue;
+                foreach (var c in cities) distToCity = Mathf.Min(distToCity, ProceduralGenerationUtil.ChebyshevDistance(c, pos));
 
                 var candidates = new List<(BiomeTileEntry Entry, float Weight)>();
                 for (int i = 0; i < biome.Tiles.Count; i++)
                 {
                     var entry = biome.Tiles[i];
                     if (ViolatesConstraints(grid, pos, entry, placedPositionsByType)) continue;
-                    candidates.Add((entry, ComputeWeight(biome, i, entry, anchor, pos.x, pos.y)));
+                    candidates.Add((entry, ComputeWeight(biome, i, entry, distToCity, pos.x, pos.y)));
                 }
 
                 var chosen = candidates.Count == 0 ? biome.Tiles[0] : ProceduralGenerationUtil.WeightedPick(candidates, rng);
@@ -1025,14 +1282,13 @@ namespace TacticsECS
             return false;
         }
 
-        /// <summary>칸의 앵커(그 바이옴의 쿼드런트 시작점) 기준 체비쇼프 거리가 InnerRadius 이내면
+        /// <summary>칸에서 가장 가까운 도시까지의 체비쇼프 거리(distToCity)가 InnerRadius 이내면
         /// InnerWeight, 아니면 OuterWeight를 기준값으로 쓰고, 엔트리마다 독립된 노이즈(SeedOffset을
         /// 엔트리별로 다르게)로 한 번 더 보정한다 — 그래야 숲/모래 같은 타입이 한 칸씩 흩뿌려지지 않고
         /// 자연스럽게 뭉친 패치로 나온다.</summary>
-        private static float ComputeWeight(BiomeCsvRow biome, int entryIndex, BiomeTileEntry entry, Vector2Int anchor, int x, int y)
+        private static float ComputeWeight(BiomeCsvRow biome, int entryIndex, BiomeTileEntry entry, int distToCity, int x, int y)
         {
-            int distToAnchor = ProceduralGenerationUtil.ChebyshevDistance(anchor, new Vector2Int(x, y));
-            float baseWeight = distToAnchor <= biome.InnerRadius ? entry.InnerWeight : entry.OuterWeight;
+            float baseWeight = distToCity <= biome.InnerRadius ? entry.InnerWeight : entry.OuterWeight;
 
             float noise = NoiseSystem.Sample(x, y, biome.Frequency, biome.Octaves, biome.SeedOffset + entryIndex * 997);
             return Mathf.Max(0f, baseWeight) * (NoiseWeightFloor + noise);

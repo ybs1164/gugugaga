@@ -444,10 +444,12 @@ namespace TacticsECS
             float wetnessMultiplier = selectedWetness.Wetness / WetnessPresets[WetnessBaselineIndex].Wetness;
             int seed = System.Environment.TickCount;
             var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, shapeMode, selectedWetness.Wetness,
-                out var suburbPositions, out var preTerrainVillagePositions);
-            _gridView.RefreshTerrain(_grid);
+                out var suburbPositions, out var plannedVillagePositions);
+            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed, suburbPositions, plannedVillagePositions, shapeMode);
 
-            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed, suburbPositions, preTerrainVillagePositions, shapeMode);
+            // 구조물 단계가 지형을 바꿀 수 있으므로(외딴 섬 마을, Lakes 육지 다리, 얕은 물/깊은 바다 재분류)
+            // 지형 표시는 구조물 생성까지 끝난 뒤에 갱신한다.
+            _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
             _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, " +
@@ -472,6 +474,12 @@ namespace TacticsECS
             ["Ruin"] = ruinStructurePrefab,
             ["Resource_Food"] = resourceFoodStructurePrefab,
             ["Resource_Ore"] = resourceOreStructurePrefab,
+            // 9차 재정비 자원 Id — 전용 모델이 생기기 전까지 기존 식량/광물 모델을 공유한다. 물고기/등대는
+            // 프리팹이 없어 GridView가 StructureFallbackView로 코드 모델을 만든다.
+            ["Resource_Fruit"] = resourceFoodStructurePrefab,
+            ["Resource_Crop"] = resourceFoodStructurePrefab,
+            ["Resource_Animal"] = resourceFoodStructurePrefab,
+            ["Resource_Metal"] = resourceOreStructurePrefab,
             ["Starfish"] = starfishStructurePrefab,
             [StructureGenerationSystem.VillageStructureId] = villageStructurePrefab
         };

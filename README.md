@@ -538,6 +538,49 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   스위트 ALL PASS. 16x16 Lakes/Pangea/Waterworld 렌더 스크린샷으로 수도 간격·해안 수도·3x3 섬·숲/산 덩어리를 육안 확인
   (임시 스크립트는 확인 후 삭제).
 
+### Polytopia 위키 기준 전면 점검 — 구조물 단계화·자원·물 깊이·Continents (9차 재정비)
+
+[Polytopia Wiki 원문](https://polytopia.fandom.com/wiki/Map_Generation)과 현재 구현을 항목별로 대조해 찾은 문제를 전부
+고쳤다. 원문 규칙 ↔ 구현 대응표는 [`docs/PolytopiaMapGeneration.md`](docs/PolytopiaMapGeneration.md) 11절, 원문이 모호한
+부분의 해석은 12.2절.
+
+- **구조물을 원문 순서대로 단계별 배치**([`StructureGenerationSystem`](Assets/Scripts/TacticsECS/Systems/StructureGenerationSystem.cs)
+  전면 재작성) — 예전엔 마을/자원/유적/불가사리를 셔플된 한 번의 순회에서 가중치로 경쟁시켜, 자원을 놓을 때 마을이
+  아직 없었다. 이제 ① 수도 + 사전 마을 → ② Post-terrain 마을 포화(맵 전체 한 번 훑기) → 외딴 섬 마을 → Lakes 육로
+  보장 → ③ 물 깊이 재분류 → ④ 등대 → ⑤ 자원 → ⑥ 유적/불가사리.
+- **자원이 수도 주변에만 생기고 수도 바로 옆은 금지되던 문제** — 자원은 **모든 도시(수도 + 모든 마을)** 기준 거리
+  1(Inner)/2(Outer) 칸에만, CSV 신규 필드 `InnerRate`/`OuterRate` 비율만큼 쿼터로 배치(소수부는 확률적 반올림). 샘플 CSV의
+  자원은 원문 3절 표를 지형별 조건부 비율로 환산한 과일/작물/사냥감/광물/물고기 5종(`Resource_Fruit`/`Crop`/`Animal`/
+  `Metal`/`Fish`)으로 바꾸고, 수도 인접 배제를 없앴다. `Desert`는 사냥감 0.2배(Oumaji), `Highland`는 광물 1.5배(Xin-xi).
+- **얕은 물/깊은 바다** — 8방향에 육지가 없는 물 칸은 `Ocean` 타일(짙은 파랑)로 자동 분류(`TerrainGenerationSystem.ClassifyWaterDepth`).
+  물고기는 얕은 물, 바다 유적은 깊은 바다에만.
+- **유적** — 맵 전체 기준 크기별 고정 개수(4/5/7/9/11/23), 도시·유적과 8방향 인접 금지, Lakes 맵에서만 물 위 최대 1/3
+  (`MaxWaterFraction` → `MaxWaterFractionOnLakes`로 이름과 의미 변경).
+- **불가사리** — 맵 전체 물 25칸당 1개, 도시/등대/불가사리와 8방향 인접 금지. **등대**(`Lighthouse`)를 네 모서리에 추가.
+- **구조물 인접 배제가 4방향뿐이던 문제** — `ExcludeAdjacentStructures`는 이제 8방향.
+- **마을** — Suburb는 항상 2개 시도(예전: 0/1/2 균등), Post-terrain 계열(CSV 마을, 외딴 섬, 본토 마을)은 도시 간격 3
+  (`PostTerrainCityMinDistance`), Suburb/Pre-terrain은 2. 외딴 섬 마을은 Waterworld에도 생기고(원문 7.1절 표), 대각선까지 물로
+  둘러싸인 칸에만. 스냅으로 서로 붙은 사전 마을은 버린다.
+- **Lakes "모든 플레이어가 마을 2개와 육로 연결"** — 수도의 육지 덩어리에 마을이 2개 미만이면 가장 가까운 바깥 마을까지
+  최단 경로의 물을 육지로 바꿔 육지 다리를 놓는다.
+- **Continents** — 전용 대륙 성장 마스크(`GenerateContinentsLandMask`): 대륙 수 = 인원 수를 30~200칸 범위로 보정, 대륙끼리
+  8방향으로도 닿지 않게 1칸 이상 간격. 본토 마을은 대륙마다 최소 1개. Pangea/Continents 본토 마을은 수도를 포함한 채
+  지형 전에 포화 배치해 `plannedVillagePositions`로 반환(`preTerrainVillagePositions`에서 이름 변경).
+- **타일 Inner/Outer** — 수도 하나가 아니라 가장 가까운 도시(수도 + 사전 마을) 기준. 샘플 CSV `InnerRadius`는 1.
+- **표시** — `Ocean` 색, 자원 5종 정의/강조색, 새 자원은 기존 식량·광물 프리팹 공유, 물고기·등대는 코드 간이 모델
+  ([`View/StructureFallbackView.cs`](Assets/Scripts/TacticsECS/View/StructureFallbackView.cs)). 구조물 단계가 지형을 바꾸므로
+  `BattleController`는 구조물 생성 뒤에 지형 표시를 갱신한다(예전엔 외딴 섬 마을이 물 색 위에 보였다).
+- **문서** — `docs/PolytopiaMapGeneration.md`(원문 ↔ 구현 대응표, 해석 규칙 12.2, 원문 요약의 교차 참조·외딴 섬 맵 타입 오류
+  수정), `docs/BiomeCsvSandbox.md`(13필드 구조물 명세, 처리 단계, 자원 비율 환산법·종족 배수 적용법, 새 Id 목록),
+  `docs/TerrainGenerationSummary.md`(파이프라인 도식 + 단계별 요약) 전면 개정.
+- **검증** — `TerrainGenerationVerification`: 본토 마을 간격, 물 깊이 분류(전 맵 타입), Continents 모양(대각선 분리/200칸
+  이하/모든 대륙에 도시) 추가. `StructureGenerationVerification`: 자원이 모든 도시 주변(수도 옆 포함)에만, Inner/Outer 쿼터,
+  8방향 배제, 마을 포화(간격 3), Lakes 유적 물 비율, 유적 개수표, 등대 4개, 샘플 CSV 전 맵 타입 규칙(불가사리/유적/자원/
+  물고기), 외딴 섬 마을(Continents/Waterworld)과 게이팅, Lakes 육로 연결(생성 12맵 + 강제 섬 시나리오), 전 맵 타입 시드
+  재현성으로 재작성. Terrain/Structure/UI 세 스위트 ALL PASS. 20x20 Continents/Lakes/Pangea 렌더 스크린샷으로 물고기·등대·
+  깊은 바다·외딴 섬을 육안 확인(임시 스크립트는 삭제). 이 과정에서 등대가 자원에 모서리를 뺏겨 3개만 생기던 문제와
+  물고기 모델이 물 타일에 묻혀 안 보이던 문제를 발견해 고쳤다.
+
 
 ## 도시 발전 자원 (플레이스홀더)
 
@@ -611,6 +654,14 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-24: Polytopia 위키 기준 지형/건물 생성 전면 점검 (9차 재정비).
+  - **동기**: "위키 기준으로 현재 지형 생성과 건물 생성에 어떤 문제가 있는지 체크" → 12개 항목(자원이 수도 주변에만 +
+    수도 옆 금지, 구조물 단계 순서, 얕은 물/깊은 바다 없음, 자원 비율 모델, 유적 개수/인접, 불가사리 인접, 외딴 섬 마을
+    Waterworld 누락·대각선 판정, 마을 간격 불일치, Suburb 분포, Lakes 연결 보장 없음, Continents 모양, 부수 항목) 보고 후
+    "전부 차례대로 진행 + md 개선" 요청. 위 "9차 재정비" 절 참고.
+  - Fandom은 WebFetch에 402를 돌려줘서 MediaWiki API(`api.php?action=parse&prop=wikitext`)로 원문을 받았다.
+  - **검증**: Unity CLI 배치모드 Terrain/Structure/UI 검증 ALL PASS, 렌더 스크린샷 육안 확인.
 
 - 2026-09-23: 버그 수정 — 지형 생성(맵 크기 변경) 후 유닛 배치가 안 되던 문제.
   - **원인**: `UnitPlacementController`가 배치 단계 진입 시점의 `GridWorld`를 생성자에서 캐시했는데, "지형 생성"이

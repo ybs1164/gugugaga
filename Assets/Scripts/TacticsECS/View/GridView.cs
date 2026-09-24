@@ -106,8 +106,8 @@ namespace TacticsECS
         /// <summary>구조물(수도/유적/자원/불가사리, StructureGenerationSystem 참고) 오브젝트를 타일마다
         /// 다시 배치한다 — 이전 구조물을 지우고, grid.GetStructure(pos)가 있으면 그 프리팹을 타일의
         /// 자식으로 축소 인스턴스화한다. TileView(색상)와 완전히 별개 오브젝트라 하이라이트/색 로직에는
-        /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 조용히 건너뛴다(에셋 미배정 상태에서도
-        /// 예외 없이 동작).</summary>
+        /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 StructureFallbackView가 아는 Id(등대/물고기)면
+        /// 코드로 만든 간이 모델을, 모르는 Id면 아무것도 놓지 않는다(에셋 미배정 상태에서도 예외 없이 동작).</summary>
         public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType)
         {
             if (_structureObjects == null) _structureObjects = new GameObject[grid.Width * grid.Height];
@@ -127,7 +127,12 @@ namespace TacticsECS
 
                     var structureId = grid.GetStructure(pos);
                     if (string.IsNullOrEmpty(structureId)) continue;
-                    if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null) continue;
+                    if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null)
+                    {
+                        // 프리팹이 없는 구조물(등대/물고기)은 코드로 만든 간이 모델로 대신한다(없는 Id면 null).
+                        _structureObjects[index] = StructureFallbackView.Create(structureId, _tileViews[index].transform, StructureLocalHeight);
+                        continue;
+                    }
 
                     var structureGo = Object.Instantiate(prefab, _tileViews[index].transform);
                     structureGo.name = "Structure_" + structureId;

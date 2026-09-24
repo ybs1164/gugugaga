@@ -29,7 +29,9 @@ namespace TacticsECS.EditorTools
                       VerifyGuaranteedLandAtReservedPositions() &
                       VerifyCapitalPlacementRules() &
                       VerifyCitiesNeverAdjacent() &
-                      VerifyForestMountainLayer();
+                      VerifyForestMountainLayer() &
+                      VerifyWaterDepthClassification() &
+                      VerifyContinentsShape();
             Debug.Log(ok ? "[TerrainGenerationVerification] ALL PASS" : "[TerrainGenerationVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -95,10 +97,11 @@ namespace TacticsECS.EditorTools
                             Mathf.Approximately(sa.Weight, sb.Weight) && sa.MinCount == sb.MinCount &&
                             Mathf.Approximately(sa.CountPerTiles, sb.CountPerTiles) &&
                             sa.MinDistance == sb.MinDistance && sa.EdgeMargin == sb.EdgeMargin &&
-                            sa.MaxDistanceFromAnchor == sb.MaxDistanceFromAnchor &&
-                            sa.MaxWaterFraction.HasValue == sb.MaxWaterFraction.HasValue &&
-                            (!sa.MaxWaterFraction.HasValue || Mathf.Approximately(sa.MaxWaterFraction.Value, sb.MaxWaterFraction.Value)) &&
+                            sa.MaxDistanceFromCity == sb.MaxDistanceFromCity &&
+                            sa.MaxWaterFractionOnLakes.HasValue == sb.MaxWaterFractionOnLakes.HasValue &&
+                            (!sa.MaxWaterFractionOnLakes.HasValue || Mathf.Approximately(sa.MaxWaterFractionOnLakes.Value, sb.MaxWaterFractionOnLakes.Value)) &&
                             sa.FillRemaining == sb.FillRemaining &&
+                            Mathf.Approximately(sa.InnerRate, sb.InnerRate) && Mathf.Approximately(sa.OuterRate, sb.OuterRate) &&
                             string.Join("|", sa.ExcludeAdjacentStructures) == string.Join("|", sb.ExcludeAdjacentStructures);
                         if (!structureSame) { same = false; break; }
                     }
@@ -332,11 +335,11 @@ namespace TacticsECS.EditorTools
 
             var dryGrid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(dryGrid, biomes, seed: 999, wetnessMultiplier: 0.1f);
-            int dryWaterCount = CountTileType(dryGrid, "Water");
+            int dryWaterCount = CountTerrain(dryGrid, TerrainType.Water); // 얕은 물 + 깊은 바다(Ocean) 전부
 
             var wetGrid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(wetGrid, biomes, seed: 999, wetnessMultiplier: 3.0f);
-            int wetWaterCount = CountTileType(wetGrid, "Water");
+            int wetWaterCount = CountTerrain(wetGrid, TerrainType.Water);
 
             bool ok = wetWaterCount > dryWaterCount;
             if (!ok)
@@ -344,6 +347,15 @@ namespace TacticsECS.EditorTools
             else
                 Debug.Log($"[TerrainGenerationVerification] wetness multiplier PASS (dry={dryWaterCount}, wet={wetWaterCount})");
             return ok;
+        }
+
+        private static int CountTerrain(GridWorld grid, TerrainType terrain)
+        {
+            int count = 0;
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    if (grid.GetTerrain(new Vector2Int(x, y)) == terrain) count++;
+            return count;
         }
 
         private static int CountTileType(GridWorld grid, string tileType)
@@ -591,8 +603,9 @@ namespace TacticsECS.EditorTools
             bool ok = true;
 
             ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f, seed: 601);
-            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f, seed: 602);
-            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, seed: 603);
+            // Pangea/Continents는 Suburb/Pre-terrain이 없고, 대신 본토 마을이 사전 확정 마을로 반환된다(7.5절).
+            ok &= VerifyMainlandVillages(biomes, TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f, seed: 602);
+            ok &= VerifyMainlandVillages(biomes, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, seed: 603);
 
             ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f, seed: 604, expectSuburbs: true);
             ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f, seed: 605, expectSuburbs: true);
@@ -612,6 +625,30 @@ namespace TacticsECS.EditorTools
                 Debug.LogError($"[TerrainGenerationVerification] {mode} should have no Suburb/Pre-terrain villages, got suburbs={suburbs.Length} preTerrain={preTerrain.Length}");
             else
                 Debug.Log($"[TerrainGenerationVerification] {mode} pre-terrain village absence PASS");
+            return ok;
+        }
+
+        /// <summary>Pangea/Continents 본토 마을(원문 7.5절) — Suburb 없음, 본토 마을이 존재하고 수도와 서로 모두
+        /// Post-terrain 간격(3) 이상, 전부 육지 위.</summary>
+        private static bool VerifyMainlandVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed)
+        {
+            var grid = new GridWorld(20, 20, 1f);
+            var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
+                out var suburbs, out var mainland);
+
+            bool ok = true;
+            if (suburbs.Length != 0) { Debug.LogError($"[TerrainGenerationVerification] {mode} should have no suburbs, got {suburbs.Length}"); ok = false; }
+            if (mainland.Length == 0) { Debug.LogError($"[TerrainGenerationVerification] {mode} produced no mainland villages"); ok = false; }
+            var all = new List<Vector2Int>(anchors);
+            all.AddRange(mainland);
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (grid.GetTerrain(all[i]) != TerrainType.Land) { Debug.LogError($"[TerrainGenerationVerification] {mode} city {all[i]} not on land"); ok = false; }
+                for (int j = i + 1; j < all.Count; j++)
+                    if (ProceduralGenerationUtil.ChebyshevDistance(all[i], all[j]) < TerrainGenerationSystem.PostTerrainCityMinDistance)
+                    { Debug.LogError($"[TerrainGenerationVerification] {mode} cities {all[i]} and {all[j]} closer than {TerrainGenerationSystem.PostTerrainCityMinDistance}"); ok = false; }
+            }
+            if (ok) Debug.Log($"[TerrainGenerationVerification] {mode} mainland villages PASS ({mainland.Length} villages, {anchors.Length} capitals)");
             return ok;
         }
 
@@ -900,6 +937,108 @@ namespace TacticsECS.EditorTools
 
             if (ok) Debug.Log($"[TerrainGenerationVerification] forest/mountain layer PASS (quota mountain={mountains}, forest={forests} of {landCells}; sample mountain={sampleMountains}, forest={sampleForests})");
             return ok;
+        }
+
+        /// <summary>9차 재정비 — 모든 맵 타입에서 물 칸은 8방향에 육지가 있으면 얕은 물(바이옴 물 타일), 없으면
+        /// 깊은 바다(Ocean)여야 한다(구조물 단계가 지형을 바꾼 뒤까지 포함).</summary>
+        private static bool VerifyWaterDepthClassification()
+        {
+            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            bool ok = true;
+            int seed = 1001, ocean = 0, shallow = 0;
+            foreach (var (mode, water) in AllModes)
+            {
+                var grid = new GridWorld(20, 20, 1f);
+                int s = seed++;
+                var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, mode, water, out var suburbs, out var planned);
+                StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, mode);
+                for (int y = 0; y < grid.Height; y++)
+                    for (int x = 0; x < grid.Width; x++)
+                    {
+                        var pos = new Vector2Int(x, y);
+                        if (grid.GetTerrain(pos) != TerrainType.Water) continue;
+                        bool nearLand = false;
+                        foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
+                            if (grid.GetTerrain(n) == TerrainType.Land) nearLand = true;
+                        bool isOcean = grid.GetTileType(pos) == TerrainGenerationSystem.OceanTileId;
+                        if (isOcean) ocean++; else shallow++;
+                        if (isOcean == nearLand)
+                        { Debug.LogError($"[TerrainGenerationVerification] {mode} seed={s}: water {pos} tile={grid.GetTileType(pos)} but nearLand={nearLand}"); ok = false; }
+                    }
+            }
+            if (ocean == 0 || shallow == 0) { Debug.LogError($"[TerrainGenerationVerification] water depth: expected both kinds (ocean={ocean}, shallow={shallow})"); ok = false; }
+            if (ok) Debug.Log($"[TerrainGenerationVerification] water depth classification PASS (shallow={shallow}, ocean={ocean})");
+            return ok;
+        }
+
+        /// <summary>Continents(원문 7.5절) — 대륙끼리 대각선으로도 맞닿지 않고(8방향 덩어리 수 = 4방향 덩어리 수),
+        /// 대륙 하나가 200칸을 넘지 않으며, 구조물까지 생성한 뒤 모든 대륙에 도시가 최소 1개 있어야 한다.</summary>
+        private static bool VerifyContinentsShape()
+        {
+            bool ok = true;
+            int seed = 1101, maps = 0;
+            foreach (int biomeCount in new[] { 2, 4 })
+            {
+                var biomes = SampleBiomesOfCount(biomeCount);
+                foreach (int size in MapSizes)
+                    for (int rep = 0; rep < 2; rep++)
+                    {
+                        var grid = new GridWorld(size, size, 1f);
+                        int s = seed++;
+                        var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, out var suburbs, out var planned);
+                        StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);
+                        maps++;
+                        string tag = $"Continents {size}x{size} biomes={biomeCount} seed={s}";
+
+                        var (labels4, sizes4) = LabelComponents(grid, diagonal: false);
+                        var (_, sizes8) = LabelComponents(grid, diagonal: true);
+                        // 외딴 섬 마을(1칸 섬)은 8방향이 전부 물이라 이 비교에 영향이 없다.
+                        if (sizes4.Count != sizes8.Count)
+                        { Debug.LogError($"[TerrainGenerationVerification] {tag}: continents touch diagonally ({sizes4.Count} vs {sizes8.Count} components)"); ok = false; }
+                        foreach (var continentSize in sizes4)
+                            if (continentSize > 200) { Debug.LogError($"[TerrainGenerationVerification] {tag}: continent of {continentSize} tiles (>200)"); ok = false; }
+
+                        var hasCity = new bool[sizes4.Count];
+                        for (int y = 0; y < size; y++)
+                            for (int x = 0; x < size; x++)
+                            {
+                                var p = new Vector2Int(x, y);
+                                var id = grid.GetStructure(p);
+                                if ((id == StructureGenerationSystem.CapitalStructureId || id == StructureGenerationSystem.VillageStructureId) && labels4[grid.Index(p)] >= 0)
+                                    hasCity[labels4[grid.Index(p)]] = true;
+                            }
+                        for (int c = 0; c < hasCity.Length; c++)
+                            if (!hasCity[c]) { Debug.LogError($"[TerrainGenerationVerification] {tag}: a continent of {sizes4[c]} tiles has no city"); ok = false; }
+                    }
+            }
+            if (ok) Debug.Log($"[TerrainGenerationVerification] Continents shape PASS ({maps} maps: separated, <=200 tiles, every continent has a city)");
+            return ok;
+        }
+
+        private static (int[] Labels, List<int> Sizes) LabelComponents(GridWorld grid, bool diagonal)
+        {
+            var labels = new int[grid.Width * grid.Height];
+            for (int i = 0; i < labels.Length; i++) labels[i] = -1;
+            var sizes = new List<int>();
+            var stack = new Stack<Vector2Int>();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var start = new Vector2Int(x, y);
+                    if (grid.GetTerrain(start) != TerrainType.Land || labels[grid.Index(start)] >= 0) continue;
+                    int id = sizes.Count, size = 0;
+                    labels[grid.Index(start)] = id;
+                    stack.Push(start);
+                    while (stack.Count > 0)
+                    {
+                        var p = stack.Pop();
+                        size++;
+                        foreach (var n in grid.GetNeighbors(p, diagonal))
+                            if (grid.GetTerrain(n) == TerrainType.Land && labels[grid.Index(n)] < 0) { labels[grid.Index(n)] = id; stack.Push(n); }
+                    }
+                    sizes.Add(size);
+                }
+            return (labels, sizes);
         }
     }
 }

@@ -17,7 +17,8 @@ namespace TacticsECS
     /// (docs/PolytopiaMapGeneration.md 기준 2차 재정비 — BiomeCsvRow.cs 필드별 주석 참고).
     /// Structures 컬럼도 같은 구분자 체계를 재사용한다 — 엔트리 필드 순서(구조물 갭 보강 반영):
     /// StructureId:AllowedTileTypes(파이프):Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:
-    /// MaxDistanceFromAnchor:MaxWaterFraction:FillRemaining:ExcludeAdjacentStructures(파이프).
+    /// MaxDistanceFromCity:MaxWaterFractionOnLakes:FillRemaining:ExcludeAdjacentStructures(파이프):InnerRate:OuterRate
+    /// (9차 재정비 — 뒤 두 필드는 자원 비율. 없으면 0이라 예전 CSV도 그대로 읽힌다).
     /// MountainRate/ForestRate(8차 재정비, 숲/산 레이어 배수)는 맨 뒤 컬럼이라 두 컬럼이 없는 예전 CSV도
     /// 그대로 읽힌다(없으면 0 = 레이어 없음).
     /// </summary>
@@ -153,10 +154,12 @@ namespace TacticsECS
                     CountPerTiles = ParseFloat(FieldCol(f, 4)),
                     MinDistance = ParseInt(FieldCol(f, 5)),
                     EdgeMargin = ParseInt(FieldCol(f, 6)),
-                    MaxDistanceFromAnchor = ParseInt(FieldCol(f, 7)),
-                    MaxWaterFraction = ParseFloatOrNull(FieldCol(f, 8)),
+                    MaxDistanceFromCity = ParseInt(FieldCol(f, 7)),
+                    MaxWaterFractionOnLakes = ParseFloatOrNull(FieldCol(f, 8)),
                     FillRemaining = ParseInt(FieldCol(f, 9)) != 0,
-                    ExcludeAdjacentStructures = ParseExclude(FieldCol(f, 10))
+                    ExcludeAdjacentStructures = ParseExclude(FieldCol(f, 10)),
+                    InnerRate = ParseFloat(FieldCol(f, 11)),
+                    OuterRate = ParseFloat(FieldCol(f, 12))
                 });
             }
             return result;
@@ -177,10 +180,12 @@ namespace TacticsECS
             entry.CountPerTiles.ToString(CultureInfo.InvariantCulture),
             entry.MinDistance.ToString(CultureInfo.InvariantCulture),
             entry.EdgeMargin.ToString(CultureInfo.InvariantCulture),
-            entry.MaxDistanceFromAnchor.ToString(CultureInfo.InvariantCulture),
-            entry.MaxWaterFraction.HasValue ? entry.MaxWaterFraction.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
+            entry.MaxDistanceFromCity.ToString(CultureInfo.InvariantCulture),
+            entry.MaxWaterFractionOnLakes.HasValue ? entry.MaxWaterFractionOnLakes.Value.ToString(CultureInfo.InvariantCulture) : string.Empty,
             entry.FillRemaining ? "1" : "0",
-            entry.ExcludeAdjacentStructures == null ? string.Empty : string.Join(ExcludeSeparator.ToString(), entry.ExcludeAdjacentStructures)
+            entry.ExcludeAdjacentStructures == null ? string.Empty : string.Join(ExcludeSeparator.ToString(), entry.ExcludeAdjacentStructures),
+            entry.InnerRate.ToString(CultureInfo.InvariantCulture),
+            entry.OuterRate.ToString(CultureInfo.InvariantCulture)
         });
 
         private static string[] ParseExclude(string s) =>
@@ -195,7 +200,7 @@ namespace TacticsECS
         private static int ParseInt(string s) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
         private static float ParseFloat(string s) => float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0f;
 
-        /// <summary>MaxWaterFraction처럼 "비워두면 제약 없음"을 null로 표현하는 필드용 — 빈 문자열이면
+        /// <summary>MaxWaterFractionOnLakes처럼 "비워두면 제약 없음"을 null로 표현하는 필드용 — 빈 문자열이면
         /// null, 숫자면 그 값을 쓴다.</summary>
         private static float? ParseFloatOrNull(string s) =>
             string.IsNullOrEmpty(s) ? (float?)null : ParseFloat(s);

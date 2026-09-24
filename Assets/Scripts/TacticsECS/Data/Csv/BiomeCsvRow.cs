@@ -24,9 +24,9 @@ namespace TacticsECS
         /// CSV로 직접 지정하는 값이다.</summary>
         public int SeedOffset;
 
-        /// <summary>이 바이옴의 앵커(쿼드런트 내 랜덤 지점, Polytopia의 "수도" 역할 —
-        /// TerrainGenerationSystem.AssignBiomeRegions 참고)로부터 이 반경(체비쇼프 거리) 이내를
-        /// "Inner"로, 그 밖을 "Outer"로 취급한다. BiomeTileEntry.InnerWeight/OuterWeight 참고.</summary>
+        /// <summary>가장 가까운 도시(수도 + 지형 전에 위치가 정해진 마을)로부터 이 반경(체비쇼프 거리) 이내를
+        /// "Inner"로, 그 밖을 "Outer"로 취급한다(원문 3절의 Inner City = 도시에 인접 = 1). 타일 가중치
+        /// BiomeTileEntry.InnerWeight/OuterWeight에만 쓰인다 — 자원의 Inner/Outer는 항상 거리 1/2 고정.</summary>
         public int InnerRadius;
 
         /// <summary>산 스폰 배수(Polytopia 종족 배수와 같은 의미, docs/PolytopiaMapGeneration.md 4/12.1절).
@@ -39,8 +39,8 @@ namespace TacticsECS
 
         public List<BiomeTileEntry> Tiles = new List<BiomeTileEntry>();
 
-        /// <summary>타일 자체가 아니라 타일 "위에" 얹히는 구조물(자원/유적/불가사리) 생성 규칙 —
-        /// docs/PolytopiaMapGeneration.md 3/9/10절. 수도(Capital)는 이 목록이 아니라 바이옴 앵커에
+        /// <summary>타일 자체가 아니라 타일 "위에" 얹히는 구조물(Post-terrain 마을/자원/유적/불가사리) 생성 규칙 —
+        /// docs/PolytopiaMapGeneration.md 3/7/9/10절. 수도(Capital)와 등대(Lighthouse)는 이 목록이 아니라
         /// 자동으로 배치된다(Systems/StructureGenerationSystem.cs 참고).</summary>
         public List<BiomeStructureEntry> Structures = new List<BiomeStructureEntry>();
     }
@@ -79,52 +79,61 @@ namespace TacticsECS
         public string[] ExcludeAdjacent;
     }
 
-    /// <summary>타일 위에 얹히는 구조물(수도/유적/자원/불가사리/마을) 하나의 생성 규칙. BiomeTileEntry와
+    /// <summary>타일 위에 얹히는 구조물(마을/자원/유적/불가사리) 하나의 생성 규칙. BiomeTileEntry와
     /// 같은 제약 어휘(Weight/MinCount/CountPerTiles/MinDistance/EdgeMargin)를 재사용하되, TerrainType
-    /// 대신 "어떤 TileTypeId 위에만 놓일 수 있는가"(AllowedTileTypes)를 갖는다 — 구조물은 이동 판정을
-    /// 바꾸지 않는 순수 시각 요소라 TerrainType이 필요 없다. docs/PolytopiaMapGeneration.md 3/9/10/11절
-    /// 갭 보강(자원-수도 근접 제약/구조물 간 인접 배제/포화 채우기/유적 물 비율 상한)으로 4개 필드 추가.</summary>
+    /// 대신 "어떤 TileTypeId 위에만 놓일 수 있는가"(AllowedTileTypes)를 갖는다. 엔트리는 성격에 따라
+    /// StructureGenerationSystem의 서로 다른 단계에서 처리된다(docs/PolytopiaMapGeneration.md 5절 순서):
+    /// (1) 도시(Village) + FillRemaining -> 마을 단계(포화 채우기), (2) InnerRate/OuterRate가 있는 엔트리 ->
+    /// 자원 단계(모든 도시 2칸 이내, 비율 쿼터), (3) 나머지 -> 유적/불가사리 단계(맵 전체 목표 개수).</summary>
     public struct BiomeStructureEntry
     {
         public string StructureId;
 
         /// <summary>이 구조물이 놓일 수 있는 TileTypeId 목록(파이프 구분). 비어있으면 어떤 타일에도
-        /// 놓이지 않는다(오타 방지 — "전체 허용"을 원하면 그 바이옴의 모든 TileId를 명시해야 한다).</summary>
+        /// 놓이지 않는다(오타 방지 — "전체 허용"을 원하면 그 바이옴의 모든 TileId를 명시해야 한다).
+        /// 깊은 바다는 "Ocean"(TerrainGenerationSystem.OceanTileId), 얕은 물은 바이옴의 물 타일 Id다.</summary>
         public string[] AllowedTileTypes;
 
+        /// <summary>같은 칸을 두고 여러 개수 기반 엔트리가 경쟁할 때의 가중치(자원 단계에서는 무시).</summary>
         public float Weight;
         public int MinCount;
 
         /// <summary>0보다 크면 "이 바이옴 영역 안에서 AllowedTileTypes에 해당하는 칸 수 / 이 값"
-        /// 개수만큼(반올림) 목표를 늘린다 — 예를 들어 Starfish는 AllowedTileTypes=Water이므로 이 값이
-        /// "물 타일 몇 칸당 하나"를 뜻하게 된다(Polytopia의 "물 타일 25칸당 불가사리 1개" 규칙과 같은
-        /// 기준). MinCount와 비교해 더 큰 쪽을 쓴다.</summary>
+        /// 개수만큼(반올림) 목표를 늘린다 — 예를 들어 Starfish는 AllowedTileTypes=Water|Ocean이므로 이 값이
+        /// "물 타일 몇 칸당 하나"를 뜻하게 된다(Polytopia의 "물 타일 25칸당 불가사리 1개" 규칙). 바이옴별
+        /// 목표를 맵 전체로 합산해 한 번에 배치한다. MinCount와 비교해 더 큰 쪽을 쓴다. 단 "Ruin"은
+        /// 원문의 맵 크기별 고정 개수표를 쓴다(StructureGenerationSystem.RuinCounts).</summary>
         public float CountPerTiles;
 
+        /// <summary>같은 StructureId끼리 유지해야 하는 최소 거리(체비쇼프, 맵 전체 기준). 0이면 제약 없음.</summary>
         public int MinDistance;
         public int EdgeMargin;
 
-        /// <summary>0보다 크면 바이옴 앵커(수도 위치)로부터 이 거리(체비쇼프) 이내에만 배치 가능 —
-        /// Polytopia의 "자원은 항상 도시/마을 2칸 이내에서만 스폰" 규칙(3절). 0이면 제약 없음.</summary>
-        public int MaxDistanceFromAnchor;
+        /// <summary>0보다 크면 가장 가까운 도시(수도/마을)로부터 이 거리(체비쇼프) 이내에만 배치 가능.
+        /// 0이면 제약 없음. 자원(InnerRate/OuterRate) 엔트리는 이 값과 무관하게 항상 원문대로 도시 2칸 이내다.</summary>
+        public int MaxDistanceFromCity;
 
-        /// <summary>이 구조물이 물(TerrainType.Water) 타일에 배치되는 비율의 상한(0~1). 예: 0.34 ->
-        /// 이 구조물 중 최대 약 1/3까지만 물 위에 배치(Polytopia의 "Lakes 맵은 유적 최대 1/3만 물 위"
-        /// 규칙, 9절). null(비워두면/설정 안 하면) = 제약 없음. 일부러 float?(nullable)로 뒀다 — 0f를
-        /// "제약 없음"의 기본값으로 쓰면 CSV를 거치지 않고 이 구조체를 직접 만들 때(코드/테스트) 아무
-        /// 값도 안 넣은 게 곧 "물에는 무조건 0%만 허용"으로 오인되는 함정이 있었다(구조물 갭 보강 중
-        /// 발견/수정 — Starfish가 항상 물 위에도 못 놓이던 버그).</summary>
-        public float? MaxWaterFraction;
+        /// <summary>Lakes 맵에서만 적용되는, 이 구조물이 물(TerrainType.Water) 위에 놓이는 비율의 상한(0~1).
+        /// 예: 0.34 -> 최대 약 1/3까지만 물 위(원문 9절 "Lakes 맵은 유적 최대 1/3만 물 위" — 다른 맵 타입은
+        /// 제한 없음). null(비워두면) = 제약 없음. 0f를 "제약 없음"으로 쓰면 코드로 직접 만든 엔트리에서
+        /// "물에는 0%만 허용"으로 오인되는 함정이 있어 nullable로 둔다.</summary>
+        public float? MaxWaterFractionOnLakes;
 
-        /// <summary>true면 MinCount/CountPerTiles로 정한 목표 개수를 무시하고, 제약(EdgeMargin/
-        /// MinDistance/MaxDistanceFromAnchor/ExcludeAdjacentStructures)을 만족하는 칸이 남지 않을
-        /// 때까지 계속 배치한다 — Polytopia의 "Post-terrain 마을: 더 이상 넣을 자리가 없을 때까지 채움"
+        /// <summary>true면 MinCount/CountPerTiles로 정한 목표 개수를 무시하고, 제약을 만족하는 칸이 남지
+        /// 않을 때까지 계속 배치한다 — Polytopia의 "Post-terrain 마을: 더 이상 넣을 자리가 없을 때까지 채움"
         /// 규칙(7.4절)을 일반화한 것.</summary>
         public bool FillRemaining;
 
-        /// <summary>이 구조물과 바로 인접(상하좌우)할 수 없는 다른 StructureId 목록(파이프 구분) —
-        /// 예를 들어 유적/불가사리가 수도 바로 옆에 놓이지 않게 "Capital"을 지정한다(9/10절 "다른
-        /// 유적이나 마을과 바로 인접 불가"). 비어있으면 제약 없음.</summary>
+        /// <summary>이 구조물과 바로 인접(8방향, 대각선 포함)할 수 없는 다른 StructureId 목록(파이프 구분) —
+        /// 예: 유적은 "Capital|Village"(원문 9절 "마을과 바로 인접 불가"), 불가사리는
+        /// "Capital|Village|Lighthouse"(10절). 비어있으면 제약 없음.</summary>
         public string[] ExcludeAdjacentStructures;
+
+        /// <summary>자원 엔트리 전용(둘 중 하나라도 0보다 크면 자원으로 취급) — 도시(수도/마을)에 바로 인접한
+        /// 칸(Inner, 거리 1)과 거리 2인 칸(Outer) 중, AllowedTileTypes에 해당하는 칸의 몇 비율(0~1)을 이
+        /// 자원으로 채울지. 원문 3절 표를 지형별 조건부 비율로 바꾼 값이다(예: 과일 = 평지 Inner 18%/48% =
+        /// 0.375, Outer 6%/48% = 0.125). 같은 타일 타입을 공유하는 자원이 여럿이면 CSV 순서대로 쿼터를 떼어 간다.</summary>
+        public float InnerRate;
+        public float OuterRate;
     }
 }

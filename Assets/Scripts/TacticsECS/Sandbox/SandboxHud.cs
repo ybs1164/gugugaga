@@ -65,6 +65,12 @@ namespace TacticsECS
             ["Ruin"] = new Color(0.6f, 0.6f, 0.6f),
             ["Resource_Food"] = new Color(0.8f, 0.25f, 0.3f),
             ["Resource_Ore"] = new Color(0.3f, 0.75f, 0.75f),
+            ["Resource_Fruit"] = new Color(0.8f, 0.25f, 0.3f),
+            ["Resource_Crop"] = new Color(0.85f, 0.75f, 0.3f),
+            ["Resource_Animal"] = new Color(0.6f, 0.45f, 0.3f),
+            ["Resource_Metal"] = new Color(0.3f, 0.75f, 0.75f),
+            ["Resource_Fish"] = new Color(1f, 0.85f, 0.3f),
+            ["Lighthouse"] = new Color(0.95f, 0.95f, 0.9f),
             ["Starfish"] = new Color(0.9f, 0.5f, 0.2f),
         };
 

@@ -35,6 +35,7 @@ namespace TacticsECS
             ["Rock"] = new Color(0.55f, 0.55f, 0.55f),
             ["Snow"] = new Color(0.92f, 0.94f, 0.96f),
             ["Water"] = ColorWater,
+            [TerrainGenerationSystem.OceanTileId] = new Color(0.12f, 0.26f, 0.62f),
         };
 
         /// <summary>terrain/tileTypeId는 하이라이트가 없을 때(TileHighlight.None) 보여줄 기본 색을

@@ -958,7 +958,7 @@ namespace TacticsECS.EditorTools
                         var pos = new Vector2Int(x, y);
                         if (grid.GetTerrain(pos) != TerrainType.Water) continue;
                         bool nearLand = false;
-                        foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
+                        foreach (var n in grid.GetNeighbors(pos, allowDiagonal: false))
                             if (grid.GetTerrain(n) == TerrainType.Land) nearLand = true;
                         bool isOcean = grid.GetTileType(pos) == TerrainGenerationSystem.OceanTileId;
                         if (isOcean) ocean++; else shallow++;

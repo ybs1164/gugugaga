@@ -90,7 +90,7 @@ TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:Ed
 - 가중치는 노이즈로 한 번 더 보정되어 최종 확률이 됩니다(`TerrainGenerationSystem.ComputeWeight`).
 - **물 타일 규칙은 Drylands에서만 그대로 쓰입니다.** 나머지 맵 타입은 대륙 모양(랜드마스 마스크)이 육지/바다를 먼저
   정하고, 바다 칸은 그 바이옴의 첫 번째 `Water` 타일로 채웁니다.
-- **얕은 물 / 깊은 바다**: 생성이 끝나면, 8방향으로 육지와 맞닿은 물 칸은 바이옴의 물 타일(예: `Water`, 얕은 물)로
+- **얕은 물 / 깊은 바다**: 생성이 끝나면, 상하좌우 4방향으로 육지와 맞닿은 물 칸은 바이옴의 물 타일(예: `Water`, 얕은 물)로
   남고, 육지와 닿지 않은 물 칸은 자동으로 `Ocean`(깊은 바다)이 됩니다. 물고기는 얕은 물, 바다 유적은 깊은 바다에
   놓으려면 이 두 Id를 `AllowedTileTypes`에서 구분해 쓰면 됩니다.
 

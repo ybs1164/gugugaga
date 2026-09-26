@@ -552,7 +552,7 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   1(Inner)/2(Outer) 칸에만, CSV 신규 필드 `InnerRate`/`OuterRate` 비율만큼 쿼터로 배치(소수부는 확률적 반올림). 샘플 CSV의
   자원은 원문 3절 표를 지형별 조건부 비율로 환산한 과일/작물/사냥감/광물/물고기 5종(`Resource_Fruit`/`Crop`/`Animal`/
   `Metal`/`Fish`)으로 바꾸고, 수도 인접 배제를 없앴다. `Desert`는 사냥감 0.2배(Oumaji), `Highland`는 광물 1.5배(Xin-xi).
-- **얕은 물/깊은 바다** — 8방향에 육지가 없는 물 칸은 `Ocean` 타일(짙은 파랑)로 자동 분류(`TerrainGenerationSystem.ClassifyWaterDepth`).
+- **얕은 물/깊은 바다** — 상하좌우 4방향에 육지가 없는 물 칸은 `Ocean` 타일(짙은 파랑)로 자동 분류(`TerrainGenerationSystem.ClassifyWaterDepth`).
   물고기는 얕은 물, 바다 유적은 깊은 바다에만.
 - **유적** — 맵 전체 기준 크기별 고정 개수(4/5/7/9/11/23), 도시·유적과 8방향 인접 금지, Lakes 맵에서만 물 위 최대 1/3
   (`MaxWaterFraction` → `MaxWaterFractionOnLakes`로 이름과 의미 변경).
@@ -678,6 +678,10 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   `Assets/Scenes/Sandbox.unity`에만 배정되어 있다.
 
 ## 작업 로그
+
+- 2026-09-26: 해안(얕은 물) 판정을 8방향 → 상하좌우 4방향으로 변경.
+  - `TerrainGenerationSystem.ClassifyWaterDepth`가 대각선 이웃을 보지 않는다 — 육지와 대각선으로만 닿는 물 칸은 이제
+    깊은 바다(`Ocean`). 검증(`TerrainGenerationVerification` 물 깊이 분류)과 문서(README/docs)의 판정 기준도 4방향으로 맞췄다.
 
 - 2026-09-24: 자원/등대 모델링 + 구조물 높이 버그 수정.
   - **동기**: "물고기 자원도 없지? 모델링 없는 자원들 전부 모델링 적용" 요청. 과일/작물/사냥감/물고기/등대 프리팹을

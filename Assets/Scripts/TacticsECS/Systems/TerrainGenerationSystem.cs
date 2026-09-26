@@ -23,8 +23,8 @@ namespace TacticsECS
         public const string ForestTileId = "Forest";
         public const string MountainTileId = "Mountain";
 
-        /// <summary>깊은 바다 TileTypeId(9차 재정비 — 원문 3/9절의 얕은 물/깊은 바다 구분). 육지와 8방향으로
-        /// 맞닿지 않은 물 칸이 이 타일이 되고(ClassifyWaterDepth), 육지와 맞닿은 물 칸은 바이옴 CSV의 물
+        /// <summary>깊은 바다 TileTypeId(9차 재정비 — 원문 3/9절의 얕은 물/깊은 바다 구분). 육지와 상하좌우
+        /// 4방향으로 맞닿지 않은 물 칸이 이 타일이 되고(ClassifyWaterDepth), 육지와 맞닿은 물 칸은 바이옴 CSV의 물
         /// 타일(얕은 물) 그대로 남는다. TerrainType은 둘 다 Water.</summary>
         public const string OceanTileId = "Ocean";
 
@@ -115,7 +115,8 @@ namespace TacticsECS
         }
 
         /// <summary>물 칸을 얕은 물/깊은 바다로 나눈다(원문 3/9/10절 — 물고기는 얕은 물, 유적은 깊은 바다).
-        /// 8방향 이웃 중 육지가 하나라도 있으면 얕은 물(그 칸 바이옴의 첫 물 타일 Id), 없으면 OceanTileId.
+        /// 상하좌우 4방향 이웃 중 육지가 하나라도 있으면 얕은 물(그 칸 바이옴의 첫 물 타일 Id), 없으면 OceanTileId —
+        /// 대각선으로만 육지에 닿는 물 칸은 깊은 바다다.
         /// 지형이 바뀐 뒤(외딴 섬 마을/Lakes 육지 다리 등) 다시 불러도 되도록 양방향으로 갱신한다 —
         /// StructureGenerationSystem도 재사용한다. 유닛이 점유한 칸은 건드리지 않는다.</summary>
         public static void ClassifyWaterDepth(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Vector2Int[] anchors)
@@ -128,7 +129,7 @@ namespace TacticsECS
                     if (grid.IsOccupied(pos) || grid.GetTerrain(pos) != TerrainType.Water) continue;
 
                     bool nearLand = false;
-                    foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
+                    foreach (var n in grid.GetNeighbors(pos, allowDiagonal: false))
                         if (grid.GetTerrain(n) == TerrainType.Land) { nearLand = true; break; }
 
                     string current = grid.GetTileType(pos);

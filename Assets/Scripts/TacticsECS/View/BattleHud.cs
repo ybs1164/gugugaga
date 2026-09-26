@@ -39,6 +39,9 @@ namespace TacticsECS
             "Assets/Fonts/Jua-Regular.ttf. UIPrefabSetup.GenerateAll이 채운다.")]
         [SerializeField] private Font uiFont;
 
+        /// <summary>코드로 계층을 만드는 다른 View(ActionMenuHud)가 같은 한글 폰트를 쓰도록 공유한다.</summary>
+        public Font UiFont => uiFont;
+
         /// <summary>턴 배지/유닛 패널 강조색과 같은 값. BattleController가 행동 로그 문구를 팀 색으로
         /// 칠할 때도 이 상수를 그대로 재사용한다(FormatLogEntry) — 팀 색이 여러 곳에 따로 적히지 않도록.</summary>
         public static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);

@@ -5,7 +5,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 대기(회복) 행동. 이번 턴 유닛의 행동을 종료하고 체력을 회복한다.
-    /// 기본 2 회복, 자기 영토 내에서는 4 회복(영토 개념은 현재 플레이스홀더).
+    /// 기본 2 회복, 자기 영토(도시 영토, CitySystem) 안에서는 4 회복.
     /// 턴 종료 시 행동하지 않은(HasActed=false) 유닛은 자동으로 이 행동이 적용된다.
     /// 모든 유닛이 기본적으로 이 행동을 보유한다.
     /// </summary>
@@ -42,14 +42,12 @@ namespace TacticsECS
         }
 
         /// <summary>
-        /// 자기 영토 내에 위치하는지 여부.
-        /// 영토(Territory) 시스템은 현재 플레이스홀더 상태이므로 항상 false를 반환한다.
-        /// 향후 타일 소유권/영토 시스템이 구현되면 해당 타일이 아군 영토인지 판정하여 4 회복을 적용할 수 있다.
+        /// 자기 영토 내에 위치하는지 여부 — 서 있는 칸의 TileData.OwnerTeam(도시 영토, CitySystem이 채움)이
+        /// 유닛의 팀과 같으면 true. 도시가 없는 씬(SampleScene)에서는 모든 칸이 중립이라 항상 false.
         /// </summary>
         public static bool IsInOwnTerritory(GridWorld grid, EntityWorld world, int unitId)
         {
-            // 플레이스홀더: 영토 시스템 미구현
-            return false;
+            return CitySystem.IsOwnTerritory(grid, world.Get<Team>(unitId), world.Get<GridPosition>(unitId).Value);
         }
     }
 }

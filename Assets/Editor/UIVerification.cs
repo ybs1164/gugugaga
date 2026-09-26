@@ -161,9 +161,9 @@ namespace TacticsECS.EditorTools
                     }
                 }
 
-                CheckSlot("Development", "2");
+                CheckSlot("Development", "2 (+1)");
                 CheckSlot("Population", "3/10");
-                CheckSlot("Gold", "5");
+                CheckSlot("Gold", "5 (+1)");
                 CheckSlot("Faith", "4/10");
             }
             finally
@@ -186,13 +186,14 @@ namespace TacticsECS.EditorTools
 
             try
             {
-                instance.Init();
+                var nodes = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
+                instance.Init(nodes);
 
                 var tech = TechTreeData.CreateEmpty();
-                tech.Unlocked.Add(TechId.Mountaineering);
+                tech.Unlocked.Add("Mountaineering");
                 var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
                 city.Development = 10;
-                instance.SetState(tech, city);
+                instance.SetState(tech, city, cityCount: 1);
 
                 var tree = instance.transform.Find("Canvas/Panel/Tree");
                 var detail = instance.transform.Find("Canvas/Panel/Detail");
@@ -200,8 +201,8 @@ namespace TacticsECS.EditorTools
                 var statusText = detail.Find("Status").GetComponent<Text>();
                 var unlockButton = detail.Find("UnlockButton").GetComponent<Button>();
 
-                // 선행 기술(등산)이 해금되어 있고 발전도(10)가 비용(5)보다 많은 2티어 노드 -> 해금 가능해야 한다.
-                tree.Find(TechId.Meditation.ToString()).GetComponent<Button>().onClick.Invoke();
+                // 선행 기술(등산)이 해금되어 있고 발전도(10)가 비용(2x1+4=6)보다 많은 2티어 노드 -> 해금 가능해야 한다.
+                tree.Find("Meditation").GetComponent<Button>().onClick.Invoke();
                 if (!nameText.text.Contains("명상") || !unlockButton.interactable)
                 {
                     Debug.LogError($"[UIVerification] TechTreePanel: expected Meditation to be unlockable, name='{nameText.text}', interactable={unlockButton.interactable}, status='{statusText.text}'");
@@ -209,7 +210,7 @@ namespace TacticsECS.EditorTools
                 }
 
                 // 선행 기술(명상)이 아직 해금되지 않은 3티어 노드 -> 해금 불가여야 한다.
-                tree.Find(TechId.Philosophy.ToString()).GetComponent<Button>().onClick.Invoke();
+                tree.Find("Philosophy").GetComponent<Button>().onClick.Invoke();
                 if (unlockButton.interactable || !statusText.text.Contains("선행 기술"))
                 {
                     Debug.LogError($"[UIVerification] TechTreePanel: expected Philosophy to require a prerequisite, interactable={unlockButton.interactable}, status='{statusText.text}'");
@@ -217,11 +218,11 @@ namespace TacticsECS.EditorTools
                 }
 
                 // 해금 버튼 클릭 -> OnUnlockRequested(Meditation) 발생 확인.
-                TechId requested = TechId.None;
+                string requested = null;
                 instance.OnUnlockRequested += id => requested = id;
-                tree.Find(TechId.Meditation.ToString()).GetComponent<Button>().onClick.Invoke();
+                tree.Find("Meditation").GetComponent<Button>().onClick.Invoke();
                 unlockButton.onClick.Invoke();
-                if (requested != TechId.Meditation)
+                if (requested != "Meditation")
                 {
                     Debug.LogError($"[UIVerification] TechTreePanel: expected OnUnlockRequested(Meditation), got {requested}");
                     ok = false;

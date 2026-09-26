@@ -64,9 +64,11 @@ namespace TacticsECS
         /// 것과 같은 방식으로, 호출자(BattleController)가 계산해서 넘긴다.</summary>
         public void SetResources(CityResourceData city, int populationUsed)
         {
-            _developmentText.text = city.Development.ToString();
+            // 발전도/골드는 "보유량 (+턴당 생산량)" — 생산량은 도시 목록으로 매번 다시 계산되는 값이라
+            // (CityResourceSystem.RefreshProduction) 옆에 같이 보여줘야 건설/점령 효과가 바로 읽힌다.
+            _developmentText.text = city.DevelopmentProduction > 0 ? $"{city.Development} (+{city.DevelopmentProduction})" : city.Development.ToString();
             _populationText.text = $"{populationUsed}/{city.PopulationCap}";
-            _goldText.text = city.Gold.ToString();
+            _goldText.text = city.GoldProduction > 0 ? $"{city.Gold} (+{city.GoldProduction})" : city.Gold.ToString();
             _faithText.text = $"{city.Faith}/{city.MaxFaith}";
         }
     }

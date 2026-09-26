@@ -39,5 +39,11 @@ namespace TacticsECS
         /// <summary>Transport(수송) 패시브가 있을 때만 쓰이는 정원 값. 아직 태우고 내리는 시스템 자체가
         /// 없는 플레이스홀더 — Core/UnitComponents.cs의 CargoCapacity 참고.</summary>
         public int TransportCapacity;
+
+        /// <summary>도시에서 이 유닛을 훈련하는 골드 비용(폴리토피아 별 비용 — 보병 2, 기병/궁수/방패병 3,
+        /// 검사/현자 5, 기사/투석기/망토 8). CSV에서 칸을 비우거나 컬럼이 없는 옛 파일이면 DefaultCost.</summary>
+        public int Cost = DefaultCost;
+
+        public const int DefaultCost = 2;
     }
 }

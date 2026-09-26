@@ -25,10 +25,11 @@ namespace TacticsECS
             return dist >= 1 && dist <= world.Get<AttackRange>(attackerId).Value;
         }
 
-        /// <summary>방어 태세 보너스까지 합산한 실제 방어력.</summary>
+        /// <summary>방어 태세 보너스 + 위치 보너스(지형 방어 기술/요새화 도시 방어, TechEffectSystem이 계산해
+        /// PositionalDefenseBonus에 넣어둔 값)까지 합산한 실제 방어력.</summary>
         public static int EffectiveDefense(EntityWorld world, int unitId)
         {
-            int bonus = world.Get<IsGuarding>(unitId).Value ? GuardDefenseBonus : 0;
+            int bonus = (world.Get<IsGuarding>(unitId).Value ? GuardDefenseBonus : 0) + world.Get<PositionalDefenseBonus>(unitId).Value;
             return world.Get<Defense>(unitId).Value + bonus;
         }
 

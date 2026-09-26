@@ -61,7 +61,8 @@ namespace TacticsECS.EditorTools
                     a.Actions == b.Actions && a.Domain == b.Domain && a.MoveRange == b.MoveRange &&
                     a.AttackAttack == b.AttackAttack && a.AttackRange == b.AttackRange &&
                     a.HealAmount == b.HealAmount && a.HealRange == b.HealRange &&
-                    a.TransportCapacity == b.TransportCapacity;
+                    a.TransportCapacity == b.TransportCapacity &&
+                    a.Cost == b.Cost;
 
                 if (!same)
                 {

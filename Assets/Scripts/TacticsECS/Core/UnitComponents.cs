@@ -74,6 +74,20 @@ namespace TacticsECS
     // Scout(ActionType)을 가진 유닛의 실효 시야는 나중에 시야 시스템이 생기면 이 값 + 1로 계산하면 된다.
     [System.Serializable] public struct VisionRange { public int Value; }
 
+    // ---- 경제/기술 연동 ----
+    // 이 유닛을 만든 유닛 CSV 행의 Id(예: "infantry"). 프리팹으로 직접 스폰한 데모 유닛은 빈 문자열.
+    // 해산(Disband) 환급액처럼 "이 유닛의 훈련 비용"이 필요할 때 EconomyWorld.UnitRows에서 찾는 키다.
+    [System.Serializable] public struct UnitTypeId { public string Value; }
+
+    // 팀 기술에 따라 들어갈 수 있는 특수 지형. 등산(Move.Mountain) 없이는 산, 배 타기(Move.Ocean) 없이는
+    // 깊은 바다에 들어갈 수 없다. 경제(기술트리)가 없는 씬(SampleScene)에서는 스폰 시 기본값 true로 두어
+    // 아무 제한도 걸지 않는다 — 기술을 반영해 다시 채우는 건 TechEffectSystem.RefreshUnits.
+    [System.Serializable] public struct TerrainAccess { public bool Mountain; public bool Ocean; }
+
+    // 서 있는 칸 때문에 붙는 방어력 보너스(지형 방어 기술 + 요새화 유닛의 도시 방어). CombatSystem.
+    // EffectiveDefense가 더한다. 위치/기술/도시가 바뀔 때마다 TechEffectSystem.RefreshUnits가 다시 계산한다.
+    [System.Serializable] public struct PositionalDefenseBonus { public int Value; }
+
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이
     // 그 자체로 컴포넌트 타입("팀 소속")으로 재사용한다.
 }

@@ -44,7 +44,8 @@ namespace TacticsECS
                 foreach (var next in grid.GetNeighbors(cur, allowDiagonal))
                 {
                     if (dist.ContainsKey(next)) continue;
-                    if (!ignoreTerrain && (!grid.IsWalkable(next) || grid.GetTerrain(next) != moveDomain)) continue;
+                    if (!ignoreTerrain && (!grid.IsWalkable(next) || grid.GetTerrain(next) != moveDomain ||
+                        TechEffectSystem.IsTerrainLocked(grid, world, selfUnitId, next))) continue;
                     if (IsBlockedByOccupant(grid, world, selfUnitId, next, ignoreUnitBlocking)) continue;
 
                     dist[next] = curDist + 1;

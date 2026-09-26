@@ -1,11 +1,14 @@
 # 요새화 (Fortify)
 
-**상태**: 플레이스홀더 — CSV/코드에 태그만 있고 전투 효과는 아직 없다.
+**상태**: 구현됨(2026-09-26) — 폴리토피아 Fortify. 자기 팀 도시 칸에 서 있으면 방어력 +1, 그 도시에 성벽(도시 레벨 3 보상)이
+있으면 +3. `TechEffectSystem.RefreshUnits`가 `UnitActionQueries.Find<FortifyAction>`로 보유 여부를 보고
+`PositionalDefenseBonus` 컴포넌트에 넣고, `CombatSystem.EffectiveDefense`가 더한다. 경제(도시)가 없는 씬에서는 효과가 없다.
+아래 "지금 되는 것/효과를 구현하려면"은 구현 전 기록이다.
 
 | | |
 |---|---|
 | 사용 예시 유닛 | 보병 / 방패병 / 궁병 (`SandboxUnits.csv`) |
-| 예상 효과 | 제자리(이동 안 한 턴)에 있으면 방어 보너스 |
+| 효과 | 자기 도시 칸에서 방어 +1 (성벽 +3) |
 | CSV 표기 | `Actions` 컬럼에 `Fortify` 추가 (다른 값 없음) |
 | 코드 | [`FortifyAction`](../../Assets/Scripts/TacticsECS/Actions/FortifyAction.cs) |
 

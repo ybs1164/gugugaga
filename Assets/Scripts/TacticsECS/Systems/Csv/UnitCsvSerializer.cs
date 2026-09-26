@@ -20,7 +20,8 @@ namespace TacticsECS
             "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
-            "Transport.Capacity"
+            "Transport.Capacity",
+            "Cost"
         };
 
         private const char ActionsSeparator = ';';
@@ -66,7 +67,8 @@ namespace TacticsECS
             AttackRange = ParseInt(Col(c, 9)),
             HealAmount = ParseInt(Col(c, 10)),
             HealRange = ParseInt(Col(c, 11)),
-            TransportCapacity = ParseInt(Col(c, 12))
+            TransportCapacity = ParseInt(Col(c, 12)),
+            Cost = Col(c, 13).Length > 0 ? ParseInt(Col(c, 13)) : UnitCsvRow.DefaultCost
         };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
@@ -83,7 +85,8 @@ namespace TacticsECS
             row.AttackRange.ToString(CultureInfo.InvariantCulture),
             row.HealAmount.ToString(CultureInfo.InvariantCulture),
             row.HealRange.ToString(CultureInfo.InvariantCulture),
-            row.TransportCapacity.ToString(CultureInfo.InvariantCulture)
+            row.TransportCapacity.ToString(CultureInfo.InvariantCulture),
+            row.Cost.ToString(CultureInfo.InvariantCulture)
         });
 
         private static string Col(string[] cols, int index) => index < cols.Length ? cols[index].Trim() : string.Empty;

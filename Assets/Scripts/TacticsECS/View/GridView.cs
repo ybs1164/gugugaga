@@ -25,6 +25,7 @@ namespace TacticsECS
         private float[] _tileTopLocalY;
         private GameObject[] _structureObjects;
         private GameObject[] _featureObjects;
+        private GameObject[] _buildingObjects;
         private GridWorld _grid;
 
         /// <summary>landTilePrefab/waterTilePrefab은 GridView 자신이 아니라 BattleController가 들고 있는
@@ -125,7 +126,8 @@ namespace TacticsECS
         /// 자식으로 축소 인스턴스화한다. TileView(색상)와 완전히 별개 오브젝트라 하이라이트/색 로직에는
         /// 영향이 없다. structurePrefabsByType에 없는 StructureId는 조용히 건너뛴다(에셋 미배정 상태에서도
         /// 예외 없이 동작).</summary>
-        public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType)
+        public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType,
+            ICollection<string> hiddenStructures = null)
         {
             if (_structureObjects == null) _structureObjects = new GameObject[grid.Width * grid.Height];
 
@@ -144,6 +146,8 @@ namespace TacticsECS
 
                     var structureId = grid.GetStructure(pos);
                     if (string.IsNullOrEmpty(structureId)) continue;
+                    // 아직 기술이 없어 "숨겨진" 자원(TechSystem.HiddenStructures, 예: 등산 전의 광물)은 그리지 않는다.
+                    if (hiddenStructures != null && hiddenStructures.Contains(structureId)) continue;
                     if (structurePrefabsByType == null || !structurePrefabsByType.TryGetValue(structureId, out var prefab) || prefab == null) continue;
 
                     var structureGo = Object.Instantiate(prefab, _tileViews[index].transform);
@@ -151,6 +155,63 @@ namespace TacticsECS
                     structureGo.transform.localPosition = new Vector3(0f, _tileTopLocalY[index] + StructureLift, 0f);
                     structureGo.transform.localScale = Vector3.one * StructureLocalScale;
                     _structureObjects[index] = structureGo;
+                }
+            }
+        }
+
+        /// <summary>경제 상태(영토 주인 색/도로/건물/도시 주인 원판)를 다시 그린다. 영토는 타일 색에 팀 색을 섞고
+        /// (TileView.SetTerritory), 건물과 도시 원판은 BuildingMarkerView로 타일의 자식 오브젝트를 새로 만든다.
+        /// cities가 null이면(경제 없는 씬) 전부 지운다.</summary>
+        public void RefreshEconomy(GridWorld grid, IReadOnlyList<CityData> cities, Color playerColor, Color enemyColor)
+        {
+            if (_buildingObjects == null) _buildingObjects = new GameObject[grid.Width * grid.Height];
+            var cityAt = new Dictionary<Vector2Int, CityData>();
+            if (cities != null) foreach (var c in cities) cityAt[c.Position] = c;
+
+            for (int y = 0; y < grid.Height; y++)
+            {
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    int index = grid.Index(pos);
+                    var tile = grid.GetTile(pos);
+                    var view = _tileViews[index];
+
+                    Color tint = tile.OwnerTeam == (int)Team.Player ? playerColor
+                        : tile.OwnerTeam == (int)Team.Enemy ? enemyColor : Color.clear;
+                    view.SetTerritory(tint, tile.HasRoad);
+
+                    if (_buildingObjects[index] != null)
+                    {
+                        DestroySafe(_buildingObjects[index]);
+                        _buildingObjects[index] = null;
+                    }
+                    float top = _tileTopLocalY[index] + StructureLift;
+                    GameObject marker = cityAt.TryGetValue(pos, out var city)
+                        ? BuildingMarkerView.CreateCityBase(city.Owner == Team.Player ? playerColor : enemyColor, city.Level, view.transform, top)
+                        : BuildingMarkerView.CreateBuilding(tile.BuildingId, view.transform, top);
+
+                    // 영토 경계: 상하좌우 이웃의 주인 팀이 다르면(또는 맵 밖이면) 그 변에 팀 색 막대.
+                    if (tile.OwnerTeam != TileData.NoOwner)
+                    {
+                        var edges = new List<Vector2Int>();
+                        foreach (var d in new[] { Vector2Int.right, Vector2Int.left, Vector2Int.up, Vector2Int.down })
+                        {
+                            var n = pos + d;
+                            if (!grid.InBounds(n) || grid.GetTile(n).OwnerTeam != tile.OwnerTeam) edges.Add(d);
+                        }
+                        if (edges.Count > 0)
+                        {
+                            if (marker == null)
+                            {
+                                marker = new GameObject("Territory");
+                                marker.transform.SetParent(view.transform, false);
+                                marker.transform.localPosition = new Vector3(0f, top, 0f);
+                            }
+                            BuildingMarkerView.AddBorders(marker.transform, edges, tint);
+                        }
+                    }
+                    _buildingObjects[index] = marker;
                 }
             }
         }

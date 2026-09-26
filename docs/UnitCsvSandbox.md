@@ -58,8 +58,10 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
 | `Attack.Range` | 선택 | 공격 사거리 (칸) | 자연수 (1: 인접 근접, 2 이상: 원거리) |
 | `Heal.Amount` | 선택 | 치유량 | 자연수 (`Actions`에 `Heal`이 있을 때 적용) |
 | `Heal.Range` | 선택 | 치유 사거리 (칸) | 자연수 |
+| `Cost` | 선택 | 전투 중 도시에서 이 유닛을 훈련하는 골드 비용 (폴리토피아 별 비용) | 0 이상의 정수. 비우면 `2` (예: 보병 `2`, 기병/궁병/방패병 `3`, 검투사/사제 `5`, 기사/투석기/스파이 `8`) |
 
 > *참고: `Domain` 컬럼은 모두 `Land`로 처리되며, `Transport.Capacity` 컬럼은 `0`으로 두시면 됩니다.*
+> *참고: 어떤 유닛을 훈련하려면 어떤 기술이 필요한지는 이 CSV가 아니라 기술트리 CSV(`Assets/Resources/TechTree.csv`)의 `Unlocks` 칸에 `Unit.<Id>`로 적습니다. 기술트리 어디에도 `Unit.<Id>`가 없는 유닛(예: `infantry`)은 처음부터 훈련할 수 있습니다 — [TechTreeCsv.md](TechTreeCsv.md) 참고.*
 > *참고: 장애물 통과/유닛 통과/대각선 이동은 대부분의 유닛에는 필요 없는 드문 케이스라 별도 컬럼이 아니라
 > `Actions`에 넣는 패시브(`IgnoreTerrain`/`IgnoreUnitBlocking`/`AllowDiagonal`)로 다룹니다 — 아래 4번
 > 전술/기동 패시브 참고.*

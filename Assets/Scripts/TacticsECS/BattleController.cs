@@ -98,20 +98,14 @@ namespace TacticsECS
         [Tooltip("도시 발전 자원(발전도/인구/골드/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
             "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
         [SerializeField] private CityResourceHud cityResourceHudPrefab;
-        [Tooltip("이 도시가 보유할 수 있는 유닛 총 수량(인구 상한).")]
-        [SerializeField] private int cityPopulationCap = 10;
-        [Tooltip("매 턴 시작 시 자동 생산되는 골드량(수도 보너스는 별도). 실제로는 도시 타일/건물 생산량의 " +
-            "합이어야 하지만 타일 시스템이 없어 고정값 플레이스홀더로 둔다.")]
-        [SerializeField] private int cityGoldProduction = 1;
-        [Tooltip("매 턴 시작 시 자동 생산되는 도시 발전도(기술트리 해금에 쓰인다). 실제로는 수도와 연결된 " +
-            "도시 수에 비례해야 하지만 영토/도로 시스템이 없어 고정값 플레이스홀더로 둔다 " +
-            "(CityResourceSystem.IsConnectedToCapital 참고).")]
-        [SerializeField] private int cityDevelopmentProduction = 1;
-        [Tooltip("신앙 최대 보유량.")]
+        [Tooltip("전투 시작 시 각 팀이 가진 골드(폴리토피아 시작 별 5). 골드는 채집/건설/유닛 훈련에 쓴다. " +
+            "턴당 골드 수입은 도시 레벨/공방/공원/시장으로 계산된다(CitySystem.GoldIncome).")]
+        [SerializeField] private int startingGold = 5;
+        [Tooltip("전투 시작 시 각 팀이 가진 도시 발전도(기술 연구 전용 자원). 턴당 발전도는 도시 수 + 수도 연결 " +
+            "도시 수 + 수도 1(CitySystem.DevelopmentIncome).")]
+        [SerializeField] private int startingDevelopment = 5;
+        [Tooltip("신앙 최대 보유량(신전을 지을 때마다 +5).")]
         [SerializeField] private int cityMaxFaith = 10;
-        [Tooltip("최초 시작 도시(수도) 여부 — 켜면 골드 생산 +1 보너스가 붙는다(피점령 시 일반 도시 취급하는 " +
-            "규칙은 점령 개념이 없어 아직 반영하지 않는다).")]
-        [SerializeField] private bool cityIsCapital = true;
         [Tooltip("기술트리 패널 프리팹. 비워두면 생성 자체를 건너뛴다 — cityResourceHudPrefab과 같은 블록 " +
             "에서만 초기화된다(도시 발전도가 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
         [SerializeField] private TechTreeHud techTreeHudPrefab;
@@ -167,10 +161,17 @@ namespace TacticsECS
         private int _selectedWetnessIndex = WetnessBaselineIndex;
 
         private CityResourceHud _cityResourceHud;
-        private CityResourceData _playerCity;
-
         private TechTreeHud _techTreeHud;
-        private TechTreeData _playerTech;
+        private ActionMenuHud _actionMenu;
+
+        /// <summary>경제(도시/영토/자원/기술) 상태. cityResourceHudPrefab이 배정된 화면(Sandbox)에서 전투가 시작될
+        /// 때(BeginBattle) 만들어지고, 그 전(배치 단계)이나 경제 없는 씬(SampleScene)에서는 null이다 — null이면
+        /// 모든 경제 규칙(영토 회복/점령/지형 제한/도시 패배 판정)이 꺼지고 예전 순수 전투와 똑같이 동작한다.</summary>
+        private EconomyWorld _econ;
+        /// <summary>배치 단계에서 불러온 유닛 CSV — 전투가 시작되면 훈련 가능한 유닛 목록(EconomyWorld.UnitRows)이 된다.</summary>
+        private List<UnitCsvRow> _unitRows;
+        /// <summary>지금 상황별 메뉴가 보여주고 있는 칸(타일/도시 메뉴를 행동 뒤에 다시 그릴 때 쓴다).</summary>
+        private Vector2Int? _menuTile;
 
         // 카메라가 바라보는 지점(월드 XZ)과 고정된 isometric 회전/거리.
         // 팬(이동)은 이 focus 점만 옮기고, 매 프레임 여기서 실제 카메라 position을 재계산한다.
@@ -241,18 +242,21 @@ namespace TacticsECS
                 _cityResourceHud = Instantiate(cityResourceHudPrefab, transform);
                 _cityResourceHud.name = "CityResourceHud";
                 _cityResourceHud.Init();
-                _playerCity = CityResourceData.Create(cityPopulationCap, cityGoldProduction, cityDevelopmentProduction, cityMaxFaith, cityIsCapital);
                 RefreshCityResources();
 
                 if (techTreeHudPrefab != null)
                 {
                     _techTreeHud = Instantiate(techTreeHudPrefab, transform);
                     _techTreeHud.name = "TechTreeHud";
-                    _techTreeHud.Init();
+                    _techTreeHud.Init(LoadTechNodes());
                     _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
-                    _playerTech = TechTreeData.CreateEmpty();
                     RefreshTechTree();
                 }
+
+                var menuGo = new GameObject("ActionMenuHud");
+                menuGo.transform.SetParent(transform, false);
+                _actionMenu = menuGo.AddComponent<ActionMenuHud>();
+                _actionMenu.Init(_hud.UiFont);
             }
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
@@ -278,6 +282,7 @@ namespace TacticsECS
 
         private void BeginBattle()
         {
+            if (_cityResourceHud != null) InitEconomy();
             _hud.OnEndTurnClicked += EndTurn;
             // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
             // 그 전에 _hud가 준비돼 있어야 한다.
@@ -309,6 +314,10 @@ namespace TacticsECS
             _loadedBiomes = null;
             _cityResourceHud = null;
             _techTreeHud = null;
+            _actionMenu = null;
+            _econ = null;
+            _unitRows = null;
+            _menuTile = null;
 
             SetupBattle();
         }
@@ -323,17 +332,7 @@ namespace TacticsECS
             _placementActive = true;
             _hud.SetEndTurnVisible(false);
 
-            var basePrefabsByName = new Dictionary<string, UnitView>
-            {
-                ["Melee"] = meleePrefab,
-                ["Ranged"] = rangedPrefab,
-                ["Guard"] = guardPrefab,
-                ["RogueHooded"] = rogueHoodedPrefab,
-                ["Mage"] = magePrefab,
-                ["SkeletonWarrior"] = skeletonWarriorPrefab,
-                ["SkeletonMage"] = skeletonMagePrefab
-            };
-            _placementController = new UnitPlacementController(_world, _spawner, basePrefabsByName, _viewsById);
+            _placementController = new UnitPlacementController(_world, _spawner, BasePrefabsByName(), _viewsById);
 
             _sandboxHud = Instantiate(sandboxHudPrefab, transform);
             _sandboxHud.name = "SandboxHud";
@@ -354,6 +353,18 @@ namespace TacticsECS
             _sandboxHud.SetMapSizeLabel(MapSizePresets[_selectedMapSizeIndex].Name, MapSizePresets[_selectedMapSizeIndex].Size);
             _sandboxHud.SetWetnessLabel(WetnessPresets[_selectedWetnessIndex].Name);
         }
+
+        /// <summary>유닛 CSV의 BaseVisual 이름 -> 외형 프리팹. 배치 단계 팔레트와 전투 중 도시 훈련이 공유한다.</summary>
+        private Dictionary<string, UnitView> BasePrefabsByName() => new Dictionary<string, UnitView>
+        {
+            ["Melee"] = meleePrefab,
+            ["Ranged"] = rangedPrefab,
+            ["Guard"] = guardPrefab,
+            ["RogueHooded"] = rogueHoodedPrefab,
+            ["Mage"] = magePrefab,
+            ["SkeletonWarrior"] = skeletonWarriorPrefab,
+            ["SkeletonMage"] = skeletonMagePrefab
+        };
 
         private void HandleWetnessCycle()
         {
@@ -543,6 +554,7 @@ namespace TacticsECS
 
         private void HandleSandboxStartBattle()
         {
+            _unitRows = new List<UnitCsvRow>(_placementController.Rows);
             _placementActive = false;
             Destroy(_sandboxHud.gameObject);
             _sandboxHud = null;
@@ -705,12 +717,12 @@ namespace TacticsECS
             _hud.SetEndTurnVisible(team == Team.Player && !_battleOver);
             ClearSelection();
 
-            if (team == Team.Player && _cityResourceHud != null)
+            if (_econ != null)
             {
-                _playerCity = CityResourceSystem.ApplyTurnStart(_playerCity, _world, Team.Player);
-                RefreshCityResources();
-                // 발전도가 늘어나 해금 가능 여부/버튼 활성화가 바뀔 수 있으므로 같이 갱신한다.
-                if (_techTreeHud != null) RefreshTechTree();
+                // 폴리토피아처럼 첫 턴은 시작 자원만 쓰고, 2턴부터 매 자기 턴 시작마다 도시 수입이 들어온다.
+                if (turnNumber > 1)
+                    _econ.Resources[team] = CityResourceSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team);
+                RefreshEconomyViews(false);
             }
 
             if (team == Team.Enemy && !_battleOver)
@@ -721,28 +733,47 @@ namespace TacticsECS
         /// EntityWorld 쪽 값이라 매번 다시 세어서 넘긴다.</summary>
         private void RefreshCityResources()
         {
+            if (_cityResourceHud == null) return;
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
-            _cityResourceHud.SetResources(_playerCity, populationUsed);
+            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, cityMaxFaith, false);
+            _cityResourceHud.SetResources(resources, populationUsed);
         }
 
         private void RefreshTechTree()
         {
-            _techTreeHud.SetState(_playerTech, _playerCity);
+            if (_techTreeHud == null) return;
+            if (_econ != null)
+                _techTreeHud.SetState(_econ.Tech[Team.Player], _econ.Resources[Team.Player], CitySystem.CountCities(_econ, Team.Player));
+            else
+                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, cityMaxFaith, false), 1);
         }
 
         /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/발전도 소모는 TechSystem이 계산하고,
-        /// 결과를 두 HUD 모두에 다시 반영한다(발전도가 줄어드므로 CityResourceHud도 함께).</summary>
-        private void HandleTechUnlockRequested(TechId id)
+        /// 결과를 HUD/지도(숨겨진 자원 공개, 지형 이동/방어 효과)에 다시 반영한다. 배치 단계(경제 시작 전)나
+        /// 적 턴에는 무시한다.</summary>
+        private void HandleTechUnlockRequested(string id)
         {
-            _playerTech = TechSystem.Unlock(_playerTech, _playerCity, id, out _playerCity);
-            RefreshTechTree();
-            RefreshCityResources();
+            if (_econ == null || _battleOver || _turnState.ActiveTeam != Team.Player) return;
+            var res = _econ.Resources[Team.Player];
+            if (!TechSystem.Unlock(_econ.TechNodes, _econ.Tech[Team.Player], ref res, CitySystem.CountCities(_econ, Team.Player), id)) return;
+            _econ.Resources[Team.Player] = res;
+            ProcessEconomyLog(new List<EconomyLogEntry> { new EconomyLogEntry { Team = Team.Player, Kind = EconomyLogKind.Research, Subject = TechSystem.Find(_econ.TechNodes, id).Value.Name, CityIndex = -1 } });
+            RefreshEconomyViews(false);
+            RefreshMenu();
         }
 
         private IEnumerator RunEnemyTurnRoutine()
         {
             yield return new WaitForSeconds(0.3f);
-            var entries = EnemyAI.RunTurn(_grid, _world);
+            if (_econ != null)
+            {
+                ProcessEconomyLog(EconomyAI.RunTurn(_grid, _world, _econ, Team.Enemy));
+                RefreshEconomyViews(false);
+                CheckBattleEnd();
+                if (_battleOver) yield break;
+            }
+            var entries = EnemyAI.RunTurn(_grid, _world, _econ != null ? CaptureTargets(Team.Enemy) : null);
+            if (_econ != null) RefreshEconomyViews(false);
             RefreshAllViews();
             RefreshRoster();
 
@@ -814,8 +845,8 @@ namespace TacticsECS
 
         private void CheckBattleEnd()
         {
-            bool playerAlive = UnitQueries.AnyAlive(_world, Team.Player);
-            bool enemyAlive = UnitQueries.AnyAlive(_world, Team.Enemy);
+            bool playerAlive = !HasTeamLost(Team.Player);
+            bool enemyAlive = !HasTeamLost(Team.Enemy);
             if (!playerAlive || !enemyAlive)
             {
                 _battleOver = true;
@@ -885,7 +916,7 @@ namespace TacticsECS
                 return;
             }
 
-            string structureId = _grid.GetStructure(pos);
+            string structureId = VisibleStructure(pos);
             if (!string.IsNullOrEmpty(structureId))
                 _sandboxHud.ShowStructurePanel(structureId);
             else
@@ -918,10 +949,13 @@ namespace TacticsECS
                 (_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
             {
                 ClearSelection();
+                // 행동을 마친 유닛이 서 있는 칸도 도시/건설 메뉴는 열 수 있어야 한다(훈련/보상 선택).
+                if (UnitQueries.IsAlive(_world, unitId)) ShowTileMenu(_world.Get<GridPosition>(unitId).Value);
                 return;
             }
 
             SelectUnit(unitId);
+            ShowUnitMenu(unitId);
         }
 
         private void OnTileClicked(Vector2Int pos)
@@ -934,12 +968,377 @@ namespace TacticsECS
             }
 
             // 유닛이 선택되지 않은 상태에서 빈 칸을 클릭하면(구조물이든 아니든) 구조물 정보 패널을
-            // 켜거나 끈다 — 순수 표시용 상호작용이라 TileData.StructureId 조회 외에 다른 판정은 없다.
-            string structureId = _grid.GetStructure(pos);
+            // 켜거나 끈다. 아직 기술이 없어 숨겨진 자원은 없는 것처럼 취급한다. 경제가 켜져 있으면 오른쪽에
+            // 그 칸의 도시/건설 메뉴도 띄운다.
+            string structureId = VisibleStructure(pos);
             if (!string.IsNullOrEmpty(structureId))
                 _hud.ShowStructurePanel(structureId);
             else
                 _hud.HideStructurePanel();
+            ShowTileMenu(pos);
+        }
+
+        // ---------- Economy (도시/영토/기술/건설) ----------
+
+        /// <summary>Assets/Resources/TechTree.csv를 읽어 기술 정의 목록으로 만든다. 파일이 없으면 빈 목록(트리 없음).</summary>
+        private static List<TechNodeData> LoadTechNodes()
+        {
+            var asset = Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath);
+            if (asset == null)
+            {
+                Debug.LogWarning($"[BattleController] Resources/{TechTreeDefinition.CsvResourcePath}.csv를 찾지 못해 기술트리가 비어 있습니다.");
+                return new List<TechNodeData>();
+            }
+            return TechCsvSerializer.Parse(asset.text);
+        }
+
+        /// <summary>전투 시작 시 경제 상태를 만든다: 두 팀 시작 자원/빈 기술, 훈련 가능한 유닛 목록(배치 단계에서
+        /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals).</summary>
+        private void InitEconomy()
+        {
+            _econ = new EconomyWorld { TechNodes = LoadTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
+            if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
+            foreach (var team in CitySystem.Teams)
+            {
+                var res = CityResourceData.Create(0, 0, 0, cityMaxFaith, false);
+                res.Gold = startingGold;
+                res.Development = startingDevelopment;
+                _econ.Resources[team] = res;
+                _econ.Tech[team] = TechTreeData.CreateEmpty();
+            }
+            CitySystem.InitializeCapitals(_grid, _world, _econ);
+            RefreshEconomyViews(false);
+        }
+
+        private static List<UnitCsvRow> LoadFallbackUnitRows()
+        {
+            try
+            {
+                var path = System.IO.Path.Combine(Application.dataPath, "..", "SandboxUnits.csv");
+                if (System.IO.File.Exists(path)) return UnitCsvSerializer.Parse(System.IO.File.ReadAllText(path));
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[BattleController] SandboxUnits.csv 기본 유닛 목록을 읽지 못했습니다: {e.Message}");
+            }
+            return new List<UnitCsvRow>();
+        }
+
+        /// <summary>경제 상태가 바뀐 뒤 한 번에 다시 반영하는 곳: 생산량/유닛 수용량 재계산, 유닛 지형 제한/방어
+        /// 보너스, 영토 색/건물/도시 원판, 숨겨진 자원, 자원 바/기술트리. terrainChanged면(벌목/숲 조성 등)
+        /// 타일 색/숲 장식도 다시 그린다.</summary>
+        private void RefreshEconomyViews(bool terrainChanged)
+        {
+            if (_econ == null) return;
+            RefreshProduction();
+            TechEffectSystem.RefreshUnits(_grid, _world, _econ);
+            if (terrainChanged) _gridView.RefreshTerrain(_grid);
+            _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent);
+            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
+            RefreshCityResources();
+            RefreshTechTree();
+        }
+
+        private void RefreshProduction()
+        {
+            if (_econ == null) return;
+            foreach (var team in CitySystem.Teams)
+                _econ.Resources[team] = CityResourceSystem.RefreshProduction(_econ.Resources[team], _grid, _world, _econ, team);
+            RefreshCityResources();
+        }
+
+        /// <summary>플레이어에게 보이는 구조물 Id — 기술이 없어 숨겨진 자원이면 빈 문자열.</summary>
+        private string VisibleStructure(Vector2Int pos)
+        {
+            string id = _grid.GetStructure(pos);
+            if (_econ != null && TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]).Contains(id)) return string.Empty;
+            return id;
+        }
+
+        /// <summary>도시를 가졌던 팀은 도시를 전부 잃으면, 도시가 없던 팀(또는 경제 없는 씬)은 유닛이 전멸하면 패배.</summary>
+        private bool HasTeamLost(Team team)
+        {
+            if (_econ != null && _econ.HadCity.Contains(team)) return CitySystem.HasLost(_econ, team);
+            return !UnitQueries.AnyAlive(_world, team);
+        }
+
+        /// <summary>team이 점령할 수 있는 칸(중립 마을/수도 구조물 + 다른 팀 도시) — EnemyAI 이동 목표.</summary>
+        private List<Vector2Int> CaptureTargets(Team team)
+        {
+            var targets = new List<Vector2Int>();
+            for (int y = 0; y < _grid.Height; y++)
+            for (int x = 0; x < _grid.Width; x++)
+            {
+                var p = new Vector2Int(x, y);
+                if (!CitySystem.IsSettlementTile(_grid, p)) continue;
+                int city = CitySystem.FindCityAt(_econ, p);
+                if (city < 0 || _econ.Cities[city].Owner != team) targets.Add(p);
+            }
+            return targets;
+        }
+
+        /// <summary>경제 기록을 행동 로그에 옮기고, 유닛 스폰이 필요한 기록(훈련/슈퍼 유닛/유적 유닛)은 실제로
+        /// 스폰한다(Systems는 View를 몰라 스폰을 못 하므로 여기서 마무리).</summary>
+        private void ProcessEconomyLog(List<EconomyLogEntry> log)
+        {
+            foreach (var entry in log)
+            {
+                if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position);
+                _hud.AddLogEntry(FormatEconomyEntry(entry));
+            }
+            if (log.Count > 0) RefreshRoster();
+        }
+
+        private string FormatEconomyEntry(EconomyLogEntry e)
+        {
+            var accent = e.Team == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
+            string who = $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{(e.Team == Team.Player ? "아군" : "적")}</color>";
+            switch (e.Kind)
+            {
+                case EconomyLogKind.Capture: return $"{who} {e.Subject} 점령";
+                case EconomyLogKind.Research: return $"{who} 연구: {e.Subject}";
+                case EconomyLogKind.Build: return $"{who} 건설: {e.Subject}";
+                case EconomyLogKind.Action: return $"{who} {e.Subject}";
+                case EconomyLogKind.Train: return $"{who} 훈련: {e.Subject}";
+                case EconomyLogKind.LevelUp:
+                    return e.CityIndex >= 0 ? $"{who} {e.Subject} 레벨 업 (Lv {_econ.Cities[e.CityIndex].Level})" : $"{who} {e.Subject} 레벨 업";
+                case EconomyLogKind.Reward: return $"{who} 보상: {e.Subject}";
+                case EconomyLogKind.Explore: return $"{who} 유적 탐험: {e.Subject}";
+                case EconomyLogKind.Disband: return $"{who} 유닛 해산 ({e.Subject})";
+                default: return $"{who} {e.Subject}";
+            }
+        }
+
+        /// <summary>유닛 CSV Id로 near 칸(차 있으면 가장 가까운 빈 칸, 반경 3)에 유닛을 스폰한다. 폴리토피아처럼
+        /// 새로 생긴 유닛은 그 턴에 움직이거나 행동할 수 없다.</summary>
+        private bool SpawnEconomyUnit(Team team, string unitId, Vector2Int near)
+        {
+            var row = CitySystem.FindUnitRow(_econ, unitId);
+            if (row == null || !BasePrefabsByName().TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
+            {
+                Debug.LogWarning($"[BattleController] 유닛 '{unitId}'를 스폰할 수 없습니다(CSV 행 또는 BaseVisual 프리팹 없음).");
+                return false;
+            }
+
+            Vector2Int? spot = null;
+            for (int r = 0; r <= 3 && spot == null; r++)
+            {
+                for (int dy = -r; dy <= r && spot == null; dy++)
+                for (int dx = -r; dx <= r && spot == null; dx++)
+                {
+                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
+                    var p = near + new Vector2Int(dx, dy);
+                    if (!_grid.InBounds(p) || _grid.IsOccupied(p) || !_grid.IsWalkable(p) || _grid.GetTerrain(p) != row.Domain) continue;
+                    spot = p;
+                }
+            }
+            if (spot == null) return false;
+
+            var view = _spawner.SpawnFromCsv(_grid, _world, team, basePrefab, row, spot.Value);
+            _viewsById[view.UnitId] = view;
+            _world.Set(view.UnitId, new HasMoved { Value = true });
+            _world.Set(view.UnitId, new HasActed { Value = true });
+            TechEffectSystem.RefreshUnits(_grid, _world, _econ);
+            view.Refresh(_world, view.UnitId);
+            return true;
+        }
+
+        private bool CanUseEconomyMenu => _econ != null && _actionMenu != null && !_battleOver && _turnState.ActiveTeam == Team.Player;
+
+        /// <summary>메뉴 버튼으로 무언가를 한 뒤 같은 대상의 메뉴를 새 상태로 다시 그린다.</summary>
+        private void RefreshMenu()
+        {
+            if (!CanUseEconomyMenu) return;
+            if (_state == SelectState.UnitSelected && _selectedUnitId >= 0) ShowUnitMenu(_selectedUnitId);
+            else if (_menuTile.HasValue) ShowTileMenu(_menuTile.Value);
+        }
+
+        /// <summary>칸 메뉴: 우리 도시면 레벨업 보상 선택 + 유닛 훈련, 그리고 그 칸에서 할 수 있는 채집/건설 목록
+        /// (TileImprovementSystem.GetOptions). 보여줄 것이 없으면 메뉴를 닫는다.</summary>
+        private void ShowTileMenu(Vector2Int pos)
+        {
+            if (!CanUseEconomyMenu) return;
+            _menuTile = pos;
+            var options = new List<ActionMenuOption>();
+            string title;
+            var body = new System.Text.StringBuilder();
+            var tile = _grid.GetTile(pos);
+
+            int cityIndex = CitySystem.FindCityAt(_econ, pos);
+            if (cityIndex >= 0)
+            {
+                var city = _econ.Cities[cityIndex];
+                title = $"{city.Name} (Lv {city.Level})";
+                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
+                body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
+
+                if (city.Owner == Team.Player)
+                {
+                    if (city.PendingRewards > 0)
+                    {
+                        int rewardLevel = CitySystem.PendingRewardLevel(city);
+                        foreach (var reward in CitySystem.RewardOptions(rewardLevel))
+                        {
+                            var r = reward;
+                            options.Add(new ActionMenuOption
+                            {
+                                Label = $"Lv{rewardLevel} 보상: {CitySystem.RewardName(r)}", Detail = CitySystem.RewardDescription(r), Enabled = true,
+                                OnClick = () => HandleReward(cityIndex, r)
+                            });
+                        }
+                    }
+                    foreach (var row in _econ.UnitRows)
+                    {
+                        if (!TechSystem.CanTrainUnitType(_econ.TechNodes, _econ.Tech[Team.Player], row.Id)) continue;
+                        bool can = CitySystem.CanTrain(_grid, _world, _econ, Team.Player, cityIndex, row, out var reason);
+                        var r = row;
+                        options.Add(new ActionMenuOption
+                        {
+                            Label = $"{row.Name} 훈련 (골드 {row.Cost})", Detail = can ? $"체력 {row.MaxHp} · 공격 {row.AttackAttack} · 이동 {row.MoveRange}" : reason,
+                            Enabled = can, OnClick = () => HandleTrain(cityIndex, r)
+                        });
+                    }
+                }
+            }
+            else
+            {
+                var cls = TileImprovementSystem.Classify(_grid, pos);
+                string owner = tile.OwnerTeam == (int)Team.Player ? "아군 영토" : tile.OwnerTeam == (int)Team.Enemy ? "적 영토" : "중립";
+                title = $"{TileClassName(cls)} ({pos.x}, {pos.y})";
+                body.Append(owner);
+                var building = TileImprovementSystem.FindBuilding(tile.BuildingId);
+                if (building != null)
+                    body.Append($" · {building.Value.Name} (인구 {TileImprovementSystem.BuildingPopulation(_grid, pos)})");
+                if (tile.HasRoad) body.Append(" · 도로");
+            }
+
+            foreach (var option in TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos))
+            {
+                var o = option;
+                options.Add(new ActionMenuOption
+                {
+                    Label = o.Cost > 0 ? $"{o.Name} (골드 {o.Cost})" : o.Name, Detail = o.Detail, Enabled = o.Enabled,
+                    OnClick = () => HandleTileOption(pos, o.Id)
+                });
+            }
+
+            if (cityIndex < 0 && options.Count == 0 && string.IsNullOrEmpty(tile.BuildingId) && !tile.HasRoad)
+            {
+                _actionMenu.Hide();
+                return;
+            }
+            _actionMenu.Show(title, body.ToString(), options);
+        }
+
+        private bool IsOwnCity(Vector2Int pos)
+        {
+            int city = CitySystem.FindCityAt(_econ, pos);
+            return city >= 0 && _econ.Cities[city].Owner == Team.Player;
+        }
+
+        private static string TileClassName(TileClass cls)
+        {
+            switch (cls)
+            {
+                case TileClass.Forest: return "숲";
+                case TileClass.Mountain: return "산";
+                case TileClass.ShallowWater: return "얕은 물";
+                case TileClass.Ocean: return "깊은 바다";
+                default: return "평지";
+            }
+        }
+
+        /// <summary>유닛 메뉴: 점령/유적 탐험/해산, 그리고 우리 도시 위라면 그 도시 메뉴로 가는 버튼.</summary>
+        private void ShowUnitMenu(int unitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var options = new List<ActionMenuOption>();
+            var pos = _world.Get<GridPosition>(unitId).Value;
+
+            if (CitySystem.CanCapture(_grid, _world, _econ, unitId))
+                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 정착지를 우리 도시로 만든다(턴 종료).", Enabled = true, OnClick = () => HandleCapture(unitId) });
+            else if (CitySystem.IsSettlementTile(_grid, pos) && !IsOwnCity(pos))
+                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 칸에서 턴을 시작해야 점령할 수 있다.", Enabled = false });
+
+            if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
+                options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+            if (RuinSystem.CanDisband(_world, _econ, unitId))
+                options.Add(new ActionMenuOption { Label = $"해산 (골드 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
+
+            int city = CitySystem.FindCityAt(_econ, pos);
+            if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
+                options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => { ClearSelection(); ShowTileMenu(pos); } });
+
+            if (options.Count == 0) { _actionMenu.Hide(); return; }
+            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", null, options);
+        }
+
+        private void HandleTileOption(Vector2Int pos, string optionId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var before = _grid.GetTileType(pos);
+            var log = new List<EconomyLogEntry>();
+            if (!TileImprovementSystem.Execute(_grid, _econ, Team.Player, pos, optionId, log)) return;
+            ProcessEconomyLog(log);
+            RefreshEconomyViews(before != _grid.GetTileType(pos));
+            RefreshMenu();
+        }
+
+        private void HandleTrain(int cityIndex, UnitCsvRow row)
+        {
+            if (!CanUseEconomyMenu) return;
+            if (!CitySystem.PayForTraining(_grid, _world, _econ, Team.Player, cityIndex, row)) return;
+            ProcessEconomyLog(new List<EconomyLogEntry>
+            {
+                new EconomyLogEntry { Team = Team.Player, Kind = EconomyLogKind.Train, Subject = row.Name, SpawnUnitId = row.Id, Position = _econ.Cities[cityIndex].Position, CityIndex = cityIndex }
+            });
+            RefreshEconomyViews(false);
+            RefreshMenu();
+        }
+
+        private void HandleReward(int cityIndex, CityRewardType reward)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (!CitySystem.ApplyReward(_grid, _econ, cityIndex, reward, log)) return;
+            ProcessEconomyLog(log);
+            RefreshEconomyViews(false);
+            RefreshMenu();
+        }
+
+        private void HandleCapture(int unitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (CitySystem.Capture(_grid, _world, _econ, unitId, log) < 0) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(false);
+            CheckBattleEnd();
+            ClearSelection();
+        }
+
+        private void HandleExplore(int unitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (!RuinSystem.Explore(_grid, _world, _econ, unitId, log)) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(false);
+            ClearSelection();
+        }
+
+        private void HandleDisband(int unitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (!RuinSystem.Disband(_grid, _world, _econ, unitId, log)) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(false);
+            CheckBattleEnd();
+            ClearSelection();
         }
 
         // ---------- Selection / actions ----------
@@ -994,7 +1393,14 @@ namespace TacticsECS
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
+            if (_econ != null)
+            {
+                // 이동으로 지형 방어 보너스/도시 포위(수입) 상태가 바뀔 수 있다.
+                TechEffectSystem.RefreshUnits(_grid, _world, _econ);
+                RefreshProduction();
+            }
             RecomputeHighlights();
+            ShowUnitMenu(_selectedUnitId);
         }
 
         private void TryAttack(int attackerId, int targetId)
@@ -1102,6 +1508,8 @@ namespace TacticsECS
             _reachableTiles = null;
             _attackableTargets = null;
             if (_gridView != null) _gridView.ClearHighlights();
+            if (_actionMenu != null) _actionMenu.Hide();
+            _menuTile = null;
             if (_hud != null)
             {
                 _hud.HideUnitPanel();

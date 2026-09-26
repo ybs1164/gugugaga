@@ -26,7 +26,9 @@ namespace TacticsECS
         {
             var view = Instantiate(baseVisualPrefab, transform);
             view.GetComponent<UnitDefinition>().ApplyCsvOverrides(row, UnitCsvActionFactory.BuildActions(row));
-            return FinishSpawn(grid, world, team, view, pos, row.Name);
+            var spawned = FinishSpawn(grid, world, team, view, pos, row.Name);
+            world.Set(spawned.UnitId, new UnitTypeId { Value = row.Id ?? string.Empty });
+            return spawned;
         }
 
         /// <summary>이미 인스턴스화된 view(정의값이 확정된 상태)를 EntityWorld 엔티티로 등록하고 그리드에
@@ -48,6 +50,12 @@ namespace TacticsECS
 
             // 정찰 플레이스홀더: 아직 시야 시스템이 없어 기본값 0으로만 채워둔다(Core/UnitComponents.cs 참고).
             world.Set(id, new VisionRange { Value = 0 });
+
+            // 경제 연동 컴포넌트 기본값 — 제한/보너스 없음. 경제(기술트리)가 켜진 전투에서는
+            // BattleController가 스폰 직후 TechEffectSystem.RefreshUnits로 팀 기술에 맞게 다시 채운다.
+            world.Set(id, new UnitTypeId { Value = string.Empty });
+            world.Set(id, new TerrainAccess { Mountain = true, Ocean = true });
+            world.Set(id, new PositionalDefenseBonus { Value = 0 });
 
             world.Set(id, new MaxHp { Value = definition.MaxHp });
             world.Set(id, new Attack { Value = definition.Attack });

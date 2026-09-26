@@ -490,11 +490,9 @@ MonoBehaviour:
   stressTestExtraUnitsPerTeam: 0
   sandboxMode: 1
   cityResourceHudPrefab: {fileID: 8911407855454004985, guid: ffe4dfc8dc176bd40ac4441be8e40c0b, type: 3}
-  cityPopulationCap: 10
-  cityGoldProduction: 1
-  cityDevelopmentProduction: 1
+  startingGold: 5
+  startingDevelopment: 5
   cityMaxFaith: 10
-  cityIsCapital: 1
   techTreeHudPrefab: {fileID: 4295170841789941, guid: 30c6ea59be051304f9b930be714a4f2b, type: 3}
   isoYawDegrees: 45
   isoPitchDegrees: 35.264

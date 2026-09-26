@@ -27,13 +27,34 @@ namespace TacticsECS
         /// 상호작용/이동 차단 같은 게임 로직을 갖지 않는다).</summary>
         public string StructureId;
 
+        public const int NoOwner = -1;
+
+        /// <summary>이 타일을 영토로 가진 도시(EconomyWorld.Cities 인덱스). NoOwner면 중립. CitySystem이
+        /// 도시 창설/점령/국경 확장 때 채운다.</summary>
+        public int OwnerCity;
+
+        /// <summary>OwnerCity 도시의 주인 팀((int)Team), 중립이면 NoOwner. 도시 목록 없이도(WaitAction처럼
+        /// GridWorld/EntityWorld만 받는 곳에서) "자기 영토인가"를 판정할 수 있도록 OwnerCity와 함께 저장한다 —
+        /// 도시 주인이 바뀌면 CitySystem.Capture가 그 도시의 타일 전부를 같이 갱신한다.</summary>
+        public int OwnerTeam;
+
+        /// <summary>타일 위 건물(BuildingInfo.Id, 예: "Farm"). 비어있으면 건물 없음.</summary>
+        public string BuildingId;
+
+        /// <summary>도로. 건물이 아니라 타일 자체의 개량이라 BuildingId와 따로 저장한다(수도 연결 판정용).</summary>
+        public bool HasRoad;
+
         public static TileData Default => new TileData
         {
             Walkable = true,
             OccupantId = NoOccupant,
             Terrain = TerrainType.Land,
             TileTypeId = string.Empty,
-            StructureId = string.Empty
+            StructureId = string.Empty,
+            OwnerCity = NoOwner,
+            OwnerTeam = NoOwner,
+            BuildingId = string.Empty,
+            HasRoad = false
         };
     }
 }

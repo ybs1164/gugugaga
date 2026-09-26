@@ -473,6 +473,11 @@ MonoBehaviour:
   resourceOreStructurePrefab: {fileID: 0}
   starfishStructurePrefab: {fileID: 0}
   villageStructurePrefab: {fileID: 0}
+  resourceFruitStructurePrefab: {fileID: 0}
+  resourceCropStructurePrefab: {fileID: 0}
+  resourceAnimalStructurePrefab: {fileID: 0}
+  resourceFishStructurePrefab: {fileID: 0}
+  lighthouseStructurePrefab: {fileID: 0}
   meleePrefab: {fileID: 3471446425503980103, guid: d8194f771098d1b439fa576e372b0dea, type: 3}
   rangedPrefab: {fileID: 3193695033754148919, guid: 782917be00c5a4a41b9a6f9291fef2fd, type: 3}
   guardPrefab: {fileID: 7992524672913923911, guid: b6826f38ee08ecc418c04b11fe6aade3, type: 3}
@@ -485,11 +490,9 @@ MonoBehaviour:
   stressTestExtraUnitsPerTeam: 0
   sandboxMode: 0
   cityResourceHudPrefab: {fileID: 0}
-  cityPopulationCap: 10
-  cityGoldProduction: 1
-  cityDevelopmentProduction: 1
+  startingGold: 5
+  startingDevelopment: 5
   cityMaxFaith: 10
-  cityIsCapital: 1
   techTreeHudPrefab: {fileID: 0}
   isoYawDegrees: 45
   isoPitchDegrees: 35.264

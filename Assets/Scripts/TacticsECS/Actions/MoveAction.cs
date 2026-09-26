@@ -36,7 +36,8 @@ namespace TacticsECS
 
             bool ignoreTerrain = UnitActionQueries.Find<IgnoreTerrainAction>(world, unitId) != null;
             if (!ignoreTerrain &&
-                (!grid.IsWalkable(destination) || grid.GetTerrain(destination) != world.Get<MoveDomain>(unitId).Value)) return false;
+                (!grid.IsWalkable(destination) || grid.GetTerrain(destination) != world.Get<MoveDomain>(unitId).Value ||
+                 TechEffectSystem.IsTerrainLocked(grid, world, unitId, destination))) return false;
 
             bool ignoreUnitBlocking = UnitActionQueries.Find<IgnoreUnitBlockingAction>(world, unitId) != null;
             if (PathfindingSystem.IsBlockedByOccupant(grid, world, unitId, destination, ignoreUnitBlocking)) return false;

@@ -18,6 +18,14 @@ namespace TacticsECS
 
         private Material _material;
 
+        /// <summary>영토 주인 팀 색(투명이면 중립) — 기본 색에 TerritoryTintStrength만큼 옅게 섞는다(진하게 섞으면 파란 팀
+        /// 영토의 풀밭이 물처럼 보여서 옅게 두고, 영토 경계는 GridView가 팀 색 테두리 막대로 따로 그린다). 도로가 있으면
+        /// 흙길 색을 더 섞는다. 둘 다 GridView.RefreshEconomy가 GridWorld의 OwnerTeam/HasRoad로 채운다.</summary>
+        private Color _territoryTint = Color.clear;
+        private bool _hasRoad;
+        private const float TerritoryTintStrength = 0.15f;
+        private static readonly Color RoadColor = new Color(0.55f, 0.42f, 0.28f);
+
         private static readonly Color ColorLand = new Color(0.75f, 0.75f, 0.75f);
         private static readonly Color ColorWater = new Color(0.25f, 0.45f, 0.85f);
         private static readonly Color ColorMove = new Color(0.3f, 0.65f, 1f);
@@ -64,10 +72,22 @@ namespace TacticsECS
             RuntimeMaterial.SetColor(_material, c);
         }
 
+        /// <summary>영토/도로 표시만 바꾸고 하이라이트 없는 기본 색으로 다시 칠한다.</summary>
+        public void SetTerritory(Color tint, bool hasRoad)
+        {
+            _territoryTint = tint;
+            _hasRoad = hasRoad;
+            SetHighlight(TileHighlight.None);
+        }
+
         private Color BaseColor()
         {
-            if (!string.IsNullOrEmpty(TileTypeId) && TileTypeColors.TryGetValue(TileTypeId, out var c)) return c;
-            return Terrain == TerrainType.Water ? ColorWater : ColorLand;
+            Color c;
+            if (string.IsNullOrEmpty(TileTypeId) || !TileTypeColors.TryGetValue(TileTypeId, out c))
+                c = Terrain == TerrainType.Water ? ColorWater : ColorLand;
+            if (_hasRoad) c = Color.Lerp(c, RoadColor, 0.5f);
+            if (_territoryTint.a > 0f) c = Color.Lerp(c, new Color(_territoryTint.r, _territoryTint.g, _territoryTint.b), TerritoryTintStrength * _territoryTint.a);
+            return c;
         }
     }
 }

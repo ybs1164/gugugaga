@@ -123,6 +123,26 @@ namespace TacticsECS
             return list.ToArray();
         }
 
+        // ---------- 배 유닛 (NavalUnits.csv) ----------
+
+        /// <summary>유닛 CSV와 같은 컬럼(UnitCsvSerializer) + Unlock(업그레이드 해금 키). Id가 raft인 행이 뗏목, 나머지는 업그레이드.</summary>
+        public static void ParseNavalUnits(string csvText, List<string> errors, out UnitCsvRow raft, out (UnitCsvRow Row, string UnlockKey)[] upgrades,
+            string name = "NavalUnits.csv")
+        {
+            var t = CsvTableReader.Parse(name, csvText);
+            var rows = UnitCsvSerializer.Parse(csvText, errors, name);
+            raft = null;
+            var list = new List<(UnitCsvRow, string)>();
+            for (int r = 0; r < rows.Count && r < t.Rows.Count; r++)
+            {
+                rows[r].Domain = TerrainType.Water;
+                if (rows[r].Id == NavalUnitDefinition.RaftId) raft = rows[r];
+                else list.Add((rows[r], CsvTableReader.Get(t, r, "Unlock")));
+            }
+            if (raft == null) errors?.Add($"{name}: '{NavalUnitDefinition.RaftId}' 행이 없음 — 코드 기본 뗏목 사용");
+            upgrades = list.ToArray();
+        }
+
         // ---------- 과업 (Tasks.csv) ----------
 
         public static TaskInfo[] ParseTasks(string csvText, List<string> errors, string name = "Tasks.csv")

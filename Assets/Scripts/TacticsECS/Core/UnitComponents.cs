@@ -15,8 +15,9 @@ namespace TacticsECS
     [System.Serializable] public struct MaxHp { public int Value; }
 
     // ---- 전투 (스폰 후 불변) ----
-    [System.Serializable] public struct Attack { public int Value; }
-    [System.Serializable] public struct Defense { public int Value; }
+    // 공격/방어는 위키 원값 그대로(기사 공격 3.5, 망토 방어 0.5) 소수를 허용한다 — 전투 공식은 CombatSystem(위키 Combat).
+    [System.Serializable] public struct Attack { public float Value; }
+    [System.Serializable] public struct Defense { public float Value; }
     [System.Serializable] public struct AttackRange { public int Value; }
 
     // ---- 치유 (스폰 후 불변) ----
@@ -83,8 +84,8 @@ namespace TacticsECS
     [System.Serializable]
     public struct LandForm
     {
-        public int Attack;
-        public int Defense;
+        public float Attack;
+        public float Defense;
         public int AttackRange;
         public int MoveRange;
         public int VisionRange;
@@ -103,8 +104,9 @@ namespace TacticsECS
     // 아무 제한도 걸지 않는다 — 기술을 반영해 다시 채우는 건 TechEffectSystem.RefreshUnits.
     [System.Serializable] public struct TerrainAccess { public bool Mountain; public bool Ocean; }
 
-    // 서 있는 칸 때문에 붙는 방어력 보너스(지형 방어 기술 + 요새화 유닛의 도시 방어). CombatSystem.
-    // EffectiveDefense가 더한다. 위치/기술/도시가 바뀔 때마다 TechEffectSystem.RefreshUnits가 다시 계산한다.
+    // 서 있는 칸 때문에 붙는 방어 보너스 등급(위키 Combat "defenceBonus"): 0 = 없음, 1 = 표준(지형 방어 기술/요새화 유닛의
+    // 도시 — x1.5), 2 = 성벽(x4). 위키대로 겹치지 않고 가장 높은 등급 하나만 적용된다. 배수 값은 GameRules.Combat, 등급 계산은
+    // TechEffectSystem.RefreshUnits(위치/기술/도시가 바뀔 때마다), 적용은 CombatSystem.DefenseMultiplier.
     [System.Serializable] public struct PositionalDefenseBonus { public int Value; }
 
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이

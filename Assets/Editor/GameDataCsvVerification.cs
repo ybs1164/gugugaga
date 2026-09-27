@@ -25,6 +25,7 @@ namespace TacticsECS.EditorTools
             VerifyCapitalVision();
             VerifyGameRules();
             VerifyRewardsAndTasks();
+            VerifyUnitsAndCombat();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
         }
@@ -139,6 +140,115 @@ namespace TacticsECS.EditorTools
                   CitySystem.RewardAmount(CityRewardType.BorderGrowth) == 2 && CitySystem.RewardAmount(CityRewardType.Workshop) == 1, "reward amounts (wiki City)");
             var pacifist = TaskDefinition.All.First(t => t.Id == TaskDefinition.Pacifist);
             Check(pacifist.Kind == TaskKind.TurnsWithoutAttack && pacifist.Threshold == 5 && pacifist.UnlockKey == "Task.Pacifist", "pacifist task from CSV");
+        }
+
+        // ---------- 3차: 유닛 CSV(위키 원값) + 위키 전투 공식 ----------
+
+        private static List<UnitCsvRow> LoadSandboxUnits() =>
+            UnitCsvSerializer.Parse(System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "..", "SandboxUnits.csv")));
+
+        private static int Spawn(GridWorld grid, EntityWorld world, List<UnitCsvRow> rows, string id, Team team, Vector2Int pos) =>
+            UnitFactorySystem.CreateFromCsv(grid, world, team, rows.First(r => r.Id == id), pos);
+
+        private static GridWorld Field(int w, int h)
+        {
+            var grid = new GridWorld(w, h);
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            return grid;
+        }
+
+        private static void VerifyUnitsAndCombat()
+        {
+            var rows = LoadSandboxUnits();
+            var knightRow = rows.FirstOrDefault(r => r.Id == "knight");
+            var spyRow = rows.FirstOrDefault(r => r.Id == "spy");
+            Check(knightRow != null && Mathf.Approximately(knightRow.AttackAttack, 3.5f) && spyRow != null && Mathf.Approximately(spyRow.Defense, 0.5f),
+                "unit CSV keeps wiki decimals (knight attack 3.5, cloak defence 0.5)");
+            Check(rows.Where(r => (r.Actions & ActionType.Stiff) == 0).All(r => (r.Actions & ActionType.Counter) != 0), "every non-stiff wiki unit retaliates (Counter)");
+
+            // 위키 Combat 예시값 — 체력 가득, 보너스 없음.
+            var grid = Field(8, 8);
+            var world = new EntityWorld();
+            int w1 = Spawn(grid, world, rows, "infantry", Team.Player, new Vector2Int(1, 1));
+            int w2 = Spawn(grid, world, rows, "infantry", Team.Enemy, new Vector2Int(2, 1));
+            Check(CombatSystem.TryAttack(grid, world, w1, w2, out int d, out int c) && d == 5 && c == 5, $"warrior vs warrior = 5 / 5 retaliation (got {d}/{c})");
+
+            int rider = Spawn(grid, world, rows, "cavalry", Team.Player, new Vector2Int(1, 3));
+            int defender = Spawn(grid, world, rows, "shield", Team.Enemy, new Vector2Int(2, 3));
+            Check(CombatSystem.PreviewRetaliation(world, rider, defender) == 8, "battle preview predicts the retaliation");
+            Check(CombatSystem.TryAttack(grid, world, rider, defender, out d, out c) && d == 4 && c == 8, $"rider vs defender = 4 / 8 (got {d}/{c})");
+
+            // 기사 -> 궁수: 12 피해로 처치 + 근접이라 그 칸으로 전진(위키 Combat).
+            int knight = Spawn(grid, world, rows, "knight", Team.Player, new Vector2Int(4, 1));
+            int archer = Spawn(grid, world, rows, "archer", Team.Enemy, new Vector2Int(5, 1));
+            Check(CombatSystem.TryAttack(grid, world, knight, archer, out d, out c) && d == 12 && c == 0 && !UnitQueries.IsAlive(world, archer), $"knight kills archer with 12 (got {d})");
+            Check(world.Get<GridPosition>(knight).Value == new Vector2Int(5, 1) && grid.GetOccupant(new Vector2Int(5, 1)) == knight, "melee unit advances into the killed unit's tile");
+
+            // 원거리 유닛은 근접 거리에서 처치해도 움직이지 않는다.
+            int archer2 = Spawn(grid, world, rows, "archer", Team.Player, new Vector2Int(6, 6));
+            int victim = Spawn(grid, world, rows, "infantry", Team.Enemy, new Vector2Int(7, 6));
+            world.Set(victim, new Hp { Value = 1 });
+            Check(CombatSystem.TryAttack(grid, world, archer2, victim, out _, out _) && !UnitQueries.IsAlive(world, victim) &&
+                  world.Get<GridPosition>(archer2).Value == new Vector2Int(6, 6), "ranged unit does not advance after a kill");
+
+            // 투석기 -> 검사(거리 3): 10 피해, 검사 사거리 밖이라 반격 없음.
+            int cat = Spawn(grid, world, rows, "catapult", Team.Player, new Vector2Int(0, 6));
+            int sword = Spawn(grid, world, rows, "gladiator", Team.Enemy, new Vector2Int(3, 6));
+            Check(CombatSystem.TryAttack(grid, world, cat, sword, out d, out c) && d == 10 && c == 0, $"catapult vs swordsman = 10, no retaliation out of range (got {d}/{c})");
+
+            // 성벽(x4): 체력 3인 전사는 방어병에게 0 피해, 반격으로 죽는다(위키 Defender 문서).
+            var g2 = Field(4, 4);
+            var w2d = new EntityWorld();
+            int def2 = Spawn(g2, w2d, rows, "shield", Team.Enemy, new Vector2Int(1, 1));
+            int weak = Spawn(g2, w2d, rows, "infantry", Team.Player, new Vector2Int(2, 1));
+            w2d.Set(def2, new PositionalDefenseBonus { Value = 2 });
+            w2d.Set(weak, new Hp { Value = 3 });
+            Check(CombatSystem.TryAttack(g2, w2d, weak, def2, out d, out c) && d == 0 && !UnitQueries.IsAlive(w2d, weak), $"damaged warrior deals 0 to a walled defender and dies (got {d}/{c})");
+
+            // 방어 보너스는 겹치지 않는다: 숲(궁술) + 요새화 도시 = x1.5 한 번.
+            var g3 = Field(5, 5);
+            var w3 = new EntityWorld();
+            var econ = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes() };
+            foreach (var team in CitySystem.Teams) { econ.Resources[team] = new CityResourceData(); econ.Tech[team] = TechTreeData.CreateEmpty(); }
+            TaskSystem.Init(econ);
+            var forestCity = new Vector2Int(2, 2);
+            g3.SetTileType(forestCity, TerrainGenerationSystem.ForestTileId);
+            CitySystem.FoundCity(g3, econ, forestCity, Team.Player, true, "숲");
+            econ.Tech[Team.Player].Unlocked.Add("Hunting"); econ.Tech[Team.Player].Unlocked.Add("Archery");
+            int fortArcher = Spawn(g3, w3, rows, "archer", Team.Player, forestCity);
+            TechEffectSystem.RefreshUnits(g3, w3, econ);
+            Check(w3.Get<PositionalDefenseBonus>(fortArcher).Value == 1 && Mathf.Approximately(CombatSystem.DefenseMultiplier(w3, fortArcher), 1.5f),
+                "forest + fortified city bonus does not stack (x1.5 once)");
+
+            // 스플래시 = 그 대상에게 계산한 피해의 절반(내림).
+            var g4 = Field(6, 6);
+            var w4 = new EntityWorld();
+            var bomberRow = NavalUnitDefinition.Upgrades.First(u => u.Row.Id == "bomber").Row;
+            var splasher = new UnitCsvRow { Id = "splash", MaxHp = 10, Defense = 2, Actions = bomberRow.Actions | ActionType.Move, MoveRange = 1,
+                AttackAttack = bomberRow.AttackAttack, AttackRange = bomberRow.AttackRange, Domain = TerrainType.Land };
+            int bomber = UnitFactorySystem.CreateFromCsv(g4, w4, Team.Player, splasher, new Vector2Int(0, 2));
+            int main = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(3, 2));
+            int side = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(3, 3));
+            int expectedSplash = CombatSystem.CalculateDamage(w4, bomber, side) / 2;
+            Check(CombatSystem.TryAttack(g4, w4, bomber, main, out d, out _) && w4.Get<Hp>(side).Value == 10 - expectedSplash && expectedSplash > 0,
+                $"splash = half of the computed damage ({expectedSplash})");
+
+            // 슈퍼 유닛: 거인은 훈련 불가, 레벨 5+ 보상으로 소환, 점수 50.
+            var econ2 = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = rows };
+            foreach (var team in CitySystem.Teams) { econ2.Resources[team] = new CityResourceData { Gold = 100 }; econ2.Tech[team] = TechTreeData.CreateEmpty(); }
+            TaskSystem.Init(econ2);
+            var g5 = Field(5, 5);
+            int ci = CitySystem.FoundCity(g5, econ2, new Vector2Int(2, 2), Team.Player, true, "수도");
+            Check(CitySystem.StrongestUnitId(econ2) == "giant", "super unit reward spawns the giant");
+            Check(!CitySystem.CanTrain(g5, new EntityWorld(), econ2, Team.Player, ci, rows.First(r => r.Id == "giant"), out _), "giant can't be trained");
+            var w5 = new EntityWorld();
+            Spawn(g5, w5, rows, "giant", Team.Player, new Vector2Int(0, 0));
+            Check(ScoreSystem.ComputeBreakdown(g5, w5, econ2, Team.Player).Units == GameRules.Score.SuperUnit, "giant is worth 50 points");
+
+            // 배 유닛 CSV(위키 원값).
+            var rammer = NavalUnitDefinition.Upgrades.First(u => u.Row.Id == "rammer");
+            Check(NavalUnitDefinition.Raft.Defense == 1 && NavalUnitDefinition.Raft.MoveRange == 2 && Mathf.Approximately(rammer.Row.AttackAttack, 3f) &&
+                  rammer.UnlockKey == "Unit.rammer" && NavalUnitDefinition.Upgrades.Length == 3, "naval units from CSV with wiki stats");
         }
 
         private static void VerifyCapitalVision()

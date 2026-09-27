@@ -28,7 +28,7 @@ namespace TacticsECS
         [Header("Combat")]
         [Tooltip("공격을 받을 때 항상 적용되는 기본 방어력. Defend 행동(방어 태세)의 추가 보너스와는 별개로, " +
             "actions에 Defend가 없는 유닛도 이 값은 그대로 적용된다.")]
-        [SerializeField] private int defense;
+        [SerializeField] private float defense;
 
         [Header("Actions")]
         [Tooltip("이 유닛 타입이 실제로 쓸 수 있는 행동의 집합. 리스트에 들어있는 항목만 사용 가능하며, " +
@@ -52,7 +52,7 @@ namespace TacticsECS
         [SerializeField] private Texture2D bodyTexture;
 
         public int MaxHp => maxHp;
-        public int Defense => defense;
+        public float Defense => defense;
 
         /// <summary>이 유닛이 가진 행동들 그대로(읽기 전용). 개별 값이 아니라 행동 자체가 필요한
         /// 곳(예: 커스텀 에디터)에서 쓴다.</summary>
@@ -75,7 +75,7 @@ namespace TacticsECS
 
         public int MoveRange => FindAction<MoveAction>()?.MoveRange ?? 0;
 
-        public int Attack => FindAction<AttackAction>()?.Attack ?? 0;
+        public float Attack => FindAction<AttackAction>()?.Attack ?? 0f;
         public int AttackRange => FindAction<AttackAction>()?.AttackRange ?? 0;
 
         public int HealAmount => FindAction<HealAction>()?.HealAmount ?? 0;

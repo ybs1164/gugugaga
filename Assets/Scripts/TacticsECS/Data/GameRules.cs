@@ -29,6 +29,7 @@ namespace TacticsECS
             public static int MarketGoldPerLevel = 1;
             public static int MarketGoldCap = 8;
             public static int MaxPortWaterGap = 5;
+            public static string SuperUnitId = "giant";
         }
 
         public static class Heal
@@ -54,12 +55,15 @@ namespace TacticsECS
             public static int LiteracyDivisor = 3;
         }
 
+        /// <summary>위키 Combat 공식의 상수. 계산은 CombatSystem.Resolve.</summary>
         public static class Combat
         {
-            public static int GuardDefenseBonus = 2;
-            public static int TerrainDefenseBonus = 1;
-            public static int CityDefenseBonus = 1;
-            public static int WallDefenseBonus = 3;
+            public static float DamageCoefficient = 4.5f;
+            public static float DefenseBonusMultiplier = 1.5f;
+            public static float WallDefenseMultiplier = 4f;
+            public static int SplashDivisor = 2;
+            public static bool MeleeAdvanceOnKill = true;
+            public static float GuardDefenseBonus = 1f;
         }
 
         /// <summary>위키 Score 문서. 계산은 ScoreSystem.</summary>

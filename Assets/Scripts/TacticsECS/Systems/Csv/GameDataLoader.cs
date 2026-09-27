@@ -22,6 +22,9 @@ namespace TacticsECS
             CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors), errors);
             TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors), errors);
             GameRulesCsvSerializer.Apply(Read(GameRulesCsvResourcePath, errors), errors);
+            GameTableCsvSerializer.ParseNavalUnits(Read(NavalUnitDefinition.CsvResourcePath, errors), errors, out var raft, out var upgrades);
+            if (raft != null) NavalUnitDefinition.Raft = raft;
+            NavalUnitDefinition.Upgrades = upgrades;
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return errors;
         }

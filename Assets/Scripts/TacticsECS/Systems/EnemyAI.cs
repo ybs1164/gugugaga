@@ -143,7 +143,8 @@ namespace TacticsECS
             return list;
         }
 
-        /// <summary>사거리 안의 적 중 처치할 수 있는 대상 우선, 아니면 피해가 큰 대상을 공격한다.</summary>
+        /// <summary>사거리 안의 적 중 처치할 수 있는 대상 우선, 아니면 (준 피해 − 받을 반격의 절반)이 큰 대상을 공격한다. 처치하지
+        /// 못하는데 반격에 죽는 공격은 하지 않는다(위키 전투 공식에서는 방어가 높은 대상에게 붙으면 반격이 공격보다 크다).</summary>
         private static bool TryBestAttack(GridWorld grid, EntityWorld world, EconomyWorld econ, int id, List<int> enemies, List<BattleLogEntry> entries)
         {
             var attack = UnitActionQueries.Find<AttackAction>(world, id);
@@ -154,7 +155,10 @@ namespace TacticsECS
             {
                 if (!UnitQueries.IsAlive(world, e) || !CombatSystem.IsInAttackRange(world, id, e)) continue;
                 int dmg = CombatSystem.CalculateDamage(world, id, e);
-                float score = dmg + (dmg >= world.Get<Hp>(e).Value ? 100f : 0f);
+                bool kill = dmg >= world.Get<Hp>(e).Value;
+                int retaliation = CombatSystem.PreviewRetaliation(world, id, e);
+                if (!kill && retaliation >= world.Get<Hp>(id).Value) continue;
+                float score = dmg - retaliation * 0.5f + (kill ? 100f : 0f);
                 if (score > bestScore) { bestScore = score; bestTarget = e; }
             }
             if (bestTarget < 0) return false;

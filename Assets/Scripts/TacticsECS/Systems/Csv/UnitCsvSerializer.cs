@@ -8,7 +8,7 @@ namespace TacticsECS
     /// <summary>
     /// CSV 텍스트 <-> UnitCsvRow 목록 변환만 담당하는 순수 파서/작성기. Unity 오브젝트(GameObject/프리팹)를
     /// 전혀 몰라서 배치모드 CLI에서도 그대로 왕복 검증할 수 있다(값을 읽고 쓰기만 할 뿐 자체 상태는 없다).
-    /// 컬럼 순서/이름은 Header에 한 곳에만 정의되어 있다.
+    /// 읽기는 헤더 이름 기준(순서 무관), 쓰기 컬럼 순서는 Header 한 곳에만 정의되어 있다.
     /// 행 안의 Actions 컬럼은 여러 행동 이름을 담아야 해서(예: "Move;Attack;Counter"), CSV 컬럼 구분자인
     /// 쉼표와 겹치지 않도록 세미콜론을 구분자로 쓴다.
     /// </summary>
@@ -26,20 +26,33 @@ namespace TacticsECS
 
         private const char ActionsSeparator = ';';
 
-        /// <summary>첫 줄(헤더)을 건너뛰고 나머지 줄을 각각 한 행으로 파싱한다. 비어있는 줄은 무시한다.
-        /// 값이 비어있거나 형식이 잘못된 컬럼은 그 타입의 기본값(0/false/흰색/None)으로 채운다 —
-        /// CSV를 손으로 편집하다 실수로 컬럼을 비워도 예외 없이 불러와지도록 하기 위함이다.</summary>
-        public static List<UnitCsvRow> Parse(string csvText)
+        /// <summary>헤더 이름으로 컬럼을 찾아(CsvTableReader — 순서 무관, 메모 컬럼/`#` 주석 행 허용) 한 행씩 파싱한다.
+        /// 값이 비어있거나 형식이 잘못된 컬럼은 그 타입의 기본값(0/None/Land)으로 채운다 — CSV를 손으로 편집하다 실수로
+        /// 컬럼을 비워도 예외 없이 불러와지도록 하기 위함이다(잘못된 칸은 errors를 주면 기록된다). Defense/Attack.Attack은
+        /// 위키 원값처럼 소수(0.5, 3.5)를 허용한다.</summary>
+        public static List<UnitCsvRow> Parse(string csvText, List<string> errors = null, string name = "units.csv")
         {
             var rows = new List<UnitCsvRow>();
-            if (string.IsNullOrWhiteSpace(csvText)) return rows;
-
-            var lines = csvText.Replace("\r\n", "\n").Split('\n');
-            for (int i = 1; i < lines.Length; i++) // 0번째 줄은 헤더
+            var t = CsvTableReader.Parse(name, csvText);
+            for (int r = 0; r < t.Rows.Count; r++)
             {
-                var line = lines[i].Trim();
-                if (line.Length == 0) continue;
-                rows.Add(ParseRow(line.Split(',')));
+                rows.Add(new UnitCsvRow
+                {
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Name = CsvTableReader.Get(t, r, "Name"),
+                    MaxHp = CsvTableReader.GetInt(t, r, "MaxHp", 0, errors),
+                    Defense = CsvTableReader.GetFloat(t, r, "Defense", 0f, errors),
+                    BaseVisual = CsvTableReader.Get(t, r, "BaseVisual"),
+                    Actions = ParseActions(CsvTableReader.Get(t, r, "Actions")),
+                    Domain = CsvTableReader.GetEnum(t, r, "Domain", TerrainType.Land, errors),
+                    MoveRange = CsvTableReader.GetInt(t, r, "Move.Range", 0, errors),
+                    AttackAttack = CsvTableReader.GetFloat(t, r, "Attack.Attack", 0f, errors),
+                    AttackRange = CsvTableReader.GetInt(t, r, "Attack.Range", 0, errors),
+                    HealAmount = CsvTableReader.GetInt(t, r, "Heal.Amount", 0, errors),
+                    HealRange = CsvTableReader.GetInt(t, r, "Heal.Range", 0, errors),
+                    TransportCapacity = CsvTableReader.GetInt(t, r, "Transport.Capacity", 0, errors),
+                    Cost = CsvTableReader.GetInt(t, r, "Cost", UnitCsvRow.DefaultCost, errors),
+                });
             }
             return rows;
         }
@@ -52,24 +65,6 @@ namespace TacticsECS
                 sb.AppendLine(WriteRow(row));
             return sb.ToString();
         }
-
-        private static UnitCsvRow ParseRow(string[] c) => new UnitCsvRow
-        {
-            Id = Col(c, 0),
-            Name = Col(c, 1),
-            MaxHp = ParseInt(Col(c, 2)),
-            Defense = ParseInt(Col(c, 3)),
-            BaseVisual = Col(c, 4),
-            Actions = ParseActions(Col(c, 5)),
-            Domain = ParseDomain(Col(c, 6)),
-            MoveRange = ParseInt(Col(c, 7)),
-            AttackAttack = ParseInt(Col(c, 8)),
-            AttackRange = ParseInt(Col(c, 9)),
-            HealAmount = ParseInt(Col(c, 10)),
-            HealRange = ParseInt(Col(c, 11)),
-            TransportCapacity = ParseInt(Col(c, 12)),
-            Cost = Col(c, 13).Length > 0 ? ParseInt(Col(c, 13)) : UnitCsvRow.DefaultCost
-        };
 
         private static string WriteRow(UnitCsvRow row) => string.Join(",", new[]
         {
@@ -88,13 +83,6 @@ namespace TacticsECS
             row.TransportCapacity.ToString(CultureInfo.InvariantCulture),
             row.Cost.ToString(CultureInfo.InvariantCulture)
         });
-
-        private static string Col(string[] cols, int index) => index < cols.Length ? cols[index].Trim() : string.Empty;
-
-        private static int ParseInt(string s) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
-
-        private static TerrainType ParseDomain(string s) =>
-            Enum.TryParse<TerrainType>(s, true, out var v) ? v : TerrainType.Land;
 
         private static ActionType ParseActions(string s)
         {

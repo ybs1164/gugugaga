@@ -28,7 +28,7 @@ namespace TacticsECS
             {
                 if (!UnitQueries.IsAlive(world, id) || world.Get<Team>(id) != team) continue;
                 var row = CitySystem.FindUnitRow(econ, world.GetOrDefault<UnitTypeId>(id).Value ?? string.Empty);
-                if (row != null) b.Units += GameRules.Score.PerUnitCostStar * row.Cost;
+                if (row != null) b.Units += CitySystem.IsSuperUnit(row.Id) ? GameRules.Score.SuperUnit : GameRules.Score.PerUnitCostStar * row.Cost;
             }
 
             for (int y = 0; y < grid.Height; y++)

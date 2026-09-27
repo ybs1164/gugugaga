@@ -14,6 +14,7 @@ City.UnitCapacityBase,1,1,도시 하나가 지원하는 유닛 수 = 레벨 + �
 City.MarketGoldPerLevel,1,1,시장: 인접 가공 건물 레벨 하나당 골드/턴,위키 Stars 문서는 2로 적혀 있으나 Market/Buildings 문서(1)를 따름
 City.MarketGoldCap,8,8,시장 골드 상한(위키: 최대 레벨 8),
 City.MaxPortWaterGap,5,5,항구 연결: 항구 사이 물 칸 최대 수(City Connections),
+City.SuperUnitId,giant,giant,슈퍼 유닛(도시 레벨 5+ 보상)으로 소환할 유닛 CSV Id — 도시에서 훈련할 수는 없다,
 # 회복/해산/유적,,,,
 Heal.OwnTerritory,4,4,자기 영토에서 쉬면 회복량,
 Heal.Other,2,2,중립/적 영토에서 쉬면 회복량,
@@ -23,11 +24,13 @@ Ruin.Population,3,3,유적 보상: 인구(수도),
 # 기술,,,,
 Tech.DefaultCostBase,4,4,TechTree.csv CostBase를 비웠을 때 값(비용 = 티어 x 도시 수 + 4),
 Tech.LiteracyDivisor,3,3,Literacy: 비용에서 1/N을 뺀다(= 2/3 올림 — 위키 비용 표와 일치),
-# 전투 — 방어 보너스,,,,
-Combat.GuardDefenseBonus,2,,방어 태세(Defend 행동) 방어력 +N,프로젝트 고유 행동(위키에 없음)
-Combat.TerrainDefenseBonus,1,x1.5,지형 방어 기술(숲/산/물) 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x1.5 대신 +1 (3차에서 재검토)
-Combat.CityDefenseBonus,1,x1.5,요새화 유닛의 도시 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x1.5 대신 +1 (3차에서 재검토)
-Combat.WallDefenseBonus,3,x4,성벽 도시 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x4 대신 +3 (3차에서 재검토)
+# 전투(위키 Combat 공식),,,,
+Combat.DamageCoefficient,4.5,4.5,피해 = 힘의 비율 x 공격(또는 방어) x 이 계수,
+Combat.DefenseBonusMultiplier,1.5,1.5,지형 방어 기술(숲/산/물)·요새화 유닛의 도시 방어 배수 (겹치지 않음),
+Combat.WallDefenseMultiplier,4,4,성벽 도시의 요새화 유닛 방어 배수,
+Combat.SplashDivisor,2,2,스플래시 피해 = 그 대상에게 계산한 공격 피해 / N,원문은 나누기만 하고(.5 체력 버그) 여기서는 내림 — 값은 같음
+Combat.MeleeAdvanceOnKill,true,true,근접(사거리 1) 유닛이 인접한 적을 처치하면 그 칸으로 전진,
+Combat.GuardDefenseBonus,1,,방어 태세(Defend 행동) 방어 스탯 +N,프로젝트 고유 행동(위키에 없음) — 위키 척도(방어 1~4)에 맞춰 2 -> 1
 # 점수(위키 Score),,,,
 Score.PerUnitCostStar,5,5,유닛 비용 1당 점수,
 Score.SuperUnit,50,50,슈퍼 유닛 점수,

@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace TacticsECS
 {
     /// <summary>
@@ -5,9 +7,9 @@ namespace TacticsECS
     ///   - TerrainAccess: "Move.Mountain"(등산) 없이는 산, "Move.Ocean"(배 타기) 없이는 깊은 바다 진입 불가 —
     ///     PathfindingSystem/MoveAction이 이 컴포넌트만 보고 판정한다(경로 탐색 시그니처에 기술 정보를 넘기지
     ///     않기 위함).
-    ///   - PositionalDefenseBonus: 서 있는 칸이 산/숲/물이고 팀이 "Defense.Mountain/Forest/Water"를 가졌으면 +1
-    ///     (폴리토피아의 방어 x1.5를 정수 방어력 체계에 맞춘 값), 요새화(FortifyAction) 유닛이 자기 도시 칸에
-    ///     있으면 +1(성벽이면 +3). CombatSystem.EffectiveDefense가 더한다.
+    ///   - PositionalDefenseBonus(등급): 서 있는 칸이 산/숲/물이고 팀이 "Defense.Mountain/Forest/Water"를 가졌거나,
+    ///     요새화(FortifyAction) 유닛이 자기 도시 칸에 있으면 1(위키 x1.5), 그 도시에 성벽이 있으면 2(x4). 겹치지 않는다(위키).
+    ///     배수 적용은 CombatSystem.DefenseMultiplier.
     /// 위치/기술/도시가 바뀌는 모든 지점(이동, 턴 시작, 연구, 점령, 훈련, 적 턴 종료) 뒤에 BattleController가
     /// 다시 부른다. econ이 null(경제 없는 씬)이면 제한도 보너스도 없는 기본값으로 채운다.
     /// </summary>
@@ -37,16 +39,17 @@ namespace TacticsECS
                 });
 
                 var pos = world.Get<GridPosition>(id).Value;
+                // 위키 Combat "Defence Bonus": 지형(기술)·도시(요새화) 보너스는 겹치지 않고 가장 높은 것 하나만 — 등급 0/1(x1.5)/2(성벽 x4).
                 int bonus = 0;
                 var cls = TileImprovementSystem.Classify(grid, pos);
                 if ((cls == TileClass.Mountain && TechSystem.HasUnlock(nodes, tech, "Defense.Mountain")) ||
                     (cls == TileClass.Forest && TechSystem.HasUnlock(nodes, tech, "Defense.Forest")) ||
                     ((cls == TileClass.ShallowWater || cls == TileClass.Ocean) && TechSystem.HasUnlock(nodes, tech, "Defense.Water")))
-                    bonus += GameRules.Combat.TerrainDefenseBonus;
+                    bonus = 1;
 
                 int city = CitySystem.FindCityAt(econ, pos);
                 if (city >= 0 && econ.Cities[city].Owner == team && UnitActionQueries.Find<FortifyAction>(world, id) != null)
-                    bonus += econ.Cities[city].HasWall ? GameRules.Combat.WallDefenseBonus : GameRules.Combat.CityDefenseBonus;
+                    bonus = econ.Cities[city].HasWall ? 2 : Mathf.Max(bonus, 1);
 
                 world.Set(id, new PositionalDefenseBonus { Value = bonus });
             }

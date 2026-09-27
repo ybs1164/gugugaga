@@ -82,9 +82,9 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
 | 타입 | HP | 공격력 | 방어력 | 이동 범위 | 사거리 | 특징 |
 | --- | --- | --- | --- | --- | --- | --- |
-| **Melee** (근접, `Unit_Melee.prefab`) | 12 | 5 | 1 | 3칸 | 1칸 | 이동력이 좋고 공격력이 높지만 방어가 약함. 적에게 바로 붙어 때리는 딜러. 이동/공격 외에 **자폭**을 쓸 수 있다. |
-| **Ranged** (원거리, `Unit_Ranged.prefab`) | 8 | 4 | 0 | 2칸 | 3칸 | HP/방어력이 가장 낮은 대신 멀리서 공격 가능. 근접에게 붙잡히면 위험. 이동/공격 외에 **치유**(회복량 4, 사거리 2)를 쓸 수 있다. |
-| **Guard** (방어, `Unit_Guard.prefab`) | 18 | 3 | 3 | 2칸 | 1칸 | HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +2 추가되어 총 5가 된다 (`CombatSystem.TryDefend`). 추가로 **반격** 패시브를 갖고 있어, 자신의 사거리 안에서 공격받으면 자동으로 공격한 대상에게 피해를 되돌려준다. |
+| **Melee** (근접, `Unit_Melee.prefab`) | 10 | 2 | 2 | 3칸 | 1칸 | 위키 전사 스탯(3차부터). 이동력이 좋은 근접 딜러. 적에게 바로 붙어 때리는 딜러. 이동/공격 외에 **자폭**을 쓸 수 있다. |
+| **Ranged** (원거리, `Unit_Ranged.prefab`) | 10 | 2 | 1 | 2칸 | 2칸 | 위키 궁수 스탯. 멀리서 공격 가능. 근접에게 붙잡히면 위험. 이동/공격 외에 **치유**(회복량 4, 사거리 2)를 쓸 수 있다. |
+| **Guard** (방어, `Unit_Guard.prefab`) | 15 | 1 | 3 | 2칸 | 1칸 | 위키 방어병 스탯. HP/방어력이 가장 높은 탱커. 이동/공격 외에 **방어 태세**를 쓸 수 있고, 이번 턴 방어력이 +1(`GameRules.csv` `Combat.GuardDefenseBonus`) 추가된다 (`CombatSystem.TryDefend`). 추가로 **반격** 패시브를 갖고 있어, 자신의 사거리 안에서 공격받으면 자동으로 공격한 대상에게 피해를 되돌려준다. |
 
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
@@ -132,7 +132,7 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 `Counter`(반격)/`Charge`(돌격)/`Retreat`(대피)는 예외다 — 플레이어가 고르는 "행동"이 아니라 **항상 자동으로
 적용되는 패시브**라서 `BattleHud`의 행동 버튼 목록(`OptionalActionDefs`)이 아니라 별도의 패시브 배지 목록
 (`PassiveDefs`)에 정의되고, 클릭할 수 없는 정보 표시용 아이콘으로만 나타난다.
-- **반격**([`CounterAction.Execute`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs), [`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs)이 공격 성사 후 대상 쪽에서 찾아 호출): 공격이 성사되고 대상이 살아남았을 때, 대상이 `CounterAction`을 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(대상 공격력 − 공격자 방어력, 최소 1)를 되돌려준다. 턴 행동이 아니라 패시브라서 `CanExecute`가 `HasActed`를 보지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
+- **반격**([`CounterAction.Execute`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs), [`CombatSystem.TryAttack`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs)이 공격 성사 후 대상 쪽에서 찾아 호출): 공격이 성사되고 대상이 살아남았을 때, 대상이 `CounterAction`을 갖고 있고 공격자가 대상 자신의 사거리 안에 있으면 대상이 자동으로 공격자에게 피해(위키 전투 공식의 방어 쪽 몫 — 대상 방어력과 공격받기 전 체력 기준, 0이면 반격 없음)를 되돌려준다. 턴 행동이 아니라 패시브라서 `CanExecute`가 `HasActed`를 보지 않는다 — 이미 이번 턴 행동을 마친 유닛도 반격은 그대로 발동한다.
 
 기본적으로 한 턴에 이동 또는 공격 중 하나만 할 수 있다 — 이동하면 그 턴엔 더 이상 공격할 수 없고
 (`AttackAction.CanExecute`가 `HasMoved`를 봄), 공격하면 그 턴엔 더 이상 이동할 수 없다(`MoveAction.CanExecute`가
@@ -651,8 +651,8 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   농장+풍차 인접, 파괴, 마을 점령, 도로 수도 연결, 산 진입/요새화 방어, 적 AI 연구/훈련/점령, 도시 전멸 패배.
 
 **위키와 다르게 단순화한 것**: 발전도(연구)와 골드(건설/훈련)를 분리한 것은 이 프로젝트 기존 기획(도시 발전도로 기술 해금)을
-따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 유닛 CSV에서 최대 체력이 가장 높은 유닛. 불가사리 인양은 유닛
-행동 대신 영토 안 타일 행동. 지형 방어 x1.5는 정수 방어력 체계에 맞춰 +1, 요새화 도시 방어는 +1(성벽 +3). 다리/기념물/신전
+따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 유닛
+행동 대신 영토 안 타일 행동. 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
 레벨/항구 승선/시야/점수는 아래 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절에서 채웠다.
 
 ## 건물 기능 · 시야 · 적 시뮬레이션
@@ -774,7 +774,24 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 도시 보상([`CityRewards.csv`](Assets/Resources/CityRewards.csv), `Amount` 칸)·과업([`Tasks.csv`](Assets/Resources/Tasks.csv)) 표도 CSV로. 시장 골드 = min(인접 레벨, 8) × `City.MarketGoldPerLevel`.
 - 검증: CSV 규칙 하나를 바꾸면 도시 수입이 바뀌는지까지 확인, 기존 검증 전부 ALL PASS, **시뮬레이션 결과가 1차와 동일**(동작 불변 리팩터 확인).
 
+**3차 — 유닛 스탯 + 위키 전투 공식**
+- 위키 대조: 인게임 전투(`공격 − 방어`, 최소 1)는 위키 공식과 피해 오차 41%, 처치 타수가 270전투 중 220번 어긋났다. 반격은 방패병만,
+  반격 피해는 공격력 기준, 방어 보너스는 합산(+1/+3), 투석기 스플래시, 슈퍼 유닛은 "체력 최고 유닛" 등도 위키와 달랐다.
+- 방식 비교(현행 뺄셈+인게임 척도 / 위키 공식+소수 원값 / 위키 공식+정수 반올림) → **위키 공식 + 소수 원값**(오차 0, 정수 반올림은 기사 3.5·망토 0.5 때문에 14전투 어긋남).
+- [`CombatSystem.Resolve`](Assets/Scripts/TacticsECS/Systems/CombatSystem.cs): 위키 공식 그대로 — 공격/반격을 공격 전 체력으로 동시 계산, 방어 보너스는 등급(×1.5 / 성벽 ×4, 겹치지 않음),
+  스플래시 절반, 근접 유닛은 처치한 칸으로 전진. 계수/배수는 `GameRules.csv` `Combat.*`로(2차의 위키 편차 3개 해소). `Attack`/`Defense`는 `float`.
+- [`SandboxUnits.csv`](SandboxUnits.csv) 10종을 위키 원값으로(비-Stiff 유닛은 전부 `Counter`), 슈퍼 유닛 **거인** 추가(`City.SuperUnitId`, 훈련 불가, 점수 50),
+  배 유닛은 [`NavalUnits.csv`](Assets/Resources/NavalUnits.csv)로(공격 ×2 편차 제거). 유닛 CSV도 헤더 기반. SampleScene 3종 프리팹도 위키 척도.
+- 개선: 첫 시뮬레이션에서 전멸전이 늘어 원인을 보니 AI가 반격을 안 봤다 → 위키 "Battle Preview"에 해당하는 `CombatSystem.PreviewRetaliation` +
+  `EnemyAI`가 반격에 죽는 공격을 피하게 수정(전멸전 2 → 1).
+- 검증: 위키 예시값(전사 vs 전사 5/5, 기병 vs 방어병 4/8, 기사 → 궁수 12 등)까지 `GameDataCsvVerification`에서 확인, 기존 검증 + 시뮬레이션 ALL PASS.
+
 ## 작업 로그
+
+- 2026-09-27: 게임 규칙 CSV 3차 — 위키 전투 공식 + 유닛 스탯 위키 원값 + 배 유닛 CSV + 거인.
+  - 위 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절과 [`docs/GameDataCsv.md`](docs/GameDataCsv.md) 3차(남은 "원문과 다른 점" 표 포함) 참고.
+  - **검증**: 에디터가 꺼진 상태에서 CLI로 `GameDataCsvVerification`/`EconomyVerification`/`BuildingFeatureVerification`/`UIVerification`/
+    `UnitCsvVerification`/`EconomySimulation` 전부 ALL PASS. 시뮬레이션은 전투 공식이 바뀌어 결과가 달라짐(표는 docs 3-4).
 
 - 2026-09-27: 게임 규칙 CSV 2차 — 흩어진 수치 규칙 48개를 `GameRules.csv`로 + 도시 보상/과업 표 CSV화.
   - 위 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절과 [`docs/GameDataCsv.md`](docs/GameDataCsv.md) 2차 참고.

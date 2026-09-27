@@ -307,14 +307,19 @@ namespace TacticsECS
             return true;
         }
 
-        /// <summary>훈련 가능한 유닛 CSV 중 최대 체력이 가장 높은 유닛(폴리토피아 "거인" 대체).</summary>
+        /// <summary>슈퍼 유닛(위키 Giant) Id — GameRules.City.SuperUnitId가 유닛 CSV에 있으면 그것, 없으면(옛 샌드박스 CSV)
+        /// 체력이 가장 높은 유닛으로 대체한다.</summary>
         public static string StrongestUnitId(EconomyWorld econ)
         {
+            if (FindUnitRow(econ, GameRules.City.SuperUnitId) != null) return GameRules.City.SuperUnitId;
             UnitCsvRow best = null;
             foreach (var row in econ.UnitRows)
                 if (best == null || row.MaxHp > best.MaxHp) best = row;
             return best?.Id ?? string.Empty;
         }
+
+        /// <summary>도시에서 훈련할 수 없는 유닛(슈퍼 유닛 — 위키: 보상으로만 얻는다).</summary>
+        public static bool IsSuperUnit(string unitId) => !string.IsNullOrEmpty(unitId) && unitId == GameRules.City.SuperUnitId;
 
         // ---------- 수입 ----------
 
@@ -445,6 +450,7 @@ namespace TacticsECS
             reason = string.Empty;
             var city = econ.Cities[cityIndex];
             if (city.Owner != team) { reason = "우리 도시가 아님"; return false; }
+            if (IsSuperUnit(row.Id)) { reason = "보상 전용(슈퍼 유닛)"; return false; }
             if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = "기술 필요"; return false; }
             if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
             if (CityResourceSystem.CountPopulation(world, team) >= UnitCapacity(econ, team)) { reason = "인구 상한"; return false; }

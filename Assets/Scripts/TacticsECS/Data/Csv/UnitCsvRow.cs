@@ -16,7 +16,9 @@ namespace TacticsECS
 
         public string Name;
         public int MaxHp;
-        public int Defense;
+
+        /// <summary>방어력 — 위키 원값(소수 허용, 예: 망토 0.5).</summary>
+        public float Defense;
 
         /// <summary>외형(모델/머티리얼 슬롯)을 빌려올 기존 프리팹 이름표. Assets/Prefabs/Units의
         /// Unit_&lt;BaseVisual&gt; 프리팹을 찾는 키로 쓰인다(UnitCsvRow 자신은 그 매칭 방법을 모른다).</summary>
@@ -30,7 +32,8 @@ namespace TacticsECS
 
         public int MoveRange;
 
-        public int AttackAttack;
+        /// <summary>공격력 — 위키 원값(소수 허용, 예: 기사 3.5).</summary>
+        public float AttackAttack;
         public int AttackRange;
 
         public int HealAmount;

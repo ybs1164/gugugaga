@@ -12,12 +12,13 @@ namespace TacticsECS
     {
         /// <summary>엔티티를 만들고 유닛 컴포넌트를 전부 채운 뒤 pos에 놓는다. 행동별 값(이동/공격/치유/수송)은 행동 목록에서
         /// 읽는다(UnitDefinition의 getter와 같은 규칙). 대기(WaitAction)는 없으면 추가한다.</summary>
-        public static int Create(GridWorld grid, EntityWorld world, Team team, Vector2Int pos, int maxHp, int defense,
+        public static int Create(GridWorld grid, EntityWorld world, Team team, Vector2Int pos, int maxHp, float defense,
             IReadOnlyList<IUnitAction> actions, TerrainType domain, string unitTypeId)
         {
             var unitActions = new List<IUnitAction>();
             var available = ActionType.None;
-            int moveRange = 0, attack = 0, attackRange = 0, healAmount = 0, healRange = 0, cargo = 0;
+            int moveRange = 0, attackRange = 0, healAmount = 0, healRange = 0, cargo = 0;
+            float attack = 0f;
             if (actions != null)
             {
                 foreach (var a in actions)

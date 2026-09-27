@@ -3,7 +3,7 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 공격 행동. 실행 가능 여부 판정과 피해 적용(대상 사망 시 occupant 정리 포함)을 이 클래스가 직접
+    /// 공격 행동. 실행 가능 여부 판정과 피해 적용(대상 사망 시 occupant 정리 + 근접 유닛의 전진 포함)을 이 클래스가 직접
     /// 담당한다 — 예전 CombatSystem.TryAttack 본체 로직이 그대로 이 안으로 옮겨왔다. CombatSystem은
     /// 이제 이 행동을 찾아 실행한 뒤, 대상의 CounterAction을 찾아 이어서 실행해주는 진입점일 뿐이다.
     /// 반격(CounterAction)은 별도 값을 갖지 않고 이 행동의 Attack/AttackRange를 그대로 재사용한다.
@@ -13,16 +13,16 @@ namespace TacticsECS
     [System.Serializable]
     public class AttackAction : ITargetedAction
     {
-        [SerializeField] private int attack;
+        [SerializeField] private float attack;
         [SerializeField] private int attackRange;
 
         public ActionType GetActionType() => ActionType.Attack;
 
         /// <summary>CSV 행(UnitCsvRow)의 Attack 파라미터로 인스턴스를 만든다.</summary>
-        public static AttackAction FromCsv(int attack, int attackRange) =>
+        public static AttackAction FromCsv(float attack, int attackRange) =>
             new AttackAction { attack = attack, attackRange = attackRange };
 
-        public int Attack => attack;
+        public float Attack => attack;
         public int AttackRange => attackRange;
 
         public bool CanExecute(EntityWorld world, int unitId) =>
@@ -46,7 +46,9 @@ namespace TacticsECS
 
             if (!UnitQueries.IsAlive(world, targetId))
             {
-                grid.RemoveOccupant(world.Get<GridPosition>(targetId).Value);
+                var killedAt = world.Get<GridPosition>(targetId).Value;
+                grid.RemoveOccupant(killedAt);
+                AdvanceAfterKill(grid, world, actorId, killedAt);
 
                 // 연타: 처치했고 공격자가 이 패시브를 가졌다면, 방금 세운 HasActed를 되돌려 같은 턴에
                 // 추가 공격을 허용한다.
@@ -68,6 +70,21 @@ namespace TacticsECS
             return true;
         }
 
+        /// <summary>위키 Combat: 근접 유닛(사거리 1)이 인접한 적을 처치하면 그 칸으로 들어간다(지형이 막으면 제자리). 원거리
+        /// 유닛은 근접 거리에서 처치해도 움직이지 않는다. 들어간 칸이 자기 항구면 뗏목이 된다(EmbarkSystem — 위키 동일).
+        /// GameRules.Combat.MeleeAdvanceOnKill로 끌 수 있다.</summary>
+        private static void AdvanceAfterKill(GridWorld grid, EntityWorld world, int actorId, Vector2Int killedAt)
+        {
+            if (!GameRules.Combat.MeleeAdvanceOnKill || world.Get<AttackRange>(actorId).Value != 1) return;
+            var from = world.Get<GridPosition>(actorId).Value;
+            if (PathfindingSystem.Distance(from, killedAt) != 1 || grid.GetOccupant(killedAt) != TileData.NoOccupant) return;
+            if (!PathfindingSystem.CanEnter(grid, world, actorId, killedAt, out _)) return;
+            grid.RemoveOccupant(from);
+            world.Set(actorId, new GridPosition { Value = killedAt });
+            grid.PlaceOccupant(killedAt, actorId);
+            EmbarkSystem.ApplyAfterMove(grid, world, actorId);
+        }
+
         private static void ApplySplashDamage(GridWorld grid, EntityWorld world, int actorId, int primaryTargetId)
         {
             var center = world.Get<GridPosition>(primaryTargetId).Value;
@@ -79,7 +96,7 @@ namespace TacticsECS
                 if (world.Get<Team>(i) == attackerTeam) continue;
                 if (PathfindingSystem.Distance(center, world.Get<GridPosition>(i).Value) > 1) continue;
 
-                int splashDamage = CombatSystem.CalculateDamage(world, actorId, i);
+                int splashDamage = CombatSystem.CalculateSplashDamage(world, actorId, i);
                 var splashHp = world.Get<Hp>(i);
                 splashHp.Value = Mathf.Max(0, splashHp.Value - splashDamage);
                 world.Set(i, splashHp);

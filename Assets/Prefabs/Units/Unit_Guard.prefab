@@ -62,7 +62,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbd155d3b21ae8d49a7136402ee079ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
-  maxHp: 18
+  maxHp: 15
   defense: 3
   actions:
   - rid: 1
@@ -81,7 +81,7 @@ MonoBehaviour:
     - rid: 2
       type: {class: AttackAction, ns: TacticsECS, asm: Assembly-CSharp}
       data:
-        attack: 3
+        attack: 1
         attackRange: 1
     - rid: 3
       type: {class: DefendAction, ns: TacticsECS, asm: Assembly-CSharp}

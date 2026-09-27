@@ -9,6 +9,16 @@ namespace TacticsECS
     /// 찾아 위임하거나(TryAttack/TryDefend), 여러 행동이 공유하는 계산 함수(IsInAttackRange/
     /// EffectiveDefense/CalculateDamage)를 제공한다 — 이 계산 함수들은 BattleHud(UI 표시)에서도
     /// 그대로 재사용한다.
+    ///
+    /// 피해 공식은 위키 Combat 문서 그대로(3차 비교분석 — docs/GameDataCsv.md):
+    ///   attackForce  = 공격자.공격 x (공격자 체력 / 최대 체력)
+    ///   defenseForce = 대상.방어 x (대상 체력 / 최대 체력) x 방어 보너스(없음 1 / 지형·도시 1.5 / 성벽 4)
+    ///   공격 피해 = round(attackForce / (attackForce + defenseForce) x 공격자.공격 x 4.5)
+    ///   반격 피해 = round(defenseForce / (attackForce + defenseForce) x 대상.방어 x 4.5)  — 둘 다 공격 전 체력 기준
+    ///   스플래시 = 공격 피해 / 2
+    /// 계수(4.5)/배수/스플래시 나눗수는 GameRules.Combat(GameRules.csv)로 조정한다. 반올림은 .5 올림(위키 "nearest").
+    /// 원문과 다른 점: 스플래시는 위키에서 반올림 없이 반으로 나눠 체력이 .5가 되는 버그가 있어, 정수 체력에 맞춰 내림한다.
+    /// 방어 태세(Defend, 프로젝트 고유 행동)는 방어 스탯에 GameRules.Combat.GuardDefenseBonus를 더한다.
     /// </summary>
     public static class CombatSystem
     {
@@ -20,19 +30,69 @@ namespace TacticsECS
             return dist >= 1 && dist <= world.Get<AttackRange>(attackerId).Value;
         }
 
-        /// <summary>방어 태세 보너스 + 위치 보너스(지형 방어 기술/요새화 도시 방어, TechEffectSystem이 계산해
-        /// PositionalDefenseBonus에 넣어둔 값)까지 합산한 실제 방어력.</summary>
-        public static int EffectiveDefense(EntityWorld world, int unitId)
+        /// <summary>방어 스탯(방어 태세 가산 포함, 위치 보너스 배수는 제외).</summary>
+        public static float BaseDefense(EntityWorld world, int unitId) =>
+            world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0f);
+
+        /// <summary>위치 방어 보너스 배수(PositionalDefenseBonus 등급 — TechEffectSystem이 계산): 없음 1, 표준 1.5, 성벽 4.</summary>
+        public static float DefenseMultiplier(EntityWorld world, int unitId)
         {
-            int bonus = (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0) + world.Get<PositionalDefenseBonus>(unitId).Value;
-            return world.Get<Defense>(unitId).Value + bonus;
+            int level = world.Get<PositionalDefenseBonus>(unitId).Value;
+            if (level >= 2) return GameRules.Combat.WallDefenseMultiplier;
+            return level == 1 ? GameRules.Combat.DefenseBonusMultiplier : 1f;
         }
 
+        /// <summary>UI 표시용 실제 방어력 = 방어 스탯 x 위치 보너스 배수.</summary>
+        public static float EffectiveDefense(EntityWorld world, int unitId) => BaseDefense(world, unitId) * DefenseMultiplier(world, unitId);
+
+        /// <summary>위키 공식으로 공격 피해와 반격 피해를 한 번에 계산한다. targetHp는 대상의 공격 전 체력(반격도 이 값 기준).</summary>
+        public static void Resolve(EntityWorld world, int attackerId, int targetId, int targetHp, out int attackResult, out int defenseResult)
+        {
+            double atk = world.Get<Attack>(attackerId).Value;
+            double def = BaseDefense(world, targetId);
+            double attackForce = atk * HealthRatio(world.Get<Hp>(attackerId).Value, world.Get<MaxHp>(attackerId).Value);
+            double defenseForce = def * HealthRatio(targetHp, world.Get<MaxHp>(targetId).Value) * DefenseMultiplier(world, targetId);
+            double total = attackForce + defenseForce;
+            if (total <= 0) { attackResult = 0; defenseResult = 0; return; }
+            double k = GameRules.Combat.DamageCoefficient;
+            attackResult = RoundHalfUp(attackForce / total * atk * k);
+            defenseResult = RoundHalfUp(defenseForce / total * def * k);
+        }
+
+        /// <summary>지금 상태에서 공격자가 대상에게 주는 피해(0일 수 있다 — 공격 0인 사제 등).</summary>
         public static int CalculateDamage(EntityWorld world, int attackerId, int targetId)
         {
-            int dmg = world.Get<Attack>(attackerId).Value - EffectiveDefense(world, targetId);
-            return Mathf.Max(1, dmg);
+            Resolve(world, attackerId, targetId, world.Get<Hp>(targetId).Value, out int damage, out _);
+            return damage;
         }
+
+        /// <summary>대상(defenderId)이 공격자에게 되돌려주는 반격 피해 — 위키대로 대상의 "공격 전" 체력으로 계산한다.</summary>
+        public static int CalculateRetaliation(EntityWorld world, int attackerId, int defenderId, int defenderHpBeforeHit)
+        {
+            Resolve(world, attackerId, defenderId, defenderHpBeforeHit, out _, out int retaliation);
+            return retaliation;
+        }
+
+        /// <summary>위키 "Battle Preview": 지금 공격하면 되돌려받을 반격 피해 예상. 대상이 이 공격으로 죽거나, 반격 패시브가 없거나,
+        /// 뻣뻣함/공격자 기습·전향, 대상 사거리 밖이면 0 — CombatSystem.TryAttack의 반격 조건과 같다. AI가 반격에 죽는 공격을 피할 때 쓴다.</summary>
+        public static int PreviewRetaliation(EntityWorld world, int attackerId, int targetId)
+        {
+            int hp = world.Get<Hp>(targetId).Value;
+            Resolve(world, attackerId, targetId, hp, out int damage, out int retaliation);
+            if (damage >= hp) return 0;
+            if (UnitActionQueries.Find<CounterAction>(world, targetId) == null || UnitActionQueries.Find<StiffAction>(world, targetId) != null) return 0;
+            if (UnitActionQueries.Find<AmbushAction>(world, attackerId) != null || UnitActionQueries.Find<ConvertAction>(world, attackerId) != null) return 0;
+            return IsInAttackRange(world, targetId, attackerId) ? retaliation : 0;
+        }
+
+        /// <summary>스플래시 피해 = 그 대상에게 계산한 공격 피해 / GameRules.Combat.SplashDivisor(내림).</summary>
+        public static int CalculateSplashDamage(EntityWorld world, int attackerId, int targetId) =>
+            CalculateDamage(world, attackerId, targetId) / Mathf.Max(1, GameRules.Combat.SplashDivisor);
+
+        private static double HealthRatio(int hp, int maxHp) => maxHp <= 0 ? 1.0 : (double)Mathf.Max(0, hp) / maxHp;
+
+        /// <summary>.5 올림 반올림(Math.Round의 은행가 반올림이면 전사 vs 전사 4.5가 4가 되어 위키 5와 달라진다).</summary>
+        private static int RoundHalfUp(double x) => (int)System.Math.Floor(x + 0.5 + 1e-9);
 
         /// <summary>공격 행동(AttackAction)을 찾아 실행하고, 공격이 성사되어 대상이 살아남았으면 전향
         /// (ConvertAction) 여부를 먼저 반영한 뒤 대상의 반격 행동(CounterAction)을 찾아 이어서 실행한다.
@@ -45,6 +105,8 @@ namespace TacticsECS
             counterDamageDealt = 0;
 
             var attack = UnitActionQueries.Find<AttackAction>(world, attackerId);
+            // 위키 공식은 반격도 대상의 "공격 전" 체력으로 계산한다 — 공격이 체력을 깎기 전에 기억해 둔다(지역 변수, 상태 아님).
+            int targetHpBeforeHit = UnitQueries.IsAlive(world, targetId) ? world.Get<Hp>(targetId).Value : 0;
             if (attack == null || !attack.Execute(grid, world, attackerId, targetId, out damageDealt)) return false;
 
             if (UnitQueries.IsAlive(world, targetId))
@@ -58,7 +120,7 @@ namespace TacticsECS
                     UnitActionQueries.Find<StiffAction>(world, targetId) == null)
                 {
                     var counter = UnitActionQueries.Find<CounterAction>(world, targetId);
-                    counter?.Execute(grid, world, targetId, attackerId, out counterDamageDealt);
+                    counter?.ExecuteRetaliation(grid, world, targetId, attackerId, targetHpBeforeHit, out counterDamageDealt);
                 }
             }
 

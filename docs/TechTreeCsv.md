@@ -8,14 +8,15 @@
 
 ## 1. 컬럼 명세
 
-한 행 = 기술 하나.
+한 행 = 기술 하나. 컬럼은 **이름으로** 읽으므로 순서를 바꾸거나 메모용 컬럼(`Note`/`Wiki`)을 끼워 넣어도 됩니다.
+첫 칸이 `#`으로 시작하는 행은 주석으로 건너뜁니다.
 
 | 컬럼 | 필수 | 의미 | 예시 |
 |---|---|---|---|
 | `Id` | O | 기술 고유 식별자. 다른 행의 `Parent`/`Branch`가 이 값을 가리킨다 | `Farming` |
 | `Name` | O | 표시 이름 | `농사` |
-| `Branch` | 선택 | 이 기술이 속한 갈래의 1티어 기술 `Id`. 비우면 1티어는 자기 자신, 그 외는 부모의 갈래를 따른다 | `Gathering` |
-| `Parent` | 선택 | 선행 기술 `Id`. 비우면 처음부터 연구 가능(1티어) | `Gathering` |
+| `Branch` | 선택 | 이 기술이 속한 갈래의 1티어 기술 `Id`. 비우면 1티어는 자기 자신, 그 외는 부모의 갈래를 따른다 | `Organization` |
+| `Parent` | 선택 | 선행 기술 `Id`. 비우면 처음부터 연구 가능(1티어) | `Organization` |
 | `Tier` | O | 1~3 (4 이상도 가능 — 트리 UI에서 더 바깥 원에 놓인다) | `2` |
 | `Slot` | 선택 | 같은 갈래 안에서 왼쪽(0)/오른쪽(1) 가지. 3티어는 자기 부모와 같은 값 | `1` |
 | `Icon` | 선택 | 아이콘 이름(`Assets/Art/GameIcons/Resources/Icons/<이름>.png`) | `farming` |
@@ -44,13 +45,14 @@
 | `Build.Windmill` | 풍차 | 5 | 평지, 농장 인접 | 인접 농장당 인구 +1 |
 | `Build.Forge` | 대장간 | 5 | 평지, 광산 인접 | 인접 광산당 인구 +2 |
 | `Build.Market` | 시장 | 5 | 평지, 제재소/풍차/대장간 인접 | 인접 가공 건물 인구 합만큼 골드/턴(최대 8) |
-| `Build.Temple` | 신전 | 20 | 평지 | 인구 +1, 신앙 최대치 +5 |
-| `Build.ForestTemple` | 숲 신전 | 15 | 숲 | 인구 +1, 신앙 최대치 +5 |
-| `Build.MountainTemple` | 산악 신전 | 20 | 산 | 인구 +1, 신앙 최대치 +5 |
-| `Build.WaterTemple` | 해양 신전 | 20 | 얕은 물/깊은 바다 | 인구 +1, 신앙 최대치 +5 |
+| `Build.Temple` | 신전 | 20 | 평지 | 인구 +1, 점수(3턴마다 레벨 업) |
+| `Build.ForestTemple` | 숲 신전 | 15 | 숲 | 인구 +1, 점수(3턴마다 레벨 업) |
+| `Build.MountainTemple` | 산악 신전 | 20 | 산 | 인구 +1, 점수(3턴마다 레벨 업) |
+| `Build.WaterTemple` | 해양 신전 | 20 | 얕은 물/깊은 바다 | 인구 +1, 점수(3턴마다 레벨 업) |
 | `Build.Road` | 도로 | 3 | 평지/숲 (중립 땅도 가능) | 도로망으로 수도와 이어진 도시: 그 도시와 수도에 인구 +1, 발전도 +1/턴 |
 
-건물 수치 자체(비용/인구)는 `Assets/Scripts/TacticsECS/Data/BuildingDefinition.cs` 표에 있습니다.
+건물 수치 자체(비용/인구/지형/인접 조건/플래그)는 **`Assets/Resources/Buildings.csv`**, 타일 행동은 **`Assets/Resources/TileActions.csv`** 에
+있습니다(2026-09-27부터 코드 표가 아니라 CSV — 컬럼 설명은 [`GameDataCsv.md`](GameDataCsv.md)). 다리(`Bridge`)는 도로와 같은 `Build.Road` 키로 열립니다.
 
 ### 타일 행동 (`Harvest.*`, `Ability.*`)
 
@@ -61,9 +63,9 @@
 | `Harvest.Fish` | 낚시 | 2 | 인구 +1 (물고기 소모) |
 | `Harvest.Starfish` | 불가사리 인양 | 0 | 골드 +8 |
 | `Ability.ClearForest` | 벌목 | 0 | 숲 -> 평지, 골드 +1 |
-| `Ability.BurnForest` | 화전 | 5 | 숲 -> 작물이 있는 평지 |
+| `Ability.BurnForest` | 화전 | 3 | 숲 -> 작물이 있는 평지 (위키: 건축) |
 | `Ability.GrowForest` | 숲 조성 | 5 | 평지 -> 숲 |
-| `Ability.Destroy` | 건물 파괴 | 0 | 자기 건물 제거(그 건물이 준 인구도 사라짐) |
+| `Ability.Destroy` | 건물 파괴 | 0 | 자기 건물 제거(그 건물이 준 인구도 사라짐, 위키: 기사도) |
 | `Ability.Disband` | 해산 | 0 | 유닛 메뉴에서 자기 유닛 제거, 훈련 비용 절반 환급 |
 
 ### 유닛 (`Unit.<유닛 CSV Id>`)
@@ -81,13 +83,16 @@
 | `Defense.Mountain` / `Defense.Forest` / `Defense.Water` | 그 지형에 선 유닛 방어력 +1 |
 | `Reveal.<StructureId>` | 그 자원(예: `Reveal.Resource_Metal`)이 연구 전엔 지도/정보 패널에 보이지 않는다 |
 | `Literacy` | 모든 연구 비용 1/3 감소 |
+| `Connect.Ocean` | 깊은 바다를 건너는 항구 연결(항해) |
+| `Vision.Capital` | 다른 팀 수도 칸이 항상 보임(외교 — 위키 Capital Vision) |
+| `Task.Pacifist` / `Task.Wealth` / `Task.Network` / `Task.Genius` | 과업(기념물) 개방 — 명상/교역/도로/철학 |
 
 ## 3. 예시 — 새 기술 추가
 
-"채집" 갈래에 방패병 대신 "투창"(2티어, 궁병 훈련) 가지를 하나 더 달고 싶다면:
+"조직(Organization)" 갈래에 전략 대신 "투창"(2티어, 궁병 훈련) 가지를 하나 더 달고 싶다면:
 
 ```csv
-Javelin,투창,Gathering,Gathering,2,0,archery,4,2,Unit.archer,궁병 훈련 가능.
+Javelin,투창,Organization,Organization,2,0,archery,4,2,Unit.archer,궁병 훈련 가능.
 ```
 
 같은 갈래에 2티어가 3개가 되면 두 개가 같은 `Slot`에 겹쳐 그려지므로, 트리 UI에서 보기 좋게 하려면 갈래당 2티어는 2개(Slot 0/1)로 유지하는 것을 권장합니다.

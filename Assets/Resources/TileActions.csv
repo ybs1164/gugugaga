@@ -1,0 +1,9 @@
+﻿Id,Name,Kind,Unlock,Cost,Terrain,RequiredStructures,Population,GoldGain,Description
+HarvestFruit,과일 채집,Harvest,Harvest.Fruit,2,Field,Resource_Fruit;Resource_Food,1,0,인구 +1.
+HuntAnimal,사냥,Harvest,Harvest.Animal,2,Forest,Resource_Animal,1,0,인구 +1.
+CatchFish,낚시,Harvest,Harvest.Fish,2,ShallowWater;Ocean,Resource_Fish,1,0,인구 +1.
+HarvestStarfish,불가사리 인양,Harvest,Harvest.Starfish,0,ShallowWater;Ocean,Starfish,0,8,골드 +8.
+ClearForest,벌목,ClearForest,Ability.ClearForest,0,Forest,,0,1,숲을 평지로. 골드 +1.
+BurnForest,화전,BurnForest,Ability.BurnForest,3,Forest,,0,0,숲을 작물이 있는 평지로.
+GrowForest,숲 조성,GrowForest,Ability.GrowForest,5,Field,,0,0,평지를 숲으로.
+DestroyBuilding,건물 파괴,Destroy,Ability.Destroy,0,Field;Forest;Mountain;ShallowWater;Ocean,,0,0,건물을 없애고 그 인구를 되돌린다.

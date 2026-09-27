@@ -73,7 +73,22 @@ namespace TacticsECS
                 if (t.OwnerTeam == TileData.NoOwner) continue;
                 Reveal(grid, (Team)t.OwnerTeam, p, 0);
             }
-            if (econ != null) ProcessLighthouses(grid, econ, log);
+            if (econ != null)
+            {
+                RevealCapitals(grid, econ);
+                ProcessLighthouses(grid, econ, log);
+            }
+        }
+
+        /// <summary>수도 시야(Vision.Capital)를 가진 팀에게 다른 팀 수도 칸을 밝힌다.</summary>
+        public static void RevealCapitals(GridWorld grid, EconomyWorld econ)
+        {
+            foreach (var team in CitySystem.Teams)
+            {
+                if (!econ.Tech.TryGetValue(team, out var tech) || !TechSystem.HasUnlock(econ.TechNodes, tech, VisionDefinition.CapitalVisionKey)) continue;
+                foreach (var city in econ.Cities)
+                    if (city.IsCapital && city.Owner != team) Reveal(grid, team, city.Position, 0);
+            }
         }
 
         /// <summary>팀이 새로 밝힌 등대마다 수도 인구 +1(위키 Lighthouse — 수도가 없으면 가장 오래된 도시).</summary>

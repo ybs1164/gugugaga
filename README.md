@@ -727,19 +727,19 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 기술트리 (CSV)
 
-폴리토피아 기반 5갈래(등산/채집/기마/사냥/낚시) x 1+2+2티어 = 25개 노드. **정의는 전부
+폴리토피아 기반 5갈래(등반/조직/기마/사냥/낚시 — 2026-09-27 현재 위키 이름으로 Id 변경) x 1+2+2티어 = 25개 노드. **정의는 전부
 [`Assets/Resources/TechTree.csv`](Assets/Resources/TechTree.csv)** 에 있고, 기획자가 스프레드시트로 고쳐 저장하면 코드/프리팹
 수정 없이 반영된다 — 컬럼과 해금 키 목록은 [`docs/TechTreeCsv.md`](docs/TechTreeCsv.md).
 
 - 기술 Id는 enum(`TechId`, 삭제됨)이 아니라 문자열이다. 기술이 여는 효과는 기술 이름이 아니라 CSV `Unlocks` 칸의 **해금 키**
   (`Build.Farm`, `Harvest.Fruit`, `Unit.shield`, `Move.Mountain`, `Defense.Forest`, `Reveal.Resource_Metal`, `Literacy` 등)로만
   연결되고, 각 시스템은 `TechSystem.HasUnlock(키)`만 조회한다 — CSV에 행을 추가해도 코드에 기술 이름이 필요 없다.
-- 25개 노드의 효과가 전부 실제로 동작한다: 등산(산 진입/산 방어/광물 공개), 명상(산악 신전), 채광(광산), 철학(연구 비용 1/3
-  감소, 사제 훈련), 제련(대장간, 검투사), 채집(과일 채집, 작물 공개), 방패(방패병), 농사(농장), 외교(스파이), 건축(풍차, 건물
-  파괴), 기마(기병), 자유 영혼(신전, 해산), 도로(도로), 기사도(기사, 화전), 교역(시장), 사냥(사냥, 동물 공개), 임업(벌목장,
-  벌목), 궁술(궁병, 숲 방어), 수학(제재소, 투석기), 강신술(숲 신전, 숲 조성), 낚시(항구, 낚시, 물고기 공개), 배 타기(깊은 바다
-  진입), 수생학(해양 신전, 물 방어), 항해(불가사리 인양/공개). 충파/배 타기/항해의 물 유닛(`rammer`/`scout`/`bomber`)은 유닛
-  CSV에 그 행이 생기면 바로 훈련 목록에 나온다.
+- 25개 노드의 효과가 전부 실제로 동작한다: 등반(산 진입/산 방어/광물 공개), 명상(산악 신전, 평화주의 과업), 채광(광산),
+  철학(연구 비용 1/3 감소, 사제 훈련, 천재 과업), 제련(대장간, 검투사), 조직(과일 채집, 작물 공개), 전략(방패병 — 구 "방패"),
+  농사(농장), 외교(스파이, 수도 시야), 건축(풍차, 화전), 기마(기병), 자유 영혼(신전, 해산), 도로(도로/다리, 교역망 과업),
+  기사도(기사, 건물 파괴), 교역(시장, 부 과업), 사냥(사냥, 동물 공개), 임업(벌목장, 벌목), 궁술(궁병, 숲 방어), 수학(제재소, 투석기),
+  강신술(숲 신전, 숲 조성), 낚시(항구, 낚시, 물고기 공개), 충파/배 타기/항해(뗏목 업그레이드, 깊은 바다, 불가사리), 수생학(해양 신전, 물 방어).
+  위키와 맞춘 내역(기사도↔건축 해금 교정 등)은 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절.
 - [`TechCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/TechCsvSerializer.cs): CSV ↔ `TechNodeData` 목록(큰따옴표 인용 지원,
   빈 칸 기본값 보정). [`TechTreeDefinition`](Assets/Scripts/TacticsECS/Data/TechTreeDefinition.cs)은 CSV 경로/기본값 상수만 남았다.
 - [`TechTreeHud`](Assets/Scripts/TacticsECS/View/TechTreeHud.cs): 노드 수가 CSV로 바뀌므로 노드/연결선/허브를 더 이상 프리팹에
@@ -747,7 +747,31 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   `TechTreePanel.prefab`에는 토글 버튼/패널/빈 Tree 컨테이너/상세 패널만 남았다. 상세 패널 비용은 현재 도시 수 기준으로 계산된다.
 - 아이콘 26종(25 노드 + 허브)은 예전 그대로 자체 제작(`Assets/Art/GameIcons/Resources/Icons`, PowerShell + GDI+).
 
+## 게임 규칙 CSV (위키 대조 + 방식 비교)
+
+"CSV만 고쳐서 게임 시스템을 만질 수 있게" 하려고, 위키와 인게임의 차이를 찾고 → CSV 형식 후보 3개를 실제로 만들어
+비교 → 최적안 구현 → 검증/개선을 3회 반복한다. 분석·비교표·스키마 전문은 [`docs/GameDataCsv.md`](docs/GameDataCsv.md).
+
+**1차 — 기술트리 정합성 + 건물/타일 행동 표 CSV화**
+- 위키 대조로 찾은 차이 수정: 기사도 = 기사 + **파괴**, 건축 = 풍차 + **화전**(서로 뒤바뀐 옛 규칙이었음), 방패 → **전략**(2.1 개명),
+  도로 → **교역망 과업** 개방(`Task.Network`), 외교 → **수도 시야**(`Vision.Capital`, [`VisionSystem.RevealCapitals`](Assets/Scripts/TacticsECS/Systems/VisionSystem.cs)),
+  화전 비용 5 → 3, 기술 Id를 현재 위키 이름(Climbing/Organization/Smithery/Aquatism)으로.
+- 건물/타일 행동 표를 C# 배열에서 **[`Assets/Resources/Buildings.csv`](Assets/Resources/Buildings.csv) / [`TileActions.csv`](Assets/Resources/TileActions.csv)** 로 이동.
+  형식은 3안(순수 넓은 표 / 롱·EAV / 효과 DSL) + 하이브리드를 실제로 만들어 편집 diff·빈칸 비율·정렬 가능성으로 비교한 뒤
+  **넓은 표 + `Flags` 태그 목록**을 채택(숫자는 컬럼, 드문 불리언은 태그 한 칸).
+- 공용 [`CsvTableReader`](Assets/Scripts/TacticsECS/Systems/Csv/CsvTableReader.cs): **헤더 이름 기반**(컬럼 순서 무관, 메모 컬럼 허용, `#` 주석 행),
+  잘못된 값은 `파일:줄 컬럼: 내용` 경고 후 기본값. `TechTree.csv`도 이 방식으로 읽는다.
+  [`GameDataLoader.LoadAll`](Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이 `BattleController.Awake`/에디터 검증 시작 시 Data 표를 채운다(코드 기본 표 없음 — CSV가 유일한 원본).
+- 검증: 신규 [`GameDataCsvVerification`](Assets/Editor/GameDataCsvVerification.cs) + 기존 Economy/BuildingFeature/UI/UnitCsv/EconomySimulation 전부 ALL PASS.
+
 ## 작업 로그
+
+- 2026-09-27: 게임 규칙 CSV 1차 — 위키 대조 + 기술트리 정합성 + 건물/타일 행동 표 CSV화.
+  - **동기**: "위키랑 비교해서 현재 인게임이랑 어떤 점이 다른지 분석하고, csv를 어떻게 설정해야 게임 시스템을 제대로 만질 수
+    있는지 3개 정도 선정해 비교분석해서 최적의 방법을 찾아봐. 계획→구현→개선을 3번 반복" — 그 1회차.
+  - 위 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절과 [`docs/GameDataCsv.md`](docs/GameDataCsv.md) 1차 참고.
+  - **검증**: Unity 에디터가 꺼져 있음을 프로세스 목록으로 확인한 뒤 CLI로 `GameDataCsvVerification`(신규)/`EconomyVerification`/
+    `BuildingFeatureVerification`/`UIVerification`/`UnitCsvVerification`/`EconomySimulation` 실행 — 전부 ALL PASS.
 
 - 2026-09-27: 건물 기능 + 시야 + 점수 + 적 시뮬레이션 구현.
   - **동기**: "시야 시스템까지 포함해서 구현. 점수만 주기. 위키 기준 없는 기능 되도록 추가 고려해서 진행" — 앞선 계획

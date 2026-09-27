@@ -7,6 +7,7 @@ namespace TacticsECS
     ///   - 도시를 얻으면 그 영토를 밝힌다. 전투 시작 시 수도 주변 5x5가 보인다.
     ///   - 탐험가(도시 2레벨 보상/유적 보상)는 12번 움직이며(2026-02 패치로 15 → 12) 가장 가까운 구름 쪽으로 간다.
     ///   - 등대를 처음 밝히면 수도 인구 +1.
+    ///   - 외교(Vision.Capital)를 연구하면 다른 팀 수도 칸이 보인다.
     /// </summary>
     public static class VisionDefinition
     {
@@ -21,5 +22,9 @@ namespace TacticsECS
         public const string ExplorerMountainKey = "Move.Mountain";
         public const string ExplorerShallowWaterKey = "Move.Ocean";
         public const string ExplorerOceanKey = "Connect.Ocean";
+
+        /// <summary>수도 시야(위키 Diplomacy "Capital Vision") 해금 키 — 가진 팀은 다른 팀 수도 칸이 항상 보인다.
+        /// 원문과 다른 점: 위키는 "발견한 부족"의 수도만 보이지만, 이 프로젝트는 두 팀뿐이라 발견 조건을 생략했다.</summary>
+        public const string CapitalVisionKey = "Vision.Capital";
     }
 }

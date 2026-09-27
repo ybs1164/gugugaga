@@ -15,6 +15,7 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll();
             _ok = true;
             VerifyTechCsv();
             VerifyTechCost();
@@ -32,7 +33,7 @@ namespace TacticsECS.EditorTools
         }
 
         private static List<TechNodeData> LoadNodes() =>
-            TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
+            GameDataLoader.LoadTechNodes();
 
         private static void VerifyTechCsv()
         {
@@ -46,7 +47,7 @@ namespace TacticsECS.EditorTools
             }
 
             // 해금 키가 실제로 무언가를 가리키는지(오타 방지): Build.* = 건물 표, Harvest./Ability. = 타일 행동 표.
-            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey, CitySystem.OceanConnectionKey };
+            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey, CitySystem.OceanConnectionKey, VisionDefinition.CapitalVisionKey };
             foreach (var t in TaskDefinition.All) if (!string.IsNullOrEmpty(t.UnlockKey)) known.Add(t.UnlockKey);
             foreach (var b in BuildingDefinition.All) known.Add(b.UnlockKey);
             foreach (var a in TileActionDefinition.All) known.Add(a.UnlockKey);
@@ -73,7 +74,7 @@ namespace TacticsECS.EditorTools
             // 위키 표: 1도시 5/6/7, 3도시 7/10/13.
             Check(Cost("Riding", 1) == 5 && Cost("Roads", 1) == 6 && Cost("Trade", 1) == 7, "cost with 1 city (5/6/7)");
             Check(Cost("Riding", 3) == 7 && Cost("Roads", 3) == 10 && Cost("Trade", 3) == 13, "cost with 3 cities (7/10/13)");
-            tech.Unlocked.Add("Mountaineering"); tech.Unlocked.Add("Meditation"); tech.Unlocked.Add("Philosophy");
+            tech.Unlocked.Add("Climbing"); tech.Unlocked.Add("Meditation"); tech.Unlocked.Add("Philosophy");
             // Literacy: 1도시 4/4/5, 2도시 T3 7.
             Check(Cost("Riding", 1) == 4 && Cost("Roads", 1) == 4 && Cost("Trade", 1) == 5 && Cost("Trade", 2) == 7, "literacy discount");
         }
@@ -152,7 +153,7 @@ namespace TacticsECS.EditorTools
             grid.SetStructure(fruit2, "Resource_Fruit");
             Check(!TileImprovementSystem.GetOptions(grid, econ, p, fruit1).Exists(o => o.Id == "HarvestFruit"), "fruit not harvestable before Gathering");
             var res = econ.Resources[p];
-            Check(TechSystem.Unlock(econ.TechNodes, econ.Tech[p], ref res, 1, "Gathering"), "unlock Gathering with 5 dev");
+            Check(TechSystem.Unlock(econ.TechNodes, econ.Tech[p], ref res, 1, "Organization"), "unlock Organization with 5 dev");
             econ.Resources[p] = res;
             Check(econ.Resources[p].Development == 0, "Gathering cost 5 dev");
             var log = new List<EconomyLogEntry>();
@@ -168,6 +169,7 @@ namespace TacticsECS.EditorTools
             // 농장 + 풍차 인접.
             econ.Tech[p].Unlocked.Add("Farming");
             econ.Tech[p].Unlocked.Add("Construction");
+            econ.Tech[p].Unlocked.Add("Chivalry"); // 건물 파괴(위키: 기사도)
             Give(econ, p, 20, 0);
             var crop = cap + new Vector2Int(0, 1);
             var mill = cap + new Vector2Int(1, 1);
@@ -213,7 +215,7 @@ namespace TacticsECS.EditorTools
             grid.SetTileType(mountain, TerrainGenerationSystem.MountainTileId);
             TechEffectSystem.RefreshUnits(grid, world, econ);
             Check(TechEffectSystem.IsTerrainLocked(grid, world, unit, mountain), "mountain locked without Mountaineering");
-            econ.Tech[p].Unlocked.Add("Mountaineering");
+            econ.Tech[p].Unlocked.Add("Climbing");
             TechEffectSystem.RefreshUnits(grid, world, econ);
             Check(!TechEffectSystem.IsTerrainLocked(grid, world, unit, mountain), "mountain open with Mountaineering");
 

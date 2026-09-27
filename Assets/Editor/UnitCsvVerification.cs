@@ -18,6 +18,7 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll();
             bool ok = VerifyRoundTrip(SampleCsvRelativePath) &
                       VerifySpawnFromCsv(SampleCsvRelativePath) &
                       VerifyRoundTrip(SandboxCsvRelativePath) &

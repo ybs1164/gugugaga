@@ -193,6 +193,8 @@ namespace TacticsECS
 
         private void Awake()
         {
+            // 건물/타일 행동 등 게임 규칙 표(Assets/Resources/*.csv)를 Data 표에 채운다.
+            GameDataLoader.LoadAll();
             _cam = Camera.main;
             if (_cam == null)
             {
@@ -248,7 +250,7 @@ namespace TacticsECS
                 {
                     _techTreeHud = Instantiate(techTreeHudPrefab, transform);
                     _techTreeHud.name = "TechTreeHud";
-                    _techTreeHud.Init(LoadTechNodes());
+                    _techTreeHud.Init(GameDataLoader.LoadTechNodes());
                     _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
                     RefreshTechTree();
                 }
@@ -1001,23 +1003,11 @@ namespace TacticsECS
 
         // ---------- Economy (도시/영토/기술/건설) ----------
 
-        /// <summary>Assets/Resources/TechTree.csv를 읽어 기술 정의 목록으로 만든다. 파일이 없으면 빈 목록(트리 없음).</summary>
-        private static List<TechNodeData> LoadTechNodes()
-        {
-            var asset = Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath);
-            if (asset == null)
-            {
-                Debug.LogWarning($"[BattleController] Resources/{TechTreeDefinition.CsvResourcePath}.csv를 찾지 못해 기술트리가 비어 있습니다.");
-                return new List<TechNodeData>();
-            }
-            return TechCsvSerializer.Parse(asset.text);
-        }
-
         /// <summary>전투 시작 시 경제 상태를 만든다: 두 팀 시작 자원/빈 기술, 훈련 가능한 유닛 목록(배치 단계에서
         /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals).</summary>
         private void InitEconomy()
         {
-            _econ = new EconomyWorld { TechNodes = LoadTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
+            _econ = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
             if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
             foreach (var team in CitySystem.Teams)
             {

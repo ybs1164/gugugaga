@@ -16,6 +16,7 @@ namespace TacticsECS.EditorTools
     {
         public static void Run()
         {
+            GameDataLoader.LoadAll();
             bool ok = VerifyFont() &
                       VerifyBattleHudRosterAndLog() &
                       VerifyUnitLabelAndDamagePopupWiring() &
@@ -186,11 +187,11 @@ namespace TacticsECS.EditorTools
 
             try
             {
-                var nodes = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
+                var nodes = GameDataLoader.LoadTechNodes();
                 instance.Init(nodes);
 
                 var tech = TechTreeData.CreateEmpty();
-                tech.Unlocked.Add("Mountaineering");
+                tech.Unlocked.Add("Climbing");
                 var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
                 city.Development = 10;
                 instance.SetState(tech, city, cityCount: 1);

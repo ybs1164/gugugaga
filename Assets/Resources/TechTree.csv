@@ -1,18 +1,18 @@
 ﻿Id,Name,Branch,Parent,Tier,Slot,Icon,CostBase,CostPerCity,Unlocks,Effect
-Mountaineering,등산,Mountaineering,,1,0,mountaineering,4,1,Move.Mountain;Defense.Mountain;Reveal.Resource_Metal,산 타일 진입/이동 가능. 숨겨진 광맥 발견. 산 타일 유닛 방어력 +1.
-Meditation,명상,Mountaineering,Mountaineering,2,0,meditation,4,2,Build.MountainTemple;Task.Pacifist,산악 신전 건설 가능(골드 20). 평화주의 과업(5턴 비공격 → 평화의 제단) 개방.
-Mining,채광,Mountaineering,Mountaineering,2,1,mining,4,2,Build.Mine,광산 건설 가능(골드 5 / 광물 위 / 인구 +2).
-Philosophy,철학,Mountaineering,Meditation,3,0,philosophy,4,3,Literacy;Unit.cleric;Task.Genius,모든 기술 개발 비용 33% 감소. 현자(사제) 훈련 가능. 천재 과업(기술 전부 → 지혜의 탑) 개방.
-Smithing,제련,Mountaineering,Mining,3,1,smithing,4,3,Build.Forge;Unit.gladiator,대장간 건설 가능(인접 광산당 인구 +2). 검사(검투사) 훈련 가능.
-Gathering,채집,Gathering,,1,0,gathering,4,1,Harvest.Fruit;Reveal.Resource_Crop,과일 채집 가능(골드 2 / 인구 +1). 숨겨진 농작물 발견.
-Shields,방패,Gathering,Gathering,2,0,shields,4,2,Unit.shield,방패병 훈련 가능.
-Farming,농사,Gathering,Gathering,2,1,farming,4,2,Build.Farm,농장 건설 가능(골드 5 / 작물 위 / 인구 +2).
-Diplomacy,외교,Gathering,Shields,3,0,diplomacy,4,3,Unit.spy,망토(스파이) 훈련 가능.
-Construction,건축,Gathering,Farming,3,1,construction,4,3,Build.Windmill;Ability.Destroy,풍차 건설 가능(인접 농장당 인구 +1). 자기 건물 파괴 가능.
+Climbing,등반,Climbing,,1,0,mountaineering,4,1,Move.Mountain;Defense.Mountain;Reveal.Resource_Metal,산 타일 진입/이동 가능. 숨겨진 광맥 발견. 산 타일 유닛 방어력 +1.
+Meditation,명상,Climbing,Climbing,2,0,meditation,4,2,Build.MountainTemple;Task.Pacifist,산악 신전 건설 가능(골드 20). 평화주의 과업(5턴 비공격 → 평화의 제단) 개방.
+Mining,채광,Climbing,Climbing,2,1,mining,4,2,Build.Mine,광산 건설 가능(골드 5 / 광물 위 / 인구 +2).
+Philosophy,철학,Climbing,Meditation,3,0,philosophy,4,3,Literacy;Unit.cleric;Task.Genius,모든 기술 개발 비용 33% 감소. 현자(사제) 훈련 가능. 천재 과업(기술 전부 → 지혜의 탑) 개방.
+Smithery,제련,Climbing,Mining,3,1,smithing,4,3,Build.Forge;Unit.gladiator,대장간 건설 가능(인접 광산당 인구 +2). 검사(검투사) 훈련 가능.
+Organization,조직,Organization,,1,0,gathering,4,1,Harvest.Fruit;Reveal.Resource_Crop,과일 채집 가능(골드 2 / 인구 +1). 숨겨진 농작물 발견.
+Strategy,전략,Organization,Organization,2,0,shields,4,2,Unit.shield,방패병 훈련 가능. (평화 조약은 외교 시스템이 없어 제외)
+Farming,농사,Organization,Organization,2,1,farming,4,2,Build.Farm,농장 건설 가능(골드 5 / 작물 위 / 인구 +2).
+Diplomacy,외교,Organization,Strategy,3,0,diplomacy,4,3,Unit.spy;Vision.Capital,망토(스파이) 훈련 가능. 수도 시야(적 수도 칸이 항상 보임). (대사관은 외교 시스템이 없어 제외)
+Construction,건축,Organization,Farming,3,1,construction,4,3,Build.Windmill;Ability.BurnForest,풍차 건설 가능(인접 농장당 인구 +1). 자기 숲 화전 가능(골드 3 / 숲 -> 작물 평지).
 Riding,기마,Riding,,1,0,riding,4,1,Unit.cavalry,기마병 훈련 가능.
 FreeSpirit,자유 영혼,Riding,Riding,2,0,freespirit,4,2,Build.Temple;Ability.Disband,신전 건설 가능(골드 20). 자기 유닛 해산 가능(비용 절반 환급).
-Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road,도로(골드 3)/다리(골드 5) 건설 가능 - 도로끼리 이동 0.5, 수도 연결 시 인구/발전도 보너스.
-Chivalry,기사도,Riding,FreeSpirit,3,0,chivalry,4,3,Unit.knight;Ability.BurnForest,기사 훈련 가능. 자기 숲 화전 가능(골드 5 / 숲 -> 작물 평지).
+Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road;Task.Network,도로(골드 3)/다리(골드 5) 건설 가능 - 도로끼리 이동 0.5, 수도 연결 시 인구/발전도 보너스. 교역망 과업(연결 도시 5 → 대시장) 개방.
+Chivalry,기사도,Riding,FreeSpirit,3,0,chivalry,4,3,Unit.knight;Ability.Destroy,기사 훈련 가능. 자기 건물 파괴 가능.
 Trade,교역,Riding,Roads,3,1,trade,4,3,Build.Market;Task.Wealth,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 골드/턴). 부 과업(골드 100 보유 → 황제의 무덤) 개방.
 Hunting,사냥,Hunting,,1,0,hunting,4,1,Harvest.Animal;Reveal.Resource_Animal,동물 사냥 가능(골드 2 / 인구 +1). 숨겨진 동물 발견.
 Forestry,임업,Hunting,Hunting,2,0,forestry,4,2,Build.LumberHut;Ability.ClearForest,벌목장 건설 가능(골드 3 / 인구 +1). 자기 숲 벌목 가능(골드 +1).
@@ -22,5 +22,5 @@ Spiritualism,강신술,Hunting,Archery,3,1,spiritualism,4,3,Build.ForestTemple;A
 Fishing,낚시,Fishing,,1,0,fishing,4,1,Build.Port;Harvest.Fish;Reveal.Resource_Fish,항구 건설 가능(골드 7 / 인구 +1 / 들어온 육지 유닛은 뗏목 / 해로 연결). 물고기 낚시 가능. 숨겨진 물고기 발견.
 Ramming,충파,Fishing,Fishing,2,0,ramming,4,2,Unit.rammer,뗏목을 충각선으로 업그레이드 가능(골드 5, 자기 영토).
 Sailing,배 타기,Fishing,Fishing,2,1,sailing,4,2,Move.Ocean;Unit.scout,원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(골드 5, 시야 5x5).
-Aquatics,수생학,Fishing,Ramming,3,0,aquatics,4,3,Build.WaterTemple;Defense.Water,해양 신전 건설 가능(골드 20). 근해/원양 타일 유닛 방어력 +1.
+Aquatism,수생학,Fishing,Ramming,3,0,aquatics,4,3,Build.WaterTemple;Defense.Water,해양 신전 건설 가능(골드 20). 근해/원양 타일 유닛 방어력 +1.
 Navigation,항해,Fishing,Sailing,3,1,navigation,4,3,Unit.bomber;Harvest.Starfish;Reveal.Starfish;Connect.Ocean,뗏목을 폭격선으로 업그레이드 가능(골드 15). 불가사리(유물) 인양 가능(골드 +8). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.

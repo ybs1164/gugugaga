@@ -14,6 +14,7 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll();
             _ok = true;
             VerifyRoadMovement();
             VerifyRoughTerrainAndZoc();
@@ -51,7 +52,7 @@ namespace TacticsECS.EditorTools
 
         private static EconomyWorld NewEconomy()
         {
-            var econ = new EconomyWorld { TechNodes = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text) };
+            var econ = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes() };
             econ.UnitRows.Add(new UnitCsvRow { Id = "infantry", Name = "보병", MaxHp = 10, Defense = 1, Cost = 2, BaseVisual = "Melee",
                 Actions = ActionType.Move | ActionType.Attack, MoveRange = 1, AttackAttack = 4, AttackRange = 1 });
             foreach (var team in CitySystem.Teams)
@@ -346,7 +347,7 @@ namespace TacticsECS.EditorTools
 
             // 평화주의: 5턴 연속 비공격.
             var econ3 = NewEconomy();
-            econ3.Tech[p].Unlocked.Add("Mountaineering"); econ3.Tech[p].Unlocked.Add("Meditation");
+            econ3.Tech[p].Unlocked.Add("Climbing"); econ3.Tech[p].Unlocked.Add("Meditation");
             for (int i = 0; i < 4; i++) TaskSystem.EndTurn(econ3, p);
             TaskSystem.RecordAttack(econ3, p);
             TaskSystem.EndTurn(econ3, p);

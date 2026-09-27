@@ -61,10 +61,11 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll();
             _ok = true;
             var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", BiomeCsv)));
             var units = UnitCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", UnitCsv)));
-            var techNodes = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
+            var techNodes = GameDataLoader.LoadTechNodes();
             var outDir = Path.Combine(Application.dataPath, "..", "Logs", "Simulation");
             Directory.CreateDirectory(outDir);
 

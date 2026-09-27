@@ -33,6 +33,14 @@ namespace TacticsECS
 
         public T Get<T>(int entity) => GetPool<T>()[entity];
 
+        /// <summary>그 엔티티에 T가 한 번도 Set되지 않았으면 default(T). 나중에 추가된 컴포넌트(예: Embarked)를 모르는
+        /// 옛 생성 코드(검증 스크립트의 수동 엔티티 등)와 함께 쓸 때 Get 대신 쓴다.</summary>
+        public T GetOrDefault<T>(int entity)
+        {
+            var pool = GetPool<T>();
+            return entity < pool.Count ? pool[entity] : default;
+        }
+
         private List<T> GetPool<T>()
         {
             var type = typeof(T);

@@ -44,6 +44,13 @@ namespace TacticsECS
         /// <summary>도로. 건물이 아니라 타일 자체의 개량이라 BuildingId와 따로 저장한다(수도 연결 판정용).</summary>
         public bool HasRoad;
 
+        /// <summary>BuildingId가 지어진 턴(EconomyWorld.Turn). 신전 레벨(ScoreSystem.TempleLevel)을 계산할 때 쓴다.</summary>
+        public int BuildingTurn;
+
+        /// <summary>이 칸을 탐험한(구름을 걷어낸) 팀들의 비트마스크 — 비트 (1 &lt;&lt; (int)Team). 폴리토피아처럼 한 번
+        /// 탐험한 칸은 계속 보인다. GridWorld.FogEnabled가 false면(경제 없는 씬) 무시된다. VisionSystem이 채운다.</summary>
+        public int ExploredMask;
+
         public static TileData Default => new TileData
         {
             Walkable = true,
@@ -54,7 +61,9 @@ namespace TacticsECS
             OwnerCity = NoOwner,
             OwnerTeam = NoOwner,
             BuildingId = string.Empty,
-            HasRoad = false
+            HasRoad = false,
+            BuildingTurn = 0,
+            ExploredMask = 0
         };
     }
 }

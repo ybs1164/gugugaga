@@ -25,6 +25,7 @@ namespace TacticsECS
         private static readonly Color Stone = new Color(0.55f, 0.55f, 0.58f);
         private static readonly Color White = new Color(0.93f, 0.92f, 0.88f);
         private static readonly Color Roof = new Color(0.78f, 0.33f, 0.24f);
+        private static readonly Color Gold = new Color(0.95f, 0.78f, 0.25f);
 
         private static readonly Dictionary<string, Piece[]> Shapes = new Dictionary<string, Piece[]>
         {
@@ -49,28 +50,78 @@ namespace TacticsECS
             ["Port"] = new[] { new Piece(0f, 0.03f, 0f, 0.7f, 0.06f, 0.24f, Wood),
                                new Piece(-0.28f, 0.1f, 0f, 0.06f, 0.2f, 0.06f, Wood),
                                new Piece(0.28f, 0.1f, 0f, 0.06f, 0.2f, 0.06f, Wood) },
-            ["Temple"] = Temple(White),
-            ["ForestTemple"] = Temple(new Color(0.55f, 0.80f, 0.45f)),
-            ["MountainTemple"] = Temple(new Color(0.70f, 0.70f, 0.75f)),
-            ["WaterTemple"] = Temple(new Color(0.45f, 0.75f, 0.95f)),
+            // 다리: 기본은 X축(좌우 육지)을 따라 놓인 판자 + 난간. 상하 육지면 CreateBuilding이 90도 돌린다.
+            [BuildingDefinition.Bridge] = new[] { new Piece(0f, 0.03f, 0f, 1.0f, 0.05f, 0.42f, Wood),
+                                                  new Piece(0f, 0.1f, 0.19f, 1.0f, 0.04f, 0.04f, new Color(0.40f, 0.27f, 0.15f)),
+                                                  new Piece(0f, 0.1f, -0.19f, 1.0f, 0.04f, 0.04f, new Color(0.40f, 0.27f, 0.15f)),
+                                                  new Piece(-0.35f, -0.08f, 0f, 0.08f, 0.2f, 0.36f, Stone),
+                                                  new Piece(0.35f, -0.08f, 0f, 0.08f, 0.2f, 0.36f, Stone) },
+
+            // ---- 기념물(위키 Monuments) — 기념물마다 실루엣이 다르게. ----
+            ["AltarOfPeace"] = new[] { new Piece(0f, 0.03f, 0f, 0.7f, 0.06f, 0.7f, White),
+                                       new Piece(-0.22f, 0.2f, -0.22f, 0.07f, 0.3f, 0.07f, White), new Piece(0.22f, 0.2f, -0.22f, 0.07f, 0.3f, 0.07f, White),
+                                       new Piece(-0.22f, 0.2f, 0.22f, 0.07f, 0.3f, 0.07f, White), new Piece(0.22f, 0.2f, 0.22f, 0.07f, 0.3f, 0.07f, White),
+                                       new Piece(0f, 0.42f, 0f, 0.56f, 0.2f, 0.56f, new Color(0.55f, 0.80f, 0.95f), PrimitiveType.Sphere) },
+            ["EmperorsTomb"] = new[] { new Piece(0f, 0.06f, 0f, 0.72f, 0.12f, 0.72f, Gold), new Piece(0f, 0.17f, 0f, 0.54f, 0.1f, 0.54f, Gold),
+                                       new Piece(0f, 0.26f, 0f, 0.36f, 0.08f, 0.36f, Gold), new Piece(0f, 0.34f, 0f, 0.18f, 0.08f, 0.18f, Gold) },
+            ["EyeOfGod"] = new[] { new Piece(0f, 0.25f, 0f, 0.22f, 0.25f, 0.22f, Stone, PrimitiveType.Cylinder),
+                                   new Piece(0f, 0.62f, 0f, 0.26f, 0.26f, 0.26f, new Color(0.95f, 0.90f, 0.45f), PrimitiveType.Sphere),
+                                   new Piece(0f, 0.62f, -0.12f, 0.1f, 0.1f, 0.06f, new Color(0.15f, 0.35f, 0.80f), PrimitiveType.Sphere) },
+            ["GateOfPower"] = new[] { new Piece(-0.25f, 0.22f, 0f, 0.14f, 0.44f, 0.18f, new Color(0.55f, 0.15f, 0.15f)),
+                                      new Piece(0.25f, 0.22f, 0f, 0.14f, 0.44f, 0.18f, new Color(0.55f, 0.15f, 0.15f)),
+                                      new Piece(0f, 0.48f, 0f, 0.74f, 0.1f, 0.24f, new Color(0.25f, 0.20f, 0.20f)) },
+            ["GrandBazaar"] = new[] { new Piece(0f, 0.08f, 0f, 0.74f, 0.16f, 0.5f, White),
+                                      new Piece(-0.2f, 0.22f, 0f, 0.34f, 0.12f, 0.54f, new Color(0.90f, 0.35f, 0.25f)),
+                                      new Piece(0.2f, 0.22f, 0f, 0.34f, 0.12f, 0.54f, new Color(0.25f, 0.55f, 0.90f)),
+                                      new Piece(0f, 0.34f, 0f, 0.14f, 0.14f, 0.14f, Gold, PrimitiveType.Sphere) },
+            ["ParkOfFortune"] = new[] { new Piece(0f, 0.02f, 0f, 0.8f, 0.04f, 0.8f, new Color(0.40f, 0.70f, 0.35f)),
+                                        new Piece(-0.2f, 0.15f, -0.15f, 0.06f, 0.22f, 0.06f, Wood),
+                                        new Piece(-0.2f, 0.32f, -0.15f, 0.26f, 0.26f, 0.26f, new Color(0.25f, 0.55f, 0.25f), PrimitiveType.Sphere),
+                                        new Piece(0.2f, 0.18f, 0.15f, 0.2f, 0.02f, 0.2f, Gold, PrimitiveType.Cylinder) },
+            ["TowerOfWisdom"] = new[] { new Piece(0f, 0.12f, 0f, 0.4f, 0.24f, 0.4f, new Color(0.45f, 0.35f, 0.65f)),
+                                        new Piece(0f, 0.34f, 0f, 0.3f, 0.2f, 0.3f, new Color(0.55f, 0.45f, 0.75f)),
+                                        new Piece(0f, 0.52f, 0f, 0.2f, 0.16f, 0.2f, new Color(0.65f, 0.55f, 0.85f)),
+                                        new Piece(0f, 0.66f, 0f, 0.12f, 0.12f, 0.12f, Gold, PrimitiveType.Sphere) },
         };
 
-        private static Piece[] Temple(Color c) => new[]
+        private static readonly Dictionary<string, Color> TempleColors = new Dictionary<string, Color>
         {
-            new Piece(0f, 0.05f, 0f, 0.6f, 0.1f, 0.6f, c),
-            new Piece(0f, 0.15f, 0f, 0.44f, 0.1f, 0.44f, c),
-            new Piece(0f, 0.27f, 0f, 0.3f, 0.14f, 0.3f, Roof),
+            ["Temple"] = White,
+            ["ForestTemple"] = new Color(0.55f, 0.80f, 0.45f),
+            ["MountainTemple"] = new Color(0.70f, 0.70f, 0.75f),
+            ["WaterTemple"] = new Color(0.45f, 0.75f, 0.95f),
         };
+
+        /// <summary>신전 모델: 레벨(1~5)만큼 층이 쌓인다(위키: 레벨이 오를수록 모양이 복잡해진다).</summary>
+        private static Piece[] Temple(Color c, int level)
+        {
+            var pieces = new List<Piece> { new Piece(0f, 0.05f, 0f, 0.6f, 0.1f, 0.6f, c) };
+            float y = 0.1f;
+            float size = 0.48f;
+            for (int i = 0; i < Mathf.Clamp(level, 1, 5); i++)
+            {
+                pieces.Add(new Piece(0f, y + 0.04f, 0f, size, 0.08f, size, c));
+                y += 0.08f;
+                size -= 0.05f;
+            }
+            pieces.Add(new Piece(0f, y + 0.06f, 0f, size, 0.12f, size, Roof));
+            return pieces.ToArray();
+        }
 
         private static readonly Dictionary<Color, Material> Materials = new Dictionary<Color, Material>();
 
-        /// <summary>buildingId 모델을 parent(타일) 아래 baseHeight 높이에 만든다. 표에 없는 Id면 null.</summary>
-        public static GameObject CreateBuilding(string buildingId, Transform parent, float baseHeight)
+        /// <summary>buildingId 모델을 parent(타일) 아래 baseHeight 높이에 만든다. 표에 없는 Id면 null. level은 신전 레벨,
+        /// rotate90은 다리를 Z축(상하 육지) 방향으로 돌릴 때.</summary>
+        public static GameObject CreateBuilding(string buildingId, Transform parent, float baseHeight, int level = 1, bool rotate90 = false)
         {
-            if (string.IsNullOrEmpty(buildingId) || !Shapes.TryGetValue(buildingId, out var pieces)) return null;
+            if (string.IsNullOrEmpty(buildingId)) return null;
+            Piece[] pieces;
+            if (TempleColors.TryGetValue(buildingId, out var templeColor)) pieces = Temple(templeColor, level);
+            else if (!Shapes.TryGetValue(buildingId, out pieces)) return null;
             var root = new GameObject("Building_" + buildingId);
             root.transform.SetParent(parent, false);
             root.transform.localPosition = new Vector3(0f, baseHeight, 0f);
+            if (rotate90) root.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
             foreach (var p in pieces) AddPiece(root.transform, p);
             return root;
         }

@@ -642,7 +642,7 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   [`TechEffectSystem`](Assets/Scripts/TacticsECS/Systems/TechEffectSystem.cs)(기술 → 유닛 지형 진입 `TerrainAccess`/위치 방어
   보너스 `PositionalDefenseBonus` 컴포넌트), [`RuinSystem`](Assets/Scripts/TacticsECS/Systems/RuinSystem.cs)(유적 탐험/해산),
   [`EconomyAI`](Assets/Scripts/TacticsECS/Systems/EconomyAI.cs)(적: 점령 → 보상 → 가장 싼 기술 → 도시별 훈련 → 골드당 인구가
-  좋은 건설 순). `EnemyAI.RunTurn`은 점령 목표 칸을 받아 플레이어 유닛보다 가까운 마을/도시로 먼저 향한다.
+  좋은 건설 순 — 이후 확장은 아래 적 시뮬레이션 항목). `EnemyAI.RunTurn`은 점령 목표 칸을 받아 가까운 마을/도시로 향한다.
 - 표시: [`GridView.RefreshEconomy`](Assets/Scripts/TacticsECS/View/GridView.cs)(영토 옅은 팀 색 + 팀 색 국경선, 도로, 건물,
   도시 발밑 팀 색 원판 + 레벨 눈금), [`BuildingMarkerView`](Assets/Scripts/TacticsECS/View/BuildingMarkerView.cs)(건물 전용
   모델이 없어 건물마다 색/실루엣이 다른 블록 조합), [`ActionMenuHud`](Assets/Scripts/TacticsECS/View/ActionMenuHud.cs)(오른쪽
@@ -651,9 +651,62 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   농장+풍차 인접, 파괴, 마을 점령, 도로 수도 연결, 산 진입/요새화 방어, 적 AI 연구/훈련/점령, 도시 전멸 패배.
 
 **위키와 다르게 단순화한 것**: 발전도(연구)와 골드(건설/훈련)를 분리한 것은 이 프로젝트 기존 기획(도시 발전도로 기술 해금)을
-따른 것. 인구 상한은 도시별이 아니라 팀 합계. 탐험가 보상은 시야 시스템이 없어 발전도 +3으로 대체, 슈퍼 유닛은 유닛 CSV에서
-최대 체력이 가장 높은 유닛. 불가사리 인양은 유닛 행동 대신 영토 안 타일 행동. 지형 방어 x1.5는 정수 방어력 체계에 맞춰 +1,
-요새화 도시 방어는 +1(성벽 +3). 다리/대사관/기념물/항구 승선(육지 유닛 → 배)은 이번 범위 밖.
+따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 유닛 CSV에서 최대 체력이 가장 높은 유닛. 불가사리 인양은 유닛
+행동 대신 영토 안 타일 행동. 지형 방어 x1.5는 정수 방어력 체계에 맞춰 +1, 요새화 도시 방어는 +1(성벽 +3). 다리/기념물/신전
+레벨/항구 승선/시야/점수는 아래 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절에서 채웠다.
+
+## 건물 기능 · 시야 · 적 시뮬레이션
+
+[Polytopia Wiki](https://polytopia.fandom.com/wiki/The_Battle_of_Polytopia_Wiki)(Buildings/Movement/Port/Raft/Bridge/Temple/
+Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대조해, 경제 루프에서 비어 있던 건물 기능과 시야를
+채우고 양 팀 AI가 그 기능을 쓰는지 헤드리스로 돌려보는 시뮬레이션을 붙였다. 계획/대조 표는
+[`docs/BuildingFeaturePlan.md`](docs/BuildingFeaturePlan.md).
+
+**이동 규칙** ([`PathfindingSystem`](Assets/Scripts/TacticsECS/Systems/PathfindingSystem.cs) — BFS를 정수 비용 다익스트라로 교체)
+- 도로(도로/다리/도시·마을 칸)끼리 이동 비용 0.5(내부 비용 x2), 적 영토의 도로는 보너스 없음.
+- 숲(도로 없는)/산에 들어가면 그 턴 이동 끝, 적 유닛과 인접한 칸에 들어가면 멈춤(Zone of Control — 잠입/유닛 무시 패시브 예외).
+  원문과 다른 점: 이 프로젝트는 4방향 이동이 기본이라 ZoC의 "인접"도 이동 방향과 같은 기준.
+- 구름(탐험하지 않은 칸)에는 못 들어간다. `MoveAction.Execute`도 같은 판정(`PathfindingSystem.CanEnter`)을 쓴다.
+
+**건물** ([`BuildingDefinition`](Assets/Scripts/TacticsECS/Data/BuildingDefinition.cs), [`TileImprovementSystem`](Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs))
+- **다리**(도로 기술, 골드 5): 상하 또는 좌우 양쪽이 육지인 얕은 물 1칸, 중립 물에도 건설. 육지 유닛 통행 + 도로 효과 + 수도 연결, 파괴 가능.
+- **항구**: 들어온 육지 유닛은 **뗏목**이 되고 그 턴 끝([`EmbarkSystem`](Assets/Scripts/TacticsECS/Systems/EmbarkSystem.cs)). 배는 해안에
+  내리면 원래 유닛으로 돌아온다(체력 유지, 업그레이드 소멸). 뗏목은 자기 영토 안에서 정찰선(배 타기, 5)/충각선(충파, 5)/
+  폭격선(항해, 15)으로 업그레이드([`NavalUnitDefinition`](Assets/Scripts/TacticsECS/Data/NavalUnitDefinition.cs) — 공격력만 이
+  프로젝트 척도로 x2). 적 항구는 못 쓴다. 해로 연결은 항구 사이 물 5칸 이하, 깊은 바다는 항해(`Connect.Ocean`) 필요.
+- **신전**: 점수만 준다(예전 신앙 최대치 +5 제거). 지은 턴(`TileData.BuildingTurn`)부터 3턴마다 레벨 업(최대 5), 모델도 층이 쌓인다.
+- **기념물 7종**(평화의 제단/황제의 무덤/신의 눈/힘의 문/대시장/행운의 공원/지혜의 탑): 과업
+  ([`TaskDefinition`](Assets/Scripts/TacticsECS/Data/TaskDefinition.cs) — 5턴 비공격/골드 100/등대 전부/10킬/연결 도시 5/레벨 5 도시/
+  기술 전부, 명상·교역·철학이 각각 개방)을 달성하면 무료로 한 번, 인구 +3, 파괴 불가. [`TaskSystem`](Assets/Scripts/TacticsECS/Systems/TaskSystem.cs)이 기록.
+- **대사관은 보류**: 평화 조약 상대의 수도에만 지을 수 있는데, 두 팀이 항상 전쟁 중이라(외교 없음) 넣지 않았다.
+- 숨겨진 자원(예: 채집 전 작물) 위에 숲을 조성하면 자원이 사라진다(숲 + 작물 칸이 생기던 버그).
+
+**시야(구름)** ([`VisionSystem`](Assets/Scripts/TacticsECS/Systems/VisionSystem.cs), 상수 [`VisionDefinition`](Assets/Scripts/TacticsECS/Data/VisionDefinition.cs))
+- 팀별 탐험 여부를 `TileData.ExploredMask` 비트로 기록, 한 번 밝힌 칸은 계속 보인다. 경제가 켜진 전투에서만(`GridWorld.FogEnabled`).
+- 유닛 주변 3x3, 산 위/정찰(Scout) 5x5, 자기 영토, 시작 시 수도 주변 5x5.
+- **탐험가**(Lv2 보상, 유적 보상 — 예전 "발전도 +3" 대체): 12걸음 동안 가장 가까운 구름 쪽으로(걷히는 칸 수/등대 가산/되돌아가기 감점).
+- **등대**를 처음 밝히면 수도 인구 +1, 전부 찾으면 탐험가 과업.
+- 유적: 이제 그 칸에서 턴을 시작해야 탐험(위키), 보상 후보에 탐험가 추가, 인구 보상은 수도로.
+- 화면: 구름 칸은 옅은 회색 + 그 위 장식/구조물/건물 숨김, 구름 속 적 유닛 숨김, 구름 칸 클릭/메뉴 무시.
+
+**점수** ([`ScoreSystem`](Assets/Scripts/TacticsECS/Systems/ScoreSystem.cs), [`ScoreDefinition`](Assets/Scripts/TacticsECS/Data/ScoreDefinition.cs))
+- 위키 Score: 유닛 비용 x5, 영토 칸 20, 탐험 칸 5, 도시 100 + 레벨당 50 + 인구 5, 공원 250, 기념물 400, 신전 100~500, 기술 티어 x100.
+  저장하지 않고 매번 계산(유닛 사망/건물 파괴/도시 상실 시 자연히 감소). 자원 바 아래 "점수 N · 적 M" 줄.
+
+**적 시뮬레이션**
+- [`EnemyAI`](Assets/Scripts/TacticsECS/Systems/EnemyAI.cs): 팀 인자화(`RunTurn(grid, world, econ, team, targets)`), 보이는 적/정착지만 목표,
+  처치 가능 대상 우선 공격, 위협받는 도시 복귀, 점령 목표 분배, 목표가 없으면 가장 가까운 구름 가장자리로 탐험(뭍 먼저, 없으면 배로),
+  지형을 고려한 여행 거리(바다 건너 목표면 항구 → 뗏목 → 해안 상륙).
+- [`EconomyAI`](Assets/Scripts/TacticsECS/Systems/EconomyAI.cs): 위협 시 훈련 먼저/아니면 건설 먼저(훈련 예비금), 상황별 보상 선택,
+  기념물 즉시, 미연결 도시 도로·다리 연결 계획(골드 18 이내), 가공 건물 연쇄/시장 수입/첫 항구 가치 반영, 뗏목 업그레이드.
+- [`UnitFactorySystem`](Assets/Scripts/TacticsECS/Systems/UnitFactorySystem.cs): 유닛 엔티티 생성을 View(`UnitSpawner`)에서 분리 —
+  전투 화면과 시뮬레이션이 같은 경로로 유닛을 만든다.
+- [`EconomySimulation`](Assets/Editor/EconomySimulation.cs)(Editor, 배치모드): 6개 맵(Continents x2/Pangea/Lakes/Archipelago/Drylands)에서
+  양 팀 모두 AI로 40턴. `Logs/Simulation/<시나리오>.csv`(턴·팀별 골드/수입/도시/연결/건물/기술/유닛/승선/탐험/처치/점수)와
+  `summary.csv`. 판정: 예외 없이 완주, 양 팀 탐험·연구, 같은 시드 재실행 동일, 전체에서 도로/항구/시장/가공 건물/신전 건설과
+  물 맵 승선 발생.
+- 알려진 한계: 섬 맵 후반에 뗏목이 상륙 지점(적 도시 주변 몇 칸)을 두고 몰려 바다에 쌓인다. 대장간/황제의 무덤/지혜의 탑은
+  40턴 안에 거의 나오지 않는다.
 
 ## 도시 발전 자원
 
@@ -695,6 +748,19 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 - 아이콘 26종(25 노드 + 허브)은 예전 그대로 자체 제작(`Assets/Art/GameIcons/Resources/Icons`, PowerShell + GDI+).
 
 ## 작업 로그
+
+- 2026-09-27: 건물 기능 + 시야 + 점수 + 적 시뮬레이션 구현.
+  - **동기**: "시야 시스템까지 포함해서 구현. 점수만 주기. 위키 기준 없는 기능 되도록 추가 고려해서 진행" — 앞선 계획
+    ([`docs/BuildingFeaturePlan.md`](docs/BuildingFeaturePlan.md))을 실행하면서, 신전은 점수만 주고, 위키에는 있는데 없던 규칙
+    (도로 이동 0.5, 험지/ZoC 정지, 구름, 탐험가, 등대, 유적 조건, 항구 연결 거리)도 함께 넣었다.
+  - 위 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절 참고. `TechTree.csv`에 `Task.Pacifist`(명상)/
+    `Task.Wealth`(교역)/`Task.Genius`(철학)/`Connect.Ocean`(항해) 해금 키 추가, 배 관련 효과 문구를 뗏목 업그레이드로 수정.
+  - 사용자 작업 중이던 `EconomyVerification.VerifyEveryBuilding`(미커밋)이 잡은 "숨겨진 작물 위 숲 조성" 버그를 고치고, 신전
+    신앙 검사를 점수/건설 턴 검사로 바꿔 함께 커밋.
+  - **검증**: 에디터가 꺼져 있음을 프로세스 목록으로 확인한 뒤 Unity CLI로 신규 `BuildingFeatureVerification`(이동/다리/항구·뗏목/
+    해로 거리/시야/탐험가/등대/신전·점수/기념물·과업/AI 연결·탐험·상륙) + `EconomyVerification`/`UnitCsvVerification`/`UIVerification`/
+    `TerrainGenerationVerification`/`StructureGenerationVerification` 전부 ALL PASS, `EconomySimulation` ALL PASS(17종 건물 등장).
+    1회성 스크립트(확인 후 삭제)로 구름/다리/신전 레벨/기념물/뗏목을 RenderTexture로 찍어 육안 확인.
 
 - 2026-09-27: 건물 기능 구현 계획 + 적 시뮬레이션 계획 수립 (코드 변경 없음).
   - **동기**: "폴리토피아 wiki 링크 CLAUDE.md에 넣고, 각종 건물 기능 구현 계획 세워줘. 이에 따른 적 시뮬레이션도 넣어주고."

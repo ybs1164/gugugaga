@@ -51,6 +51,19 @@ namespace TacticsECS
         private GridWorld _grid;
         private Coroutine _moveRoutine;
 
+        /// <summary>승선 중 발밑에 붙는 배 모델(EmbarkSystem — 뗏목/정찰선/충각선/폭격선마다 색이 다르다). 처음 필요할 때 만든다.</summary>
+        private GameObject _boat;
+        private string _boatId;
+        private bool _visible = true;
+
+        private static readonly System.Collections.Generic.Dictionary<string, Color> BoatColors = new System.Collections.Generic.Dictionary<string, Color>
+        {
+            [NavalUnitDefinition.RaftId] = new Color(0.60f, 0.45f, 0.28f),
+            ["scout"] = new Color(0.85f, 0.85f, 0.80f),
+            ["rammer"] = new Color(0.35f, 0.35f, 0.40f),
+            ["bomber"] = new Color(0.25f, 0.25f, 0.28f),
+        };
+
         private static readonly Color GuardingColor = Color.yellow;
 
         /// <summary>팀별 고정 표시 색. 유닛 타입과 무관하게 같은 팀이면 전부 같은 색으로 표시된다
@@ -136,12 +149,59 @@ namespace TacticsECS
 
             RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id)));
 
+            var embarked = world.GetOrDefault<Embarked>(id);
+            SetBoat(embarked.Value ? embarked.NavalUnitId : null);
+
             var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
             if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)
             {
                 if (_moveRoutine != null) StopCoroutine(_moveRoutine);
                 _moveRoutine = StartCoroutine(MoveRoutine(targetWorldPos));
             }
+        }
+
+        /// <summary>구름(적 시야 밖)에 있는 유닛을 숨기거나 다시 보이게 한다 — gameObject는 켜둔 채 렌더러만 끈다(이동
+        /// 코루틴이 끊기지 않게).</summary>
+        public void SetVisible(bool visible)
+        {
+            if (_visible == visible) return;
+            _visible = visible;
+            foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = visible;
+        }
+
+        /// <summary>배 모델을 navalUnitId에 맞게 붙이거나(null이면) 뗀다.</summary>
+        private void SetBoat(string navalUnitId)
+        {
+            if (_boatId == navalUnitId) return;
+            _boatId = navalUnitId;
+            if (_boat != null)
+            {
+                if (Application.isPlaying) Destroy(_boat); else DestroyImmediate(_boat);
+                _boat = null;
+            }
+            if (string.IsNullOrEmpty(navalUnitId)) return;
+
+            if (!BoatColors.TryGetValue(navalUnitId, out var color)) color = BoatColors[NavalUnitDefinition.RaftId];
+            _boat = new GameObject("Boat_" + navalUnitId);
+            _boat.transform.SetParent(transform, false);
+            var mat = RuntimeMaterial.CreateColored(color);
+            void Piece(Vector3 pos, Vector3 size)
+            {
+                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var col = go.GetComponent<Collider>();
+                if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
+                go.transform.SetParent(_boat.transform, false);
+                go.transform.localPosition = pos;
+                go.transform.localScale = size;
+                var r = go.GetComponent<Renderer>();
+                r.sharedMaterial = mat;
+                r.enabled = _visible;
+            }
+            Piece(new Vector3(0f, 0.04f, 0f), new Vector3(0.75f, 0.08f, 0.5f));
+            Piece(new Vector3(0f, 0.12f, 0.24f), new Vector3(0.75f, 0.1f, 0.05f));
+            Piece(new Vector3(0f, 0.12f, -0.24f), new Vector3(0.75f, 0.1f, 0.05f));
+            if (navalUnitId != NavalUnitDefinition.RaftId)
+                Piece(new Vector3(0f, 0.08f, 0.38f), new Vector3(0.2f, 0.06f, 0.25f)); // 뱃머리
         }
 
         /// <summary>피해를 입었을 때 머리 위에서 잠깐 떠올랐다 사라지는 숫자 라벨을 띄운다(DamagePopup 참고).

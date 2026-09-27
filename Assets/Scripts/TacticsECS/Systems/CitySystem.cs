@@ -129,6 +129,7 @@ namespace TacticsECS
                 t.OwnerCity = cityIndex;
                 t.OwnerTeam = (int)city.Owner;
                 grid.SetTile(p, t);
+                VisionSystem.Reveal(grid, city.Owner, p, 0); // 자기 영토는 항상 보인다
             }
         }
 
@@ -181,6 +182,7 @@ namespace TacticsECS
                 }
 
                 FoundCity(grid, econ, best.Value, team, true, team == Team.Player ? "아군 수도" : "적 수도");
+                VisionSystem.Reveal(grid, team, best.Value, VisionDefinition.StartRevealRadius); // 시작 시 수도 주변 5x5
             }
             RefreshConnections(grid, econ, null);
         }
@@ -224,6 +226,7 @@ namespace TacticsECS
                     if (t.OwnerCity != index) continue;
                     t.OwnerTeam = (int)team;
                     grid.SetTile(p, t);
+                    VisionSystem.Reveal(grid, team, p, 0);
                 }
             }
 
@@ -288,7 +291,6 @@ namespace TacticsECS
             switch (reward)
             {
                 case CityRewardType.Workshop: city.HasWorkshop = true; break;
-                case CityRewardType.Explorer: res.Development += CityRewardDefinition.ExplorerDevelopment; break;
                 case CityRewardType.CityWall: city.HasWall = true; break;
                 case CityRewardType.Resources: res.Gold += CityRewardDefinition.ResourcesGold; break;
                 case CityRewardType.Park: city.ParkCount++; break;
@@ -300,6 +302,7 @@ namespace TacticsECS
             log?.Add(entry);
 
             if (reward == CityRewardType.BorderGrowth) ClaimTerritory(grid, econ, cityIndex);
+            if (reward == CityRewardType.Explorer) VisionSystem.RunExplorer(grid, econ, city.Owner, city.Position, log);
             if (reward == CityRewardType.PopulationGrowth) AddPopulation(econ, cityIndex, CityRewardDefinition.PopulationGrowthAmount, log);
             return true;
         }
@@ -351,32 +354,48 @@ namespace TacticsECS
 
         // ---------- 수도 연결 ----------
 
-        /// <summary>각 팀 수도에서 도로/도시/항구(+항구 사이 바다)를 따라 8방향으로 퍼져나가 닿는 자기 팀 도시를
-        /// "연결됨"으로 표시한다. 적 영토의 도로는 지나가지 못한다. 연결 상태가 바뀐 도시마다 그 도시와 수도에
-        /// 인구 +1/-1(폴리토피아 City Connections).</summary>
+        /// <summary>항구와 항구 사이에 둘 수 있는 물 칸 수(위키 City Connections: "five or fewer water tiles between them").</summary>
+        public const int MaxPortWaterGap = 5;
+
+        /// <summary>깊은 바다를 건너는 항구 연결에 필요한 해금 키(위키: Navigation).</summary>
+        public const string OceanConnectionKey = "Connect.Ocean";
+
+        /// <summary>각 팀 수도에서 도로/도시/다리/항구(+항구 사이 물 5칸 이하)를 따라 8방향으로 퍼져나가 닿는 자기 팀 도시를
+        /// "연결됨"으로 표시한다(위키 City Connections). 적 영토의 도로/물은 지나가지 못하고, 구름에 가린 칸도 쓰지 못하며,
+        /// 깊은 바다는 항해(Connect.Ocean)가 있어야 건넌다. 연결 상태가 바뀐 도시마다 그 도시와 수도에 인구 +1/-1.</summary>
         public static void RefreshConnections(GridWorld grid, EconomyWorld econ, List<EconomyLogEntry> log)
         {
             foreach (var team in Teams)
             {
                 int capital = FindCapital(econ, team);
                 var reached = new HashSet<Vector2Int>();
-                if (capital >= 0)
+                if (capital >= 0 && econ.Tech.ContainsKey(team))
                 {
+                    bool oceanOk = TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], OceanConnectionKey);
+                    // 물 칸은 "항구에서 몇 칸째인가"가 적을수록 좋으므로 칸마다 가장 작은 물 구간 길이를 기억한다.
+                    var bestWater = new Dictionary<Vector2Int, int>();
                     var start = econ.Cities[capital].Position;
-                    var queue = new Queue<Vector2Int>();
-                    queue.Enqueue(start);
+                    var queue = new Queue<(Vector2Int Pos, int Water)>();
+                    queue.Enqueue((start, 0));
                     reached.Add(start);
                     while (queue.Count > 0)
                     {
-                        var cur = queue.Dequeue();
+                        var (cur, water) = queue.Dequeue();
                         bool curIsPort = IsOwnPort(grid, team, cur);
-                        bool curIsOpenWater = !curIsPort && grid.GetTerrain(cur) == TerrainType.Water;
+                        bool curIsWater = water > 0;
                         foreach (var next in grid.GetNeighbors(cur, true))
                         {
-                            if (reached.Contains(next)) continue;
-                            if (!IsConnectionNode(grid, econ, team, next, curIsPort, curIsOpenWater)) continue;
-                            reached.Add(next);
-                            queue.Enqueue(next);
+                            if (!VisionSystem.IsExplored(grid, team, next)) continue;
+                            if (IsOwnPort(grid, team, next) || (!curIsWater && IsLandConnectionNode(grid, econ, team, next)))
+                            {
+                                if (reached.Add(next)) queue.Enqueue((next, 0));
+                                continue;
+                            }
+                            if (!(curIsPort || curIsWater) || !IsOpenConnectionWater(grid, team, next, oceanOk)) continue;
+                            int w = water + 1;
+                            if (w > MaxPortWaterGap || (bestWater.TryGetValue(next, out var old) && old <= w)) continue;
+                            bestWater[next] = w;
+                            queue.Enqueue((next, w));
                         }
                     }
                 }
@@ -399,19 +418,24 @@ namespace TacticsECS
         private static bool IsOwnPort(GridWorld grid, Team team, Vector2Int p) =>
             grid.GetTile(p).BuildingId == BuildingDefinition.Port && grid.GetTile(p).OwnerTeam == (int)team;
 
-        /// <summary>육로(도시/도로)에서는 도시·도로·자기 항구로, 항구에서는 그에 더해 바다로, 바다에서는 바다와
-        /// 자기 항구로만 이어진다 — 항구 없이 해안 도로로 바로 올라오지 못하게.</summary>
-        private static bool IsConnectionNode(GridWorld grid, EconomyWorld econ, Team team, Vector2Int p, bool fromPort, bool fromOpenWater)
+        private static bool IsEnemyTile(TileData t, Team team) => t.OwnerTeam != TileData.NoOwner && t.OwnerTeam != (int)team;
+
+        /// <summary>육로 연결 칸: 자기 도시, 적 영토가 아닌 도로/다리.</summary>
+        private static bool IsLandConnectionNode(GridWorld grid, EconomyWorld econ, Team team, Vector2Int p)
         {
             var t = grid.GetTile(p);
-            if (IsOwnPort(grid, team, p)) return true;
-            if (t.Terrain == TerrainType.Water) return (fromPort || fromOpenWater) && string.IsNullOrEmpty(t.BuildingId);
-            if (fromOpenWater) return false;
-
             int city = FindCityAt(econ, p);
             if (city >= 0) return econ.Cities[city].Owner == team;
-            bool enemyLand = t.OwnerTeam != TileData.NoOwner && t.OwnerTeam != (int)team;
-            return t.HasRoad && !enemyLand;
+            if (IsEnemyTile(t, team)) return false;
+            return (t.HasRoad && t.Terrain == TerrainType.Land) || t.BuildingId == BuildingDefinition.Bridge;
+        }
+
+        /// <summary>항구 사이 해로로 쓸 수 있는 물 칸: 건물이 없고, 적 영토가 아니며, 깊은 바다면 항해가 필요.</summary>
+        private static bool IsOpenConnectionWater(GridWorld grid, Team team, Vector2Int p, bool oceanOk)
+        {
+            var t = grid.GetTile(p);
+            if (t.Terrain != TerrainType.Water || !string.IsNullOrEmpty(t.BuildingId) || IsEnemyTile(t, team)) return false;
+            return oceanOk || t.TileTypeId != TerrainGenerationSystem.OceanTileId;
         }
 
         // ---------- 유닛 훈련 ----------

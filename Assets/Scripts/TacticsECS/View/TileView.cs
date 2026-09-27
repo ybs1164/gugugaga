@@ -23,6 +23,10 @@ namespace TacticsECS
         /// 흙길 색을 더 섞는다. 둘 다 GridView.RefreshEconomy가 GridWorld의 OwnerTeam/HasRoad로 채운다.</summary>
         private Color _territoryTint = Color.clear;
         private bool _hasRoad;
+
+        /// <summary>아직 탐험하지 않은 칸(구름) — 지형 색 대신 구름 색으로 칠한다. GridView.RefreshFog가 채운다.</summary>
+        private bool _fogged;
+        private static readonly Color CloudColor = new Color(0.86f, 0.88f, 0.92f);
         private const float TerritoryTintStrength = 0.15f;
         private static readonly Color RoadColor = new Color(0.55f, 0.42f, 0.28f);
 
@@ -72,6 +76,13 @@ namespace TacticsECS
             RuntimeMaterial.SetColor(_material, c);
         }
 
+        public void SetFogged(bool fogged)
+        {
+            if (_fogged == fogged) return;
+            _fogged = fogged;
+            SetHighlight(TileHighlight.None);
+        }
+
         /// <summary>영토/도로 표시만 바꾸고 하이라이트 없는 기본 색으로 다시 칠한다.</summary>
         public void SetTerritory(Color tint, bool hasRoad)
         {
@@ -82,6 +93,7 @@ namespace TacticsECS
 
         private Color BaseColor()
         {
+            if (_fogged) return CloudColor;
             Color c;
             if (string.IsNullOrEmpty(TileTypeId) || !TileTypeColors.TryGetValue(TileTypeId, out c))
                 c = Terrain == TerrainType.Water ? ColorWater : ColorLand;

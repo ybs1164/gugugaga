@@ -15,14 +15,13 @@ namespace TacticsECS
         };
 
         public const int ResourcesGold = 5;
-        public const int ExplorerDevelopment = 3;
         public const int PopulationGrowthAmount = 3;
         public const int BorderGrowthRadius = 2;
 
         public static readonly (CityRewardType Type, string Name, string Description)[] Info =
         {
             (CityRewardType.Workshop, "공방", "골드 수입 +1/턴"),
-            (CityRewardType.Explorer, "탐험가", "발전도 +3 (시야 시스템이 없어 탐험가 대신)"),
+            (CityRewardType.Explorer, "탐험가", "도시에서 출발해 12번 움직이며 가장 가까운 구름을 걷어낸다"),
             (CityRewardType.CityWall, "성벽", "도시 안 요새화 유닛 방어 +3 (없으면 +1)"),
             (CityRewardType.Resources, "자원", "골드 +5"),
             (CityRewardType.PopulationGrowth, "인구 성장", "인구 +3"),

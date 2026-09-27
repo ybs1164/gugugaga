@@ -5,8 +5,11 @@ namespace TacticsECS
 {
     /// <summary>
     /// 유닛이 쓰는 경제 행동 중 도시/타일 쪽이 아닌 것 — 유적 탐험과 해산(자유 영혼). 순수 함수형, 자체 상태 없음.
-    ///   - 유적 탐험: 유적 칸에 선 유닛이 이번 턴 행동을 써서 탐험하면 유적이 사라지고 보상 하나(폴리토피아
-    ///     Ruins: 별 10 / 무료 기술 / 인구 +3 / 유닛)를 무작위로 받는다.
+    ///   - 유적 탐험: 유적 칸에서 턴을 시작한(이번 턴 이동·행동 전) 유닛이 행동을 써서 탐험하면 유적이 사라지고 보상 하나(폴리토피아 위키
+    ///     Ruins: 골드 10 / 무료 기술 / 수도 인구 +3 / 탐험가 / 유닛)를 조건이 맞는 것 중 균등하게 무작위로 받는다.
+    ///     기술은 트리가 남았을 때, 인구는 수도가 있을 때, 탐험가는 유적 주변 5x5에 구름이 남았을 때만 후보가 된다.
+    ///     원문과 다른 점: "New Friends"(베테랑 검사)는 베테랑 시스템이 없어 가장 싼 유닛으로, 물 위 유적의 충각선 보상은
+    ///     물 위 유적이 생성되지 않아 넣지 않았다.
     ///   - 해산: "Ability.Disband" 해금 시 자기 유닛을 없애고 훈련 비용 절반(내림)을 골드로 돌려받는다.
     /// </summary>
     public static class RuinSystem
@@ -16,7 +19,7 @@ namespace TacticsECS
         public const string DisbandKey = "Ability.Disband";
 
         public static bool CanExplore(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId) =>
-            econ != null && UnitQueries.IsAlive(world, unitId) && !world.Get<HasActed>(unitId).Value &&
+            econ != null && UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value && !world.Get<HasActed>(unitId).Value &&
             grid.GetStructure(world.Get<GridPosition>(unitId).Value) == StructureGenerationSystem.RuinStructureId;
 
         public static bool Explore(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, List<EconomyLogEntry> log)
@@ -28,61 +31,69 @@ namespace TacticsECS
             world.Set(unitId, new HasActed { Value = true });
 
             var entry = new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Explore, Position = pos, CityIndex = -1 };
-            var res = econ.Resources[team];
-            int roll = CitySystem.NextRandom(econ, 4);
 
-            if (roll == 1)
+            var techCandidates = new List<TechNodeData>();
+            foreach (var n in econ.TechNodes)
+                if (TechSystem.IsAvailable(econ.TechNodes, econ.Tech[team], n.Id)) techCandidates.Add(n);
+            int capital = CitySystem.FindCapital(econ, team);
+            string unit = CheapestUnitId(econ);
+
+            var rewards = new List<RuinReward> { RuinReward.Gold };
+            if (techCandidates.Count > 0) rewards.Add(RuinReward.Tech);
+            if (capital >= 0) rewards.Add(RuinReward.Population);
+            if (HasFogAround(grid, team, pos, 2)) rewards.Add(RuinReward.Explorer);
+            if (!string.IsNullOrEmpty(unit)) rewards.Add(RuinReward.Unit);
+
+            switch (rewards[CitySystem.NextRandom(econ, rewards.Count)])
             {
-                var candidates = new List<TechNodeData>();
-                foreach (var n in econ.TechNodes)
-                    if (TechSystem.IsAvailable(econ.TechNodes, econ.Tech[team], n.Id)) candidates.Add(n);
-                if (candidates.Count > 0)
+                case RuinReward.Tech:
                 {
-                    var pick = candidates[CitySystem.NextRandom(econ, candidates.Count)];
+                    var pick = techCandidates[CitySystem.NextRandom(econ, techCandidates.Count)];
                     econ.Tech[team].Unlocked.Add(pick.Id);
                     entry.Subject = $"기술 {pick.Name}";
+                    break;
                 }
-                else roll = 0;
-            }
-            if (roll == 2)
-            {
-                int city = NearestOwnCity(econ, team, pos);
-                if (city >= 0)
-                {
-                    entry.Subject = $"인구 +{PopulationReward} ({econ.Cities[city].Name})";
-                    entry.CityIndex = city;
+                case RuinReward.Population:
+                    entry.Subject = $"인구 +{PopulationReward} ({econ.Cities[capital].Name})";
+                    entry.CityIndex = capital;
                     log?.Add(entry);
-                    CitySystem.AddPopulation(econ, city, PopulationReward, log);
+                    CitySystem.AddPopulation(econ, capital, PopulationReward, log);
                     return true;
+                case RuinReward.Explorer:
+                    entry.Subject = "탐험가";
+                    log?.Add(entry);
+                    VisionSystem.RunExplorer(grid, econ, team, pos, log);
+                    return true;
+                case RuinReward.Unit:
+                    entry.Subject = "유닛";
+                    entry.SpawnUnitId = unit;
+                    break;
+                default:
+                {
+                    var res = econ.Resources[team];
+                    res.Gold += GoldReward;
+                    econ.Resources[team] = res;
+                    entry.Subject = $"골드 +{GoldReward}";
+                    break;
                 }
-                roll = 0;
-            }
-            if (roll == 3)
-            {
-                string unit = CheapestUnitId(econ);
-                if (!string.IsNullOrEmpty(unit)) { entry.Subject = "유닛"; entry.SpawnUnitId = unit; }
-                else roll = 0;
-            }
-            if (roll == 0)
-            {
-                res.Gold += GoldReward;
-                econ.Resources[team] = res;
-                entry.Subject = $"골드 +{GoldReward}";
             }
             log?.Add(entry);
             return true;
         }
 
-        private static int NearestOwnCity(EconomyWorld econ, Team team, Vector2Int pos)
+        private enum RuinReward { Gold, Tech, Population, Explorer, Unit }
+
+        /// <summary>center 주변 반경 radius 안에 team에게 아직 구름인 칸이 있는지(위키: 탐험가 보상 조건 5x5).</summary>
+        private static bool HasFogAround(GridWorld grid, Team team, Vector2Int center, int radius)
         {
-            int best = -1, bestDist = int.MaxValue;
-            for (int i = 0; i < econ.Cities.Count; i++)
+            if (!grid.FogEnabled) return false;
+            for (int dy = -radius; dy <= radius; dy++)
+            for (int dx = -radius; dx <= radius; dx++)
             {
-                if (econ.Cities[i].Owner != team) continue;
-                int d = PathfindingSystem.Distance(econ.Cities[i].Position, pos);
-                if (d < bestDist) { bestDist = d; best = i; }
+                var p = center + new Vector2Int(dx, dy);
+                if (grid.InBounds(p) && !VisionSystem.IsExplored(grid, team, p)) return true;
             }
-            return best;
+            return false;
         }
 
         private static string CheapestUnitId(EconomyWorld econ)

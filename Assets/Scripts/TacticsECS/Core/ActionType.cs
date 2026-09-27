@@ -51,8 +51,7 @@ namespace TacticsECS
         /// <summary>연타: 공격으로 대상을 처치하면 같은 턴에 추가로 공격할 수 있게 해주는 패시브
         /// (AttackAction.Execute가 참조). 값을 갖지 않는 순수 마커 — Actions/ComboAction.cs 참고.</summary>
         Combo = 1 << 12,
-        /// <summary>정찰: 시야 +1. 아직 시야/포그오브워 시스템 자체가 없어 지금은 실제 게임플레이 효과가
-        /// 없는 플레이스홀더 마커다(VisionRange 컴포넌트만 준비) — Actions/ScoutAction.cs 참고.</summary>
+        /// <summary>정찰: 시야 반경 2(5x5). VisionSystem이 참조하는 순수 마커 — Actions/ScoutAction.cs 참고.</summary>
         Scout = 1 << 13,
         /// <summary>스플래시: 공격이 성사되면 대상 주변 1블록 내 적 유닛(공격자 기준)에게도 광역 피해를
         /// 입히는 패시브(AttackAction.Execute가 참조). 값을 갖지 않는 순수 마커 — Actions/SplashAction.cs 참고.</summary>

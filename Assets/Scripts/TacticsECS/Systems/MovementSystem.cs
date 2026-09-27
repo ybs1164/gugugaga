@@ -14,6 +14,9 @@ namespace TacticsECS
             var move = UnitActionQueries.Find<MoveAction>(world, unitId);
             if (move == null || !move.Execute(grid, world, unitId, destination)) return false;
 
+            // 항구에 들어간 육지 유닛은 뗏목이 되고, 육지에 닿은 배는 원래 유닛으로 내린다(위키 Port/Carry).
+            EmbarkSystem.ApplyAfterMove(grid, world, unitId);
+
             // 무리: 이동으로 인접 관계가 바뀌었을 수 있으니 가속 부여를 다시 계산한다.
             PassiveAuraSystem.RefreshHerdAura(world);
             return true;

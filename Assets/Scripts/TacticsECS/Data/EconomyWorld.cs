@@ -28,6 +28,12 @@ namespace TacticsECS
         /// <summary>훈련 가능한 유닛 종류(샌드박스에서 불러온 유닛 CSV 행). 비어있으면 훈련 메뉴가 없다.</summary>
         public List<UnitCsvRow> UnitRows = new List<UnitCsvRow>();
 
+        /// <summary>팀별 과업(기념물) 진행.</summary>
+        public readonly Dictionary<Team, TaskProgressData> Tasks = new Dictionary<Team, TaskProgressData>();
+
+        /// <summary>현재 턴 번호(TurnState.TurnNumber와 같은 값 — 턴 시작 때 호출자가 적는다). 신전 레벨 계산용.</summary>
+        public int Turn = 1;
+
         /// <summary>유적 탐험 보상 등 무작위 결과에 쓰는 시드 카운터(호출마다 CitySystem이 1씩 올린다) —
         /// System.Random 인스턴스를 들고 있지 않고 값만 저장해 재현 가능하게 한다.</summary>
         public int RandomCounter;

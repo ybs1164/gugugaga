@@ -34,10 +34,8 @@ namespace TacticsECS
             if (!CanExecute(world, unitId)) return false;
             if (!grid.InBounds(destination)) return false;
 
-            bool ignoreTerrain = UnitActionQueries.Find<IgnoreTerrainAction>(world, unitId) != null;
-            if (!ignoreTerrain &&
-                (!grid.IsWalkable(destination) || grid.GetTerrain(destination) != world.Get<MoveDomain>(unitId).Value ||
-                 TechEffectSystem.IsTerrainLocked(grid, world, unitId, destination))) return false;
+            // 지형/구름/다리/항구 승선/배 하선 판정은 경로 탐색과 같은 규칙(PathfindingSystem.CanEnter).
+            if (!PathfindingSystem.CanEnter(grid, world, unitId, destination, out _)) return false;
 
             bool ignoreUnitBlocking = UnitActionQueries.Find<IgnoreUnitBlockingAction>(world, unitId) != null;
             if (PathfindingSystem.IsBlockedByOccupant(grid, world, unitId, destination, ignoreUnitBlocking)) return false;

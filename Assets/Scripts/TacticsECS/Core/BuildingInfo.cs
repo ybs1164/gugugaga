@@ -40,6 +40,23 @@ namespace TacticsECS
         /// 다른 건물과 공존 가능, 중립 영토에도 지을 수 있다).</summary>
         public bool IsRoad;
 
+        /// <summary>중립 영토에도 지을 수 있으면 true(도로/다리 — 위키 "Can be built on neutral land/water").</summary>
+        public bool AllowNeutral;
+
+        /// <summary>다리처럼 상하 또는 좌우 양쪽이 모두 육지인 칸에만 지을 수 있으면 true(대각선 불가).</summary>
+        public bool RequiresOppositeLand;
+
+        /// <summary>도로처럼 이동 비용 0.5 + 수도 연결 역할을 하는 건물이면 true(다리). IsRoad(=TileData.HasRoad로
+        /// 기록)와 달리 BuildingId로 저장되고 파괴할 수 있다.</summary>
+        public bool ActsAsRoad;
+
+        /// <summary>비어있지 않으면 기념물 — 이 과업(TaskDefinition의 Id)을 달성해야 지을 수 있고, 팀당 한 번만,
+        /// 무료로 짓는다. 파괴할 수 없다.</summary>
+        public string TaskId;
+
+        /// <summary>신전류(레벨이 오르며 점수가 늘어난다 — ScoreSystem).</summary>
+        public bool IsTemple;
+
         public string Description;
     }
 }

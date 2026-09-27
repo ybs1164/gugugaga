@@ -8,9 +8,10 @@ namespace TacticsECS
     /// 시스템. 표는 Data/BuildingDefinition.cs·TileActionDefinition.cs, 해금 여부는 TechSystem.HasUnlock으로
     /// 각 항목의 UnlockKey를 조회한다. 자체 상태는 없다.
     ///
-    /// 공통 규칙(폴리토피아 위키 Buildings): 자기 영토 안에서만(도로는 중립 땅도 가능), 칸 하나에 건물 하나,
-    /// 도시/마을/유적/등대 칸에는 짓지 못한다. 인구는 그 칸을 영토로 가진 도시에 들어가고, 인접 조건은 같은 팀
-    /// 영토의 칸만 센다.
+    /// 공통 규칙(폴리토피아 위키 Buildings): 자기 영토 안에서만(도로/다리는 중립 땅·물도 가능), 칸 하나에 건물 하나,
+    /// 도시/마을/유적/등대 칸에는 짓지 못한다. 구름(아직 탐험하지 않은 칸)에는 아무것도 못 한다. 인구는 그 칸을 영토로
+    /// 가진 도시에 들어가고, 인접 조건은 같은 팀 영토의 칸만 센다. 기념물은 과업(TaskSystem) 달성 시 무료로 한 번,
+    /// 신전은 지은 턴을 기록해 레벨(점수)이 오른다(ScoreSystem).
     /// </summary>
     public static class TileImprovementSystem
     {
@@ -53,6 +54,19 @@ namespace TacticsECS
             var s = grid.GetStructure(p);
             return s == StructureGenerationSystem.CapitalStructureId || s == StructureGenerationSystem.VillageStructureId ||
                    s == StructureGenerationSystem.RuinStructureId || s == StructureGenerationSystem.LighthouseStructureId;
+        }
+
+        /// <summary>다리 자리: 상하 또는 좌우 양쪽 이웃이 모두 육지(위키 Bridge — 대각선 불가).</summary>
+        public static bool HasOppositeLand(GridWorld grid, Vector2Int p)
+        {
+            bool Land(Vector2Int q) => grid.InBounds(q) && grid.GetTerrain(q) == TerrainType.Land;
+            return (Land(p + Vector2Int.left) && Land(p + Vector2Int.right)) || (Land(p + Vector2Int.up) && Land(p + Vector2Int.down));
+        }
+
+        public static bool IsMonument(string buildingId)
+        {
+            var info = FindBuilding(buildingId);
+            return info != null && !string.IsNullOrEmpty(info.Value.TaskId);
         }
 
         /// <summary>pos 주변(8방향) 같은 팀 영토 칸 중 buildingIds 건물이 있는 칸 수.</summary>
@@ -113,7 +127,7 @@ namespace TacticsECS
         public static List<TileOption> GetOptions(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos)
         {
             var options = new List<TileOption>();
-            if (econ == null || !grid.InBounds(pos)) return options;
+            if (econ == null || !grid.InBounds(pos) || !VisionSystem.IsExplored(grid, team, pos)) return options;
 
             var tile = grid.GetTile(pos);
             bool own = tile.OwnerTeam == (int)team;
@@ -126,15 +140,18 @@ namespace TacticsECS
 
             foreach (var b in BuildingDefinition.All)
             {
-                if (!TechSystem.HasUnlock(econ.TechNodes, tech, b.UnlockKey)) continue;
+                if (!string.IsNullOrEmpty(b.UnlockKey) && !TechSystem.HasUnlock(econ.TechNodes, tech, b.UnlockKey)) continue;
+                if (!string.IsNullOrEmpty(b.TaskId) && !TaskSystem.CanBuildMonument(econ, team, b.TaskId)) continue;
                 if ((b.Terrain & cls) == 0) continue;
+                if (!(own || (b.AllowNeutral && neutral)) || HasBlockingStructure(grid, pos)) continue;
                 if (b.IsRoad)
                 {
-                    if (tile.HasRoad || !(own || neutral) || HasBlockingStructure(grid, pos)) continue;
+                    if (tile.HasRoad) continue;
                 }
                 else
                 {
-                    if (!own || !string.IsNullOrEmpty(tile.BuildingId) || HasBlockingStructure(grid, pos)) continue;
+                    if (!string.IsNullOrEmpty(tile.BuildingId)) continue;
+                    if (b.RequiresOppositeLand && !HasOppositeLand(grid, pos)) continue;
                     bool needsResource = b.RequiredStructures != null && b.RequiredStructures.Length > 0;
                     if (needsResource ? !Contains(b.RequiredStructures, structure) : !string.IsNullOrEmpty(structure)) continue;
                 }
@@ -166,7 +183,7 @@ namespace TacticsECS
                         if (a.Kind == TileActionKind.GrowForest && !string.IsNullOrEmpty(structure)) continue;
                         break;
                     case TileActionKind.Destroy:
-                        if (string.IsNullOrEmpty(tile.BuildingId)) continue;
+                        if (string.IsNullOrEmpty(tile.BuildingId) || IsMonument(tile.BuildingId)) continue;
                         break;
                 }
 
@@ -225,18 +242,14 @@ namespace TacticsECS
 
             if (b.RequiredStructures != null && b.RequiredStructures.Length > 0) t.StructureId = string.Empty; // 자원 소모
             t.BuildingId = b.Id;
+            t.BuildingTurn = econ.Turn;
             grid.SetTile(pos, t);
 
             CitySystem.AddPopulation(econ, t.OwnerCity, b.Population + ProcessorPopulation(grid, pos, b, team), log);
             NotifyNeighborProcessors(grid, econ, team, pos, b.Id, +1, log);
 
-            if (b.Id.EndsWith("Temple"))
-            {
-                var res = econ.Resources[team];
-                res.MaxFaith += BuildingDefinition.TempleMaxFaithBonus;
-                econ.Resources[team] = res;
-            }
-            if (b.Id == BuildingDefinition.Port) CitySystem.RefreshConnections(grid, econ, log);
+            if (!string.IsNullOrEmpty(b.TaskId)) TaskSystem.MarkMonumentBuilt(econ, team, b.TaskId);
+            if (b.Id == BuildingDefinition.Port || b.ActsAsRoad) CitySystem.RefreshConnections(grid, econ, log);
         }
 
         /// <summary>기반 건물(농장/광산/벌목장)이 생기거나 없어질 때, 그 옆의 가공 건물(풍차/대장간/제재소)이
@@ -272,7 +285,9 @@ namespace TacticsECS
                     grid.SetTile(pos, t);
                     break;
                 case TileActionKind.GrowForest:
+                    // 기술이 없어 안 보이는 자원(예: 채집 전의 작물)은 숲이 덮으면서 사라진다 — 숲 + 작물 칸이 생기지 않게.
                     t.TileTypeId = TerrainGenerationSystem.ForestTileId;
+                    t.StructureId = string.Empty;
                     grid.SetTile(pos, t);
                     break;
                 case TileActionKind.Destroy:
@@ -301,14 +316,7 @@ namespace TacticsECS
             CitySystem.AddPopulation(econ, t.OwnerCity, -pop, log);
             NotifyNeighborProcessors(grid, econ, team, pos, info.Value.Id, -1, log);
 
-            if (info.Value.Id.EndsWith("Temple"))
-            {
-                var res = econ.Resources[team];
-                res.MaxFaith -= BuildingDefinition.TempleMaxFaithBonus;
-                res.Faith = Mathf.Min(res.Faith, res.MaxFaith);
-                econ.Resources[team] = res;
-            }
-            if (info.Value.Id == BuildingDefinition.Port) CitySystem.RefreshConnections(grid, econ, log);
+            if (info.Value.Id == BuildingDefinition.Port || info.Value.ActsAsRoad) CitySystem.RefreshConnections(grid, econ, log);
         }
 
         /// <summary>숲을 없앤 뒤 칸에 쓸 평지 타일 Id — 주변 8칸에서 가장 흔한 평지 타입(바이옴에 맞게 초원/사막

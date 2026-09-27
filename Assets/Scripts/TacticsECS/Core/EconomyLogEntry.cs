@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace TacticsECS
 {
-    public enum EconomyLogKind { Capture, Research, Build, Action, Train, LevelUp, Reward, Explore, Disband }
+    public enum EconomyLogKind { Capture, Research, Build, Action, Train, LevelUp, Reward, Explore, Disband, Discover, Task, Upgrade }
 
     /// <summary>
     /// 경제 행동(점령/연구/건설/훈련/레벨업 등) 한 건의 기록. BattleLogEntry와 같은 목적 — Systems(EconomyAI,

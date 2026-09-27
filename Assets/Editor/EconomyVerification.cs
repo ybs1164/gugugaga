@@ -19,6 +19,7 @@ namespace TacticsECS.EditorTools
             VerifyTechCsv();
             VerifyTechCost();
             VerifyCityLoop();
+            VerifyEveryBuilding();
             VerifyEnemyAiAndDefeat();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
@@ -45,7 +46,8 @@ namespace TacticsECS.EditorTools
             }
 
             // 해금 키가 실제로 무언가를 가리키는지(오타 방지): Build.* = 건물 표, Harvest./Ability. = 타일 행동 표.
-            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey };
+            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey, CitySystem.OceanConnectionKey };
+            foreach (var t in TaskDefinition.All) if (!string.IsNullOrEmpty(t.UnlockKey)) known.Add(t.UnlockKey);
             foreach (var b in BuildingDefinition.All) known.Add(b.UnlockKey);
             foreach (var a in TileActionDefinition.All) known.Add(a.UnlockKey);
             foreach (var n in nodes)
@@ -226,6 +228,101 @@ namespace TacticsECS.EditorTools
             Check(!CitySystem.CanTrain(grid, world, econ, p, 0, econ.UnitRows[0], out _), "can't train on occupied city tile");
             Check(CitySystem.CanTrain(grid, world, econ, p, 1, econ.UnitRows[0], out var why0) || why0 == "도시 칸이 비어있지 않음", "train infantry in village (or blocked by capturer)");
             Check(!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[p], "shield"), "shield locked without Shields");
+        }
+
+        /// <summary>도시가 지금까지 모은 인구 총량(레벨업으로 차감된 몫까지 되돌려 더한 값).</summary>
+        private static int TotalPop(CityData c)
+        {
+            int total = c.Population;
+            for (int l = 1; l < c.Level; l++) total += l + 1;
+            return total;
+        }
+
+        /// <summary>건물 표(BuildingDefinition)의 모든 건물을 하나씩: 기술 없이는 선택지에 없고, 맞는 지형에만 지어지며,
+        /// 인구/인접 인구/시장 골드/신앙/도로/파괴 효과가 표대로 나오는지.</summary>
+        private static void VerifyEveryBuilding()
+        {
+            var grid = new GridWorld(9, 9);
+            for (int y = 0; y < 9; y++) for (int x = 0; x < 9; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var econ = NewEconomy();
+            var p = Team.Player;
+            int city = CitySystem.FoundCity(grid, econ, new Vector2Int(4, 4), p, true, "테스트");
+            var c = econ.Cities[city]; c.BorderRadius = 4; econ.Cities[city] = c;
+            CitySystem.ClaimTerritory(grid, econ, city);
+            Give(econ, p, 1000, 0);
+            var log = new List<EconomyLogEntry>();
+
+            var forest1 = new Vector2Int(1, 1); var forest2 = new Vector2Int(1, 3); var saw = new Vector2Int(1, 2);
+            var crop = new Vector2Int(3, 1); var mill = new Vector2Int(4, 1);
+            var mtn = new Vector2Int(7, 1); var forge = new Vector2Int(7, 2);
+            var market = new Vector2Int(5, 2);
+            var water = new Vector2Int(7, 7); var ocean = new Vector2Int(8, 8);
+            var mtn2 = new Vector2Int(1, 7); var forest3 = new Vector2Int(2, 7); var field = new Vector2Int(4, 7);
+            foreach (var f in new[] { forest1, forest2, forest3 }) grid.SetTileType(f, TerrainGenerationSystem.ForestTileId);
+            foreach (var m in new[] { mtn, mtn2 }) grid.SetTileType(m, TerrainGenerationSystem.MountainTileId);
+            grid.SetTerrain(water, TerrainType.Water); grid.SetTileType(water, "Water");
+            grid.SetTerrain(ocean, TerrainType.Water); grid.SetTileType(ocean, TerrainGenerationSystem.OceanTileId);
+            grid.SetStructure(crop, "Resource_Crop");
+            grid.SetStructure(mtn, "Resource_Metal");
+
+            foreach (var b in BuildingDefinition.All)
+                for (int y = 0; y < 9; y++) for (int x = 0; x < 9; x++)
+                    Check(!TileImprovementSystem.GetOptions(grid, econ, p, new Vector2Int(x, y)).Exists(o => o.Id == b.Id), $"{b.Id} offered without tech at {x},{y}");
+
+            foreach (var n in econ.TechNodes) econ.Tech[p].Unlocked.Add(n.Id);
+
+            void Build(Vector2Int at, string id) => Check(TileImprovementSystem.Execute(grid, econ, p, at, id, log), $"build {id} at {at}");
+            int Pop() => TotalPop(econ.Cities[city]);
+
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, field).Exists(o => o.Id == "LumberHut"), "lumber hut not on field");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, mtn2).Exists(o => o.Id == "Mine"), "mine needs metal");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, field).Exists(o => o.Id == "Port"), "port not on land");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, ocean).Exists(o => o.Id == "Port"), "port not on ocean");
+
+            int pop = Pop();
+            Build(forest1, "LumberHut"); Check(Pop() == pop + 1, "lumber hut +1"); pop = Pop();
+            Build(saw, "Sawmill"); Check(Pop() == pop + 1, "sawmill +1 per hut"); pop = Pop();
+            Build(forest2, "LumberHut"); Check(Pop() == pop + 2, "2nd hut +1 and adjacent sawmill +1"); pop = Pop();
+            Build(crop, "Farm"); Check(Pop() == pop + 2 && grid.GetStructure(crop) == "", "farm +2, crop consumed"); pop = Pop();
+            Build(mill, "Windmill"); Check(Pop() == pop + 1, "windmill +1 per farm"); pop = Pop();
+            Build(mtn, "Mine"); Check(Pop() == pop + 2 && grid.GetStructure(mtn) == "", "mine +2, metal consumed"); pop = Pop();
+            Build(forge, "Forge"); Check(Pop() == pop + 2, "forge +2 per mine"); pop = Pop();
+            Build(market, "Market"); Check(Pop() == pop, "market gives no population");
+            // 시장(5,2) 인접 가공 건물은 풍차(4,1) 하나(인구 1).
+            Check(TileImprovementSystem.MarketIncome(grid, p) == 1, $"market income = adjacent windmill pop (got {TileImprovementSystem.MarketIncome(grid, p)})");
+            pop = Pop();
+            Build(water, "Port"); Check(Pop() == pop + 1, "port +1"); pop = Pop();
+
+            int faith = econ.Resources[p].MaxFaith;
+            econ.Turn = 3;
+            Build(field, "Temple"); Build(forest3, "ForestTemple"); Build(mtn2, "MountainTemple"); Build(ocean, "WaterTemple");
+            Check(Pop() == pop + 4, "4 temples +1 each");
+            Check(econ.Resources[p].MaxFaith == faith, "temples give score only (no faith bonus)");
+            Check(grid.GetTile(field).BuildingTurn == 3, "temple remembers its build turn");
+
+            var roadTile = new Vector2Int(6, 6); pop = Pop(); int gold = econ.Resources[p].Gold;
+            Build(roadTile, "Road");
+            Check(grid.GetTile(roadTile).HasRoad && Pop() == pop && econ.Resources[p].Gold == gold - 3, "road: flag, no pop, cost 3");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, roadTile).Exists(o => o.Id == "Road"), "road not offered twice");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, crop).Exists(o => o.IsBuilding && !TileImprovementSystem.FindBuilding(o.Id).Value.IsRoad), "one building per tile");
+
+            pop = Pop();
+            Check(TileImprovementSystem.Execute(grid, econ, p, mtn, "DestroyBuilding", log), "destroy mine");
+            Check(Pop() == pop - 4, $"destroying mine removes mine 2 + forge 2 (delta {Pop() - pop})");
+
+            // 숨겨진 자원 위 개량: 채집(Gathering) 없는 팀에게 작물은 숨겨져 있다.
+            var econ2 = NewEconomy();
+            var grid2 = new GridWorld(5, 5);
+            for (int y = 0; y < 5; y++) for (int x = 0; x < 5; x++) grid2.SetTileType(new Vector2Int(x, y), "Grass");
+            CitySystem.FoundCity(grid2, econ2, new Vector2Int(2, 2), p, true, "숨김");
+            Give(econ2, p, 100, 0);
+            econ2.Tech[p].Unlocked.Add("Hunting"); econ2.Tech[p].Unlocked.Add("Archery"); econ2.Tech[p].Unlocked.Add("Spiritualism");
+            var hiddenCrop = new Vector2Int(1, 1);
+            grid2.SetStructure(hiddenCrop, "Resource_Crop");
+            bool offered = TileImprovementSystem.GetOptions(grid2, econ2, p, hiddenCrop).Exists(o => o.Id == "GrowForest");
+            if (offered) TileImprovementSystem.Execute(grid2, econ2, p, hiddenCrop, "GrowForest", log);
+            Check(!offered || grid2.GetStructure(hiddenCrop) != "Resource_Crop",
+                "hidden crop survives under a forest grown on top of it (tile becomes forest + crop)");
         }
 
         private static void VerifyEnemyAiAndDefeat()

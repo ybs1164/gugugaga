@@ -5,7 +5,7 @@ namespace TacticsECS
     public enum CityRewardType
     {
         Workshop,          // Lv2: 골드 수입 +1
-        Explorer,          // Lv2: 시야 시스템이 없어 즉시 발전도 +3으로 대체
+        Explorer,          // Lv2: 탐험가가 12번 움직이며 구름을 걷는다(VisionSystem.RunExplorer)
         CityWall,          // Lv3: 도시 안 요새화 유닛 방어 보너스 강화
         Resources,         // Lv3: 골드 +5
         PopulationGrowth,  // Lv4: 인구 +3

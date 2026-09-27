@@ -27,6 +27,9 @@ namespace TacticsECS
         private GameObject[] _featureObjects;
         private GameObject[] _buildingObjects;
         private GridWorld _grid;
+        /// <summary>칸마다 구름에 가렸는지(RefreshFog). 가린 칸의 장식/구조물/건물 오브젝트는 숨긴다 — 다시 만들어도(Refresh*)
+        /// 같은 상태를 유지하도록 값을 들고 있는다(표시 전용 상태).</summary>
+        private bool[] _fogged;
 
         /// <summary>landTilePrefab/waterTilePrefab은 GridView 자신이 아니라 BattleController가 들고 있는
         /// 값을 그대로 넘겨받는다(GridView는 씬에 저장된 오브젝트가 아니라 SetupBattle이 매번 새로
@@ -117,6 +120,7 @@ namespace TacticsECS
                         _featureObjects[index] = null;
                     }
                     _featureObjects[index] = TerrainFeatureView.Create(grid.GetTileType(pos), _tileViews[index].transform, pos, _tileTopLocalY[index] + StructureLift);
+                    ApplyFog(index);
                 }
             }
         }
@@ -155,6 +159,7 @@ namespace TacticsECS
                     structureGo.transform.localPosition = new Vector3(0f, _tileTopLocalY[index] + StructureLift, 0f);
                     structureGo.transform.localScale = Vector3.one * StructureLocalScale;
                     _structureObjects[index] = structureGo;
+                    ApplyFog(index);
                 }
             }
         }
@@ -162,7 +167,7 @@ namespace TacticsECS
         /// <summary>경제 상태(영토 주인 색/도로/건물/도시 주인 원판)를 다시 그린다. 영토는 타일 색에 팀 색을 섞고
         /// (TileView.SetTerritory), 건물과 도시 원판은 BuildingMarkerView로 타일의 자식 오브젝트를 새로 만든다.
         /// cities가 null이면(경제 없는 씬) 전부 지운다.</summary>
-        public void RefreshEconomy(GridWorld grid, IReadOnlyList<CityData> cities, Color playerColor, Color enemyColor)
+        public void RefreshEconomy(GridWorld grid, IReadOnlyList<CityData> cities, Color playerColor, Color enemyColor, int currentTurn = 1)
         {
             if (_buildingObjects == null) _buildingObjects = new GameObject[grid.Width * grid.Height];
             var cityAt = new Dictionary<Vector2Int, CityData>();
@@ -189,7 +194,9 @@ namespace TacticsECS
                     float top = _tileTopLocalY[index] + StructureLift;
                     GameObject marker = cityAt.TryGetValue(pos, out var city)
                         ? BuildingMarkerView.CreateCityBase(city.Owner == Team.Player ? playerColor : enemyColor, city.Level, view.transform, top)
-                        : BuildingMarkerView.CreateBuilding(tile.BuildingId, view.transform, top);
+                        : BuildingMarkerView.CreateBuilding(tile.BuildingId, view.transform, top,
+                            ScoreSystem.TempleLevel(currentTurn, tile.BuildingTurn),
+                            tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(grid, pos));
 
                     // 영토 경계: 상하좌우 이웃의 주인 팀이 다르면(또는 맵 밖이면) 그 변에 팀 색 막대.
                     if (tile.OwnerTeam != TileData.NoOwner)
@@ -212,6 +219,7 @@ namespace TacticsECS
                         }
                     }
                     _buildingObjects[index] = marker;
+                    ApplyFog(index);
                 }
             }
         }
@@ -222,6 +230,36 @@ namespace TacticsECS
         {
             if (Application.isPlaying) Destroy(obj);
             else DestroyImmediate(obj);
+        }
+
+        private static bool IsHorizontalBridge(GridWorld grid, Vector2Int p)
+        {
+            bool Land(Vector2Int q) => grid.InBounds(q) && grid.GetTerrain(q) == TerrainType.Land;
+            return Land(p + Vector2Int.left) && Land(p + Vector2Int.right);
+        }
+
+        /// <summary>viewer 팀 기준 구름을 다시 그린다: 탐험하지 않은 칸은 구름 색 + 그 위 장식/구조물/건물 숨김.
+        /// grid.FogEnabled가 false면 전부 보인다.</summary>
+        public void RefreshFog(GridWorld grid, Team viewer)
+        {
+            if (_fogged == null || _fogged.Length != grid.Width * grid.Height) _fogged = new bool[grid.Width * grid.Height];
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var pos = new Vector2Int(x, y);
+                int i = grid.Index(pos);
+                _fogged[i] = !VisionSystem.IsExplored(grid, viewer, pos);
+                _tileViews[i].SetFogged(_fogged[i]);
+                ApplyFog(i);
+            }
+        }
+
+        private void ApplyFog(int index)
+        {
+            bool visible = _fogged == null || !_fogged[index];
+            if (_featureObjects != null && _featureObjects[index] != null) _featureObjects[index].SetActive(visible);
+            if (_structureObjects != null && _structureObjects[index] != null) _structureObjects[index].SetActive(visible);
+            if (_buildingObjects != null && _buildingObjects[index] != null) _buildingObjects[index].SetActive(visible);
         }
 
         public void ClearHighlights()

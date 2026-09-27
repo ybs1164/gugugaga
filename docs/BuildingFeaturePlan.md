@@ -6,9 +6,28 @@
 [Embassy](https://polytopia.fandom.com/wiki/Embassy), [Movement](https://polytopia.fandom.com/wiki/Movement)
 (MediaWiki API로 받은 원문 위키텍스트와 대조).
 
+> **구현 결과 (2026-09-27)** — 아래 계획을 실행했다. 결정: 시야 시스템 포함, 신전은 점수만, 위키에 있는데 없던 규칙도 가능한 한
+> 추가. 그래서 7단계(약탈)는 위키 규칙이 아니라 하지 않았고, 6단계(대사관)는 외교가 없어 계속 보류. 계획과 달라진 점:
+> 신전은 신앙과 엮지 않고 점수만(4단계 제안 폐기), 신의 눈은 "등대 도달" 대체 대신 실제 시야 시스템으로 판정, 위키 Movement의
+> 험지 정지/Zone of Control/구름 진입 불가와 City Connections의 해로 5칸 제한(Port 문서의 4칸 대신)·깊은 바다 조건, Ruins의
+> 탐험 조건/탐험가 보상, Lighthouse의 인구 +1을 추가로 넣었다. 코드와 검증 목록은 README의
+> "건물 기능 · 시야 · 적 시뮬레이션" 절.
+>
+> | 단계 | 상태 |
+> |---|---|
+> | 1 도로 이동 | ✅ `PathfindingSystem` (다익스트라, 험지/ZoC/구름 포함) |
+> | 2 다리 | ✅ `BuildingDefinition.Bridge`, `PathfindingSystem.CanEnter`, `CitySystem.RefreshConnections` |
+> | 3 항구 보강 | ✅ `EmbarkSystem`, `NavalUnitDefinition`, 해로 5칸 |
+> | 4 점수/신전 | ✅ `ScoreSystem`, `TileData.BuildingTurn` (신앙 연동 없음) |
+> | 5 기념물 | ✅ `TaskSystem`, `TaskDefinition` (7종, 신의 눈은 시야 기반) |
+> | 6 대사관 | ⏸ 보류 (외교 없음) |
+> | 7 약탈 | ✖ 위키 규칙이 아니라 제외 |
+> | 2-1/2-2 AI | ✅ `EconomyAI`, `EnemyAI` (팀 인자화) |
+> | 2-3 하네스 | ✅ `UnitFactorySystem`, `Assets/Editor/EconomySimulation.cs` |
+
 ---
 
-## 0. 현황 — 위키 대비 무엇이 되어 있고 무엇이 비었나
+## 0. 현황 — 위키 대비 무엇이 되어 있고 무엇이 비었나 (계획 당시)
 
 | 건물 | 위키 효과 | 현재 구현 | 빈 부분 |
 |---|---|---|---|
@@ -147,7 +166,7 @@
 4. 4단계 점수/신전 → 5단계 기념물
 5. (선택) 7단계 약탈, 관전 모드. 6단계 대사관은 외교 시스템과 함께.
 
-## 4. 결정이 필요한 부분
-- 신전 레벨을 신앙 수입과 엮을지(4단계 제안) 또는 점수만 줄지.
-- 약탈(7단계)을 넣을지.
-- 신의 눈 과업을 시야 시스템 없이 "등대 도달"로 대체해도 되는지.
+## 4. 결정 (2026-09-27 확정)
+- 신전: 점수만 준다(신앙 연동 없음, 기존 신앙 최대치 +5도 제거).
+- 약탈(7단계): 위키 규칙이 아니므로 넣지 않는다.
+- 신의 눈: 시야 시스템을 구현해 위키대로 "등대를 밝힘"으로 판정한다.

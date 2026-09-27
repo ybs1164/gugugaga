@@ -21,6 +21,7 @@ namespace TacticsECS
         private Text _populationText;
         private Text _goldText;
         private Text _faithText;
+        private Text _scoreText;
 
         // 발전도/인구/골드/신앙 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 4종이
         // 없음), 기존 IconLibrary 세트 중 의미가 가장 비슷한 아이콘을 대신 가져다 쓴다 — combo(상승하는
@@ -49,6 +50,37 @@ namespace TacticsECS
             _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
             _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
             _faithText = WireSlot(bar.Find("Faith"), SlotDefs[3]);
+            _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
+        }
+
+        /// <summary>자원 바 바로 아래 한 줄짜리 점수 표시(위키 Score). 줄 하나라 프리팹에 굽지 않고 코드로 만든다(BattleHud의
+        /// 로스터/로그 행과 같은 방식).</summary>
+        private Text CreateScoreLine(Transform canvas, RectTransform bar)
+        {
+            var go = new GameObject("Score", typeof(RectTransform));
+            go.transform.SetParent(canvas, false);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1f);
+            rt.pivot = new Vector2(0.5f, 1f);
+            rt.anchoredPosition = new Vector2(0f, bar.anchoredPosition.y - bar.sizeDelta.y - 4f);
+            rt.sizeDelta = new Vector2(bar.sizeDelta.x, 26f);
+            var text = go.AddComponent<Text>();
+            text.font = uiFont;
+            text.fontSize = 18;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            return text;
+        }
+
+        /// <summary>점수 줄(예: "점수 1234 · 적 1180"). 빈 문자열이면 숨긴다.</summary>
+        public void SetScoreLine(string line)
+        {
+            if (_scoreText == null) return;
+            _scoreText.text = line ?? string.Empty;
+            _scoreText.gameObject.SetActive(!string.IsNullOrEmpty(line));
         }
 
         private static Text WireSlot(Transform slot, (string Icon, Color Tint) def)

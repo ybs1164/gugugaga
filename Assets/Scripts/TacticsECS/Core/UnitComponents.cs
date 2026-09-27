@@ -48,7 +48,7 @@ namespace TacticsECS
     [System.Serializable] public struct MoveDomain { public TerrainType Value; }
 
     // ---- 수송 플레이스홀더 (스폰 후 불변) ----
-    // Transport(ActionType) 보유 유닛이 태울 수 있는 유닛 수. VisionRange(정찰 플레이스홀더)와 같은 성격 —
+    // Transport(ActionType) 보유 유닛이 태울 수 있는 유닛 수. (폴리토피아식 바다 수송은 항구 승선 — EmbarkSystem — 이라 이 값은 쓰이지 않는다) —
     // 아직 유닛을 태우고 내리는 시스템 자체가 없어 지금은 값만 들고 있을 뿐 실제 게임플레이 효과는 없다.
     // 나중에 수송 시스템이 생기면 이 값을 정원으로 쓰면 된다 — Actions/TransportAction.cs 참고.
     [System.Serializable] public struct CargoCapacity { public int Value; }
@@ -69,10 +69,29 @@ namespace TacticsECS
     // 만들어 소모시키고 즉시 해제한다 — "1턴간 행동불능".
     [System.Serializable] public struct Frozen { public bool Value; }
 
-    // ---- 정찰 플레이스홀더 (스폰 후 불변) ----
-    // 아직 시야/포그오브워 시스템이 없어 지금은 값만 들고 있을 뿐 실제 게임플레이 효과는 없다.
-    // Scout(ActionType)을 가진 유닛의 실효 시야는 나중에 시야 시스템이 생기면 이 값 + 1로 계산하면 된다.
+    // ---- 시야 (스폰 후 불변, 승선 시 교체) ----
+    // 이 유닛이 밝히는 반경(체비쇼프). 기본 1(3x3), 정찰(ScoutAction) 보유 시 2(5x5). 산 위에 서 있으면 VisionSystem이
+    // 추가로 2까지 넓힌다 — Data/VisionDefinition.cs 참고.
     [System.Serializable] public struct VisionRange { public int Value; }
+
+    // ---- 승선 (항구 → 뗏목, EmbarkSystem) ----
+    // 육지 유닛이 자기 항구에 들어가면 배로 바뀐다. Value가 true인 동안 Attack/Defense/AttackRange/MoveRange/MoveDomain/
+    // UnitActions/AvailableActions/VisionRange는 배(NavalUnitId, Data/NavalUnitDefinition.cs)의 값이고, 원래 값은 LandForm에
+    // 보관돼 육지에 내릴 때 복원된다. 체력(Hp/MaxHp)은 그대로 유지된다(위키: 배의 체력 = 태운 유닛의 체력).
+    [System.Serializable] public struct Embarked { public bool Value; public string NavalUnitId; }
+
+    [System.Serializable]
+    public struct LandForm
+    {
+        public int Attack;
+        public int Defense;
+        public int AttackRange;
+        public int MoveRange;
+        public int VisionRange;
+        public TerrainType Domain;
+        public ActionType AvailableActions;
+        public System.Collections.Generic.IReadOnlyList<IUnitAction> Actions;
+    }
 
     // ---- 경제/기술 연동 ----
     // 이 유닛을 만든 유닛 CSV 행의 Id(예: "infantry"). 프리팹으로 직접 스폰한 데모 유닛은 빈 문자열.

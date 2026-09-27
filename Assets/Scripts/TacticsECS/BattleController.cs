@@ -577,6 +577,7 @@ namespace TacticsECS
                     view.Refresh(_world, id);
             }
             RefreshRoster();
+            if (_econ != null) TaskSystem.EndTurn(_econ, _turnState.ActiveTeam);
 
             _turnState = TurnSystem.EndTurn(_world, _turnState);
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
@@ -719,6 +720,7 @@ namespace TacticsECS
 
             if (_econ != null)
             {
+                _econ.Turn = turnNumber;
                 // 폴리토피아처럼 첫 턴은 시작 자원만 쓰고, 2턴부터 매 자기 턴 시작마다 도시 수입이 들어온다.
                 if (turnNumber > 1)
                     _econ.Resources[team] = CityResourceSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team);
@@ -737,6 +739,9 @@ namespace TacticsECS
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
             var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, cityMaxFaith, false);
             _cityResourceHud.SetResources(resources, populationUsed);
+            _cityResourceHud.SetScoreLine(_econ != null
+                ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
+                : string.Empty);
         }
 
         private void RefreshTechTree()
@@ -772,7 +777,7 @@ namespace TacticsECS
                 CheckBattleEnd();
                 if (_battleOver) yield break;
             }
-            var entries = EnemyAI.RunTurn(_grid, _world, _econ != null ? CaptureTargets(Team.Enemy) : null);
+            var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
             if (_econ != null) RefreshEconomyViews(false);
             RefreshAllViews();
             RefreshRoster();
@@ -798,6 +803,18 @@ namespace TacticsECS
             {
                 if (_viewsById.TryGetValue(i, out var view))
                     view.Refresh(_world, i);
+            }
+            RefreshUnitVisibility();
+        }
+
+        /// <summary>시야: 플레이어가 탐험하지 않은 칸(구름)에 있는 다른 팀 유닛은 숨긴다(경제 없는 씬은 전부 보임).</summary>
+        private void RefreshUnitVisibility()
+        {
+            foreach (var kv in _viewsById)
+            {
+                if (!UnitQueries.IsAlive(_world, kv.Key)) continue;
+                bool visible = _world.Get<Team>(kv.Key) == Team.Player || VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value);
+                kv.Value.SetVisible(visible);
             }
         }
 
@@ -926,6 +943,7 @@ namespace TacticsECS
         private void HandleClick()
         {
             if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var gridPos)) return;
+            if (!VisionSystem.IsExplored(_grid, Team.Player, gridPos)) { ClearSelection(); return; } // 구름 칸
 
             int occupantId = _grid.GetOccupant(gridPos);
             if (occupantId != TileData.NoOccupant)
@@ -949,6 +967,9 @@ namespace TacticsECS
                 (_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
             {
                 ClearSelection();
+                // 뗏목 업그레이드는 행동을 쓰지 않아 승선한 그 턴에도 할 수 있다(위키 Raft).
+                if (UnitQueries.IsAlive(_world, unitId) && _world.Get<Team>(unitId) == Team.Player &&
+                    EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId) { ShowUnitMenu(unitId); return; }
                 // 행동을 마친 유닛이 서 있는 칸도 도시/건설 메뉴는 열 수 있어야 한다(훈련/보상 선택).
                 if (UnitQueries.IsAlive(_world, unitId)) ShowTileMenu(_world.Get<GridPosition>(unitId).Value);
                 return;
@@ -1006,6 +1027,9 @@ namespace TacticsECS
                 _econ.Resources[team] = res;
                 _econ.Tech[team] = TechTreeData.CreateEmpty();
             }
+            TaskSystem.Init(_econ);
+            // 시야(구름)는 경제가 켜진 전투에서만 쓴다: 수도 주변 5x5 + 유닛 주변 + 영토만 보인 채로 시작한다.
+            _grid.FogEnabled = true;
             CitySystem.InitializeCapitals(_grid, _world, _econ);
             RefreshEconomyViews(false);
         }
@@ -1030,11 +1054,20 @@ namespace TacticsECS
         private void RefreshEconomyViews(bool terrainChanged)
         {
             if (_econ == null) return;
+
+            // 시야(유닛 주변/영토 밝히기, 등대 발견)와 과업 달성은 상태가 바뀔 때마다 다시 확인한다.
+            var log = new List<EconomyLogEntry>();
+            VisionSystem.Refresh(_grid, _world, _econ, log);
+            TaskSystem.Refresh(_grid, _econ, log);
+            if (log.Count > 0) ProcessEconomyLog(log);
+
             RefreshProduction();
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
-            _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent);
+            _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
+            _gridView.RefreshFog(_grid, Team.Player);
+            RefreshUnitVisibility();
             RefreshCityResources();
             RefreshTechTree();
         }
@@ -1051,6 +1084,7 @@ namespace TacticsECS
         private string VisibleStructure(Vector2Int pos)
         {
             string id = _grid.GetStructure(pos);
+            if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) return string.Empty;
             if (_econ != null && TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]).Contains(id)) return string.Empty;
             return id;
         }
@@ -1105,6 +1139,9 @@ namespace TacticsECS
                 case EconomyLogKind.Reward: return $"{who} 보상: {e.Subject}";
                 case EconomyLogKind.Explore: return $"{who} 유적 탐험: {e.Subject}";
                 case EconomyLogKind.Disband: return $"{who} 유닛 해산 ({e.Subject})";
+                case EconomyLogKind.Discover: return $"{who} {e.Subject}";
+                case EconomyLogKind.Task: return $"{who} 과업 달성: {e.Subject}";
+                case EconomyLogKind.Upgrade: return $"{who} 배 업그레이드: {e.Subject}";
                 default: return $"{who} {e.Subject}";
             }
         }
@@ -1120,26 +1157,13 @@ namespace TacticsECS
                 return false;
             }
 
-            Vector2Int? spot = null;
-            for (int r = 0; r <= 3 && spot == null; r++)
-            {
-                for (int dy = -r; dy <= r && spot == null; dy++)
-                for (int dx = -r; dx <= r && spot == null; dx++)
-                {
-                    if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
-                    var p = near + new Vector2Int(dx, dy);
-                    if (!_grid.InBounds(p) || _grid.IsOccupied(p) || !_grid.IsWalkable(p) || _grid.GetTerrain(p) != row.Domain) continue;
-                    spot = p;
-                }
-            }
-            if (spot == null) return false;
-
-            var view = _spawner.SpawnFromCsv(_grid, _world, team, basePrefab, row, spot.Value);
-            _viewsById[view.UnitId] = view;
-            _world.Set(view.UnitId, new HasMoved { Value = true });
-            _world.Set(view.UnitId, new HasActed { Value = true });
+            // 엔티티 생성/자리 찾기는 헤드리스 시뮬레이션과 같은 경로(UnitFactorySystem), 여기서는 View만 붙인다.
+            int id = UnitFactorySystem.SpawnEconomyUnit(_grid, _world, _econ, team, unitId, near);
+            if (id < 0) return false;
+            var view = _spawner.AttachCsvView(_grid, _world, id, basePrefab, row);
+            _viewsById[id] = view;
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
-            view.Refresh(_world, view.UnitId);
+            view.Refresh(_world, id);
             return true;
         }
 
@@ -1158,6 +1182,7 @@ namespace TacticsECS
         private void ShowTileMenu(Vector2Int pos)
         {
             if (!CanUseEconomyMenu) return;
+            if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) { _actionMenu.Hide(); return; }
             _menuTile = pos;
             var options = new List<ActionMenuOption>();
             string title;
@@ -1171,6 +1196,14 @@ namespace TacticsECS
                 title = $"{city.Name} (Lv {city.Level})";
                 body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
                 body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
+
+                if (city.Owner == Team.Player && city.IsCapital)
+                {
+                    body.Append("\n과업: ");
+                    body.Append(string.Join(" · ", TaskDefinition.All
+                        .Where(t => TaskSystem.IsUnlocked(_econ, Team.Player, t))
+                        .Select(t => $"{t.Name} {TaskSystem.ProgressText(_grid, _econ, Team.Player, t)}")));
+                }
 
                 if (city.Owner == Team.Player)
                 {
@@ -1208,7 +1241,14 @@ namespace TacticsECS
                 body.Append(owner);
                 var building = TileImprovementSystem.FindBuilding(tile.BuildingId);
                 if (building != null)
+                {
                     body.Append($" · {building.Value.Name} (인구 {TileImprovementSystem.BuildingPopulation(_grid, pos)})");
+                    if (building.Value.IsTemple)
+                    {
+                        int level = ScoreSystem.TempleLevel(_econ.Turn, tile.BuildingTurn);
+                        body.Append($" · Lv {level} ({ScoreSystem.TemplePoints(level)}점)");
+                    }
+                }
                 if (tile.HasRoad) body.Append(" · 도로");
             }
 
@@ -1262,6 +1302,22 @@ namespace TacticsECS
 
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+            if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
+            {
+                foreach (var u in NavalUnitDefinition.Upgrades)
+                {
+                    if (!TechSystem.HasUnlock(_econ.TechNodes, _econ.Tech[Team.Player], u.UnlockKey)) continue;
+                    bool can = EmbarkSystem.CanUpgrade(_grid, _world, _econ, unitId, u.Row.Id, out var reason);
+                    string navalId = u.Row.Id;
+                    options.Add(new ActionMenuOption
+                    {
+                        Label = $"{u.Row.Name}(으)로 업그레이드 (골드 {u.Row.Cost})",
+                        Detail = can ? $"공격 {u.Row.AttackAttack} · 방어 {u.Row.Defense} · 이동 {u.Row.MoveRange} · 사거리 {u.Row.AttackRange}" : reason,
+                        Enabled = can, OnClick = () => HandleNavalUpgrade(unitId, navalId)
+                    });
+                }
+            }
+
             if (RuinSystem.CanDisband(_world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = $"해산 (골드 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
 
@@ -1271,6 +1327,23 @@ namespace TacticsECS
 
             if (options.Count == 0) { _actionMenu.Hide(); return; }
             _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", null, options);
+        }
+
+        private void HandleNavalUpgrade(int unitId, string navalUnitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (!EmbarkSystem.Upgrade(_grid, _world, _econ, unitId, navalUnitId, log)) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(false);
+            RecomputeHighlightsIfSelected(unitId);
+            RefreshMenu();
+        }
+
+        private void RecomputeHighlightsIfSelected(int unitId)
+        {
+            if (_state == SelectState.UnitSelected && _selectedUnitId == unitId) RecomputeHighlights();
         }
 
         private void HandleTileOption(Vector2Int pos, string optionId)
@@ -1395,9 +1468,8 @@ namespace TacticsECS
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             if (_econ != null)
             {
-                // 이동으로 지형 방어 보너스/도시 포위(수입) 상태가 바뀔 수 있다.
-                TechEffectSystem.RefreshUnits(_grid, _world, _econ);
-                RefreshProduction();
+                // 이동으로 시야(구름)/지형 방어 보너스/도시 포위(수입) 상태가 바뀔 수 있다.
+                RefreshEconomyViews(false);
             }
             RecomputeHighlights();
             ShowUnitMenu(_selectedUnitId);
@@ -1405,7 +1477,13 @@ namespace TacticsECS
 
         private void TryAttack(int attackerId, int targetId)
         {
+            var aliveBefore = TaskSystem.SnapshotAlive(_world);
             if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int damage, out int counterDamage)) return;
+            if (_econ != null)
+            {
+                TaskSystem.RecordAttack(_econ, Team.Player);
+                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
+            }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
             _viewsById[targetId].ShowDamagePopup(damage);
@@ -1424,6 +1502,7 @@ namespace TacticsECS
             _viewsById[targetId].Refresh(_world, targetId);
             _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
             RefreshRoster();
+            RefreshEconomyViews(false);
 
             CheckBattleEnd();
             ClearSelection();
@@ -1463,7 +1542,13 @@ namespace TacticsECS
             if (_state != SelectState.UnitSelected) return;
             int unitId = _selectedUnitId;
             var hpBefore = SnapshotHp();
+            var aliveBefore = TaskSystem.SnapshotAlive(_world);
             if (!AbilitySystem.TrySelfDestruct(_grid, _world, unitId, out var damagedIds)) return;
+            if (_econ != null)
+            {
+                TaskSystem.RecordAttack(_econ, Team.Player);
+                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
+            }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.SelfDestruct, TargetId = BattleLogEntry.NoTarget, Amount = damagedIds.Count }));
             foreach (var id in damagedIds)

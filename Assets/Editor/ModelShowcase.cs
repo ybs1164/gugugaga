@@ -266,7 +266,7 @@ namespace TacticsECS.EditorTools
                 world.Set(u.UnitId, new Embarked { Value = true, NavalUnitId = naval[i] });
                 u.Refresh(world, u.UnitId);
             }
-            Capture(view.gameObject, grid, Path.Combine(outDir, "units.png"), 0.8f);
+            Capture(view.gameObject, grid, Path.Combine(outDir, "units.png"), 0.42f);
             Object.DestroyImmediate(view.gameObject);
         }
 

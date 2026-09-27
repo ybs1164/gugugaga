@@ -51,6 +51,10 @@ namespace TacticsECS
             "Team 값으로 정한다 — 유닛 타입마다 다른 색을 가질 수 없다.")]
         [SerializeField] private Texture2D bodyTexture;
 
+        [Tooltip("모델 파츠 CSV(Assets/Resources/Models/UnitModels.csv)의 모델 Id(예: Unit.infantry). 있으면 UnitView가 KayKit 모델 대신 " +
+            "위키식 블록 유닛을 그린다(3차 모델링 — docs/ModelingPlan.md). CSV 유닛은 스폰 시 \"Unit.<CSV Id>\"로 덮어쓴다.")]
+        [SerializeField] private string modelId;
+
         public int MaxHp => maxHp;
         public float Defense => defense;
 
@@ -87,6 +91,8 @@ namespace TacticsECS
 
         public Texture2D BodyTexture => bodyTexture;
 
+        public string ModelId => modelId;
+
         /// <summary>CSV 행(UnitCsvRow) 값으로 이 컴포넌트의 필드를 전부 덮어쓴다. 외형(bodyTexture)은
         /// 건드리지 않는다 — CSV 유닛은 BaseVisual 프리팹의 모델/텍스처를 그대로 빌려 쓰고 스탯/행동만
         /// 갈아끼운다(색은 UnitDefinition이 아니라 UnitView가 Team으로 정하므로 여기서 다룰 값이 아니다).
@@ -100,6 +106,7 @@ namespace TacticsECS
             if (!actions.Any(a => a is WaitAction))
                 actions.Add(new WaitAction());
             domain = row.Domain;
+            modelId = "Unit." + row.Id;
         }
     }
 }

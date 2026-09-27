@@ -53,6 +53,18 @@ namespace TacticsECS
 
         /// <summary>승선 중 발밑에 붙는 배 모델(EmbarkSystem — 뗏목/정찰선/충각선/폭격선마다 색이 다르다). 처음 필요할 때 만든다.</summary>
         private GameObject _boat;
+
+        /// <summary>위키식 블록 유닛 모델(UnitModels.csv) — 없으면 KayKit 모델을 그대로 쓴다.</summary>
+        private GameObject _model;
+        private Color _modelColor = Color.clear;
+
+        /// <summary>배에 탄 유닛이 서는 갑판 높이(UnitModels.csv의 Boat.* 갑판 윗면).</summary>
+        private const float BoatDeckHeight = 0.14f;
+
+        /// <summary>블록 모델을 타일 윗면에 세우는 높이: 타일 윗면(GridView.TileTopHeight) − 유닛 루트 높이(GroundOffset). KayKit 모델은
+        /// 프리팹이 자체 보정을 갖고 있어 루트 그대로 둔다. 물 칸은 윗면이 GridView.WaterDrop만큼 낮다.</summary>
+        private static float LandLift => GridView.TileTopHeight - GroundOffset;
+        private static float WaterLift => GridView.TileTopHeight - GridView.WaterDrop - GroundOffset;
         private string _boatId;
         private bool _visible = true;
 
@@ -103,6 +115,14 @@ namespace TacticsECS
             _material = RuntimeMaterial.CreateColored(ColorForTeam(world.Get<Team>(id)), _definition.BodyTexture);
             foreach (var r in _renderers) r.sharedMaterial = _material;
 
+            // 위키식 블록 유닛(UnitModels.csv)이 있으면 KayKit 모델을 끄고 그것을 그린다 — 팀 색은 옷 조각에만 칠해진다.
+            // (KayKit 오브젝트는 SetVisible이 렌더러를 다시 켜도 보이지 않게 GameObject째 끈다.)
+            if (ModelBuilder.Has(_definition.ModelId))
+            {
+                foreach (var r in _renderers) r.gameObject.SetActive(false);
+                _renderers = new Renderer[0];
+            }
+
             BuildHpDisplay();
 
             transform.position = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
@@ -147,9 +167,11 @@ namespace TacticsECS
             SetHpBarFraction(hpFraction);
             RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
 
-            RuntimeMaterial.SetColor(_material, world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id)));
+            var bodyColor = world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id));
+            RuntimeMaterial.SetColor(_material, bodyColor);
 
             var embarked = world.GetOrDefault<Embarked>(id);
+            SetBlockModel(bodyColor, embarked.Value);
             SetBoat(embarked.Value ? embarked.NavalUnitId : null);
 
             var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
@@ -169,7 +191,23 @@ namespace TacticsECS
             foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = visible;
         }
 
-        /// <summary>배 모델을 navalUnitId에 맞게 붙이거나(null이면) 뗀다.</summary>
+        /// <summary>블록 유닛 모델(UnitDefinition.ModelId)을 옷 색 bodyColor로 만든다. 색(팀/방어 태세)이 바뀔 때만 다시 조립하고,
+        /// 배에 탄 동안은 갑판 높이만큼 올린다.</summary>
+        private void SetBlockModel(Color bodyColor, bool embarked)
+        {
+            if (!ModelBuilder.Has(_definition.ModelId)) return;
+            if (_model == null || _modelColor != bodyColor)
+            {
+                if (_model != null) { if (Application.isPlaying) Destroy(_model); else DestroyImmediate(_model); }
+                _model = ModelBuilder.Build(_definition.ModelId, transform, Vector3.zero, 1, bodyColor);
+                _modelColor = bodyColor;
+                if (_model != null) _model.GetComponent<Renderer>().enabled = _visible;
+            }
+            if (_model != null) _model.transform.localPosition = new Vector3(0f, embarked ? WaterLift + BoatDeckHeight : LandLift, 0f);
+        }
+
+        /// <summary>배 모델을 navalUnitId에 맞게 붙이거나(null이면) 뗀다. 모델 파츠 CSV의 "Boat.&lt;배 Id&gt;"가 있으면 그것(팀 색 깃발 포함),
+        /// 없으면 예전 색 상자 조합.</summary>
         private void SetBoat(string navalUnitId)
         {
             if (_boatId == navalUnitId) return;
@@ -180,6 +218,13 @@ namespace TacticsECS
                 _boat = null;
             }
             if (string.IsNullOrEmpty(navalUnitId)) return;
+
+            _boat = ModelBuilder.Build("Boat." + navalUnitId, transform, new Vector3(0f, WaterLift, 0f), 1, _modelColor);
+            if (_boat != null)
+            {
+                _boat.GetComponent<Renderer>().enabled = _visible;
+                return;
+            }
 
             if (!BoatColors.TryGetValue(navalUnitId, out var color)) color = BoatColors[NavalUnitDefinition.RaftId];
             _boat = new GameObject("Boat_" + navalUnitId);

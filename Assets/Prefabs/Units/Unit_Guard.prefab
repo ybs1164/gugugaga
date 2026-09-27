@@ -62,6 +62,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbd155d3b21ae8d49a7136402ee079ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
+  modelId: Unit.shield
   maxHp: 15
   defense: 3
   actions:

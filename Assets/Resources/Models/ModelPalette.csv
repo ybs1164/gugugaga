@@ -34,3 +34,8 @@ Cloud,#F2F4FA,구름
 CloudShade,#D8DCEC,구름 그늘
 Path,#D8B46A,흙길
 PathEdge,#A88A4A,흙길 돌
+Skin,#F2C9A0,유닛 얼굴/손
+Pants,#4A3A2E,유닛 바지
+Horse,#B07A45,탈것(말)
+HorseDark,#7A5634,기사 탈것
+TeamShade,#3A3A48,망토 두건(팀색과 대비)

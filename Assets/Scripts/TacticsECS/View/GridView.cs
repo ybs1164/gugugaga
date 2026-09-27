@@ -33,7 +33,7 @@ namespace TacticsECS
         private GameObject[] _roadObjects;
 
         /// <summary>물 타일 윗면을 땅보다 이만큼 낮춘다(위키 Terrain: 물은 땅 블록보다 낮다). 유닛은 고정 높이라 배가 살짝 뜨는 정도.</summary>
-        private const float WaterDrop = 0.05f;
+        public const float WaterDrop = 0.05f;
 
         private GridWorld _grid;
         /// <summary>칸마다 구름에 가렸는지(RefreshFog). 가린 칸의 장식/구조물/건물 오브젝트는 숨긴다 — 다시 만들어도(Refresh*)
@@ -90,7 +90,7 @@ namespace TacticsECS
         }
 
         /// <summary>타일 윗면 두께(위키 Terrain 블록의 풀 층). 그 아래 흙/모래 받침은 TerrainModels.csv의 Tile.* 모델.</summary>
-        private const float TopThickness = 0.2f;
+        public const float TileTopHeight = 0.2f;
 
         /// <summary>타일 하나: 크기 1인 루트 + 경사 없는 저폴리 상자 윗면(첫 자식 — TileView가 이 렌더러의 색을 칠한다).
         /// 2차 모델링 전엔 Kenney 타일 메시(landTilePrefab/waterTilePrefab)를 썼는데, 모서리 경사면이 반투명 물에 비쳐 칸마다 테두리
@@ -100,7 +100,7 @@ namespace TacticsECS
             var root = new GameObject("Tile");
             var top = new GameObject("Top");
             top.transform.SetParent(root.transform, false);
-            top.transform.localScale = new Vector3(1f, TopThickness, 1f);
+            top.transform.localScale = new Vector3(1f, TileTopHeight, 1f);
             top.AddComponent<MeshFilter>().sharedMesh = LowPolyMeshes.Get(ModelShape.Box);
             top.AddComponent<MeshRenderer>();
             return root;

@@ -812,7 +812,21 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   [`TerrainFeatureView`](Assets/Scripts/TacticsECS/View/TerrainFeatureView.cs)의 코드 원뿔은 파츠 CSV로 대체.
 - 개선: 반투명 물이 칸마다 격자로 보여 불투명 청록 + 모래 받침으로(위키 옆면 두 줄과 같은 모습). 광석 금색 + `StructureAssetSetup`이 기존 머티리얼 색을 갱신하지 않던 버그 수정.
 
+**3차 — 유닛**
+- 위키 List of Units 도판 대조: 위키 유닛은 큐브형(부족 색은 옷), 기병·기사는 탈것 위, 투석기는 목제 기계, 거인은 훨씬 큼, 배 4종은 서로 다른 선체 —
+  인게임은 KayKit 사람형 7종 돌려쓰기 + 전신 팀색 틴트, 탈것 없음, 투석기가 사람, 거인이 보통 크기, 배는 얇은 판이었다.
+- 방식 비교(KayKit 개선 / **파츠 CSV 블록 유닛** / KayKit + 소품) → 블록 유닛 채택(렌더러 91 → 10, 삼각형 51,639 → 2,038, 실루엣 겹침 0.91 → 0.81).
+- [`UnitModels.csv`](Assets/Resources/Models/UnitModels.csv): `Unit.<CSV Id>` 10종 + `Boat.raft/scout/rammer/bomber`, 팀 색은 옷 조각(`Team`).
+  [`UnitDefinition.modelId`](Assets/Scripts/TacticsECS/View/UnitDefinition.cs)(CSV 유닛은 `Unit.<Id>`, 기본 프리팹 7종은 대응 위키 유닛), [`UnitView`](Assets/Scripts/TacticsECS/View/UnitView.cs)가
+  블록 모델을 타일 윗면에 세우고 방어 태세는 옷 색으로, 배는 `Boat.*` 모델.
+- 개선: 타일 윗면 두께 변경 후 파묻힌 발(`GridView.TileTopHeight` 공개), 뗏목 통나무 기준점, 수면 아래 선체, 탈것 비율.
+- 검증: `GameDataCsvVerification`(유닛/배 모델 존재 추가)/`UIVerification`/`UnitCsvVerification`/`BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
+
 ## 작업 로그
+
+- 2026-09-27: 모델링 3차 — 유닛/배를 위키식 블록 유닛으로(팀색 옷, 탈것, 투석기 기계, 큰 거인, 배 4종).
+  - [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md) 3차와 3회 반복 요약.
+  - **검증**: 에디터가 꺼진 상태에서 CLI로 `ModelShowcase` + 위 검증 5종 ALL PASS.
 
 - 2026-09-27: 모델링 2차 — 타일(흙 옆면 블록, 모래 비치는 얕은 물, 소나무 숲, 구름 덩어리, 이어지는 흙길, 금빛 광석).
   - [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md) 2차.

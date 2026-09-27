@@ -263,6 +263,11 @@ namespace TacticsECS.EditorTools
                                        "Tile.Land", "Tile.Shallow", "Tile.Ocean", "Terrain.Forest", "Terrain.Mountain", "Terrain.Cloud", "Road.Center", "Road.Arm" })
                 Check(ModelDefinition.Models.ContainsKey(id), $"model '{id}'");
 
+            foreach (var row in LoadSandboxUnits())
+                Check(ModelDefinition.Models.ContainsKey("Unit." + row.Id), $"unit '{row.Id}' has a block model (UnitModels.csv)");
+            Check(ModelDefinition.Models.ContainsKey("Boat." + NavalUnitDefinition.RaftId) && NavalUnitDefinition.Upgrades.All(u => ModelDefinition.Models.ContainsKey("Boat." + u.Row.Id)),
+                "every naval unit has a boat model");
+
             // 이어쓰기 행(Model 칸 비움)과 팔레트/레벨 칸.
             var errors = new List<string>();
             var models = new Dictionary<string, List<ModelPartInfo>>();

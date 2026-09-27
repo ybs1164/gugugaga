@@ -696,6 +696,14 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 
 ## 작업 로그
 
+- 2026-09-27: 건물 기능 구현 계획 + 적 시뮬레이션 계획 수립 (코드 변경 없음).
+  - **동기**: "폴리토피아 wiki 링크 CLAUDE.md에 넣고, 각종 건물 기능 구현 계획 세워줘. 이에 따른 적 시뮬레이션도 넣어주고."
+  - `CLAUDE.md`에 "게임 규칙 기준 = Polytopia Wiki" 절 추가(주요 문서 링크, Fandom 402 우회용 MediaWiki API curl 명령).
+  - [`docs/BuildingFeaturePlan.md`](docs/BuildingFeaturePlan.md): 위키 Buildings/Roads/Bridge/Port/Temple/Embassy/Movement 원문과
+    현재 구현을 대조한 표 + 단계별 계획(도로 이동 보너스 → 다리 → 항구 뗏목/연결 거리 → 점수·신전 레벨 → 기념물, 대사관 보류,
+    약탈 선택) + 적 시뮬레이션(경제 AI 확장, 군사 AI 팀 인자화/도해 상륙/방어, `UnitFactorySystem` 분리 후 헤드리스
+    `EconomySimulation` 하네스).
+
 - 2026-09-26: 기술트리/건물 플레이스홀더를 폴리토피아 위키 기준으로 채워 경제 메인 루프 완성 + 기술트리 CSV화.
   - **동기**: "기술트리/건물에서 플레이스홀더로 남아있는 부분들, 게임 메인 루프가 돌아가도록 폴리토피아 위키 참고해서 메꿔줘.
     기술트리는 csv 형태로 만져볼 수 있도록." 위키(Fandom은 WebFetch가 402라 `api.php?action=parse&prop=wikitext`를 curl로)

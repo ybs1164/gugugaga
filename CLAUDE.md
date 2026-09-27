@@ -19,7 +19,16 @@ Unity 에디터(GUI)를 직접 실행하지 않는다 — 배치모드 CLI 명�
 자체적으로 값(필드/프로퍼티)을 저장하지 않는다. 필요한 상태는 항상 `Data` 계층의 값을 인자로 받거나
 반환값으로 넘긴다.
 
-## 4. 작업 완료 시 README.md 갱신 + git push
+## 4. 게임 규칙 기준 = Polytopia Wiki
+게임 규칙(지형/건물/기술/유닛/도시 등)의 기준 자료는 [The Battle of Polytopia Wiki](https://polytopia.fandom.com/wiki/The_Battle_of_Polytopia_Wiki)다.
+- 주요 문서: [Buildings](https://polytopia.fandom.com/wiki/Buildings), [City](https://polytopia.fandom.com/wiki/City),
+  [Population](https://polytopia.fandom.com/wiki/Population), [Technology](https://polytopia.fandom.com/wiki/Technology),
+  [Movement](https://polytopia.fandom.com/wiki/Movement), [Map Generation](https://polytopia.fandom.com/wiki/Map_Generation)
+- Fandom은 WebFetch에 402를 돌려주므로 MediaWiki API로 원문 위키텍스트를 받는다:
+  `curl -s "https://polytopia.fandom.com/api.php?action=parse&page=<문서명>&prop=wikitext&format=json&formatversion=2&redirects=1"`
+- 위키와 다르게 구현하는 부분은 코드 주석/문서에 "원문과 다른 점"으로 이유를 남긴다.
+
+## 5. 작업 완료 시 README.md 갱신 + git push
 작업 단위가 끝날 때마다:
 1. `README.md`에 이번에 한 작업 내용을 업데이트한다.
 2. 변경 사항을 git에 커밋하고 push한다.

@@ -85,6 +85,34 @@ namespace TacticsECS
         public static int ProcessorPopulation(GridWorld grid, Vector2Int pos, BuildingInfo info, Team team) =>
             info.PopulationPerAdjacent * CountAdjacentBuildings(grid, pos, team, info.AdjacentBuildings);
 
+        /// <summary>모델에 보여줄 건물 레벨(위키: 레벨이 오르면 모양이 바뀐다) — 신전 = 지은 뒤 지난 턴(ScoreSystem.TempleLevel),
+        /// 제재소/풍차/대장간 = 인접 기반 건물 수(0이면 위키의 "레벨 0" — 대장간 불 꺼짐), 시장 = 인접 가공 건물 인구 합(최대 8),
+        /// 그 밖의 건물 = 1.</summary>
+        public static int DisplayLevel(GridWorld grid, Vector2Int pos, int currentTurn)
+        {
+            var t = grid.GetTile(pos);
+            var info = FindBuilding(t.BuildingId);
+            if (info == null) return 1;
+            var b = info.Value;
+            if (b.IsTemple) return ScoreSystem.TempleLevel(currentTurn, t.BuildingTurn);
+            if (t.OwnerTeam == TileData.NoOwner) return 1;
+            var team = (Team)t.OwnerTeam;
+            if (b.PopulationPerAdjacent > 0) return CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings);
+            if (b.ProducesGoldFromAdjacent)
+            {
+                int level = 0;
+                foreach (var n in grid.GetNeighbors(pos, true))
+                {
+                    var nt = grid.GetTile(n);
+                    if (nt.OwnerTeam != (int)team || !Contains(b.AdjacentBuildings, nt.BuildingId)) continue;
+                    var ninfo = FindBuilding(nt.BuildingId);
+                    if (ninfo != null) level += ProcessorPopulation(grid, n, ninfo.Value, team);
+                }
+                return Mathf.Min(level, GameRules.City.MarketGoldCap);
+            }
+            return 1;
+        }
+
         /// <summary>이 칸의 건물이 주인 도시에 주고 있는 인구 총량(고정 + 인접 비례).</summary>
         public static int BuildingPopulation(GridWorld grid, Vector2Int pos)
         {

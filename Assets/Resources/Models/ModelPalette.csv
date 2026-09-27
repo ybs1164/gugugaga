@@ -1,0 +1,23 @@
+﻿Name,Color,Note
+White,#F3F1EA,흰 벽(위키 건물 기본 벽색)
+WhiteShade,#D9D6CE,흰 벽 그늘/기단
+Roof,#C8453A,빨간 박공지붕(벌목장/제재소)
+RoofDark,#8E2F28,지붕 그늘/처마
+Wood,#9A6630,목재
+WoodDark,#5E3C1E,짙은 목재/문
+Plank,#E3A93B,누런 판자(항구/다리 상판)
+LogEnd,#F2C14E,통나무 단면
+Straw,#F0C43A,짚/건초/풍차 지붕
+Soil,#7A4A2A,밭 흙두둑
+Sprout,#72C043,새싹/작물
+Leaf,#3E8E3A,나뭇잎
+Stone,#BFC0C6,돌
+StoneDark,#7F8088,어두운 돌/바위
+Metal,#9AA3AD,쇠
+Gold,#F2C230,금/광석
+Glow,#FFB23F,창문 불빛/용광로
+Window,#3A2A20,어두운 창/문
+Awning,#4FB3E8,파란 차양(시장)
+Pink,#F29CC0,분홍 꽃(기념물 정원)
+Jade,#3FA36B,초록 기와(기념물)
+Water,#5BC0EB,물

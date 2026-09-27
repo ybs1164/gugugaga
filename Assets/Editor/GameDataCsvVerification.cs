@@ -26,6 +26,7 @@ namespace TacticsECS.EditorTools
             VerifyGameRules();
             VerifyRewardsAndTasks();
             VerifyUnitsAndCombat();
+            VerifyModels();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
         }
@@ -249,6 +250,43 @@ namespace TacticsECS.EditorTools
             var rammer = NavalUnitDefinition.Upgrades.First(u => u.Row.Id == "rammer");
             Check(NavalUnitDefinition.Raft.Defense == 1 && NavalUnitDefinition.Raft.MoveRange == 2 && Mathf.Approximately(rammer.Row.AttackAttack, 3f) &&
                   rammer.UnlockKey == "Unit.rammer" && NavalUnitDefinition.Upgrades.Length == 3, "naval units from CSV with wiki stats");
+        }
+
+        // ---------- 모델 파츠 CSV (docs/ModelingPlan.md) ----------
+
+        private static void VerifyModels()
+        {
+            Check(ModelDefinition.Palette.Count > 0 && ModelDefinition.Models.Count > 0, "model palette/parts loaded");
+            foreach (var b in BuildingDefinition.All)
+                Check(b.IsRoad || ModelDefinition.Models.ContainsKey(BuildingMarkerView.BuildingModelPrefix + b.Id), $"building '{b.Id}' has a model row");
+            foreach (var id in new[] { "City.Houses", "City.Capital", "City.Wall", "City.Workshop", "City.Park", "City.Flag" })
+                Check(ModelDefinition.Models.ContainsKey(id), $"city model '{id}'");
+
+            // 이어쓰기 행(Model 칸 비움)과 팔레트/레벨 칸.
+            var errors = new List<string>();
+            var models = new Dictionary<string, List<ModelPartInfo>>();
+            ModelCsvSerializer.ParseInto("Model,Shape,SX,SY,Color,MinLevel\nA,Box,1,1,Stone,\n,Cone,0.5,1,#FF0000,3\n,Box,1,1,Nope,\n", ModelDefinition.Palette, models, errors, "t.csv");
+            Check(models.TryGetValue("A", out var a) && a.Count == 3 && a[1].MinLevel == 3 && a[1].Size.z == 0.5f && a[1].Color == Color.red,
+                "blank Model cell continues the previous model; SZ defaults to SX; #hex colors");
+            Check(errors.Count == 1 && errors[0].Contains("Nope"), "unknown palette color reported: " + string.Join(" | ", errors));
+
+            // 조립: 조각이 많아도 렌더러 1개, 레벨에 따라 조각 수가 바뀐다(대장간 레벨 0 = 불빛 없음).
+            var forge0 = ModelBuilder.Build("Building.Forge", null, Vector3.zero, 0);
+            var forge4 = ModelBuilder.Build("Building.Forge", null, Vector3.zero, 4);
+            Check(forge0 != null && forge0.GetComponentsInChildren<Renderer>().Length == 1, "a model is one renderer");
+            Check(forge4.GetComponent<MeshFilter>().sharedMesh.triangles.Length > forge0.GetComponent<MeshFilter>().sharedMesh.triangles.Length,
+                "level adds parts (forge lights)");
+            Object.DestroyImmediate(forge0); Object.DestroyImmediate(forge4);
+
+            // 표시 레벨: 광산 없는 대장간 = 0, 인접 광산 2 = 2, 신전 = 지난 턴.
+            var grid = Field(5, 5);
+            void Put(Vector2Int p, string id, int turn = 1) { var t = grid.GetTile(p); t.BuildingId = id; t.OwnerTeam = (int)Team.Player; t.BuildingTurn = turn; grid.SetTile(p, t); }
+            Put(new Vector2Int(2, 2), BuildingDefinition.Forge);
+            Check(TileImprovementSystem.DisplayLevel(grid, new Vector2Int(2, 2), 1) == 0, "forge with no mines = level 0");
+            Put(new Vector2Int(1, 2), BuildingDefinition.Mine); Put(new Vector2Int(3, 3), BuildingDefinition.Mine);
+            Check(TileImprovementSystem.DisplayLevel(grid, new Vector2Int(2, 2), 1) == 2, "forge next to 2 mines = level 2");
+            Put(new Vector2Int(0, 0), "Temple", 1);
+            Check(TileImprovementSystem.DisplayLevel(grid, new Vector2Int(0, 0), 13) == 5, "temple built on turn 1 is level 5 on turn 13");
         }
 
         private static void VerifyCapitalVision()

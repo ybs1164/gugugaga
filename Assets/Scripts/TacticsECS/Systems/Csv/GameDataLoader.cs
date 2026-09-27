@@ -25,8 +25,26 @@ namespace TacticsECS
             GameTableCsvSerializer.ParseNavalUnits(Read(NavalUnitDefinition.CsvResourcePath, errors), errors, out var raft, out var upgrades);
             if (raft != null) NavalUnitDefinition.Raft = raft;
             NavalUnitDefinition.Upgrades = upgrades;
+            LoadModels(errors);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return errors;
+        }
+
+        /// <summary>모델 팔레트 + 파츠 CSV(Assets/Resources/Models) -&gt; ModelDefinition. 파일이 없으면 그 모델들만 비어 있다
+        /// (그리는 쪽이 옛 표시로 대체한다).</summary>
+        private static void LoadModels(List<string> errors)
+        {
+            ModelDefinition.Palette = ModelCsvSerializer.ParsePalette(Read(ModelDefinition.PaletteResourcePath, errors), errors);
+            var models = new Dictionary<string, List<ModelPartInfo>>();
+            foreach (var path in ModelDefinition.CsvResourcePaths)
+            {
+                var asset = Resources.Load<TextAsset>(path);
+                if (asset != null) ModelCsvSerializer.ParseInto(asset.text, ModelDefinition.Palette, models, errors, System.IO.Path.GetFileName(path) + ".csv");
+            }
+            var result = new Dictionary<string, ModelPartInfo[]>();
+            foreach (var kv in models) result[kv.Key] = kv.Value.ToArray();
+            ModelDefinition.Models = result;
+            ModelDefinition.Version++;
         }
 
         /// <summary>Assets/Resources/TechTree.csv를 읽어 기술 정의 목록으로 만든다. 파일이 없으면 빈 목록(트리 없음).</summary>

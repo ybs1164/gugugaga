@@ -17,8 +17,9 @@ namespace TacticsECS
     {
         public const char ListSeparator = ';';
 
-        /// <summary>BOM/CRLF를 정리하고 첫 줄을 헤더로 읽는다. 빈 줄과 첫 칸이 비었거나 '#'으로 시작하는 줄(주석)은 건너뛴다.</summary>
-        public static CsvTable Parse(string name, string text)
+        /// <summary>BOM/CRLF를 정리하고 첫 줄을 헤더로 읽는다. 빈 줄과 첫 칸이 '#'으로 시작하는 줄(주석)은 건너뛴다. 첫 칸이 빈 줄도
+        /// 건너뛰는데(Id 없는 행), keepBlankFirstCell이면 남긴다 — 모델 CSV처럼 첫 칸을 비워 "윗 행과 같음"을 뜻하는 표용.</summary>
+        public static CsvTable Parse(string name, string text, bool keepBlankFirstCell = false)
         {
             var table = new CsvTable { Name = name };
             if (string.IsNullOrWhiteSpace(text)) return table;
@@ -36,7 +37,8 @@ namespace TacticsECS
                     headerRead = true;
                     continue;
                 }
-                if (cells[0].Length == 0 || cells[0].StartsWith("#")) continue;
+                if (cells[0].StartsWith("#") || cells.TrueForAll(c => c.Length == 0)) continue;
+                if (cells[0].Length == 0 && !keepBlankFirstCell) continue;
                 table.Rows.Add(cells.ToArray());
                 table.LineNumbers.Add(i + 1);
             }

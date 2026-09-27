@@ -786,7 +786,30 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   `EnemyAI`가 반격에 죽는 공격을 피하게 수정(전멸전 2 → 1).
 - 검증: 위키 예시값(전사 vs 전사 5/5, 기병 vs 방어병 4/8, 기사 → 궁수 12 등)까지 `GameDataCsvVerification`에서 확인, 기존 검증 + 시뮬레이션 ALL PASS.
 
+## 모델링 (위키 대조 + 방식 비교)
+
+게임 규칙 CSV와 같은 방식으로 건물·타일·유닛 모델을 위키 도판과 대조 → 방식 3개 비교 → 구현 → 스크린샷/지표로 개선을 3회 반복한다.
+분석·비교표·전후 이미지는 [`docs/ModelingPlan.md`](docs/ModelingPlan.md). 전후 비교는 [`ModelShowcase`](Assets/Editor/ModelShowcase.cs)
+(에디터 도구 — 등각 스크린샷 + 렌더러/삼각형/실루엣 겹침 지표)로 한다.
+
+**1차 — 건물과 도시**
+- 위키 도판 대조: 건물이 원색 블록 조합이라 위키 모양(흰 벽+빨간 박공 오두막, 흙두둑 농장, X자 날개 풍차, 굴뚝 대장간, 줄무늬 차양 시장 ...)과
+  달랐고, 레벨 변화(제재소 창문 수, 대장간 레벨 0 불 꺼짐, 시장 성장)와 도시 성장(집이 늘어남, 수도 성, 성벽, 공방, 공원)이 없었다.
+- 방식 비교(Unity 기본 도형 코드 표 / Kenney 키트 조립 / **모델 파츠 CSV + 저폴리 절차 메시**) → 파츠 CSV 채택(위키 특징 9/9, 렌더러 3, 삼각형 626).
+- [`Assets/Resources/Models/BuildingModels.csv`](Assets/Resources/Models/BuildingModels.csv)(한 행 = 조각, 도형 8종, `MinLevel`/`MaxLevel`, `Team` 색) +
+  [`ModelPalette.csv`](Assets/Resources/Models/ModelPalette.csv) → [`ModelBuilder`](Assets/Scripts/TacticsECS/View/ModelBuilder.cs)가 색별로 병합(모델 1개 = 렌더러 1개).
+  건물 20종 + 도시 6부품. [`BuildingMarkerView`](Assets/Scripts/TacticsECS/View/BuildingMarkerView.cs)의 코드 도형 표는 삭제.
+- 표시 레벨 [`TileImprovementSystem.DisplayLevel`](Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs): 신전 턴 수, 가공 건물 = 인접 기반 건물 수, 시장 = 인접 가공 건물 인구 합.
+- 개선: 실루엣 측정 버그 수정 → 신전 4종이 겹침 0.99로 드러나 위키처럼 비율을 갈라 0.88로. 도시 팀색 원판은 옅은 테두리로.
+- 결과: 건물 20종 렌더러 66 → 20, 삼각형 5,532 → 3,314. 검증 전부 ALL PASS(`GameDataCsvVerification`에 모델 항목 추가).
+
 ## 작업 로그
+
+- 2026-09-27: 모델링 1차 — 건물/도시를 모델 파츠 CSV + 저폴리 절차 메시로.
+  - **동기**: "같은 방식으로 건물과 타일, 유닛의 모델링도 손봐줘" — 그 1회차(건물). [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md).
+  - 위키 도판은 내장 브라우저로 Buildings/Terrain/List of Units 문서의 이미지만 모아 보고 대조했다(파일 다운로드 없음).
+  - **검증**: 에디터가 꺼진 상태에서 CLI로 `ModelShowcase`(스크린샷, `-nographics` 없이) + `GameDataCsvVerification`/`UIVerification`/
+    `BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
 
 - 2026-09-27: 게임 규칙 CSV 3차 — 위키 전투 공식 + 유닛 스탯 위키 원값 + 배 유닛 CSV + 거인.
   - 위 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절과 [`docs/GameDataCsv.md`](docs/GameDataCsv.md) 3차(남은 "원문과 다른 점" 표 포함) 참고.

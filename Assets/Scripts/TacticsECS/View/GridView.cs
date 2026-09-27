@@ -31,6 +31,10 @@ namespace TacticsECS
         /// 같은 상태를 유지하도록 값을 들고 있는다(표시 전용 상태).</summary>
         private bool[] _fogged;
 
+        /// <summary>도시 칸(도시 모델이 구조물을 대신함) / 건물이 선 칸(건물 모델이 숲·산 장식을 대신함) — RefreshEconomy가 채운다.</summary>
+        private bool[] _hideStructure;
+        private bool[] _hideFeature;
+
         /// <summary>landTilePrefab/waterTilePrefab은 GridView 자신이 아니라 BattleController가 들고 있는
         /// 값을 그대로 넘겨받는다(GridView는 씬에 저장된 오브젝트가 아니라 SetupBattle이 매번 새로
         /// AddComponent로 만드는 오브젝트라 자기 자신의 SerializeField는 저장/설정될 수 없다). 둘 다
@@ -192,11 +196,18 @@ namespace TacticsECS
                         _buildingObjects[index] = null;
                     }
                     float top = _tileTopLocalY[index] + StructureLift;
-                    GameObject marker = cityAt.TryGetValue(pos, out var city)
-                        ? BuildingMarkerView.CreateCityBase(city.Owner == Team.Player ? playerColor : enemyColor, city.Level, view.transform, top)
+                    bool isCity = cityAt.TryGetValue(pos, out var city);
+                    GameObject marker = isCity
+                        ? BuildingMarkerView.CreateCity(city, city.Owner == Team.Player ? playerColor : enemyColor, view.transform, top)
                         : BuildingMarkerView.CreateBuilding(tile.BuildingId, view.transform, top,
-                            ScoreSystem.TempleLevel(currentTurn, tile.BuildingTurn),
-                            tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(grid, pos));
+                            TileImprovementSystem.DisplayLevel(grid, pos, currentTurn),
+                            tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(grid, pos),
+                            tint.a > 0f ? tint : (Color?)null);
+                    // 도시 칸은 도시 모델이 마을/수도 구조물을 대신하고, 숲/산 위 건물(벌목장/광산/신전)은 모델에 자기 지형 장식이
+                    // 들어 있어 나무/산 장식을 숨긴다(위키 도판처럼 건물이 그 칸을 차지).
+                    if (_hideStructure == null) { _hideStructure = new bool[grid.Width * grid.Height]; _hideFeature = new bool[grid.Width * grid.Height]; }
+                    _hideStructure[index] = isCity;
+                    _hideFeature[index] = !isCity && marker != null;
 
                     // 영토 경계: 상하좌우 이웃의 주인 팀이 다르면(또는 맵 밖이면) 그 변에 팀 색 막대.
                     if (tile.OwnerTeam != TileData.NoOwner)
@@ -257,8 +268,8 @@ namespace TacticsECS
         private void ApplyFog(int index)
         {
             bool visible = _fogged == null || !_fogged[index];
-            if (_featureObjects != null && _featureObjects[index] != null) _featureObjects[index].SetActive(visible);
-            if (_structureObjects != null && _structureObjects[index] != null) _structureObjects[index].SetActive(visible);
+            if (_featureObjects != null && _featureObjects[index] != null) _featureObjects[index].SetActive(visible && !(_hideFeature != null && _hideFeature[index]));
+            if (_structureObjects != null && _structureObjects[index] != null) _structureObjects[index].SetActive(visible && !(_hideStructure != null && _hideStructure[index]));
             if (_buildingObjects != null && _buildingObjects[index] != null) _buildingObjects[index].SetActive(visible);
         }
 

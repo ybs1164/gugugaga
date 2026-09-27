@@ -259,8 +259,9 @@ namespace TacticsECS.EditorTools
             Check(ModelDefinition.Palette.Count > 0 && ModelDefinition.Models.Count > 0, "model palette/parts loaded");
             foreach (var b in BuildingDefinition.All)
                 Check(b.IsRoad || ModelDefinition.Models.ContainsKey(BuildingMarkerView.BuildingModelPrefix + b.Id), $"building '{b.Id}' has a model row");
-            foreach (var id in new[] { "City.Houses", "City.Capital", "City.Wall", "City.Workshop", "City.Park", "City.Flag" })
-                Check(ModelDefinition.Models.ContainsKey(id), $"city model '{id}'");
+            foreach (var id in new[] { "City.Houses", "City.Capital", "City.Wall", "City.Workshop", "City.Park", "City.Flag",
+                                       "Tile.Land", "Tile.Shallow", "Tile.Ocean", "Terrain.Forest", "Terrain.Mountain", "Terrain.Cloud", "Road.Center", "Road.Arm" })
+                Check(ModelDefinition.Models.ContainsKey(id), $"model '{id}'");
 
             // 이어쓰기 행(Model 칸 비움)과 팔레트/레벨 칸.
             var errors = new List<string>();

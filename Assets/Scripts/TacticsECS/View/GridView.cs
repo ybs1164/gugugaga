@@ -26,6 +26,15 @@ namespace TacticsECS
         private GameObject[] _structureObjects;
         private GameObject[] _featureObjects;
         private GameObject[] _buildingObjects;
+
+        /// <summary>타일 받침(흙/모래/짙은 바닥 — TerrainModels.csv "Tile.*"), 구름 덩어리, 흙길 모델. 2차 모델링(docs/ModelingPlan.md).</summary>
+        private GameObject[] _baseObjects;
+        private GameObject[] _cloudObjects;
+        private GameObject[] _roadObjects;
+
+        /// <summary>물 타일 윗면을 땅보다 이만큼 낮춘다(위키 Terrain: 물은 땅 블록보다 낮다). 유닛은 고정 높이라 배가 살짝 뜨는 정도.</summary>
+        private const float WaterDrop = 0.05f;
+
         private GridWorld _grid;
         /// <summary>칸마다 구름에 가렸는지(RefreshFog). 가린 칸의 장식/구조물/건물 오브젝트는 숨긴다 — 다시 만들어도(Refresh*)
         /// 같은 상태를 유지하도록 값을 들고 있는다(표시 전용 상태).</summary>
@@ -55,11 +64,11 @@ namespace TacticsECS
                     var go = CreateTileObject(terrain, landTilePrefab, waterTilePrefab);
                     go.name = $"Tile_{x}_{y}";
                     go.transform.SetParent(transform, false);
-                    go.transform.position = grid.GridToWorld(pos);
+                    go.transform.position = grid.GridToWorld(pos) + (terrain == TerrainType.Water ? Vector3.down * WaterDrop : Vector3.zero);
                     go.transform.localScale = new Vector3(grid.TileSize - tileGap, go.transform.localScale.y, grid.TileSize - tileGap);
                     // 하이라이트 색을 타일마다 독립적으로 바꿔야 하니, 프리팹이 갖고 있던 머티리얼을 그대로
                     // 쓰지 않고(다른 타일과 sharedMaterial을 공유하게 됨) 매번 새로 만들어 갈아끼운다.
-                    go.GetComponentInChildren<Renderer>().sharedMaterial = RuntimeMaterial.CreateColored(Color.white);
+                    go.GetComponentInChildren<Renderer>().sharedMaterial = TopMaterial(terrain);
 
                     var view = go.AddComponent<TileView>();
                     view.Init(pos, terrain, grid.GetTileType(pos));
@@ -80,16 +89,21 @@ namespace TacticsECS
             return (renderer.bounds.max.y - tile.transform.position.y) / scaleY;
         }
 
-        /// <summary>terrain에 맞는 타일 프리팹이 주어졌으면 그것을 인스턴스화하고(가로/세로만 타일 크기에
-        /// 맞춰 스케일하고 높이는 그대로 둔다), 없으면 예전처럼 얇은 큐브를 만든다.</summary>
+        /// <summary>타일 윗면 두께(위키 Terrain 블록의 풀 층). 그 아래 흙/모래 받침은 TerrainModels.csv의 Tile.* 모델.</summary>
+        private const float TopThickness = 0.2f;
+
+        /// <summary>타일 하나: 크기 1인 루트 + 경사 없는 저폴리 상자 윗면(첫 자식 — TileView가 이 렌더러의 색을 칠한다).
+        /// 2차 모델링 전엔 Kenney 타일 메시(landTilePrefab/waterTilePrefab)를 썼는데, 모서리 경사면이 반투명 물에 비쳐 칸마다 테두리
+        /// 격자가 보였고 위키 타일(평평한 블록)과도 달라 상자로 바꿨다. 프리팹 인자는 호환을 위해 남겨 두지만 쓰지 않는다.</summary>
         private static GameObject CreateTileObject(TerrainType terrain, GameObject landTilePrefab, GameObject waterTilePrefab)
         {
-            var prefab = terrain == TerrainType.Water ? waterTilePrefab : landTilePrefab;
-            if (prefab != null) return Object.Instantiate(prefab);
-
-            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cube.transform.localScale = new Vector3(1f, 0.1f, 1f);
-            return cube;
+            var root = new GameObject("Tile");
+            var top = new GameObject("Top");
+            top.transform.SetParent(root.transform, false);
+            top.transform.localScale = new Vector3(1f, TopThickness, 1f);
+            top.AddComponent<MeshFilter>().sharedMesh = LowPolyMeshes.Get(ModelShape.Box);
+            top.AddComponent<MeshRenderer>();
+            return root;
         }
 
         /// <summary>지형(Terrain/TileTypeId)이 바뀐 뒤(TerrainGenerationSystem.Generate) 기존 타일
@@ -101,10 +115,27 @@ namespace TacticsECS
                 for (int x = 0; x < grid.Width; x++)
                 {
                     var pos = new Vector2Int(x, y);
-                    _tileViews[grid.Index(pos)].Init(pos, grid.GetTerrain(pos), grid.GetTileType(pos));
+                    var view = _tileViews[grid.Index(pos)];
+                    var terrain = grid.GetTerrain(pos);
+                    if (view.Terrain != terrain)
+                    {
+                        // 땅 <-> 물이 바뀌면 높이와 윗면 머티리얼(불투명/반투명)도 바꾼다.
+                        view.transform.position = grid.GridToWorld(pos) + (terrain == TerrainType.Water ? Vector3.down * WaterDrop : Vector3.zero);
+                        view.GetComponentInChildren<Renderer>().sharedMaterial = TopMaterial(terrain);
+                    }
+                    view.Init(pos, terrain, grid.GetTileType(pos));
                 }
             }
             RefreshFeatures(grid);
+        }
+
+        private static Material TopMaterial(TerrainType terrain) => RuntimeMaterial.CreateColored(Color.white);
+
+        /// <summary>타일 종류별 받침 모델 Id(TerrainModels.csv).</summary>
+        private static string BaseModel(GridWorld grid, Vector2Int p)
+        {
+            if (grid.GetTerrain(p) != TerrainType.Water) return "Tile.Land";
+            return grid.GetTileType(p) == TerrainGenerationSystem.OceanTileId ? "Tile.Ocean" : "Tile.Shallow";
         }
 
         /// <summary>숲/산 타일 위의 장식 모델(TerrainFeatureView)을 다시 만든다 — 구조물과 같은 방식으로 타일의
@@ -112,6 +143,7 @@ namespace TacticsECS
         private void RefreshFeatures(GridWorld grid)
         {
             if (_featureObjects == null) _featureObjects = new GameObject[grid.Width * grid.Height];
+            if (_baseObjects == null) _baseObjects = new GameObject[grid.Width * grid.Height];
             for (int y = 0; y < grid.Height; y++)
             {
                 for (int x = 0; x < grid.Width; x++)
@@ -124,6 +156,10 @@ namespace TacticsECS
                         _featureObjects[index] = null;
                     }
                     _featureObjects[index] = TerrainFeatureView.Create(grid.GetTileType(pos), _tileViews[index].transform, pos, _tileTopLocalY[index] + StructureLift);
+                    if (_baseObjects[index] != null) DestroySafe(_baseObjects[index]);
+                    // 받침은 물 칸이 WaterDrop만큼 낮아도 바닥이 땅 칸과 맞도록 그만큼 올려 붙인다.
+                    _baseObjects[index] = ModelBuilder.Build(BaseModel(grid, pos), _tileViews[index].transform,
+                        new Vector3(0f, grid.GetTerrain(pos) == TerrainType.Water ? WaterDrop : 0f, 0f));
                     ApplyFog(index);
                 }
             }
@@ -203,6 +239,10 @@ namespace TacticsECS
                             TileImprovementSystem.DisplayLevel(grid, pos, currentTurn),
                             tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(grid, pos),
                             tint.a > 0f ? tint : (Color?)null);
+                    if (_roadObjects == null) _roadObjects = new GameObject[grid.Width * grid.Height];
+                    if (_roadObjects[index] != null) { DestroySafe(_roadObjects[index]); _roadObjects[index] = null; }
+                    if (tile.HasRoad && tile.Terrain == TerrainType.Land && !isCity) _roadObjects[index] = CreateRoad(grid, pos, view.transform, top);
+
                     // 도시 칸은 도시 모델이 마을/수도 구조물을 대신하고, 숲/산 위 건물(벌목장/광산/신전)은 모델에 자기 지형 장식이
                     // 들어 있어 나무/산 장식을 숨긴다(위키 도판처럼 건물이 그 칸을 차지).
                     if (_hideStructure == null) { _hideStructure = new bool[grid.Width * grid.Height]; _hideFeature = new bool[grid.Width * grid.Height]; }
@@ -243,6 +283,25 @@ namespace TacticsECS
             else DestroyImmediate(obj);
         }
 
+        /// <summary>흙길: 가운데 조각 + 도로/다리/도시·마을로 이어지는 상하좌우 방향마다 팔 하나(위키 Roads — 이웃과 이어진 길).
+        /// 팔 조각(Road.Arm)은 -Z 방향으로 만들어져 있어 방향마다 Y축으로 돌린다.</summary>
+        private static GameObject CreateRoad(GridWorld grid, Vector2Int pos, Transform parent, float top)
+        {
+            var root = ModelBuilder.Build("Road.Center", parent, new Vector3(0f, top, 0f));
+            if (root == null) return null;
+            root.name = "Road";
+            foreach (var (d, yaw) in new[] { (Vector2Int.down, 0f), (Vector2Int.up, 180f), (Vector2Int.right, -90f), (Vector2Int.left, 90f) })
+            {
+                var n = pos + d;
+                if (!grid.InBounds(n)) continue;
+                var t = grid.GetTile(n);
+                if (!(t.HasRoad || t.BuildingId == BuildingDefinition.Bridge || CitySystem.IsSettlementTile(grid, n))) continue;
+                var arm = ModelBuilder.Build("Road.Arm", root.transform, Vector3.zero);
+                if (arm != null) arm.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+            return root;
+        }
+
         private static bool IsHorizontalBridge(GridWorld grid, Vector2Int p)
         {
             bool Land(Vector2Int q) => grid.InBounds(q) && grid.GetTerrain(q) == TerrainType.Land;
@@ -261,6 +320,9 @@ namespace TacticsECS
                 int i = grid.Index(pos);
                 _fogged[i] = !VisionSystem.IsExplored(grid, viewer, pos);
                 _tileViews[i].SetFogged(_fogged[i]);
+                if (_cloudObjects == null) _cloudObjects = new GameObject[grid.Width * grid.Height];
+                if (_fogged[i] && _cloudObjects[i] == null)
+                    _cloudObjects[i] = TerrainFeatureView.CreateCloud(_tileViews[i].transform, pos, _tileTopLocalY[i] + StructureLift);
                 ApplyFog(i);
             }
         }
@@ -271,6 +333,8 @@ namespace TacticsECS
             if (_featureObjects != null && _featureObjects[index] != null) _featureObjects[index].SetActive(visible && !(_hideFeature != null && _hideFeature[index]));
             if (_structureObjects != null && _structureObjects[index] != null) _structureObjects[index].SetActive(visible && !(_hideStructure != null && _hideStructure[index]));
             if (_buildingObjects != null && _buildingObjects[index] != null) _buildingObjects[index].SetActive(visible);
+            if (_roadObjects != null && _roadObjects[index] != null) _roadObjects[index].SetActive(visible);
+            if (_cloudObjects != null && _cloudObjects[index] != null) _cloudObjects[index].SetActive(!visible);
         }
 
         public void ClearHighlights()

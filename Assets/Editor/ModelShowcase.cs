@@ -37,6 +37,7 @@ namespace TacticsECS.EditorTools
 
             ShotBuildings(outDir, metrics);
             ShotTiles(outDir);
+            ShotMap(outDir, metrics);
             ShotUnits(outDir, metrics);
 
             File.WriteAllText(Path.Combine(outDir, "metrics.csv"), metrics.ToString());
@@ -187,6 +188,43 @@ namespace TacticsECS.EditorTools
             view.RefreshStructures(grid, StructurePrefabs());
             view.RefreshFog(grid, Team.Player);
             Capture(view.gameObject, grid, Path.Combine(outDir, "tiles.png"));
+            Object.DestroyImmediate(view.gameObject);
+        }
+
+        // ---------- 생성 맵(대륙형 12x12) ----------
+
+        /// <summary>실제 지형 생성으로 만든 맵 한 장 — 구름(오른쪽 위 일부), 도시 2개와 도로 몇 칸 포함. 맵 전체의 렌더러/삼각형 수를 남긴다.</summary>
+        private static void ShotMap(string outDir, StringBuilder metrics)
+        {
+            var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "docs/sample_biomes.csv")));
+            var grid = new GridWorld(12, 12, TileSize);
+            var anchors = TerrainGenerationSystem.Generate(grid, biomes, 1, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.5f, out var suburbs, out var planned);
+            StructureGenerationSystem.Generate(grid, biomes, anchors, 1, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);
+            var cities = new List<CityData>();
+            for (int i = 0; i < anchors.Length && i < 2; i++)
+            {
+                cities.Add(new CityData { Owner = i == 0 ? Team.Player : Team.Enemy, Level = 3, IsCapital = true, Position = anchors[i], HasWorkshop = true });
+                foreach (var n in grid.GetNeighbors(anchors[i], false))
+                {
+                    var t = grid.GetTile(n);
+                    t.OwnerTeam = i;
+                    if (t.Terrain == TerrainType.Land && n.x == anchors[i].x) t.HasRoad = true;
+                    grid.SetTile(n, t);
+                }
+            }
+            grid.FogEnabled = true;
+            for (int y = 0; y < 12; y++) for (int x = 0; x < 12; x++)
+                if (x + y < 16) VisionSystem.Reveal(grid, Team.Player, new Vector2Int(x, y), 0);
+            var view = BuildGrid(grid);
+            view.RefreshTerrain(grid);
+            view.RefreshStructures(grid, StructurePrefabs());
+            view.RefreshEconomy(grid, cities, new Color(0.2f, 0.5f, 1f), new Color(1f, 0.3f, 0.3f), 1);
+            view.RefreshFog(grid, Team.Player);
+            Capture(view.gameObject, grid, Path.Combine(outDir, "map.png"), 0.62f);
+            var rs = view.GetComponentsInChildren<Renderer>().Where(r => r.enabled && r.gameObject.activeInHierarchy).ToArray();
+            int tris = rs.Sum(r => r.GetComponent<MeshFilter>() != null && r.GetComponent<MeshFilter>().sharedMesh != null ? r.GetComponent<MeshFilter>().sharedMesh.triangles.Length / 3 : 0);
+            int mats = rs.SelectMany(r => r.sharedMaterials).Distinct().Count();
+            metrics.AppendLine($"map,Continents12,{rs.Length},{tris},{mats},");
             Object.DestroyImmediate(view.gameObject);
         }
 

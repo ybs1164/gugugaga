@@ -28,7 +28,6 @@ namespace TacticsECS
         private bool _fogged;
         private static readonly Color CloudColor = new Color(0.86f, 0.88f, 0.92f);
         private const float TerritoryTintStrength = 0.15f;
-        private static readonly Color RoadColor = new Color(0.55f, 0.42f, 0.28f);
 
         private static readonly Color ColorLand = new Color(0.75f, 0.75f, 0.75f);
         private static readonly Color ColorWater = new Color(0.25f, 0.45f, 0.85f);
@@ -46,8 +45,10 @@ namespace TacticsECS
             ["Sand"] = new Color(0.85f, 0.75f, 0.45f),
             ["Rock"] = new Color(0.55f, 0.55f, 0.55f),
             ["Snow"] = new Color(0.92f, 0.94f, 0.96f),
-            ["Water"] = ColorWater,
-            [TerrainGenerationSystem.OceanTileId] = new Color(0.12f, 0.26f, 0.62f),
+            // 위키 Terrain: 얕은 물은 모래가 비쳐 밝은 청록(옆면은 청록 물층 + 모래 받침 두 줄), 깊은 바다는 짙은 파랑.
+            // 반투명으로 해봤지만 이웃 칸 옆면이 비쳐 칸마다 격자가 생겨 불투명으로 둔다(docs/ModelingPlan.md 2-4).
+            ["Water"] = new Color(0.36f, 0.76f, 0.90f),
+            [TerrainGenerationSystem.OceanTileId] = new Color(0.14f, 0.36f, 0.74f),
         };
 
         /// <summary>terrain/tileTypeId는 하이라이트가 없을 때(TileHighlight.None) 보여줄 기본 색을
@@ -97,8 +98,13 @@ namespace TacticsECS
             Color c;
             if (string.IsNullOrEmpty(TileTypeId) || !TileTypeColors.TryGetValue(TileTypeId, out c))
                 c = Terrain == TerrainType.Water ? ColorWater : ColorLand;
-            if (_hasRoad) c = Color.Lerp(c, RoadColor, 0.5f);
-            if (_territoryTint.a > 0f) c = Color.Lerp(c, new Color(_territoryTint.r, _territoryTint.g, _territoryTint.b), TerritoryTintStrength * _territoryTint.a);
+            // 도로는 색이 아니라 흙길 모델(GridView.RefreshEconomy — Road.* 파츠)로 그린다.
+            if (_territoryTint.a > 0f)
+            {
+                float a = c.a;
+                c = Color.Lerp(c, new Color(_territoryTint.r, _territoryTint.g, _territoryTint.b), TerritoryTintStrength * _territoryTint.a);
+                c.a = a;
+            }
             return c;
         }
     }

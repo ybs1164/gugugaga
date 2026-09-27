@@ -21,3 +21,16 @@ Awning,#4FB3E8,파란 차양(시장)
 Pink,#F29CC0,분홍 꽃(기념물 정원)
 Jade,#3FA36B,초록 기와(기념물)
 Water,#5BC0EB,물
+Dirt,#8B5A2B,타일 흙 옆면
+DirtDark,#5E3A1A,타일 밑단
+Sand,#E9D49B,얕은 물 모래 바닥
+Deep,#1D4A93,깊은 바다 바닥
+Pine,#2F7D34,소나무
+PineLight,#4CA64F,밝은 소나무
+Rock,#8D8E96,산 바위
+RockLight,#B3B4BC,밝은 바위
+Snow,#F4F6FA,눈
+Cloud,#F2F4FA,구름
+CloudShade,#D8DCEC,구름 그늘
+Path,#D8B46A,흙길
+PathEdge,#A88A4A,흙길 돌

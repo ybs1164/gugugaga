@@ -803,7 +803,21 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 개선: 실루엣 측정 버그 수정 → 신전 4종이 겹침 0.99로 드러나 위키처럼 비율을 갈라 0.88로. 도시 팀색 원판은 옅은 테두리로.
 - 결과: 건물 20종 렌더러 66 → 20, 삼각형 5,532 → 3,314. 검증 전부 ALL PASS(`GameDataCsvVerification`에 모델 항목 추가).
 
+**2차 — 타일(지형)**
+- 위키 Terrain 도판 대조: 땅은 두꺼운 흙 옆면 블록, 얕은 물은 땅보다 낮고 모래가 비침, 숲은 소나무 여러 그루, 구름은 흰 덩어리, 도로는 이어지는 길,
+  금속은 금빛 — 인게임은 얇은 판/같은 높이 파란 물/나무 3그루/평평한 구름/올리브 틴트/청록 결정이었다.
+- 방식 비교(현행 틴트 / **타일 파츠 CSV** / 맵 청크 메시 정점색) → 파츠 CSV 채택(위키 8/8). 청크 메시는 렌더러 1개지만 색이 바래고 타일 기반 코드 전부 교체가 필요.
+- [`TerrainModels.csv`](Assets/Resources/Models/TerrainModels.csv): 받침(`Tile.Land/Shallow/Ocean`), `Terrain.Forest/Mountain/Cloud`, `Road.Center/Arm`.
+  [`GridView`](Assets/Scripts/TacticsECS/View/GridView.cs): 평평한 상자 윗면 + 받침 모델, 물 0.05 낮춤, 구름 덩어리(구름 칸), 이웃과 이어지는 흙길.
+  [`TerrainFeatureView`](Assets/Scripts/TacticsECS/View/TerrainFeatureView.cs)의 코드 원뿔은 파츠 CSV로 대체.
+- 개선: 반투명 물이 칸마다 격자로 보여 불투명 청록 + 모래 받침으로(위키 옆면 두 줄과 같은 모습). 광석 금색 + `StructureAssetSetup`이 기존 머티리얼 색을 갱신하지 않던 버그 수정.
+
 ## 작업 로그
+
+- 2026-09-27: 모델링 2차 — 타일(흙 옆면 블록, 모래 비치는 얕은 물, 소나무 숲, 구름 덩어리, 이어지는 흙길, 금빛 광석).
+  - [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md) 2차.
+  - **검증**: 에디터가 꺼진 상태에서 CLI로 `ModelShowcase` + `StructureAssetSetup.GenerateAll`(광석 머티리얼 색만 반영, fileID만 바뀐 프리팹은 되돌림) +
+    `GameDataCsvVerification`/`UIVerification`/`BuildingFeatureVerification`/`TerrainGenerationVerification`/`StructureGenerationVerification` ALL PASS.
 
 - 2026-09-27: 모델링 1차 — 건물/도시를 모델 파츠 CSV + 저폴리 절차 메시로.
   - **동기**: "같은 방식으로 건물과 타일, 유닛의 모델링도 손봐줘" — 그 1회차(건물). [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md).

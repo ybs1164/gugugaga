@@ -60,7 +60,7 @@ namespace TacticsECS.EditorTools
         // 하고 채도가 낮으면(처음 시도) 오두막들이 뭉뚱그려 어두운 덩어리로 보인다 — 선명하게 다른 색으로 뺀다.
         private static readonly Color RuinColor = new Color(0.6f, 0.6f, 0.6f);            // 회색 돌
         private static readonly Color ResourceFoodColor = new Color(0.8f, 0.25f, 0.3f);   // 붉은 버섯
-        private static readonly Color ResourceOreColor = new Color(0.3f, 0.75f, 0.75f);   // 청록 광물(Rock 지형의 회색과 구분)
+        private static readonly Color ResourceOreColor = new Color(0.95f, 0.76f, 0.25f);  // 금빛 광물(위키 Terrain "mountain and metal" 도판 — 모델링 2차에서 청록 -> 금색)
         private static readonly Color StarfishColor = new Color(0.9f, 0.5f, 0.2f);        // 주황 불가사리
         private static readonly Color BushColor = new Color(0.22f, 0.5f, 0.22f);          // 과일 덤불(숲 타일보다 밝게)
         private static readonly Color FruitColor = new Color(0.9f, 0.18f, 0.2f);          // 빨간 열매
@@ -445,7 +445,13 @@ namespace TacticsECS.EditorTools
         {
             string path = $"{MaterialFolder}/{name}.mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                // 색 상수를 바꾼 뒤 다시 실행하면 반영되게 기존 에셋의 색도 갱신한다(예전엔 그대로 재사용해 색 변경이 무시됐다).
+                RuntimeMaterial.SetColor(existing, color);
+                EditorUtility.SetDirty(existing);
+                return existing;
+            }
 
             var mat = RuntimeMaterial.CreateColored(color);
             AssetDatabase.CreateAsset(mat, path);

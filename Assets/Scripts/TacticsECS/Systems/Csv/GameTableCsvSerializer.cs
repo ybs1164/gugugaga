@@ -100,5 +100,51 @@ namespace TacticsECS
             }
             return list.ToArray();
         }
+
+        // ---------- 도시 보상 (CityRewards.csv) ----------
+
+        public static CityRewardInfo[] ParseCityRewards(string csvText, List<string> errors, string name = "CityRewards.csv")
+        {
+            var t = CsvTableReader.Parse(name, csvText);
+            CsvTableReader.CheckColumns(t, new[] { "Level", "Reward" }, new[] { "Name", "Amount", "Description", "Wiki", "Note" }, errors);
+            var list = new List<CityRewardInfo>();
+            for (int r = 0; r < t.Rows.Count; r++)
+            {
+                var type = CsvTableReader.GetEnum(t, r, "Reward", CityRewardType.Resources, errors);
+                list.Add(new CityRewardInfo
+                {
+                    Level = CsvTableReader.GetInt(t, r, "Level", 2, errors),
+                    Type = type,
+                    Name = CsvTableReader.Get(t, r, "Name", type.ToString()),
+                    Amount = CsvTableReader.GetInt(t, r, "Amount", 0, errors),
+                    Description = CsvTableReader.Get(t, r, "Description"),
+                });
+            }
+            return list.ToArray();
+        }
+
+        // ---------- 과업 (Tasks.csv) ----------
+
+        public static TaskInfo[] ParseTasks(string csvText, List<string> errors, string name = "Tasks.csv")
+        {
+            var t = CsvTableReader.Parse(name, csvText);
+            CsvTableReader.CheckColumns(t, new[] { "Id", "Kind" }, new[] { "Name", "Threshold", "Unlock", "Description", "Wiki", "Note" }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var list = new List<TaskInfo>();
+            for (int r = 0; r < t.Rows.Count; r++)
+            {
+                string id = CsvTableReader.Get(t, r, "Id");
+                list.Add(new TaskInfo
+                {
+                    Id = id,
+                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Kind = CsvTableReader.GetEnum(t, r, "Kind", TaskKind.Kills, errors),
+                    Threshold = CsvTableReader.GetInt(t, r, "Threshold", 0, errors),
+                    UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
+                    Description = CsvTableReader.Get(t, r, "Description"),
+                });
+            }
+            return list.ToArray();
+        }
     }
 }

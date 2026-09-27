@@ -33,7 +33,7 @@ namespace TacticsECS
         public int PopulationPerAdjacent;
 
         /// <summary>시장처럼 인구 대신 매 턴 골드를 만드는 건물이면 true — 인접 AdjacentBuildings가 만드는
-        /// 인구 합만큼(최대 CitySystem.MarketGoldCap) 골드 수입이 늘어난다.</summary>
+        /// 인구 합만큼(최대 GameRules.City.MarketGoldCap) 골드 수입이 늘어난다.</summary>
         public bool ProducesGoldFromAdjacent;
 
         /// <summary>도로처럼 타일 자체를 바꿀 뿐 "건물"로 치지 않는 개량이면 true(TileData.HasRoad에 기록되고

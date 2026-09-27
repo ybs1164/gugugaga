@@ -20,7 +20,6 @@ namespace TacticsECS
     /// </summary>
     public static class EnemyAI
     {
-        private const int DefendRadius = 2;
         private const int Unreachable = int.MaxValue;
 
         /// <summary>예전 호출(적 팀 고정) 호환용.</summary>
@@ -65,7 +64,7 @@ namespace TacticsECS
                     foreach (var city in econ.Cities)
                     {
                         if (city.Owner != team || defendedCities.Contains(city.Position)) continue;
-                        if (!enemies.Any(e => PathfindingSystem.Distance(world.Get<GridPosition>(e).Value, city.Position) <= DefendRadius)) continue;
+                        if (!enemies.Any(e => PathfindingSystem.Distance(world.Get<GridPosition>(e).Value, city.Position) <= GameRules.AI.DefendRadius)) continue;
                         int occ = grid.GetOccupant(city.Position);
                         if (occ != TileData.NoOccupant && occ != id) continue;
                         if (PathfindingSystem.Distance(selfPos, city.Position) > 4) continue;

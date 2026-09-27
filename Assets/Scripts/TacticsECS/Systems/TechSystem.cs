@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace TacticsECS
 {
@@ -43,7 +44,7 @@ namespace TacticsECS
         {
             int cost = node.CostBase + node.CostPerCity * (cityCount < 0 ? 0 : cityCount);
             if (HasUnlock(nodes, tech, LiteracyKey))
-                cost = (cost * 2 + 2) / 3; // ceil(cost * 2/3)
+                cost -= cost / Mathf.Max(1, GameRules.Tech.LiteracyDivisor); // 1/N을 내림으로 뺀다 = ceil(cost * 2/3) (N=3)
             return cost < 0 ? 0 : cost;
         }
 

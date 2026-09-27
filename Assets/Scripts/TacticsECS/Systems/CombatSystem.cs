@@ -12,11 +12,6 @@ namespace TacticsECS
     /// </summary>
     public static class CombatSystem
     {
-        /// <summary>방어 태세 중 추가로 붙는 방어력. CalculateDamage/EffectiveDefense가 공유하는 값이라,
-        /// UI(BattleHud) 등 다른 곳에서 "방어 태세면 얼마나 더 단단해지는지" 보여줄 때도 이 상수를
-        /// 다시 정의하지 않고 EffectiveDefense를 통해서만 읽는다.</summary>
-        public const int GuardDefenseBonus = 2;
-
         public static bool IsInAttackRange(EntityWorld world, int attackerId, int targetId)
         {
             var attackerPos = world.Get<GridPosition>(attackerId).Value;
@@ -29,7 +24,7 @@ namespace TacticsECS
         /// PositionalDefenseBonus에 넣어둔 값)까지 합산한 실제 방어력.</summary>
         public static int EffectiveDefense(EntityWorld world, int unitId)
         {
-            int bonus = (world.Get<IsGuarding>(unitId).Value ? GuardDefenseBonus : 0) + world.Get<PositionalDefenseBonus>(unitId).Value;
+            int bonus = (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0) + world.Get<PositionalDefenseBonus>(unitId).Value;
             return world.Get<Defense>(unitId).Value + bonus;
         }
 

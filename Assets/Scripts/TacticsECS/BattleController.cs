@@ -98,14 +98,7 @@ namespace TacticsECS
         [Tooltip("도시 발전 자원(발전도/인구/골드/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
             "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
         [SerializeField] private CityResourceHud cityResourceHudPrefab;
-        [Tooltip("전투 시작 시 각 팀이 가진 골드(폴리토피아 시작 별 5). 골드는 채집/건설/유닛 훈련에 쓴다. " +
-            "턴당 골드 수입은 도시 레벨/공방/공원/시장으로 계산된다(CitySystem.GoldIncome).")]
-        [SerializeField] private int startingGold = 5;
-        [Tooltip("전투 시작 시 각 팀이 가진 도시 발전도(기술 연구 전용 자원). 턴당 발전도는 도시 수 + 수도 연결 " +
-            "도시 수 + 수도 1(CitySystem.DevelopmentIncome).")]
-        [SerializeField] private int startingDevelopment = 5;
-        [Tooltip("신앙 최대 보유량(신전을 지을 때마다 +5).")]
-        [SerializeField] private int cityMaxFaith = 10;
+        // 시작 골드/발전도/신앙 최대치는 인스펙터가 아니라 Assets/Resources/GameRules.csv(Economy.*)에서 온다.
         [Tooltip("기술트리 패널 프리팹. 비워두면 생성 자체를 건너뛴다 — cityResourceHudPrefab과 같은 블록 " +
             "에서만 초기화된다(도시 발전도가 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
         [SerializeField] private TechTreeHud techTreeHudPrefab;
@@ -739,7 +732,7 @@ namespace TacticsECS
         {
             if (_cityResourceHud == null) return;
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
-            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, cityMaxFaith, false);
+            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false);
             _cityResourceHud.SetResources(resources, populationUsed);
             _cityResourceHud.SetScoreLine(_econ != null
                 ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
@@ -752,7 +745,7 @@ namespace TacticsECS
             if (_econ != null)
                 _techTreeHud.SetState(_econ.Tech[Team.Player], _econ.Resources[Team.Player], CitySystem.CountCities(_econ, Team.Player));
             else
-                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, cityMaxFaith, false), 1);
+                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false), 1);
         }
 
         /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/발전도 소모는 TechSystem이 계산하고,
@@ -1011,9 +1004,9 @@ namespace TacticsECS
             if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
             foreach (var team in CitySystem.Teams)
             {
-                var res = CityResourceData.Create(0, 0, 0, cityMaxFaith, false);
-                res.Gold = startingGold;
-                res.Development = startingDevelopment;
+                var res = CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false);
+                res.Gold = GameRules.Economy.StartingGold;
+                res.Development = GameRules.Economy.StartingDevelopment;
                 _econ.Resources[team] = res;
                 _econ.Tech[team] = TechTreeData.CreateEmpty();
             }

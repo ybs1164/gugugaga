@@ -18,10 +18,7 @@ namespace TacticsECS
     /// </summary>
     public static class EconomyAI
     {
-        private const int MaxImprovementsPerTurn = 12;
-        private const int ThreatRadius = 3;
         /// <summary>도로 연결 계획이 한 도시에 쓰는 최대 골드(이보다 먼 도시는 연결을 미룬다).</summary>
-        private const int MaxConnectionBudget = 18;
 
         public static List<EconomyLogEntry> RunTurn(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
@@ -65,7 +62,7 @@ namespace TacticsECS
                 var p = world.Get<GridPosition>(id).Value;
                 if (!VisionSystem.IsExplored(grid, team, p)) continue;
                 foreach (var c in econ.Cities)
-                    if (c.Owner == team && PathfindingSystem.Distance(c.Position, p) <= ThreatRadius) return true;
+                    if (c.Owner == team && PathfindingSystem.Distance(c.Position, p) <= GameRules.AI.ThreatRadius) return true;
             }
             return false;
         }
@@ -91,9 +88,9 @@ namespace TacticsECS
                     var pick = options[0];
                     foreach (var o in options)
                     {
-                        if (o == CityRewardType.Explorer && FogWithin(grid, team, city.Position, VisionDefinition.ExplorerMoves / 2)) pick = o;
+                        if (o == CityRewardType.Explorer && FogWithin(grid, team, city.Position, GameRules.Vision.ExplorerMoves / 2)) pick = o;
                         if (o == CityRewardType.CityWall && threatened) pick = o;
-                        if (o == CityRewardType.BorderGrowth && city.BorderRadius < CityRewardDefinition.BorderGrowthRadius) pick = o;
+                        if (o == CityRewardType.BorderGrowth && city.BorderRadius < CitySystem.RewardAmount(CityRewardType.BorderGrowth)) pick = o;
                         if (o == CityRewardType.SuperUnit && threatened) pick = o;
                     }
                     if (!CitySystem.ApplyReward(grid, econ, i, pick, log)) break;
@@ -158,7 +155,7 @@ namespace TacticsECS
         {
             PlanConnections(grid, econ, team, reserve, log);
 
-            for (int n = 0; n < MaxImprovementsPerTurn; n++)
+            for (int n = 0; n < GameRules.AI.MaxImprovementsPerTurn; n++)
             {
                 (Vector2Int Pos, TileOption Option)? best = null;
                 float bestScore = 0f;
@@ -201,7 +198,7 @@ namespace TacticsECS
                 if (!string.IsNullOrEmpty(info.TaskId)) return 1000f;
                 if (info.IsRoad || info.ActsAsRoad) return 0f;
                 if (info.ProducesGoldFromAdjacent)
-                    value = Mathf.Min(CitySystem.MarketGoldCap, MarketPotential(grid, pos, info, team));
+                    value = Mathf.Min(GameRules.City.MarketGoldCap, MarketPotential(grid, pos, info, team));
                 else
                     value = info.Population + TileImprovementSystem.ProcessorPopulation(grid, pos, info, team) + NeighborProcessorGain(grid, pos, info.Id, team);
                 if (info.Id == BuildingDefinition.Port && !hasPort) value += 3f;
@@ -264,7 +261,7 @@ namespace TacticsECS
                 if (city.Owner != team || city.IsCapital || city.ConnectedToCapital) continue;
                 var network = ConnectedNetwork(econ, team, capital);
                 var path = CheapestConnectionPath(grid, econ, team, city.Position, network, out int cost);
-                if (path == null || cost > MaxConnectionBudget) continue;
+                if (path == null || cost > GameRules.AI.MaxConnectionBudget) continue;
 
                 foreach (var p in path)
                 {
@@ -306,7 +303,7 @@ namespace TacticsECS
                 for (int k = 1; k < open.Count; k++) if (cost[open[k]] < cost[open[bi]]) bi = k;
                 var cur = open[bi];
                 open.RemoveAt(bi);
-                if (cost[cur] > MaxConnectionBudget) break;
+                if (cost[cur] > GameRules.AI.MaxConnectionBudget) break;
                 if (cur != from && network.Contains(cur))
                 {
                     totalCost = cost[cur];

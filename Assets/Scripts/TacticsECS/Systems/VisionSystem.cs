@@ -49,10 +49,10 @@ namespace TacticsECS
         /// <summary>유닛이 밝히는 반경: VisionRange(기본 1, 정찰 2), 산 위면 최소 2.</summary>
         public static int SightRadius(GridWorld grid, EntityWorld world, int unitId)
         {
-            int r = Mathf.Max(VisionDefinition.BaseSightRadius, world.GetOrDefault<VisionRange>(unitId).Value);
+            int r = Mathf.Max(GameRules.Vision.BaseSightRadius, world.GetOrDefault<VisionRange>(unitId).Value);
             var pos = world.Get<GridPosition>(unitId).Value;
-            if (grid.GetTileType(pos) == TerrainGenerationSystem.MountainTileId) r = Mathf.Max(r, VisionDefinition.ExtendedSightRadius);
-            return Mathf.Min(r, VisionDefinition.ExtendedSightRadius);
+            if (grid.GetTileType(pos) == TerrainGenerationSystem.MountainTileId) r = Mathf.Max(r, GameRules.Vision.ExtendedSightRadius);
+            return Mathf.Min(r, GameRules.Vision.ExtendedSightRadius);
         }
 
         /// <summary>시야 전체 갱신: 살아있는 모든 유닛 주변 + 모든 영토 칸을 그 팀에게 밝히고, 경제가 있으면 처음 밝힌
@@ -106,7 +106,7 @@ namespace TacticsECS
                     int city = CitySystem.FindCapital(econ, team);
                     if (city < 0) city = OldestCity(econ, team);
                     log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Discover, Subject = "등대 발견", Position = p, CityIndex = city });
-                    if (city >= 0) CitySystem.AddPopulation(econ, city, VisionDefinition.LighthousePopulation, log);
+                    if (city >= 0) CitySystem.AddPopulation(econ, city, GameRules.Vision.LighthousePopulation, log);
                 }
             }
         }
@@ -160,10 +160,10 @@ namespace TacticsECS
         {
             if (!grid.FogEnabled) return;
             var pos = start;
-            Reveal(grid, team, pos, VisionDefinition.BaseSightRadius);
+            Reveal(grid, team, pos, GameRules.Vision.BaseSightRadius);
             var visited = new HashSet<Vector2Int> { pos };
 
-            for (int move = 0; move < VisionDefinition.ExplorerMoves; move++)
+            for (int move = 0; move < GameRules.Vision.ExplorerMoves; move++)
             {
                 // BFS: 각 칸까지의 거리와 "그 칸으로 가는 첫 걸음". 가장 가까운 구름 거리의 첫 걸음들만 후보로 모은다.
                 var dist = new Dictionary<Vector2Int, int> { [pos] = 0 };
@@ -176,7 +176,7 @@ namespace TacticsECS
                 {
                     var cur = queue.Dequeue();
                     int d = dist[cur];
-                    if (d >= bestFogDist || d >= VisionDefinition.ExplorerScanRange) continue;
+                    if (d >= bestFogDist || d >= GameRules.Vision.ExplorerScanRange) continue;
                     foreach (var n in grid.GetNeighbors(cur, true))
                     {
                         if (dist.ContainsKey(n) || !CanExplorerEnter(grid, econ, team, n)) continue;
@@ -209,7 +209,7 @@ namespace TacticsECS
                 options.Sort((a, b) => a.y != b.y ? a.y.CompareTo(b.y) : a.x.CompareTo(b.x));
                 pos = options[CitySystem.NextRandom(econ, options.Count)];
                 visited.Add(pos);
-                Reveal(grid, team, pos, VisionDefinition.BaseSightRadius);
+                Reveal(grid, team, pos, GameRules.Vision.BaseSightRadius);
             }
             ProcessLighthouses(grid, econ, log);
         }

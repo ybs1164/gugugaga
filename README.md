@@ -764,7 +764,22 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   [`GameDataLoader.LoadAll`](Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이 `BattleController.Awake`/에디터 검증 시작 시 Data 표를 채운다(코드 기본 표 없음 — CSV가 유일한 원본).
 - 검증: 신규 [`GameDataCsvVerification`](Assets/Editor/GameDataCsvVerification.cs) + 기존 Economy/BuildingFeature/UI/UnitCsv/EconomySimulation 전부 ALL PASS.
 
+**2차 — 흩어진 수치 규칙 → [`Assets/Resources/GameRules.csv`](Assets/Resources/GameRules.csv)**
+- 코드 곳곳의 `const` 48개(도시 수입/영토/유닛 상한/시장, 회복/해산/유적, 연구 비용, 방어 보너스, 점수, 시야, AI)를 위키와 대조:
+  같음 35 / **다름 3**(방어 보너스 +1·+3 vs 위키 ×1.5·×4 — 뺄셈 전투 공식 탓, 3차로) / 프로젝트 고유 10.
+- 방식 비교(키-값 표 / 도메인별 1행 넓은 표 / 바꾼 값만 덮어쓰기) → **키-값 표** 채택: `Key,Value,Wiki,Description,Note`.
+  `Wiki`와 `Value`가 다르면(또는 프로젝트 고유 규칙이면) `Note`에 이유가 없을 때 경고 — "원문과 다른 점"을 데이터로 강제.
+- [`GameRules`](Assets/Scripts/TacticsECS/Data/GameRules.cs)(도메인별 중첩 클래스의 정적 필드) ← [`GameRulesCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/GameRulesCsvSerializer.cs)(리플렉션 — 새 규칙은 필드 1 + 행 1).
+  `ScoreDefinition`은 삭제(→ `GameRules.Score`), `VisionDefinition`엔 해금 키만 남김. 시작 골드/발전도/신앙은 씬 인스펙터에서 `Economy.*`로 이동.
+- 도시 보상([`CityRewards.csv`](Assets/Resources/CityRewards.csv), `Amount` 칸)·과업([`Tasks.csv`](Assets/Resources/Tasks.csv)) 표도 CSV로. 시장 골드 = min(인접 레벨, 8) × `City.MarketGoldPerLevel`.
+- 검증: CSV 규칙 하나를 바꾸면 도시 수입이 바뀌는지까지 확인, 기존 검증 전부 ALL PASS, **시뮬레이션 결과가 1차와 동일**(동작 불변 리팩터 확인).
+
 ## 작업 로그
+
+- 2026-09-27: 게임 규칙 CSV 2차 — 흩어진 수치 규칙 48개를 `GameRules.csv`로 + 도시 보상/과업 표 CSV화.
+  - 위 [게임 규칙 CSV](#게임-규칙-csv-위키-대조--방식-비교) 절과 [`docs/GameDataCsv.md`](docs/GameDataCsv.md) 2차 참고.
+  - **검증**: 에디터가 꺼진 상태에서 CLI로 `GameDataCsvVerification`/`EconomyVerification`/`BuildingFeatureVerification`/`UIVerification`/
+    `UnitCsvVerification`/`EconomySimulation` 전부 ALL PASS. 시뮬레이션 `summary.csv`가 1차 실행과 동일.
 
 - 2026-09-27: 게임 규칙 CSV 1차 — 위키 대조 + 기술트리 정합성 + 건물/타일 행동 표 CSV화.
   - **동기**: "위키랑 비교해서 현재 인게임이랑 어떤 점이 다른지 분석하고, csv를 어떻게 설정해야 게임 시스템을 제대로 만질 수

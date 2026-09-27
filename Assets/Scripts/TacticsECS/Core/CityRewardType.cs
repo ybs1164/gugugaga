@@ -1,7 +1,7 @@
 namespace TacticsECS
 {
     /// <summary>도시 레벨업 보상(폴리토피아 위키 City 문서의 레벨별 2지선다). 선택지 표는
-    /// Data/CityRewardDefinition.cs, 적용은 CitySystem.ApplyReward.</summary>
+    /// Assets/Resources/CityRewards.csv(Data/CityRewardDefinition.All), 적용은 CitySystem.ApplyReward.</summary>
     public enum CityRewardType
     {
         Workshop,          // Lv2: 골드 수입 +1

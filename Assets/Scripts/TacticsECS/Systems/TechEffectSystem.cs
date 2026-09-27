@@ -13,7 +13,6 @@ namespace TacticsECS
     /// </summary>
     public static class TechEffectSystem
     {
-        public const int TerrainDefenseBonus = 1;
 
         public static void RefreshUnits(GridWorld grid, EntityWorld world, EconomyWorld econ)
         {
@@ -43,11 +42,11 @@ namespace TacticsECS
                 if ((cls == TileClass.Mountain && TechSystem.HasUnlock(nodes, tech, "Defense.Mountain")) ||
                     (cls == TileClass.Forest && TechSystem.HasUnlock(nodes, tech, "Defense.Forest")) ||
                     ((cls == TileClass.ShallowWater || cls == TileClass.Ocean) && TechSystem.HasUnlock(nodes, tech, "Defense.Water")))
-                    bonus += TerrainDefenseBonus;
+                    bonus += GameRules.Combat.TerrainDefenseBonus;
 
                 int city = CitySystem.FindCityAt(econ, pos);
                 if (city >= 0 && econ.Cities[city].Owner == team && UnitActionQueries.Find<FortifyAction>(world, id) != null)
-                    bonus += econ.Cities[city].HasWall ? CitySystem.WallDefenseBonus : CitySystem.CityDefenseBonus;
+                    bonus += econ.Cities[city].HasWall ? GameRules.Combat.WallDefenseBonus : GameRules.Combat.CityDefenseBonus;
 
                 world.Set(id, new PositionalDefenseBonus { Value = bonus });
             }

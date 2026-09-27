@@ -43,7 +43,7 @@ namespace TacticsECS
                     Tier = tier,
                     Slot = CsvTableReader.GetInt(t, r, "Slot", 0, errors),
                     Icon = CsvTableReader.Get(t, r, "Icon"),
-                    CostBase = CsvTableReader.GetInt(t, r, "CostBase", TechTreeDefinition.DefaultCostBase, errors),
+                    CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", tier, errors),
                     Unlocks = CsvTableReader.GetList(t, r, "Unlocks"),
                     Effect = CsvTableReader.Get(t, r, "Effect"),

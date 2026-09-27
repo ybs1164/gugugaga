@@ -115,7 +115,7 @@ namespace TacticsECS
                     var ninfo = FindBuilding(nt.BuildingId);
                     if (ninfo != null) gold += ProcessorPopulation(grid, n, ninfo.Value, team);
                 }
-                total += Mathf.Min(gold, CitySystem.MarketGoldCap);
+                total += Mathf.Min(gold, GameRules.City.MarketGoldCap) * GameRules.City.MarketGoldPerLevel; // 위키: 시장 레벨(최대 8)당 별 1
             }
             return total;
         }

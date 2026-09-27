@@ -23,6 +23,9 @@ namespace TacticsECS.EditorTools
             VerifyBuildingsAndActions();
             VerifyTechTreeMatchesWiki();
             VerifyCapitalVision();
+            VerifyGameRules();
+            VerifyRewardsAndTasks();
+            GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -90,6 +93,52 @@ namespace TacticsECS.EditorTools
             Check(TechSystem.Find(nodes, "Climbing") != null && TechSystem.Find(nodes, "Organization") != null &&
                   TechSystem.Find(nodes, "Smithery") != null && TechSystem.Find(nodes, "Aquatism") != null, "tech ids use current wiki names");
             Check(TaskDefinition.All.First(t => t.Id == TaskDefinition.Network).UnlockKey == "Task.Network", "Network task gated by Task.Network");
+        }
+
+        private static void VerifyGameRules()
+        {
+            var fields = GameRulesCsvSerializer.AllFields();
+            var text = Resources.Load<TextAsset>(GameDataLoader.GameRulesCsvResourcePath).text;
+            var errors = new List<string>();
+            var rows = GameRulesCsvSerializer.ParseRows(text, errors);
+            Check(errors.Count == 0, "GameRules.csv rows valid: " + string.Join(" | ", errors));
+            Check(rows.Count == fields.Count && rows.TrueForAll(r => fields.ContainsKey(r.Key)), $"every GameRules field has exactly one CSV row ({rows.Count} rows / {fields.Count} fields)");
+
+            // 위키와 다른 규칙 목록(=원문과 다른 점) — 전부 Note가 있어야 한다(ParseRows가 검사). 로그로 남겨 문서와 대조한다.
+            var deviations = rows.FindAll(r => r.Wiki.Length > 0 && r.Wiki != r.Value);
+            var projectOnly = rows.FindAll(r => r.Wiki.Length == 0);
+            Debug.Log($"[GameDataCsvVerification] rules: {rows.Count}, wiki-equal {rows.Count - deviations.Count - projectOnly.Count}, " +
+                      $"deviations {deviations.Count} ({string.Join(", ", deviations.ConvertAll(r => r.Key))}), project-only {projectOnly.Count}");
+
+            // CSV 값이 실제 시스템 동작을 바꾸는지: 도시 레벨당 골드 1 -> 2.
+            var grid = new GridWorld(5, 5);
+            var world = new EntityWorld();
+            var city = new CityData { Owner = Team.Player, Level = 3, Position = new Vector2Int(2, 2), IsCapital = true };
+            int before = CitySystem.CityGoldIncome(grid, world, city);
+            errors.Clear();
+            GameRulesCsvSerializer.Apply("Key,Value,Note\nCity.GoldPerLevel,2,테스트\n", errors);
+            Check(GameRules.City.GoldPerLevel == 2 && CitySystem.CityGoldIncome(grid, world, city) == before + 3, "editing a CSV rule changes city income");
+            Check(errors.Exists(e => e.Contains("City.MarketGoldCap") && e.Contains("행이 없음")), "missing rule rows are reported");
+
+            errors.Clear();
+            GameRulesCsvSerializer.Apply("Key,Value,Wiki\nCity.Nope,1,\nCity.MarketGoldCap,abc,8\n", errors);
+            Check(errors.Exists(e => e.Contains("City.Nope")) && errors.Exists(e => e.Contains("abc")), "unknown key / bad value reported");
+            Check(errors.Exists(e => e.Contains("위키 값(8)과 달라")), "deviation from wiki without a Note is reported");
+            GameDataLoader.LoadAll();
+            Check(GameRules.City.GoldPerLevel == 1 && GameRules.City.MarketGoldCap == 8, "reload restores CSV values");
+        }
+
+        private static void VerifyRewardsAndTasks()
+        {
+            Check(CityRewardDefinition.All.Length == 8 && TaskDefinition.All.Length == 7, "8 city rewards, 7 tasks from CSV");
+            var lv2 = CitySystem.RewardOptions(2);
+            var lv7 = CitySystem.RewardOptions(7);
+            Check(lv2.Length == 2 && lv2.Contains(CityRewardType.Workshop) && lv2.Contains(CityRewardType.Explorer), "level 2 rewards");
+            Check(lv7.Length == 2 && lv7.Contains(CityRewardType.Park) && lv7.Contains(CityRewardType.SuperUnit), "level 5+ rewards repeat the top row");
+            Check(CitySystem.RewardAmount(CityRewardType.Resources) == 5 && CitySystem.RewardAmount(CityRewardType.PopulationGrowth) == 3 &&
+                  CitySystem.RewardAmount(CityRewardType.BorderGrowth) == 2 && CitySystem.RewardAmount(CityRewardType.Workshop) == 1, "reward amounts (wiki City)");
+            var pacifist = TaskDefinition.All.First(t => t.Id == TaskDefinition.Pacifist);
+            Check(pacifist.Kind == TaskKind.TurnsWithoutAttack && pacifist.Threshold == 5 && pacifist.UnlockKey == "Task.Pacifist", "pacifist task from CSV");
         }
 
         private static void VerifyCapitalVision()

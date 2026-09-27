@@ -166,7 +166,7 @@ namespace TacticsECS.EditorTools
             foreach (var (team, pos) in new[] { (Team.Player, a), (Team.Enemy, b) })
             {
                 CitySystem.FoundCity(grid, econ, pos, team, true, team == Team.Player ? "P 수도" : "E 수도");
-                VisionSystem.Reveal(grid, team, pos, VisionDefinition.StartRevealRadius);
+                VisionSystem.Reveal(grid, team, pos, GameRules.Vision.StartRevealRadius);
                 UnitFactorySystem.CreateFromCsv(grid, world, team, starter, pos);
             }
             CitySystem.RefreshConnections(grid, econ, null);

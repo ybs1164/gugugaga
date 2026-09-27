@@ -20,10 +20,6 @@ namespace TacticsECS
     /// </summary>
     public static class CitySystem
     {
-        public const int DefaultBorderRadius = 1;
-        public const int MarketGoldCap = 8;
-        public const int CityDefenseBonus = 1;
-        public const int WallDefenseBonus = 3;
 
         public static readonly Team[] Teams = { Team.Player, Team.Enemy };
 
@@ -69,7 +65,7 @@ namespace TacticsECS
         {
             int cap = 0;
             foreach (var c in econ.Cities)
-                if (c.Owner == team) cap += c.Level + 1;
+                if (c.Owner == team) cap += c.Level + GameRules.City.UnitCapacityBase;
             return cap;
         }
 
@@ -98,7 +94,7 @@ namespace TacticsECS
                 IsCapital = isCapital,
                 Level = 1,
                 Population = 0,
-                BorderRadius = DefaultBorderRadius,
+                BorderRadius = GameRules.City.DefaultBorderRadius,
             });
             econ.HadCity.Add(owner);
             int index = econ.Cities.Count - 1;
@@ -182,7 +178,7 @@ namespace TacticsECS
                 }
 
                 FoundCity(grid, econ, best.Value, team, true, team == Team.Player ? "아군 수도" : "적 수도");
-                VisionSystem.Reveal(grid, team, best.Value, VisionDefinition.StartRevealRadius); // 시작 시 수도 주변 5x5
+                VisionSystem.Reveal(grid, team, best.Value, GameRules.Vision.StartRevealRadius); // 시작 시 수도 주변 5x5
             }
             RefreshConnections(grid, econ, null);
         }
@@ -257,26 +253,30 @@ namespace TacticsECS
         /// <summary>지금 고를 차례인 보상이 어느 레벨의 보상인지(가장 오래된 미선택 레벨부터).</summary>
         public static int PendingRewardLevel(CityData city) => city.Level - city.PendingRewards + 1;
 
+        /// <summary>이 레벨에서 고를 수 있는 보상(CityRewards.csv에서 Level이 같은 행들). 표의 최고 레벨보다 높으면 최고 레벨 행들.</summary>
         public static CityRewardType[] RewardOptions(int level)
         {
-            var table = CityRewardDefinition.OptionsByLevel;
-            int i = Mathf.Clamp(level - 2, 0, table.Length - 1);
-            return table[i];
+            int maxLevel = 0;
+            foreach (var r in CityRewardDefinition.All) if (r.Level > maxLevel) maxLevel = r.Level;
+            int use = Mathf.Min(level, maxLevel);
+            var list = new List<CityRewardType>();
+            foreach (var r in CityRewardDefinition.All) if (r.Level == use) list.Add(r.Type);
+            return list.ToArray();
         }
 
-        public static string RewardName(CityRewardType type)
+        public static CityRewardInfo? FindReward(CityRewardType type)
         {
-            foreach (var info in CityRewardDefinition.Info)
-                if (info.Type == type) return info.Name;
-            return type.ToString();
+            foreach (var r in CityRewardDefinition.All)
+                if (r.Type == type) return r;
+            return null;
         }
 
-        public static string RewardDescription(CityRewardType type)
-        {
-            foreach (var info in CityRewardDefinition.Info)
-                if (info.Type == type) return info.Description;
-            return string.Empty;
-        }
+        public static string RewardName(CityRewardType type) => FindReward(type)?.Name ?? type.ToString();
+
+        public static string RewardDescription(CityRewardType type) => FindReward(type)?.Description ?? string.Empty;
+
+        /// <summary>보상 크기(CityRewardInfo.Amount) — 표에 없으면 0.</summary>
+        public static int RewardAmount(CityRewardType type) => FindReward(type)?.Amount ?? 0;
 
         public static bool ApplyReward(GridWorld grid, EconomyWorld econ, int cityIndex, CityRewardType reward, List<EconomyLogEntry> log)
         {
@@ -292,9 +292,9 @@ namespace TacticsECS
             {
                 case CityRewardType.Workshop: city.HasWorkshop = true; break;
                 case CityRewardType.CityWall: city.HasWall = true; break;
-                case CityRewardType.Resources: res.Gold += CityRewardDefinition.ResourcesGold; break;
+                case CityRewardType.Resources: res.Gold += RewardAmount(CityRewardType.Resources); break;
                 case CityRewardType.Park: city.ParkCount++; break;
-                case CityRewardType.BorderGrowth: city.BorderRadius = CityRewardDefinition.BorderGrowthRadius; break;
+                case CityRewardType.BorderGrowth: city.BorderRadius = Mathf.Max(city.BorderRadius, RewardAmount(CityRewardType.BorderGrowth)); break;
                 case CityRewardType.SuperUnit: entry.SpawnUnitId = StrongestUnitId(econ); break;
             }
             econ.Cities[cityIndex] = city;
@@ -303,7 +303,7 @@ namespace TacticsECS
 
             if (reward == CityRewardType.BorderGrowth) ClaimTerritory(grid, econ, cityIndex);
             if (reward == CityRewardType.Explorer) VisionSystem.RunExplorer(grid, econ, city.Owner, city.Position, log);
-            if (reward == CityRewardType.PopulationGrowth) AddPopulation(econ, cityIndex, CityRewardDefinition.PopulationGrowthAmount, log);
+            if (reward == CityRewardType.PopulationGrowth) AddPopulation(econ, cityIndex, RewardAmount(CityRewardType.PopulationGrowth), log);
             return true;
         }
 
@@ -327,7 +327,8 @@ namespace TacticsECS
         public static int CityGoldIncome(GridWorld grid, EntityWorld world, CityData city)
         {
             if (IsBesieged(grid, world, city)) return 0;
-            int income = city.Level + (city.HasWorkshop ? 1 : 0) + city.ParkCount + (city.IsCapital ? 1 : 0);
+            int income = city.Level * GameRules.City.GoldPerLevel + (city.HasWorkshop ? RewardAmount(CityRewardType.Workshop) : 0) +
+                         city.ParkCount * RewardAmount(CityRewardType.Park) + (city.IsCapital ? GameRules.City.CapitalGold : 0);
             if (city.Population < 0) income += city.Population;
             return Mathf.Max(0, income);
         }
@@ -347,15 +348,13 @@ namespace TacticsECS
             foreach (var city in econ.Cities)
             {
                 if (city.Owner != team) continue;
-                total += 1 + (city.ConnectedToCapital ? 1 : 0) + (city.IsCapital ? 1 : 0);
+                total += GameRules.Economy.DevelopmentPerCity + (city.ConnectedToCapital ? GameRules.Economy.DevelopmentPerConnection : 0) +
+                         (city.IsCapital ? GameRules.Economy.DevelopmentCapital : 0);
             }
             return total;
         }
 
         // ---------- 수도 연결 ----------
-
-        /// <summary>항구와 항구 사이에 둘 수 있는 물 칸 수(위키 City Connections: "five or fewer water tiles between them").</summary>
-        public const int MaxPortWaterGap = 5;
 
         /// <summary>깊은 바다를 건너는 항구 연결에 필요한 해금 키(위키: Navigation).</summary>
         public const string OceanConnectionKey = "Connect.Ocean";
@@ -393,7 +392,7 @@ namespace TacticsECS
                             }
                             if (!(curIsPort || curIsWater) || !IsOpenConnectionWater(grid, team, next, oceanOk)) continue;
                             int w = water + 1;
-                            if (w > MaxPortWaterGap || (bestWater.TryGetValue(next, out var old) && old <= w)) continue;
+                            if (w > GameRules.City.MaxPortWaterGap || (bestWater.TryGetValue(next, out var old) && old <= w)) continue;
                             bestWater[next] = w;
                             queue.Enqueue((next, w));
                         }

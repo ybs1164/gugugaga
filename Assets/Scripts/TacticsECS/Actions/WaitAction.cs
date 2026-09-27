@@ -12,8 +12,6 @@ namespace TacticsECS
     [System.Serializable]
     public class WaitAction : ISelfAction
     {
-        public const int NormalHealAmount = 2;
-        public const int OwnTerritoryHealAmount = 4;
 
         public ActionType GetActionType() => ActionType.Wait;
 
@@ -38,7 +36,7 @@ namespace TacticsECS
 
         public static int CalculateHealAmount(GridWorld grid, EntityWorld world, int unitId)
         {
-            return IsInOwnTerritory(grid, world, unitId) ? OwnTerritoryHealAmount : NormalHealAmount;
+            return IsInOwnTerritory(grid, world, unitId) ? GameRules.Heal.OwnTerritory : GameRules.Heal.Other;
         }
 
         /// <summary>

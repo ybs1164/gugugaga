@@ -222,8 +222,8 @@ namespace TacticsECS.EditorTools
             // 요새화 유닛의 도시 방어.
             int fort = MakeUnit(world, grid, p, cap, new List<IUnitAction> { MoveAction.FromCsv(1), new FortifyAction() });
             TechEffectSystem.RefreshUnits(grid, world, econ);
-            Check(world.Get<PositionalDefenseBonus>(fort).Value == CitySystem.CityDefenseBonus, "fortify in city +1");
-            Check(CombatSystem.EffectiveDefense(world, fort) == 1 + CitySystem.CityDefenseBonus, "effective defense includes positional bonus");
+            Check(world.Get<PositionalDefenseBonus>(fort).Value == GameRules.Combat.CityDefenseBonus, "fortify in city +1");
+            Check(CombatSystem.EffectiveDefense(world, fort) == 1 + GameRules.Combat.CityDefenseBonus, "effective defense includes positional bonus");
 
             // 훈련.
             Give(econ, p, 10, 0);

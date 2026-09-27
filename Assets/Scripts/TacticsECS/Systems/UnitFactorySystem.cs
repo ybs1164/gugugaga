@@ -83,8 +83,8 @@ namespace TacticsECS
         {
             if (actions != null)
                 foreach (var a in actions)
-                    if (a is ScoutAction) return VisionDefinition.ExtendedSightRadius;
-            return VisionDefinition.BaseSightRadius;
+                    if (a is ScoutAction) return GameRules.Vision.ExtendedSightRadius;
+            return GameRules.Vision.BaseSightRadius;
         }
 
         /// <summary>near 칸(차 있으면 가장 가까운 빈 칸, 체비쇼프 반경 3까지)에서 domain 유닛이 설 수 있는 칸. 없으면 null.

@@ -1,0 +1,57 @@
+﻿Key,Value,Wiki,Description,Note
+# 경제 — 시작 자원,,,,
+Economy.StartingGold,5,5,시작 골드(위키: 별),
+Economy.StartingDevelopment,5,,시작 발전도(연구 자원),프로젝트 고유 — 연구(발전도)와 건설/훈련(골드)을 분리한 기존 기획
+Economy.StartingMaxFaith,10,,신앙 최대치,프로젝트 고유 자원
+Economy.DevelopmentPerCity,1,,도시 하나당 발전도/턴,프로젝트 고유
+Economy.DevelopmentPerConnection,1,,수도와 연결된 도시 하나당 발전도/턴,프로젝트 고유
+Economy.DevelopmentCapital,1,,수도 추가 발전도/턴,프로젝트 고유
+# 도시,,,,
+City.GoldPerLevel,1,1,도시 레벨당 골드/턴,
+City.CapitalGold,1,1,수도 추가 골드/턴(위키: 사람 플레이어 수도),
+City.DefaultBorderRadius,1,1,새 도시 영토 반경(1 = 3x3),
+City.UnitCapacityBase,1,1,도시 하나가 지원하는 유닛 수 = 레벨 + 이 값,원문과 다른 점: 위키는 도시별 상한이지만 팀 합계로 판정
+City.MarketGoldPerLevel,1,1,시장: 인접 가공 건물 레벨 하나당 골드/턴,위키 Stars 문서는 2로 적혀 있으나 Market/Buildings 문서(1)를 따름
+City.MarketGoldCap,8,8,시장 골드 상한(위키: 최대 레벨 8),
+City.MaxPortWaterGap,5,5,항구 연결: 항구 사이 물 칸 최대 수(City Connections),
+# 회복/해산/유적,,,,
+Heal.OwnTerritory,4,4,자기 영토에서 쉬면 회복량,
+Heal.Other,2,2,중립/적 영토에서 쉬면 회복량,
+Unit.DisbandRefundDivisor,2,2,해산 환급 = 훈련 비용 / 이 값(내림),
+Ruin.Gold,10,10,유적 보상: 골드,
+Ruin.Population,3,3,유적 보상: 인구(수도),
+# 기술,,,,
+Tech.DefaultCostBase,4,4,TechTree.csv CostBase를 비웠을 때 값(비용 = 티어 x 도시 수 + 4),
+Tech.LiteracyDivisor,3,3,Literacy: 비용에서 1/N을 뺀다(= 2/3 올림 — 위키 비용 표와 일치),
+# 전투 — 방어 보너스,,,,
+Combat.GuardDefenseBonus,2,,방어 태세(Defend 행동) 방어력 +N,프로젝트 고유 행동(위키에 없음)
+Combat.TerrainDefenseBonus,1,x1.5,지형 방어 기술(숲/산/물) 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x1.5 대신 +1 (3차에서 재검토)
+Combat.CityDefenseBonus,1,x1.5,요새화 유닛의 도시 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x1.5 대신 +1 (3차에서 재검토)
+Combat.WallDefenseBonus,3,x4,성벽 도시 방어력 +N,원문과 다른 점: 정수 뺄셈 전투라 x4 대신 +3 (3차에서 재검토)
+# 점수(위키 Score),,,,
+Score.PerUnitCostStar,5,5,유닛 비용 1당 점수,
+Score.SuperUnit,50,50,슈퍼 유닛 점수,
+Score.PerTerritoryTile,20,20,영토 칸당 점수,
+Score.PerExploredTile,5,5,탐험한 칸당 점수,
+Score.CityBase,100,100,도시 기본 점수,
+Score.PerCityLevelAbove1,50,50,도시 레벨(1 초과)당 점수,
+Score.PerPopulation,5,5,인구당 점수,
+Score.Park,250,250,공원 점수,
+Score.Monument,400,400,기념물 점수,
+Score.TempleBase,100,100,신전 기본 점수,
+Score.PerTempleLevelAbove1,100,100,신전 레벨(1 초과)당 점수,위키 Temple 문서(+50)와 Score 문서(+100)가 달라 점수 전용 Score 문서를 따름
+Score.TempleMaxLevel,5,5,신전 최대 레벨,
+Score.TempleTurnsPerLevel,3,3,신전이 레벨 업하는 간격(턴),위키 Temple 본문은 "2턴마다"지만 같은 문서의 레벨 표(0-2턴 Lv1 / 3-5턴 Lv2 ...)를 따름
+Score.PerTechTier,100,100,기술 티어당 점수,
+# 시야(위키 Terrain/Unit Skills/Explorer/Lighthouse),,,,
+Vision.BaseSightRadius,1,1,유닛 시야 반경(1 = 3x3),
+Vision.ExtendedSightRadius,2,2,산 위/정찰 시야 반경(2 = 5x5),
+Vision.StartRevealRadius,2,2,시작 시 수도 주변 밝히는 반경,
+Vision.ExplorerMoves,12,12,탐험가 이동 횟수(2026-02 패치로 15 -> 12),
+Vision.ExplorerScanRange,4,4,탐험가가 한 걸음에 세는 구름 칸 상한,
+Vision.LighthousePopulation,1,1,등대를 처음 밝히면 수도 인구 +N,
+# AI 튜닝(위키 무관),,,,
+AI.MaxImprovementsPerTurn,12,,경제 AI가 한 턴에 하는 건설/채집 최대 횟수,AI 전용
+AI.ThreatRadius,3,,경제 AI: 자기 영토 N칸 안의 적 유닛을 위협으로 센다,AI 전용
+AI.MaxConnectionBudget,18,,경제 AI: 도시 연결 계획 최대 골드,AI 전용
+AI.DefendRadius,2,,군사 AI: 적이 도시 N칸 안이면 가장 가까운 유닛이 복귀,AI 전용

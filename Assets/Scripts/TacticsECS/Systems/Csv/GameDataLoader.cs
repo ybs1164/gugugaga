@@ -11,11 +11,17 @@ namespace TacticsECS
     /// </summary>
     public static class GameDataLoader
     {
+        /// <summary>Resources.Load&lt;TextAsset&gt; 경로 — Assets/Resources/GameRules.csv(스칼라 규칙 값, Data/GameRules).</summary>
+        public const string GameRulesCsvResourcePath = "GameRules";
+
         public static List<string> LoadAll()
         {
             var errors = new List<string>();
             BuildingDefinition.All = GameTableCsvSerializer.ParseBuildings(Read(BuildingDefinition.CsvResourcePath, errors), errors);
             TileActionDefinition.All = GameTableCsvSerializer.ParseTileActions(Read(TileActionDefinition.CsvResourcePath, errors), errors);
+            CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors), errors);
+            TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors), errors);
+            GameRulesCsvSerializer.Apply(Read(GameRulesCsvResourcePath, errors), errors);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return errors;
         }

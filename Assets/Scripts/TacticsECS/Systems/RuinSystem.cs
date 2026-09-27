@@ -14,8 +14,6 @@ namespace TacticsECS
     /// </summary>
     public static class RuinSystem
     {
-        public const int GoldReward = 10;
-        public const int PopulationReward = 3;
         public const string DisbandKey = "Ability.Disband";
 
         public static bool CanExplore(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId) =>
@@ -54,10 +52,10 @@ namespace TacticsECS
                     break;
                 }
                 case RuinReward.Population:
-                    entry.Subject = $"인구 +{PopulationReward} ({econ.Cities[capital].Name})";
+                    entry.Subject = $"인구 +{GameRules.Ruin.Population} ({econ.Cities[capital].Name})";
                     entry.CityIndex = capital;
                     log?.Add(entry);
-                    CitySystem.AddPopulation(econ, capital, PopulationReward, log);
+                    CitySystem.AddPopulation(econ, capital, GameRules.Ruin.Population, log);
                     return true;
                 case RuinReward.Explorer:
                     entry.Subject = "탐험가";
@@ -71,9 +69,9 @@ namespace TacticsECS
                 default:
                 {
                     var res = econ.Resources[team];
-                    res.Gold += GoldReward;
+                    res.Gold += GameRules.Ruin.Gold;
                     econ.Resources[team] = res;
-                    entry.Subject = $"골드 +{GoldReward}";
+                    entry.Subject = $"골드 +{GameRules.Ruin.Gold}";
                     break;
                 }
             }
@@ -111,7 +109,7 @@ namespace TacticsECS
         public static int DisbandRefund(EntityWorld world, EconomyWorld econ, int unitId)
         {
             var row = CitySystem.FindUnitRow(econ, world.Get<UnitTypeId>(unitId).Value);
-            return (row?.Cost ?? 0) / 2;
+            return (row?.Cost ?? 0) / Mathf.Max(1, GameRules.Unit.DisbandRefundDivisor);
         }
 
         /// <summary>유닛을 죽은 것과 같은 방식(Hp=0 + 그리드에서 제거)으로 치우고 환급한다.</summary>

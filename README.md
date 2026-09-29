@@ -89,9 +89,9 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 ### 사용 가능 행동 (Assets/Scripts/TacticsECS/Actions)
 
 어떤 유닛이 이동/공격/방어/치유/자폭/반격/돌격/대피/기습/잠입/무리/전향/연타/정찰/스플래시/뻣뻣함/빙결/
-요새화/은신/약탈/고정/수송 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라
-행동 자신**이 정한다. 마지막 다섯(요새화/은신/약탈/고정/수송)은 아직 게임플레이 효과가 정해지지 않은
-플레이스홀더다 — 자세한 내용은 [플레이스홀더 패시브](#플레이스홀더-패시브-아직-효과-미정) 참고. 스물두 행동
+요새화/은신 중 무엇을 쓸 수 있는지, 그리고 그 행동이 실제로 무엇을 하는지는 **값이 아니라
+행동 자신**이 정한다. 은신은 아직 효과가 없는 플레이스홀더다 — 자세한 내용은 [플레이스홀더 패시브](#플레이스홀더-패시브-아직-효과-미정) 참고
+(약탈/고정/수송 플레이스홀더는 2026-09-29에 삭제). 아래 행동들
 ([`MoveAction`](Assets/Scripts/TacticsECS/Actions/MoveAction.cs)/[`AttackAction`](Assets/Scripts/TacticsECS/Actions/AttackAction.cs)/
 [`DefendAction`](Assets/Scripts/TacticsECS/Actions/DefendAction.cs)/[`HealAction`](Assets/Scripts/TacticsECS/Actions/HealAction.cs)/
 [`SelfDestructAction`](Assets/Scripts/TacticsECS/Actions/SelfDestructAction.cs)/[`CounterAction`](Assets/Scripts/TacticsECS/Actions/CounterAction.cs)/
@@ -101,8 +101,7 @@ Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 [`ComboAction`](Assets/Scripts/TacticsECS/Actions/ComboAction.cs)/[`ScoutAction`](Assets/Scripts/TacticsECS/Actions/ScoutAction.cs)/
 [`SplashAction`](Assets/Scripts/TacticsECS/Actions/SplashAction.cs)/[`StiffAction`](Assets/Scripts/TacticsECS/Actions/StiffAction.cs)/
 [`FreezeAction`](Assets/Scripts/TacticsECS/Actions/FreezeAction.cs)/[`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)/
-[`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)/[`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)/
-[`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)/[`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs))
+[`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs))
 은 [`IUnitAction`](Assets/Scripts/TacticsECS/Actions/IUnitAction.cs)을 구현하는데, 이 인터페이스는 값(프로퍼티) 하나가
 아니라 **메서드 두 개**로 정의된다: `CanExecute(world, unitId)`(지금 이 행동을 쓸 수 있는지 — 생존/이번 턴
 이동·행동 여부처럼 행동마다 다른 조건을 행동 스스로 판단)와, 매개변수 모양이 다른 세 하위 인터페이스
@@ -188,9 +187,8 @@ System들은 이제 유닛의 행동 목록에서 필요한 행동을 찾아 위
 
 - **요새화**([`FortifyAction`](Assets/Scripts/TacticsECS/Actions/FortifyAction.cs)): **2026-09-26 구현됨** — 자기 팀 도시 칸에서 방어력 +1, 그 도시에 성벽(레벨 3 보상)이 있으면 +3(`TechEffectSystem.RefreshUnits`). 상세: [docs/passives/Fortify.md](docs/passives/Fortify.md).
 - **은신**([`StealthAction`](Assets/Scripts/TacticsECS/Actions/StealthAction.cs)): 스파이에 쓰임. 효과 미정(예상: 적에게 발견되지 않음). 상세: [docs/passives/Stealth.md](docs/passives/Stealth.md).
-- **약탈**([`PillageAction`](Assets/Scripts/TacticsECS/Actions/PillageAction.cs)): 스파이에 쓰임. 효과 미정(예상: 자원 획득). 상세: [docs/passives/Pillage.md](docs/passives/Pillage.md).
-- **고정**([`AnchoredAction`](Assets/Scripts/TacticsECS/Actions/AnchoredAction.cs)): 사제/함선류에 쓰임. 효과 미정. 상세: [docs/passives/Anchored.md](docs/passives/Anchored.md).
-- **수송**([`TransportAction`](Assets/Scripts/TacticsECS/Actions/TransportAction.cs)): 함선류에 쓰임. 효과 미정(예상: 육지 유닛을 태우고 물을 건너는 것) — [지형(육지/물)](#지형-육지물)의 이동 제한과는 무관하게 이미 별도로 동작한다. 상세: [docs/passives/Transport.md](docs/passives/Transport.md).
+- ~~약탈/고정/수송~~: 2026-09-29 삭제 — 효과가 정해지지 않은 채 쓰이지 않았고, 약탈·고정은 위키에 없는 스킬, 수송(위키 Carry)은
+  항구 승선([`EmbarkSystem`](Assets/Scripts/TacticsECS/Systems/EmbarkSystem.cs))이 맡는다. 유닛 CSV의 `Transport.Capacity` 컬럼도 없앴다.
 
 ### 지형 (육지/물)
 
@@ -649,8 +647,8 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   농장+풍차 인접, 파괴, 마을 점령, 도로 수도 연결, 산 진입/요새화 방어, 적 AI 연구/훈련/점령, 도시 전멸 패배.
 
 **위키와 다르게 단순화한 것**: 발전도(연구)와 골드(건설/훈련)를 분리한 것은 이 프로젝트 기존 기획(도시 발전도로 기술 해금)을
-따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 유닛
-행동 대신 영토 안 타일 행동. 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
+따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 2026-09-29부터
+위키대로 배의 행동(불가사리 칸에서 턴을 시작한 배, 영토 무관, 골드 8 — `RuinSystem.HarvestStarfish`). 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
 레벨/항구 승선/시야/점수는 아래 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절에서 채웠다.
 
 ## 건물 기능 · 시야 · 적 시뮬레이션
@@ -708,20 +706,19 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 도시 발전 자원
 
-도시 발전도(⚙️)/인구(👤)/골드(🪙)/신앙(⚡) 네 가지 팀 자원. 예전엔 타일/영토 시스템이 없어 생산량이 인스펙터
+도시 발전도(⚙️)/인구(👤)/골드(🪙) 세 가지 팀 자원(신앙은 쓰는 곳이 없는 프로젝트 고유 자원이라 2026-09-29에 삭제). 예전엔 타일/영토 시스템이 없어 생산량이 인스펙터
 고정값이었고 영토 회복/수도 연결은 항상 false인 플레이스홀더였는데, 위 경제 루프로 전부 실제 값이 됐다.
 
 - [`CityResourceData`](Assets/Scripts/TacticsECS/Core/CityResourceData.cs): 팀 하나의 자원(`EconomyWorld.Resources`).
   `GoldProduction`/`DevelopmentProduction`/`PopulationCap`은 도시 목록으로 매번 다시 계산해 넣는 캐시다.
-- [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs): `ApplyTurnStart`(생산량 재계산 + 골드/발전도/신앙
+- [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs): `ApplyTurnStart`(생산량 재계산 + 골드/발전도
   증가), `RefreshProduction`(자원은 그대로 두고 생산량만 갱신 — 건설/점령 직후 HUD용), `IsConnectedToCapital`(이제
   `CitySystem.RefreshConnections`가 도로/도시/항구를 8방향으로 탐색해 기록한 값을 돌려준다).
 - 영토 회복: [`WaitAction.IsInOwnTerritory`](Assets/Scripts/TacticsECS/Actions/WaitAction.cs)가 서 있는 칸의 `TileData.OwnerTeam`을 봐서
   자기 영토면 4 회복(아니면 2).
-- 신앙: 매 턴 보유 유닛 수만큼 늘고, 신전을 지을 때마다 최대치 +5.
 - [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`: 발전도/골드는
   "보유량 (+턴당 생산량)"으로 보여준다. 시작값은 `BattleController` 인스펙터의 `startingGold`/`startingDevelopment`(기본 5/5,
-  폴리토피아 시작 별 5)와 `cityMaxFaith`.
+  폴리토피아 시작 별 5 — 지금은 `GameRules.csv` `Economy.*`).
 
 ## 기술트리 (CSV)
 
@@ -822,6 +819,17 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 검증: `GameDataCsvVerification`(유닛/배 모델 존재 추가)/`UIVerification`/`UnitCsvVerification`/`BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
 
 ## 작업 로그
+
+- 2026-09-29: **구현 계획 1단계 — 작은 독립 기능**.
+  - **불가사리 인양 = 배의 행동**(위키 Starfish): 항해 연구 팀의 배가 불가사리 칸에서 턴을 시작하면 영토와 무관하게 인양(턴 소모, 골드
+    `GameRules.csv` `Starfish.Gold` = 8). 영토 타일 행동(`TileActions.csv` `HarvestStarfish`)은 삭제. 유닛 메뉴 버튼, `EconomyAI`가 인양,
+    `EnemyAI`의 배가 보이는 불가사리로 가서 기다린다.
+  - **파괴(위키 Destroy)는 건물과 유적**: 영토 안 유적도 없앨 수 있다. 계획에 있던 "도로 파괴"는 위키 Roads 문서("Roads cannot be destroyed")를
+    확인하고 넣지 않았다(계획 수정).
+  - **신앙 자원 삭제**(위키에 없고 쓰는 곳 없음): `CityResourceData.Faith/MaxFaith`, `Economy.StartingMaxFaith`, 자원 바 신앙 칸(`UIPrefabSetup` 재생성).
+    자원 바 툴팁도 실제 쓰임(발전도 = 연구, 골드 = 건설·훈련)으로 고침.
+  - **플레이스홀더 패시브 삭제**: 약탈/고정/수송(`PillageAction`/`AnchoredAction`/`TransportAction`, `CargoCapacity`, `Transport.Capacity` 컬럼, docs/passives 3개).
+  - 검증: `VerificationSuite` ALL PASS(불가사리/유적 파괴/도로 파괴 불가/도시당 1개 건물 검사 추가), `EconomySimulation` ALL PASS.
 
 - 2026-09-29: **구현 계획 0단계 — 기반 정리** (미구현 항목 순차 구현 계획의 첫 단계).
   - **CLAUDE.md 규칙 6 적용(한 칸에 한 값)**: 목록 칸을 번호 붙은 반복 컬럼으로 전환 —

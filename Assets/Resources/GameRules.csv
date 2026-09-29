@@ -2,7 +2,6 @@
 # 경제 — 시작 자원,,,,
 Economy.StartingGold,5,5,시작 골드(위키: 별),
 Economy.StartingDevelopment,5,,시작 발전도(연구 자원),프로젝트 고유 — 연구(발전도)와 건설/훈련(골드)을 분리한 기존 기획
-Economy.StartingMaxFaith,10,,신앙 최대치,프로젝트 고유 자원
 Economy.DevelopmentPerCity,1,,도시 하나당 발전도/턴,프로젝트 고유
 Economy.DevelopmentPerConnection,1,,수도와 연결된 도시 하나당 발전도/턴,프로젝트 고유
 Economy.DevelopmentCapital,1,,수도 추가 발전도/턴,프로젝트 고유
@@ -21,6 +20,7 @@ Heal.Other,2,2,중립/적 영토에서 쉬면 회복량,
 Unit.DisbandRefundDivisor,2,2,해산 환급 = 훈련 비용 / 이 값(내림),
 Ruin.Gold,10,10,유적 보상: 골드,
 Ruin.Population,3,3,유적 보상: 인구(수도),
+Starfish.Gold,8,8,불가사리 인양 골드(위키 Starfish — 배가 그 칸에서 턴을 시작하면 인양),
 # 기술,,,,
 Tech.DefaultCostBase,4,4,TechTree.csv CostBase를 비웠을 때 값(비용 = 티어 x 도시 수 + 4),
 Tech.LiteracyDivisor,3,3,Literacy: 비용에서 1/N을 뺀다(= 2/3 올림 — 위키 비용 표와 일치),

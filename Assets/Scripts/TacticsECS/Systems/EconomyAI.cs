@@ -34,6 +34,10 @@ namespace TacticsECS
                 if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && RuinSystem.CanExplore(grid, world, econ, id))
                     RuinSystem.Explore(grid, world, econ, id, log);
 
+            for (int id = 0; id < world.EntityCount; id++)
+                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && RuinSystem.CanHarvestStarfish(grid, world, econ, id))
+                    RuinSystem.HarvestStarfish(grid, world, econ, id, log);
+
             bool threatened = IsThreatened(grid, world, econ, team);
             ChooseRewards(grid, econ, team, threatened, log);
             Research(econ, team, log);

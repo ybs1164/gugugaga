@@ -1,5 +1,5 @@
-﻿Id,Name,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Transport.Capacity,Cost,Unlock,Note
-raft,뗏목,0,1,,Move,Stiff,,,,Water,2,0,0,0,0,0,0,,항구에 들어간 육지 유닛이 변한다(비용 없음). 체력은 태운 유닛 것
-scout,정찰선,0,1,,Move,Attack,Charge,Scout,Counter,Water,3,2,2,0,0,0,5,Unit.scout,뗏목 업그레이드(자기 영토) — 배 타기
-rammer,충각선,0,3,,Move,Attack,Charge,Counter,,Water,3,3,1,0,0,0,5,Unit.rammer,뗏목 업그레이드 — 충파
-bomber,폭격선,0,2,,Move,Attack,Splash,Stiff,,Water,2,3,3,0,0,0,15,Unit.bomber,뗏목 업그레이드 — 항해
+﻿Id,Name,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Unlock,Note
+raft,뗏목,0,1,,Move,Stiff,,,,Water,2,0,0,0,0,0,,항구에 들어간 육지 유닛이 변한다(비용 없음). 체력은 태운 유닛 것
+scout,정찰선,0,1,,Move,Attack,Charge,Scout,Counter,Water,3,2,2,0,0,5,Unit.scout,뗏목 업그레이드(자기 영토) — 배 타기
+rammer,충각선,0,3,,Move,Attack,Charge,Counter,,Water,3,3,1,0,0,5,Unit.rammer,뗏목 업그레이드 — 충파
+bomber,폭격선,0,2,,Move,Attack,Splash,Stiff,,Water,2,3,3,0,0,15,Unit.bomber,뗏목 업그레이드 — 항해

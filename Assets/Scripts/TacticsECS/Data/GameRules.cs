@@ -14,7 +14,6 @@ namespace TacticsECS
         {
             public static int StartingGold = 5;
             public static int StartingDevelopment = 5;
-            public static int StartingMaxFaith = 10;
             public static int DevelopmentPerCity = 1;
             public static int DevelopmentPerConnection = 1;
             public static int DevelopmentCapital = 1;
@@ -47,6 +46,12 @@ namespace TacticsECS
         {
             public static int Gold = 10;
             public static int Population = 3;
+        }
+
+        /// <summary>위키 Starfish: 배가 불가사리 칸에서 턴을 시작하면 인양(턴 소모)해 골드를 받는다.</summary>
+        public static class Starfish
+        {
+            public static int Gold = 8;
         }
 
         public static class Tech

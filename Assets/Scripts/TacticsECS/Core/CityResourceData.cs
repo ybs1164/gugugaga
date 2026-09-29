@@ -1,7 +1,7 @@
 namespace TacticsECS
 {
     /// <summary>
-    /// 한 팀(제국)이 보유한 발전 자원 값(도시 발전도/인구 상한/골드/신앙). 순수 데이터이며, 매 턴 생산량
+    /// 한 팀(제국)이 보유한 발전 자원 값(도시 발전도/인구 상한/골드). 순수 데이터이며, 매 턴 생산량
     /// 계산이나 소모 판정 같은 로직은 전부 CityResourceSystem이 담당한다(기술트리 해금 소모는 TechSystem).
     /// 팀마다 하나씩 EconomyWorld.Resources에 들어 있다.
     ///
@@ -19,11 +19,9 @@ namespace TacticsECS
         public int PopulationCap;
         public int Gold;
         public int GoldProduction;
-        public int Faith;
-        public int MaxFaith;
         public bool IsCapital;
 
-        public static CityResourceData Create(int populationCap, int goldProduction, int developmentProduction, int maxFaith, bool isCapital)
+        public static CityResourceData Create(int populationCap, int goldProduction, int developmentProduction, bool isCapital)
         {
             return new CityResourceData
             {
@@ -32,8 +30,6 @@ namespace TacticsECS
                 PopulationCap = populationCap,
                 Gold = 0,
                 GoldProduction = goldProduction,
-                Faith = 0,
-                MaxFaith = maxFaith,
                 IsCapital = isCapital,
             };
         }

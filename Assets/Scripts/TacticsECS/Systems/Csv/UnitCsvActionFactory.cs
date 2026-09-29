@@ -52,12 +52,6 @@ namespace TacticsECS
                 actions.Add(new FortifyAction());
             if ((row.Actions & ActionType.Stealth) != 0)
                 actions.Add(new StealthAction());
-            if ((row.Actions & ActionType.Pillage) != 0)
-                actions.Add(new PillageAction());
-            if ((row.Actions & ActionType.Anchored) != 0)
-                actions.Add(new AnchoredAction());
-            if ((row.Actions & ActionType.Transport) != 0)
-                actions.Add(TransportAction.FromCsv(row.TransportCapacity));
             if ((row.Actions & ActionType.Wait) != 0)
                 actions.Add(new WaitAction());
             if ((row.Actions & ActionType.IgnoreTerrain) != 0)
@@ -107,9 +101,6 @@ namespace TacticsECS
                     case HealAction heal:
                         row.HealAmount = heal.HealAmount;
                         row.HealRange = heal.HealRange;
-                        break;
-                    case TransportAction transport:
-                        row.TransportCapacity = transport.Capacity;
                         break;
                 }
             }

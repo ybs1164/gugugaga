@@ -12,7 +12,8 @@ namespace TacticsECS
     ///   1. 지금 사거리 안에 보이는 적이 있으면 가장 이득인 대상(처치 가능 > 피해량)을 공격하고 끝.
     ///   2. 목표를 고른다: (a) 점령 목표 칸 위에 서 있으면 다음 턴 점령을 위해 대기, (b) 보이는 적이 자기 도시 2칸 안에
     ///      있고 도시 칸이 비어 있으면 도시로 복귀(도시마다 한 유닛), (c) 가장 가까운(이동 거리 기준) 보이는 적/점령 목표
-    ///      (점령 목표는 유닛마다 하나씩 나눠 가진다), (d) 없으면 가장 가까운 구름 가장자리로 탐험.
+    ///      (점령 목표는 유닛마다 하나씩 나눠 가진다), (c') 배는 보이는 불가사리(항해 연구 시 — 다음 턴 인양), (d) 없으면 가장 가까운
+    ///      구름 가장자리로 탐험. 불가사리 위의 배는 인양을 위해 그 자리에서 기다린다(인양은 EconomyAI가 턴 시작에 한다).
     ///   3. 이동 가능한 칸 중 목표까지의 "여행 거리"(지형을 고려한 BFS — 바다 건너 목표면 배로 가는 거리)가 가장 짧은 칸으로 간다.
     ///      육지로 닿지 않는 목표면 자기 항구로 가서 뗏목을 타고(EmbarkSystem), 배는 목표 쪽 해안에 내린다.
     ///   4. 이동 후 사거리 안에 적이 있으면(돌격 등으로 가능하면) 공격.
@@ -21,6 +22,11 @@ namespace TacticsECS
     public static class EnemyAI
     {
         private const int Unreachable = int.MaxValue;
+
+        /// <summary>배(승선 유닛/물 유닛)이고 팀이 불가사리 인양(항해)을 연구했는지.</summary>
+        private static bool CanSeekStarfish(GridWorld grid, EntityWorld world, EconomyWorld econ, int id, Team team) =>
+            econ != null && (EmbarkSystem.IsEmbarked(world, id) || world.Get<MoveDomain>(id).Value == TerrainType.Water) &&
+            TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], RuinSystem.StarfishKey);
 
         /// <summary>예전 호출(적 팀 고정) 호환용.</summary>
         public static List<BattleLogEntry> RunTurn(GridWorld grid, EntityWorld world, IReadOnlyCollection<Vector2Int> captureTargets = null) =>
@@ -54,6 +60,8 @@ namespace TacticsECS
 
                 // (a) 점령 대기
                 if (captureTargets != null && captureTargets.Contains(selfPos)) { claimedTargets.Add(selfPos); continue; }
+                bool starfishBoat = CanSeekStarfish(grid, world, econ, id, team);
+                if (starfishBoat && grid.GetStructure(selfPos) == RuinSystem.StarfishStructureId) { claimedTargets.Add(selfPos); continue; }
 
                 Vector2Int? goal = null;
                 bool goalIsEnemy = false;
@@ -104,6 +112,20 @@ namespace TacticsECS
                         goal = pick.Pos; goalIsEnemy = pick.IsEnemy;
                     }
                     if (goal.HasValue && !goalIsEnemy) claimedTargets.Add(goal.Value);
+                }
+
+                // (c') 배: 가장 가까운 보이는 불가사리
+                if (goal == null && starfishBoat)
+                {
+                    var fromSelf = TravelMap(grid, world, id, selfPos, unitIsOrigin: true);
+                    int best = Unreachable;
+                    foreach (var kv in fromSelf)
+                    {
+                        if (kv.Value >= best || claimedTargets.Contains(kv.Key) || grid.GetStructure(kv.Key) != RuinSystem.StarfishStructureId) continue;
+                        if (!VisionSystem.IsExplored(grid, team, kv.Key) || (grid.GetOccupant(kv.Key) != TileData.NoOccupant && grid.GetOccupant(kv.Key) != id)) continue;
+                        best = kv.Value; goal = kv.Key;
+                    }
+                    if (goal.HasValue) claimedTargets.Add(goal.Value);
                 }
 
                 // (d) 탐험

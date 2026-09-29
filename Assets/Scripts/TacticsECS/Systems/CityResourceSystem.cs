@@ -40,16 +40,12 @@ namespace TacticsECS
             return resources;
         }
 
-        /// <summary>매 턴 시작 시 자동 생산되는 발전도/골드/신앙을 반영한 다음 값을 반환한다. 신앙은 보유 유닛
-        /// 수만큼 늘어나되 MaxFaith를 넘지 않는다.</summary>
+        /// <summary>매 턴 시작 시 자동 생산되는 발전도/골드를 반영한 다음 값을 반환한다.</summary>
         public static CityResourceData ApplyTurnStart(CityResourceData resources, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
             resources = RefreshProduction(resources, grid, world, econ, team);
             resources.Development += resources.DevelopmentProduction;
             resources.Gold += resources.GoldProduction;
-
-            int faith = resources.Faith + CountPopulation(world, team);
-            resources.Faith = faith > resources.MaxFaith ? resources.MaxFaith : faith;
             return resources;
         }
 

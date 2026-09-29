@@ -4,7 +4,9 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 유닛이 쓰는 경제 행동 중 도시/타일 쪽이 아닌 것 — 유적 탐험과 해산(자유 영혼). 순수 함수형, 자체 상태 없음.
+    /// 유닛이 쓰는 경제 행동 중 도시/타일 쪽이 아닌 것 — 유적 탐험, 불가사리 인양(항해), 해산(자유 영혼). 순수 함수형, 자체 상태 없음.
+    ///   - 불가사리 인양(위키 Starfish): "Harvest.Starfish"(항해) 해금 팀의 배가 불가사리 칸에서 턴을 시작하면(이번 턴 이동·행동 전)
+    ///     중립/적 영토에서도 인양해 골드 GameRules.Starfish.Gold를 받는다. 유적 탐험처럼 그 유닛의 턴을 쓴다.
     ///   - 유적 탐험: 유적 칸에서 턴을 시작한(이번 턴 이동·행동 전) 유닛이 행동을 써서 탐험하면 유적이 사라지고 보상 하나(폴리토피아 위키
     ///     Ruins: 골드 10 / 무료 기술 / 수도 인구 +3 / 탐험가 / 유닛)를 조건이 맞는 것 중 균등하게 무작위로 받는다.
     ///     기술은 트리가 남았을 때, 인구는 수도가 있을 때, 탐험가는 유적 주변 5x5에 구름이 남았을 때만 후보가 된다.
@@ -17,6 +19,33 @@ namespace TacticsECS
     public static class RuinSystem
     {
         public const string DisbandKey = "Ability.Disband";
+        public const string StarfishKey = "Harvest.Starfish";
+        public const string StarfishStructureId = "Starfish";
+
+        /// <summary>배(승선 유닛 또는 물 유닛)가 불가사리 칸에서 턴을 시작했고 팀이 항해를 연구했는지.</summary>
+        public static bool CanHarvestStarfish(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId)
+        {
+            if (econ == null || !UnitQueries.IsAlive(world, unitId)) return false;
+            if (world.Get<HasMoved>(unitId).Value || world.Get<HasActed>(unitId).Value) return false;
+            bool naval = EmbarkSystem.IsEmbarked(world, unitId) || world.Get<MoveDomain>(unitId).Value == TerrainType.Water;
+            if (!naval || grid.GetStructure(world.Get<GridPosition>(unitId).Value) != StarfishStructureId) return false;
+            return TechSystem.HasUnlock(econ.TechNodes, econ.Tech[world.Get<Team>(unitId)], StarfishKey);
+        }
+
+        public static bool HarvestStarfish(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, List<EconomyLogEntry> log)
+        {
+            if (!CanHarvestStarfish(grid, world, econ, unitId)) return false;
+            var team = world.Get<Team>(unitId);
+            var pos = world.Get<GridPosition>(unitId).Value;
+            grid.SetStructure(pos, string.Empty);
+            world.Set(unitId, new HasMoved { Value = true });
+            world.Set(unitId, new HasActed { Value = true });
+            var res = econ.Resources[team];
+            res.Gold += GameRules.Starfish.Gold;
+            econ.Resources[team] = res;
+            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Action, Subject = $"불가사리 인양 (골드 +{GameRules.Starfish.Gold})", Position = pos, CityIndex = -1 });
+            return true;
+        }
 
         public static bool CanExplore(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId) =>
             econ != null && UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value && !world.Get<HasActed>(unitId).Value &&

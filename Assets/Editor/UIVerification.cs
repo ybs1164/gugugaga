@@ -145,10 +145,9 @@ namespace TacticsECS.EditorTools
             {
                 instance.Init();
 
-                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
+                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, isCapital: true);
                 city.Development = 2;
                 city.Gold = 5;
-                city.Faith = 4;
                 instance.SetResources(city, populationUsed: 3);
 
                 var bar = instance.transform.Find("Canvas/Bar");
@@ -165,7 +164,7 @@ namespace TacticsECS.EditorTools
                 CheckSlot("Development", "2 (+1)");
                 CheckSlot("Population", "3/10");
                 CheckSlot("Gold", "5 (+1)");
-                CheckSlot("Faith", "4/10");
+                if (bar.Find("Faith") != null) { Debug.LogError("[UIVerification] CityResourceBar still has the removed Faith slot"); ok = false; }
             }
             finally
             {
@@ -192,7 +191,7 @@ namespace TacticsECS.EditorTools
 
                 var tech = TechTreeData.CreateEmpty();
                 tech.Unlocked.Add("Climbing");
-                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, maxFaith: 10, isCapital: true);
+                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, isCapital: true);
                 city.Development = 10;
                 instance.SetState(tech, city, cityCount: 1);
 

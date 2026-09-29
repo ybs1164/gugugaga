@@ -778,15 +778,14 @@ namespace TacticsECS.EditorTools
             text.text = "전투 시작";
         }
 
-        // ---------- CityResourceBar (도시 발전도/인구/골드/신앙, 재사용 가능한 독립 프리팹) ----------
+        // ---------- CityResourceBar (도시 발전도/인구/골드, 재사용 가능한 독립 프리팹) ----------
 
         /// <summary>표시 순서 + 툴팁 문구. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
         private static readonly (string Name, string Tooltip)[] CityResourceDefs =
         {
-            ("Development", "도시 발전도: 도시 발전에 필요한 자원."),
-            ("Population", "인구: 도시가 보유할 수 있는 유닛 총 수량."),
-            ("Gold", "골드: 기술 발전/유닛 생산에 쓰는 기본 재화."),
-            ("Faith", "신앙: 신앙 펀치(액티브 스킬) 사용에 필요한 재화."),
+            ("Development", "발전도: 기술 연구에 쓰는 자원(도시 수 + 수도 연결 도시 수 + 수도 1 / 턴)."),
+            ("Population", "유닛 수 / 유닛 수용량(도시마다 레벨 + 1)."),
+            ("Gold", "골드: 건설·채집·유닛 훈련에 쓰는 기본 재화(위키의 별)."),
         };
 
         private const float CityResourceSlotWidth = 92f;

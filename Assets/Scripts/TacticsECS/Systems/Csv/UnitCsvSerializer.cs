@@ -26,7 +26,6 @@ namespace TacticsECS
             "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
-            "Transport.Capacity",
             "Cost"
         };
 
@@ -55,7 +54,6 @@ namespace TacticsECS
                     AttackRange = CsvTableReader.GetInt(t, r, "Attack.Range", 0, errors),
                     HealAmount = CsvTableReader.GetInt(t, r, "Heal.Amount", 0, errors),
                     HealRange = CsvTableReader.GetInt(t, r, "Heal.Range", 0, errors),
-                    TransportCapacity = CsvTableReader.GetInt(t, r, "Transport.Capacity", 0, errors),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", UnitCsvRow.DefaultCost, errors),
                 });
             }
@@ -87,7 +85,6 @@ namespace TacticsECS
             row.AttackRange.ToString(CultureInfo.InvariantCulture),
             row.HealAmount.ToString(CultureInfo.InvariantCulture),
             row.HealRange.ToString(CultureInfo.InvariantCulture),
-            row.TransportCapacity.ToString(CultureInfo.InvariantCulture),
             row.Cost.ToString(CultureInfo.InvariantCulture)
         }));
 

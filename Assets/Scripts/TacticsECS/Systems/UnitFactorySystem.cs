@@ -10,14 +10,14 @@ namespace TacticsECS
     /// </summary>
     public static class UnitFactorySystem
     {
-        /// <summary>엔티티를 만들고 유닛 컴포넌트를 전부 채운 뒤 pos에 놓는다. 행동별 값(이동/공격/치유/수송)은 행동 목록에서
+        /// <summary>엔티티를 만들고 유닛 컴포넌트를 전부 채운 뒤 pos에 놓는다. 행동별 값(이동/공격/치유)은 행동 목록에서
         /// 읽는다(UnitDefinition의 getter와 같은 규칙). 대기(WaitAction)는 없으면 추가한다.</summary>
         public static int Create(GridWorld grid, EntityWorld world, Team team, Vector2Int pos, int maxHp, float defense,
             IReadOnlyList<IUnitAction> actions, TerrainType domain, string unitTypeId)
         {
             var unitActions = new List<IUnitAction>();
             var available = ActionType.None;
-            int moveRange = 0, attackRange = 0, healAmount = 0, healRange = 0, cargo = 0;
+            int moveRange = 0, attackRange = 0, healAmount = 0, healRange = 0;
             float attack = 0f;
             if (actions != null)
             {
@@ -31,7 +31,6 @@ namespace TacticsECS
                         case MoveAction m: if (moveRange == 0) moveRange = m.MoveRange; break;
                         case AttackAction at: if (attackRange == 0) { attack = at.Attack; attackRange = at.AttackRange; } break;
                         case HealAction h: if (healRange == 0) { healAmount = h.HealAmount; healRange = h.HealRange; } break;
-                        case TransportAction tr: cargo = tr.Capacity; break;
                     }
                 }
             }
@@ -64,8 +63,6 @@ namespace TacticsECS
             world.Set(id, new HealAmount { Value = healAmount });
             world.Set(id, new HealRange { Value = healRange });
 
-            // 수송 플레이스홀더: 정원 값만 채워둔다(폴리토피아식 수송은 항구 승선 — EmbarkSystem).
-            world.Set(id, new CargoCapacity { Value = cargo });
 
             world.Set(id, new AvailableActions { Value = available | ActionType.Wait });
             world.Set(id, new UnitActions { Value = unitActions });

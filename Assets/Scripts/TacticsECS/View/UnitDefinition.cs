@@ -85,8 +85,6 @@ namespace TacticsECS
         public int HealAmount => FindAction<HealAction>()?.HealAmount ?? 0;
         public int HealRange => FindAction<HealAction>()?.HealRange ?? 0;
 
-        public int CargoCapacity => FindAction<TransportAction>()?.Capacity ?? 0;
-
         public TerrainType Domain => domain;
 
         public Texture2D BodyTexture => bodyTexture;

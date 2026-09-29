@@ -57,7 +57,7 @@ namespace TacticsECS.EditorTools
                 Actions = ActionType.Move | ActionType.Attack, MoveRange = 1, AttackAttack = 4, AttackRange = 1 });
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = new CityResourceData { Gold = 100, Development = 5, MaxFaith = 10 };
+                econ.Resources[team] = new CityResourceData { Gold = 100, Development = 5 };
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             TaskSystem.Init(econ);

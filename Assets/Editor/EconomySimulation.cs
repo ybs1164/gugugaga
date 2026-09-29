@@ -146,7 +146,7 @@ namespace TacticsECS.EditorTools
             var econ = new EconomyWorld { TechNodes = techNodes, UnitRows = new List<UnitCsvRow>(units) };
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = new CityResourceData { Gold = 5, Development = 5, MaxFaith = 10 };
+                econ.Resources[team] = new CityResourceData { Gold = 5, Development = 5 };
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             TaskSystem.Init(econ);

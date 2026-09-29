@@ -213,7 +213,9 @@ namespace TacticsECS
                         if (a.Kind == TileActionKind.GrowForest && !string.IsNullOrEmpty(structure)) continue;
                         break;
                     case TileActionKind.Destroy:
-                        if (string.IsNullOrEmpty(tile.BuildingId) || IsMonument(tile.BuildingId)) continue;
+                        // 위키 Destroy: 건물 또는 유적(기념물은 파괴 불가 — 이 프로젝트 기존 규칙, 도로는 위키 Roads "cannot be destroyed").
+                        bool ruin = tile.StructureId == StructureGenerationSystem.RuinStructureId;
+                        if ((string.IsNullOrEmpty(tile.BuildingId) && !ruin) || IsMonument(tile.BuildingId)) continue;
                         break;
                 }
 
@@ -350,6 +352,11 @@ namespace TacticsECS
         private static void DestroyBuilding(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos, List<EconomyLogEntry> log)
         {
             var t = grid.GetTile(pos);
+            if (string.IsNullOrEmpty(t.BuildingId) && t.StructureId == StructureGenerationSystem.RuinStructureId)
+            {
+                grid.SetStructure(pos, string.Empty); // 위키 Destroy: 유적도 없앨 수 있다(보상 없음).
+                return;
+            }
             var info = FindBuilding(t.BuildingId);
             if (info == null) return;
 

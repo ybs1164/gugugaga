@@ -20,20 +20,18 @@ namespace TacticsECS
         private Text _developmentText;
         private Text _populationText;
         private Text _goldText;
-        private Text _faithText;
         private Text _scoreText;
 
-        // 발전도/인구/골드/신앙 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 4종이
+        // 발전도/인구/골드 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 3종이
         // 없음), 기존 IconLibrary 세트 중 의미가 가장 비슷한 아이콘을 대신 가져다 쓴다 — combo(상승하는
-        // 화살표 3개 = 성장/발전), herd(겹친 원 3개 = 무리/보유 수), victory(트로피 = 재화/보상),
-        // splash(별 모양 광원 = 신앙/기운). 각 자원 색으로 틴트(Image.color)해서 서로 구분한다. 전용
-        // 아이콘이 추가되면 이 표만 교체하면 된다.
+        // 화살표 3개 = 성장/발전), herd(겹친 원 3개 = 무리/보유 수), victory(트로피 = 재화/보상).
+        // 각 자원 색으로 틴트(Image.color)해서 서로 구분한다. 전용 아이콘이 추가되면 이 표만 교체하면 된다.
+        // (신앙은 쓰는 곳이 없는 프로젝트 고유 자원이라 2026-09-29에 뺐다 — 위키에도 없음.)
         private static readonly (string Icon, Color Tint)[] SlotDefs =
         {
             ("combo", new Color(0.75f, 0.75f, 0.80f)),
             ("herd", new Color(0.30f, 0.55f, 0.95f)),
             ("victory", new Color(0.95f, 0.80f, 0.25f)),
-            ("splash", new Color(0.65f, 0.35f, 0.85f)),
         };
 
         public void Init()
@@ -49,7 +47,6 @@ namespace TacticsECS
             _developmentText = WireSlot(bar.Find("Development"), SlotDefs[0]);
             _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
             _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
-            _faithText = WireSlot(bar.Find("Faith"), SlotDefs[3]);
             _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
         }
 
@@ -101,7 +98,6 @@ namespace TacticsECS
             _developmentText.text = city.DevelopmentProduction > 0 ? $"{city.Development} (+{city.DevelopmentProduction})" : city.Development.ToString();
             _populationText.text = $"{populationUsed}/{city.PopulationCap}";
             _goldText.text = city.GoldProduction > 0 ? $"{city.Gold} (+{city.GoldProduction})" : city.Gold.ToString();
-            _faithText.text = $"{city.Faith}/{city.MaxFaith}";
         }
     }
 }

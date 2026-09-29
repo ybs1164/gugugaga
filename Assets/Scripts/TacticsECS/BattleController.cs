@@ -740,7 +740,7 @@ namespace TacticsECS
         {
             if (_cityResourceHud == null) return;
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
-            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false);
+            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, false);
             _cityResourceHud.SetResources(resources, populationUsed);
             _cityResourceHud.SetScoreLine(_econ != null
                 ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
@@ -753,7 +753,7 @@ namespace TacticsECS
             if (_econ != null)
                 _techTreeHud.SetState(_econ.Tech[Team.Player], _econ.Resources[Team.Player], CitySystem.CountCities(_econ, Team.Player));
             else
-                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false), 1);
+                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, false), 1);
         }
 
         /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/발전도 소모는 TechSystem이 계산하고,
@@ -1012,7 +1012,7 @@ namespace TacticsECS
             if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
             foreach (var team in CitySystem.Teams)
             {
-                var res = CityResourceData.Create(0, 0, 0, GameRules.Economy.StartingMaxFaith, false);
+                var res = CityResourceData.Create(0, 0, 0, false);
                 res.Gold = GameRules.Economy.StartingGold;
                 res.Development = GameRules.Economy.StartingDevelopment;
                 _econ.Resources[team] = res;
@@ -1293,6 +1293,8 @@ namespace TacticsECS
 
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+            if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
+                options.Add(new ActionMenuOption { Label = $"불가사리 인양 (골드 +{GameRules.Starfish.Gold})", Detail = "이 유닛의 턴을 쓴다.", Enabled = true, OnClick = () => HandleStarfish(unitId) });
             if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
             {
                 foreach (var u in NavalUnitDefinition.Upgrades)
@@ -1387,6 +1389,17 @@ namespace TacticsECS
             if (!CanUseEconomyMenu) return;
             var log = new List<EconomyLogEntry>();
             if (!RuinSystem.Explore(_grid, _world, _econ, unitId, log)) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(false);
+            ClearSelection();
+        }
+
+        private void HandleStarfish(int unitId)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (!RuinSystem.HarvestStarfish(_grid, _world, _econ, unitId, log)) return;
             ProcessEconomyLog(log);
             _viewsById[unitId].Refresh(_world, unitId);
             RefreshEconomyViews(false);

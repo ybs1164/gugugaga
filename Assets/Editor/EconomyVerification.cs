@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace TacticsECS.EditorTools
@@ -23,6 +24,7 @@ namespace TacticsECS.EditorTools
             VerifyEveryBuilding();
             VerifyEnemyAiAndDefeat();
             VerifyRecoverAndDisband();
+            VerifyStarfishAndDestroy();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -48,7 +50,7 @@ namespace TacticsECS.EditorTools
             }
 
             // 해금 키가 실제로 무언가를 가리키는지(오타 방지): Build.* = 건물 표, Harvest./Ability. = 타일 행동 표.
-            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey, CitySystem.OceanConnectionKey, VisionDefinition.CapitalVisionKey };
+            var known = new HashSet<string> { "Move.Mountain", "Move.Ocean", "Defense.Mountain", "Defense.Forest", "Defense.Water", TechSystem.LiteracyKey, RuinSystem.DisbandKey, RuinSystem.StarfishKey, CitySystem.OceanConnectionKey, VisionDefinition.CapitalVisionKey };
             foreach (var t in TaskDefinition.All) if (!string.IsNullOrEmpty(t.UnlockKey)) known.Add(t.UnlockKey);
             foreach (var b in BuildingDefinition.All) known.Add(b.UnlockKey);
             foreach (var a in TileActionDefinition.All) known.Add(a.UnlockKey);
@@ -113,7 +115,7 @@ namespace TacticsECS.EditorTools
             econ.UnitRows.Add(new UnitCsvRow { Id = "shield", Name = "방패병", MaxHp = 16, Cost = 3, BaseVisual = "Guard" });
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = new CityResourceData { Gold = 5, Development = 5, MaxFaith = 10 };
+                econ.Resources[team] = new CityResourceData { Gold = 5, Development = 5 };
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             return econ;
@@ -259,6 +261,49 @@ namespace TacticsECS.EditorTools
             Check(!RuinSystem.CanDisband(world, econ, moved), "moved unit cannot disband (wiki Disband)");
         }
 
+        /// <summary>위키 Starfish/Destroy/Roads: 불가사리는 배가 그 칸에서 턴을 시작하면 영토와 무관하게 인양(턴 소모, 골드 8),
+        /// 파괴는 건물과 유적만(도로는 파괴 불가).</summary>
+        private static void VerifyStarfishAndDestroy()
+        {
+            var grid = new GridWorld(7, 7);
+            for (int y = 0; y < 7; y++) for (int x = 0; x < 7; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var world = new EntityWorld();
+            var econ = NewEconomy();
+            var p = Team.Player;
+            var sea = new Vector2Int(6, 6);
+            grid.SetTerrain(sea, TerrainType.Water); grid.SetTileType(sea, TerrainGenerationSystem.OceanTileId);
+            grid.SetStructure(sea, RuinSystem.StarfishStructureId);
+            int boat = MakeUnit(world, grid, p, sea);
+            world.Set(boat, new MoveDomain { Value = TerrainType.Water });
+            int landUnit = MakeUnit(world, grid, p, new Vector2Int(0, 0));
+            grid.SetStructure(new Vector2Int(0, 0), RuinSystem.StarfishStructureId);
+
+            Check(!RuinSystem.CanHarvestStarfish(grid, world, econ, boat), "starfish needs Navigation");
+            econ.Tech[p].Unlocked.Add("Fishing"); econ.Tech[p].Unlocked.Add("Sailing"); econ.Tech[p].Unlocked.Add("Navigation");
+            Check(!RuinSystem.CanHarvestStarfish(grid, world, econ, landUnit), "land units cannot harvest starfish");
+            world.Set(boat, new HasMoved { Value = true });
+            Check(!RuinSystem.CanHarvestStarfish(grid, world, econ, boat), "boat must start its turn on the starfish");
+            world.Set(boat, new HasMoved { Value = false });
+            int gold = econ.Resources[p].Gold;
+            Check(RuinSystem.HarvestStarfish(grid, world, econ, boat, null), "boat harvests starfish in neutral water");
+            Check(econ.Resources[p].Gold == gold + GameRules.Starfish.Gold && grid.GetStructure(sea) == "" && world.Get<HasActed>(boat).Value,
+                "starfish: +8 gold, removed, turn used");
+            Check(!TileActionDefinition.All.Any(a => a.Id == "HarvestStarfish"), "starfish is no longer a territory tile action");
+
+            // 파괴: 영토 안 유적은 없앨 수 있고, 도로는 파괴할 수 없다.
+            int city = CitySystem.FoundCity(grid, econ, new Vector2Int(3, 3), p, true, "파괴");
+            econ.Tech[p].Unlocked.Add("Riding"); econ.Tech[p].Unlocked.Add("FreeSpirit"); econ.Tech[p].Unlocked.Add("Chivalry");
+            econ.Tech[p].Unlocked.Add("Roads");
+            var ruin = new Vector2Int(2, 2);
+            grid.SetStructure(ruin, StructureGenerationSystem.RuinStructureId);
+            Check(TileImprovementSystem.Execute(grid, econ, p, ruin, "DestroyBuilding", null) && grid.GetStructure(ruin) == "", "destroy removes a ruin in own territory");
+            var road = new Vector2Int(4, 2);
+            Give(econ, p, 10, 0);
+            Check(TileImprovementSystem.Execute(grid, econ, p, road, "Road", null), "build road");
+            Check(!TileImprovementSystem.GetOptions(grid, econ, p, road).Exists(o => o.Id == "DestroyBuilding"), "roads cannot be destroyed (wiki Roads)");
+            Check(city >= 0, "city founded");
+        }
+
         /// <summary>도시가 지금까지 모은 인구 총량(레벨업으로 차감된 몫까지 되돌려 더한 값).</summary>
         private static int TotalPop(CityData c)
         {
@@ -327,11 +372,9 @@ namespace TacticsECS.EditorTools
             pop = Pop();
             Build(water, "Port"); Check(Pop() == pop + 1, "port +1"); pop = Pop();
 
-            int faith = econ.Resources[p].MaxFaith;
             econ.Turn = 3;
             Build(field, "Temple"); Build(forest3, "ForestTemple"); Build(mtn2, "MountainTemple"); Build(ocean, "WaterTemple");
             Check(Pop() == pop + 4, "4 temples +1 each");
-            Check(econ.Resources[p].MaxFaith == faith, "temples give score only (no faith bonus)");
             Check(grid.GetTile(field).BuildingTurn == 3, "temple remembers its build turn");
 
             var roadTile = new Vector2Int(6, 6); pop = Pop(); int gold = econ.Resources[p].Gold;

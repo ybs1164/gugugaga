@@ -99,9 +99,11 @@ namespace TacticsECS.EditorTools
         private static void VerifyBuildingsAndActions()
         {
             Check(BuildingDefinition.All.Length == 21, $"21 buildings (14 + 7 monuments), got {BuildingDefinition.All.Length}");
-            Check(TileActionDefinition.All.Length == 8, $"8 tile actions, got {TileActionDefinition.All.Length}");
+            Check(TileActionDefinition.All.Length == 7, $"7 tile actions (starfish is a ship action since 2026-09-29), got {TileActionDefinition.All.Length}");
             var bridge = TileImprovementSystem.FindBuilding(BuildingDefinition.Bridge);
             Check(bridge != null && bridge.Value.AllowNeutral && bridge.Value.RequiresOppositeLand && bridge.Value.ActsAsRoad && !bridge.Value.IsRoad, "bridge flags from CSV");
+            Check(new[] { "Sawmill", "Windmill", "Forge" }.All(id => TileImprovementSystem.FindBuilding(id)?.OnePerCity == true) &&
+                  TileImprovementSystem.FindBuilding(BuildingDefinition.Market)?.OnePerCity == false, "sawmill/windmill/forge one per city, market unlimited (wiki)");
             var market = TileImprovementSystem.FindBuilding(BuildingDefinition.Market);
             Check(market != null && market.Value.ProducesGoldFromAdjacent && market.Value.AdjacentBuildings.Length == 3, "market adjacency from CSV");
             Check(BuildingDefinition.All.Count(b => !string.IsNullOrEmpty(b.TaskId)) == 7 && BuildingDefinition.All.Where(b => !string.IsNullOrEmpty(b.TaskId)).All(b => b.Population == 3 && b.Cost == 0),

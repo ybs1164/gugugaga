@@ -43,6 +43,16 @@ namespace TacticsECS
             resources = RefreshProduction(resources, grid, world, econ, team);
             resources.Development += resources.DevelopmentProduction;
             resources.Gold += resources.GoldProduction;
+
+            // 침투당한 도시는 이번(주인의) 턴 수입이 0이었다 — 이제 해제한다(위키 Cloak).
+            for (int i = 0; i < econ.Cities.Count; i++)
+            {
+                var c = econ.Cities[i];
+                if (c.Owner != team || !c.Infiltrated) continue;
+                c.Infiltrated = false;
+                econ.Cities[i] = c;
+            }
+            resources = RefreshProduction(resources, grid, world, econ, team);
             return resources;
         }
 

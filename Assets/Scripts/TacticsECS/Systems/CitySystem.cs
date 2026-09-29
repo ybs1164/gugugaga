@@ -295,6 +295,7 @@ namespace TacticsECS
             world.Set(unitId, new HasMoved { Value = true });
             world.Set(unitId, new HasActed { Value = true });
             AssignHome(world, econ, unitId, index); // 위키 City: 점령한 유닛은 새 도시가 지원한다
+            StealthSystem.Reveal(world, unitId);    // 위키 Cloak: 마을 점령 시 드러난다
             log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Capture, Subject = econ.Cities[index].Name, Position = pos, CityIndex = index });
             RefreshConnections(grid, econ, log);
             return index;
@@ -388,6 +389,9 @@ namespace TacticsECS
         /// <summary>도시에서 훈련할 수 없는 유닛(슈퍼 유닛 — 위키: 보상으로만 얻는다).</summary>
         public static bool IsSuperUnit(string unitId) => !string.IsNullOrEmpty(unitId) && unitId == GameRules.City.SuperUnitId;
 
+        /// <summary>도시에서 훈련할 수 있는 유닛 행인지 — CSV Trainable 칸, 그리고 슈퍼 유닛은 항상 불가(Trainable 칸이 없던 옛 CSV).</summary>
+        public static bool IsTrainable(UnitCsvRow row) => row != null && row.Trainable && !IsSuperUnit(row.Id);
+
         // ---------- 수입 ----------
 
         public static bool IsBesieged(GridWorld grid, EntityWorld world, CityData city)
@@ -398,7 +402,7 @@ namespace TacticsECS
 
         public static int CityGoldIncome(GridWorld grid, EntityWorld world, CityData city)
         {
-            if (IsBesieged(grid, world, city)) return 0;
+            if (IsBesieged(grid, world, city) || city.Infiltrated) return 0;
             int income = city.Level * GameRules.City.GoldPerLevel + (city.HasWorkshop ? RewardAmount(CityRewardType.Workshop) : 0) +
                          city.ParkCount * RewardAmount(CityRewardType.Park) + (city.IsCapital ? GameRules.City.CapitalGold : 0);
             if (city.Population < 0) income += city.Population;
@@ -517,7 +521,7 @@ namespace TacticsECS
             reason = string.Empty;
             var city = econ.Cities[cityIndex];
             if (city.Owner != team) { reason = "우리 도시가 아님"; return false; }
-            if (IsSuperUnit(row.Id)) { reason = "보상 전용(슈퍼 유닛)"; return false; }
+            if (!IsTrainable(row)) { reason = "훈련 불가(보상/침투 전용)"; return false; }
             if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = "기술 필요"; return false; }
             if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
             int supported = SupportedUnits(world, cityIndex), capacity = CityCapacity(city);

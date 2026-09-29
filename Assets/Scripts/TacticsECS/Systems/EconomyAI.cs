@@ -77,7 +77,7 @@ namespace TacticsECS
             if (CityResourceSystem.CountPopulation(world, team) >= CitySystem.CountCities(econ, team)) return 0;
             int cheapest = int.MaxValue;
             foreach (var row in econ.UnitRows)
-                if (!CitySystem.IsSuperUnit(row.Id) && TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) cheapest = Mathf.Min(cheapest, row.Cost);
+                if (CitySystem.IsTrainable(row) && TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) cheapest = Mathf.Min(cheapest, row.Cost);
             return cheapest == int.MaxValue ? 0 : cheapest;
         }
 

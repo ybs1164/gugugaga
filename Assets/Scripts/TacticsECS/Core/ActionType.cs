@@ -38,9 +38,9 @@ namespace TacticsECS
         /// <summary>기습: 공격 시 대상의 반격(CounterAction)을 발동시키지 않는 패시브(CombatSystem.TryAttack이
         /// 참조). 값을 갖지 않는 순수 마커 — Actions/AmbushAction.cs 참고.</summary>
         Ambush = 1 << 8,
-        /// <summary>잠입: 적 유닛에 의한 이동 방해만 무시하는 패시브(PathfindingSystem.GetReachable/
-        /// MoveAction.CanEnter가 참조). 아군에 의한 차단은 그대로 적용된다는 점에서 모든 유닛을 무시하는
-        /// IgnoreUnitBlockingAction과 다르다. 값을 갖지 않는 순수 마커 — Actions/InfiltrateAction.cs 참고.</summary>
+        /// <summary>침투(위키 Infiltrate): 공격 대신 인접한 적 도시에 들어가 반란을 일으킨다(자신은 소모, 도시 레벨만큼 Dagger 소환,
+        /// 그 도시 수입을 빼앗음). 이 행동을 가진 유닛은 유닛을 공격할 수 없다. 값을 갖지 않는 순수 마커 — Systems/InfiltrationSystem.cs 참고.
+        /// (2026-09-29 전에는 "적 유닛 통과" 패시브였다 — 그 효과는 위키대로 Hide로 옮겼다.)</summary>
         Infiltrate = 1 << 9,
         /// <summary>무리: 주변 1블록 내 아군에게 가속(Accelerated) 상태를 부여하는 패시브
         /// (PassiveAuraSystem.RefreshHerdAura가 참조). 값을 갖지 않는 순수 마커 — Actions/HerdAction.cs 참고.</summary>
@@ -66,9 +66,9 @@ namespace TacticsECS
         /// <summary>요새화(위키 Fortify): 자기 도시 칸에서 방어 보너스(x1.5, 성벽 x4 — TechEffectSystem.RefreshUnits).
         /// 값을 갖지 않는 순수 마커 — Actions/FortifyAction.cs 참고.</summary>
         Fortify = 1 << 17,
-        /// <summary>은신: SandboxUnits.csv 예시(스파이)에 쓰인 패시브지만, 아직 구체적인 효과(예: 적에게
-        /// 발견되지 않음)가 정해지지 않은 플레이스홀더다. 값을 갖지 않는 순수 마커 — Actions/StealthAction.cs 참고.</summary>
-        Stealth = 1 << 18,
+        /// <summary>은신(위키 Hide): 움직이면 적에게 보이지 않고, 적 영향권(ZoC)을 무시하며 적 유닛을 지나갈 수 있다(멈출 수는 없음).
+        /// 값을 갖지 않는 순수 마커 — Actions/HideAction.cs, Systems/StealthSystem.cs 참고. (옛 이름 Stealth — CSV에서도 읽힌다.)</summary>
+        Hide = 1 << 18,
         // 1 << 19 ~ 1 << 21: 예전 약탈(Pillage)/고정(Anchored)/수송(Transport) 플레이스홀더 자리. 효과가 정해지지 않은 채
         // 쓰이지 않아 2026-09-29에 뺐다 — 약탈·고정은 위키에 없는 스킬이고, 수송(위키 Carry)은 항구 승선(EmbarkSystem)이 맡는다.
         /// <summary>대기: 이번 턴 행동을 종료하고 체력을 회복하는 액티브 행동(회복 2, 자기 영토 내 4 —
@@ -93,5 +93,8 @@ namespace TacticsECS
         /// <summary>고정(위키 Unit Skills "Static"): 베테랑으로 승급할 수 없다(Cloak/Dagger 등). 값을 갖지 않는 순수 마커 —
         /// Actions/StaticAction.cs 참고.</summary>
         Static = 1 << 27,
+        /// <summary>잠행(위키 Unit Skills "Creep"): 산을 뺀 지형의 이동 제한(숲에서 멈춤)을 무시하고, 도로 보너스도 받지 않는다.
+        /// 값을 갖지 않는 순수 마커 — Actions/CreepAction.cs 참고.</summary>
+        Creep = 1 << 28,
     }
 }

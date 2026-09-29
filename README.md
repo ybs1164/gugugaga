@@ -822,6 +822,14 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-09-29: **구현 계획 4단계(진행 중) — Cloak/Dagger 시스템 부분**(위키 Cloak/Dagger/Pirate/Unit Skills).
+  - 완료: `StealthSystem`(Hide — 이동 후 숨음, 공격/점령/유적 탐험/적이 그 칸에 들어가려 할 때 드러남, 숨은 적은 목표·ZoC·경로 차단에서 빠짐),
+    `HideAction`(옛 Stealth, ZoC 무시·적 유닛 통과 — 옛 "잠입"의 효과), `CreepAction`(숲 정지·도로 보너스 없음), `InfiltrationSystem`
+    (인접 적 도시 침투: 자신 소모, 도시 칸 적에게 공격력만큼 피해, 도시 레벨만큼(최대 5) Dagger/물 위 Pirate 소환, 수입 탈취 + 다음 턴 수입 0),
+    유닛 CSV `Trainable`/`Boat` 칸(거인·Dagger 훈련 불가, Cloak→Dinghy, Dagger→Pirate), 특수 배(`NavalUnits.csv` Unlock 빈 행), 모델 3종.
+  - 남은 것: 침투 UI(도시 칸 하이라이트/클릭)·숨은 적 표시와 이동 실패 피드백·새 유닛 View 붙이기(BattleController), AI의 Cloak 운용과
+    숨은 적 필터(EnemyAI), 패시브 배지, 검증 스크립트.
+
 - 2026-09-29: **구현 계획 3단계 — 베테랑**(위키 Units "Veteran Units").
   - [`VeteranSystem`](Assets/Scripts/TacticsECS/Systems/VeteranSystem.cs) + `Kills`/`Veteran` 컴포넌트: 공격·스플래시·반격으로 처치하면 처치 수 +1,
     3회(`GameRules.csv` `Veteran.KillsRequired`)면 유닛 메뉴의 **승급**(최대 체력 +5 `Veteran.MaxHpBonus`, 완전 회복, 한 번). 승급 시점은 플레이어가

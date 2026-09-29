@@ -1214,7 +1214,7 @@ namespace TacticsECS
                     }
                     foreach (var row in _econ.UnitRows)
                     {
-                        if (CitySystem.IsSuperUnit(row.Id) || !TechSystem.CanTrainUnitType(_econ.TechNodes, _econ.Tech[Team.Player], row.Id)) continue;
+                        if (!CitySystem.IsTrainable(row) || !TechSystem.CanTrainUnitType(_econ.TechNodes, _econ.Tech[Team.Player], row.Id)) continue;
                         bool can = CitySystem.CanTrain(_grid, _world, _econ, Team.Player, cityIndex, row, out var reason);
                         var r = row;
                         options.Add(new ActionMenuOption

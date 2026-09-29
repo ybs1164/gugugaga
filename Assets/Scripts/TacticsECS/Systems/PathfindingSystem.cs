@@ -6,14 +6,17 @@ namespace TacticsECS
     /// <summary>
     /// 순수 함수 형태의 시스템(정적 클래스). GridWorld/EntityWorld 데이터만 읽어서 결과를 계산하고,
     /// 상태는 전혀 들고 있지 않는다. 이동하는 엔티티의 컴포넌트(MoveRange/Accelerated/MoveDomain/Embarked)와 보유 패시브
-    /// (IgnoreTerrainAction/IgnoreUnitBlockingAction/AllowDiagonalAction/InfiltrateAction)에 따라 실효 이동 거리/대각선
+    /// (IgnoreTerrainAction/IgnoreUnitBlockingAction/AllowDiagonalAction/HideAction/CreepAction)에 따라 실효 이동 거리/대각선
     /// 이동/지형 무시/유닛 무시 여부가 달라진다.
     ///
     /// 폴리토피아 위키 Movement 규칙:
     ///   - 이동 비용 1, 도로(또는 도시/마을/다리) 칸끼리의 이동은 0.5. 적 영토의 도로는 쓸 수 없다. 반 칸을 정수로 다루려고
     ///     내부 비용은 2배(일반 2, 도로 1)로, 이동력도 2배로 계산한다.
     ///   - 험지(숲/산, 도로가 없는 숲)에 들어가면 그 턴에는 더 못 간다(들어가는 것은 가능).
-    ///   - 적 유닛과 인접한 칸(Zone of Control)에 들어가면 더 못 간다. 잠입(Infiltrate)/유닛 무시 패시브는 예외(위키 Creep).
+    ///   - 적 유닛과 인접한 칸(Zone of Control)에 들어가면 더 못 간다. 은신(Hide)/유닛 무시 패시브는 예외(위키 Hide).
+    ///   - 은신 유닛은 적 유닛을 지나갈 수 있지만 그 칸에 멈출 수는 없다. 잠행(Creep)은 숲에서 멈추지 않고 도로 보너스도 없다(산은 멈춤).
+    ///   - 숨은 적(StealthSystem)은 모르는 것으로 친다: 길을 막지도, 영향권을 만들지도 않고, 그 칸도 목적지 후보가 된다 — 실제로 들어가려
+    ///     하면 MoveAction.Execute가 이동을 취소하고 그 적을 드러낸다(위키 Cloak, 행동 소모 없음).
     ///   - 구름(아직 탐험하지 않은 칸, VisionSystem)에는 들어갈 수 없다.
     ///   - 육지 유닛은 다리가 놓인 물 칸을 육지처럼 지나가고, 자기 항구 칸에 들어가면 뗏목이 되므로 거기서 멈춘다.
     ///     배(승선 유닛)는 물을 다니다 육지 칸에 내릴 수 있고 내리면 멈춘다(위키 Carry).
@@ -40,8 +43,10 @@ namespace TacticsECS
             int budget = MovementSystem.EffectiveMoveRange(world, selfUnitId) * StepCost;
             bool ignoreUnitBlocking = UnitActionQueries.Find<IgnoreUnitBlockingAction>(world, selfUnitId) != null;
             bool allowDiagonal = UnitActionQueries.Find<AllowDiagonalAction>(world, selfUnitId) != null;
-            bool ignoreZoc = ignoreUnitBlocking || UnitActionQueries.Find<InfiltrateAction>(world, selfUnitId) != null;
+            bool hide = UnitActionQueries.Find<HideAction>(world, selfUnitId) != null;
+            bool ignoreZoc = ignoreUnitBlocking || hide;
             var team = world.Get<Team>(selfUnitId);
+            var passOnly = new HashSet<Vector2Int>(); // 지나갈 수만 있고 멈출 수 없는 칸(은신 유닛이 지나는 적 유닛 칸)
 
             var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
             var cost = new Dictionary<Vector2Int, int> { [start] = 0 };
@@ -62,6 +67,10 @@ namespace TacticsECS
                         if (!CanEnter(grid, world, selfUnitId, next, out bool stop)) continue;
                         if (IsBlockedByOccupant(grid, world, selfUnitId, next, ignoreUnitBlocking)) continue;
                         if (!ignoreZoc && IsInEnemyZone(grid, world, team, next, allowDiagonal)) stop = true;
+                        int occ = grid.GetOccupant(next);
+                        bool occupiedByOther = occ != TileData.NoOccupant && occ != selfUnitId && UnitQueries.IsAlive(world, occ);
+                        if (occupiedByOther && StealthSystem.IsHiddenFrom(world, occ, team)) stop = true; // 모르는 칸 — 들어가 보면 드러난다
+                        else if (occupiedByOther && !ignoreUnitBlocking) passOnly.Add(next);
 
                         int nc = c + (IsRoadStep(grid, world, selfUnitId, cur, next) ? RoadStepCost : StepCost);
                         if (nc > budget || (cost.TryGetValue(next, out var old) && old <= nc)) continue;
@@ -74,6 +83,7 @@ namespace TacticsECS
             }
 
             reachableSet = new HashSet<Vector2Int>(cost.Keys);
+            reachableSet.ExceptWith(passOnly);
             return cameFrom;
         }
 
@@ -114,7 +124,8 @@ namespace TacticsECS
                 return false;
             }
             var cls = TileImprovementSystem.Classify(grid, tile);
-            if (cls == TileClass.Mountain || (cls == TileClass.Forest && !IsRoadFor(grid, team, tile))) stop = true;
+            bool creep = UnitActionQueries.Find<CreepAction>(world, unitId) != null;
+            if (cls == TileClass.Mountain || (cls == TileClass.Forest && !creep && !IsRoadFor(grid, team, tile))) stop = true;
             return true;
         }
 
@@ -132,6 +143,7 @@ namespace TacticsECS
         private static bool IsRoadStep(GridWorld grid, EntityWorld world, int unitId, Vector2Int cur, Vector2Int next)
         {
             if (world.GetOrDefault<Embarked>(unitId).Value || world.Get<MoveDomain>(unitId).Value == TerrainType.Water) return false;
+            if (UnitActionQueries.Find<CreepAction>(world, unitId) != null) return false; // 위키 Cloak: Creep은 도로 보너스도 없다
             var team = world.Get<Team>(unitId);
             return IsRoadFor(grid, team, cur) && IsRoadFor(grid, team, next);
         }
@@ -142,23 +154,23 @@ namespace TacticsECS
             foreach (var n in grid.GetNeighbors(tile, allowDiagonal))
             {
                 int occ = grid.GetOccupant(n);
-                if (occ != TileData.NoOccupant && UnitQueries.IsAlive(world, occ) && world.Get<Team>(occ) != team) return true;
+                if (occ != TileData.NoOccupant && UnitQueries.IsAlive(world, occ) && world.Get<Team>(occ) != team && !StealthSystem.IsHiddenFrom(world, occ, team)) return true;
             }
             return false;
         }
 
-        /// <summary>tile의 점유자가 selfUnitId의 이동을 막는지 판정한다(빈 타일/자기 자신은 막지 않음).
-        /// ignoreUnitBlocking이 true면 점유자가 누구든 무시하고, 그렇지 않아도 selfUnitId가 잠입
-        /// (InfiltrateAction)을 가졌으면 적 팀 점유자에 의한 차단만 추가로 무시한다 — 아군에 의한
-        /// 차단은 잠입으로도 무시되지 않는다. GetReachable(경로 탐색)과 MoveAction.Execute(실제 이동)가
-        /// 이 판정을 공유한다.</summary>
+        /// <summary>tile의 점유자가 selfUnitId의 이동(지나가기)을 막는지 판정한다(빈 타일/자기 자신은 막지 않음).
+        /// ignoreUnitBlocking이면 누구든 무시하고, 은신(HideAction) 유닛은 적 팀 점유자를 지나갈 수 있다(위키 Hide — 아군은 못 지나감).
+        /// 숨은 적은 모르는 것으로 쳐서 막지 않는다(들어가려 하면 MoveAction.Execute가 드러낸다). GetReachable(경로 탐색)과
+        /// MoveAction.Execute(실제 이동)가 이 판정을 공유한다 — 멈출 수 있는지는 따로(GetReachable의 passOnly, MoveAction의 점유 확인).</summary>
         public static bool IsBlockedByOccupant(GridWorld grid, EntityWorld world, int selfUnitId, Vector2Int tile, bool ignoreUnitBlocking)
         {
             int occ = grid.GetOccupant(tile);
             if (occ == TileData.NoOccupant || occ == selfUnitId) return false;
             if (ignoreUnitBlocking) return false;
-            if (world.Get<Team>(occ) != world.Get<Team>(selfUnitId) &&
-                UnitActionQueries.Find<InfiltrateAction>(world, selfUnitId) != null) return false;
+            var selfTeam = world.Get<Team>(selfUnitId);
+            if (StealthSystem.IsHiddenFrom(world, occ, selfTeam)) return false;
+            if (world.Get<Team>(occ) != selfTeam && UnitActionQueries.Find<HideAction>(world, selfUnitId) != null) return false;
             return true;
         }
     }

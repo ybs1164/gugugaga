@@ -54,8 +54,10 @@ namespace TacticsECS
                 actions.Add(new FreezeAction());
             if ((row.Actions & ActionType.Fortify) != 0)
                 actions.Add(new FortifyAction());
-            if ((row.Actions & ActionType.Stealth) != 0)
-                actions.Add(new StealthAction());
+            if ((row.Actions & ActionType.Hide) != 0)
+                actions.Add(new HideAction());
+            if ((row.Actions & ActionType.Creep) != 0)
+                actions.Add(new CreepAction());
             if ((row.Actions & ActionType.Wait) != 0)
                 actions.Add(new WaitAction());
             if ((row.Actions & ActionType.IgnoreTerrain) != 0)

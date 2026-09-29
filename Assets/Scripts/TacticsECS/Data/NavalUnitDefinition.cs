@@ -21,5 +21,9 @@ namespace TacticsECS
 
         /// <summary>뗏목에서 업그레이드할 수 있는 배(UnlockKey = 필요 해금 키 — TechTree.csv의 Unit.* 키).</summary>
         public static (UnitCsvRow Row, string UnlockKey)[] Upgrades = new (UnitCsvRow, string)[0];
+
+        /// <summary>업그레이드 대상이 아닌 특수 배(Unlock 칸이 빈 행) — 위키 Dinghy(Cloak이 항구에 들어가면)/Pirate(Dagger). 유닛 CSV의
+        /// Boat 칸이 이 Id를 가리킨다. 업그레이드할 수 없다(EmbarkSystem.CanUpgrade는 뗏목만).</summary>
+        public static UnitCsvRow[] Special = new UnitCsvRow[0];
     }
 }

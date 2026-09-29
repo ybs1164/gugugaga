@@ -37,6 +37,10 @@ namespace TacticsECS
             if (world.Get<Team>(actorId) == world.Get<Team>(targetId)) return false;
             if (!CombatSystem.IsInAttackRange(world, actorId, targetId)) return false;
 
+            if (UnitActionQueries.Find<InfiltrateAction>(world, actorId) != null) return false; // 위키 Cloak: 유닛은 공격 못 하고 도시에만 침투
+            if (StealthSystem.IsHiddenFrom(world, targetId, world.Get<Team>(actorId))) return false; // 숨은 적은 노릴 수 없다
+
+            StealthSystem.Reveal(world, actorId); // 위키 Hide: 행동(공격)하면 드러난다
             amount = CombatSystem.CalculateDamage(world, actorId, targetId);
             var hp = world.Get<Hp>(targetId);
             hp.Value = Mathf.Max(0, hp.Value - amount);

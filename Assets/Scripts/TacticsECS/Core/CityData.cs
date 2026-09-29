@@ -35,5 +35,9 @@ namespace TacticsECS
         /// <summary>수도와 도로/항구로 연결되어 있는지(수도 자신은 false). CitySystem.RefreshConnections가
         /// 갱신하며, 연결될 때 이 도시와 수도에 인구 +1씩, 끊기면 -1씩 반영된다.</summary>
         public bool ConnectedToCapital;
+
+        /// <summary>적 Cloak이 침투했다(위키 Cloak): 이 도시는 주인의 다음 턴에 골드를 만들지 않고, 그때까지 다시 침투당하지 않는다.
+        /// CityResourceSystem.ApplyTurnStart가 주인 턴 시작에 수입을 계산한 뒤 해제한다.</summary>
+        public bool Infiltrated;
     }
 }

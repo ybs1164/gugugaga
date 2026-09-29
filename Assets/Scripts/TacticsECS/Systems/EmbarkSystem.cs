@@ -39,7 +39,8 @@ namespace TacticsECS
                     AvailableActions = world.GetOrDefault<AvailableActions>(unitId).Value,
                     Actions = world.Get<UnitActions>(unitId).Value,
                 });
-                ApplyNaval(world, unitId, NavalUnitDefinition.Raft);
+                // 위키: 보통 유닛은 뗏목, Cloak은 Dinghy, Dagger는 Pirate가 된다(유닛 CSV Boat 칸 — PortBoat 컴포넌트).
+                ApplyNaval(world, unitId, FindNavalRow(world.GetOrDefault<PortBoat>(unitId).NavalUnitId) ?? NavalUnitDefinition.Raft);
                 EndTurn(world, unitId);
                 return true;
             }
@@ -102,9 +103,12 @@ namespace TacticsECS
 
         public static UnitCsvRow FindNavalRow(string navalUnitId)
         {
+            if (string.IsNullOrEmpty(navalUnitId)) return null;
             if (navalUnitId == NavalUnitDefinition.RaftId) return NavalUnitDefinition.Raft;
             foreach (var u in NavalUnitDefinition.Upgrades)
                 if (u.Row.Id == navalUnitId) return u.Row;
+            foreach (var s in NavalUnitDefinition.Special)
+                if (s.Id == navalUnitId) return s;
             return null;
         }
 

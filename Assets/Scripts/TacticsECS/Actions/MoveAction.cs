@@ -38,7 +38,15 @@ namespace TacticsECS
             if (!PathfindingSystem.CanEnter(grid, world, unitId, destination, out _)) return false;
 
             bool ignoreUnitBlocking = UnitActionQueries.Find<IgnoreUnitBlockingAction>(world, unitId) != null;
+            int occupant = grid.GetOccupant(destination);
+            if (occupant != TileData.NoOccupant && occupant != unitId && StealthSystem.IsHiddenFrom(world, occupant, world.Get<Team>(unitId)))
+            {
+                // 위키 Cloak: 숨은 유닛 칸으로 들어가려 하면 이동이 취소되고(행동 소모 없음) 그 유닛이 드러난다.
+                StealthSystem.Reveal(world, occupant);
+                return false;
+            }
             if (PathfindingSystem.IsBlockedByOccupant(grid, world, unitId, destination, ignoreUnitBlocking)) return false;
+            if (occupant != TileData.NoOccupant && occupant != unitId && !ignoreUnitBlocking) return false; // 지나갈 수는 있어도 멈출 수는 없다
 
             grid.RemoveOccupant(world.Get<GridPosition>(unitId).Value);
             world.Set(unitId, new GridPosition { Value = destination });

@@ -123,6 +123,14 @@ namespace TacticsECS
     [System.Serializable] public struct Kills { public int Value; }
     [System.Serializable] public struct Veteran { public bool Value; }
 
+    // 은신(위키 Unit Skills "Hide"): 은신(HideAction) 유닛은 움직이면 적에게 보이지 않게 된다(Value). 훈련/점령/유적 탐험/공격 때,
+    // 또는 적이 그 칸으로 들어가려 할 때(그 이동은 취소, 행동 소모 없음) 드러난다. AtTurnStart는 자기 팀 턴이 시작될 때의 Value —
+    // 위키 Cloak: "이번 턴을 이미 숨은 채로 시작했을 때만" 이동 후 침투(Dash)가 된다. 판정은 StealthSystem.
+    [System.Serializable] public struct Hidden { public bool Value; public bool AtTurnStart; }
+
+    // 항구에 들어가면 바뀌는 배(NavalUnits.csv Id). 비어 있으면 뗏목(raft). 위키: Cloak은 Dinghy, Dagger는 Pirate가 된다.
+    [System.Serializable] public struct PortBoat { public string NavalUnitId; }
+
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이
     // 그 자체로 컴포넌트 타입("팀 소속")으로 재사용한다.
 }

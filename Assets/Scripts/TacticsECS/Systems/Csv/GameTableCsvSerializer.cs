@@ -133,22 +133,27 @@ namespace TacticsECS
 
         // ---------- 배 유닛 (NavalUnits.csv) ----------
 
-        /// <summary>유닛 CSV와 같은 컬럼(UnitCsvSerializer) + Unlock(업그레이드 해금 키). Id가 raft인 행이 뗏목, 나머지는 업그레이드.</summary>
+        /// <summary>유닛 CSV와 같은 컬럼(UnitCsvSerializer) + Unlock(업그레이드 해금 키). Id가 raft인 행이 뗏목, Unlock이 있는 행은 뗏목
+        /// 업그레이드, Unlock이 빈 행은 특수 배(위키 Dinghy/Pirate — 유닛 CSV Boat 칸이 가리킨다, 업그레이드 불가).</summary>
         public static void ParseNavalUnits(string csvText, List<string> errors, out UnitCsvRow raft, out (UnitCsvRow Row, string UnlockKey)[] upgrades,
-            string name = "NavalUnits.csv")
+            out UnitCsvRow[] special, string name = "NavalUnits.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
             var rows = UnitCsvSerializer.Parse(csvText, errors, name);
             raft = null;
             var list = new List<(UnitCsvRow, string)>();
+            var specialList = new List<UnitCsvRow>();
             for (int r = 0; r < rows.Count && r < t.Rows.Count; r++)
             {
                 rows[r].Domain = TerrainType.Water;
+                string unlock = CsvTableReader.Get(t, r, "Unlock");
                 if (rows[r].Id == NavalUnitDefinition.RaftId) raft = rows[r];
-                else list.Add((rows[r], CsvTableReader.Get(t, r, "Unlock")));
+                else if (unlock.Length > 0) list.Add((rows[r], unlock));
+                else specialList.Add(rows[r]);
             }
             if (raft == null) errors?.Add($"{name}: '{NavalUnitDefinition.RaftId}' 행이 없음 — 코드 기본 뗏목 사용");
             upgrades = list.ToArray();
+            special = specialList.ToArray();
         }
 
         // ---------- 과업 (Tasks.csv) ----------

@@ -56,6 +56,8 @@ namespace TacticsECS
             world.Set(id, new HomeCity()); // 소속 없음 — 경제가 있으면 CitySystem/SpawnEconomyUnit이 배정
             world.Set(id, new Kills { Value = 0 });
             world.Set(id, new Veteran { Value = false });
+            world.Set(id, new Hidden()); // 위키 Cloak: 훈련된 직후에는 보인다
+            world.Set(id, new PortBoat());
             world.Set(id, new TerrainAccess { Mountain = true, Ocean = true });
             world.Set(id, new PositionalDefenseBonus { Value = 0 });
 
@@ -76,8 +78,12 @@ namespace TacticsECS
             return id;
         }
 
-        public static int CreateFromCsv(GridWorld grid, EntityWorld world, Team team, UnitCsvRow row, Vector2Int pos) =>
-            Create(grid, world, team, pos, row.MaxHp, row.Defense, UnitCsvActionFactory.BuildActions(row), row.Domain, row.Id);
+        public static int CreateFromCsv(GridWorld grid, EntityWorld world, Team team, UnitCsvRow row, Vector2Int pos)
+        {
+            int id = Create(grid, world, team, pos, row.MaxHp, row.Defense, UnitCsvActionFactory.BuildActions(row), row.Domain, row.Id);
+            world.Set(id, new PortBoat { NavalUnitId = row.Boat ?? string.Empty });
+            return id;
+        }
 
         /// <summary>정찰(ScoutAction) 보유 시 5x5, 아니면 3x3.</summary>
         public static int VisionRangeFor(IReadOnlyList<IUnitAction> actions)

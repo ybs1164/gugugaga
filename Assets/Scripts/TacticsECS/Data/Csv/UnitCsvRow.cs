@@ -45,5 +45,11 @@ namespace TacticsECS
         public int Cost = DefaultCost;
 
         public const int DefaultCost = 2;
+
+        /// <summary>false면 도시에서 훈련할 수 없다(보상/침투로만 나오는 유닛 — 거인, Dagger). CSV "Trainable" 칸(비우면 true).</summary>
+        public bool Trainable = true;
+
+        /// <summary>자기 항구에 들어가면 바뀌는 배(NavalUnits.csv Id). 비우면 뗏목 — 위키: Cloak은 Dinghy, Dagger는 Pirate.</summary>
+        public string Boat = string.Empty;
     }
 }

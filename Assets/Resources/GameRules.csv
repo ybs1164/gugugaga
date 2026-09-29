@@ -23,6 +23,9 @@ Ruin.Population,3,3,유적 보상: 인구(수도),
 Ruin.NewFriendsUnitId,gladiator,Swordsman,유적 보상 "New Friends": 육지 유적에서 베테랑으로 나오는 유닛 CSV Id(위키: 베테랑 검사),이 프로젝트의 검사 Id는 gladiator
 Ruin.SeaUnitId,infantry,Warrior,물 위 유적 보상: 배에 태워 나오는 유닛 CSV Id(위키: 전사를 태운 베테랑 충각선),이 프로젝트의 전사 Id는 infantry
 Ruin.SeaBoatId,rammer,rammer,물 위 유적 보상: 그 유닛이 타고 나오는 배(NavalUnits.csv Id),
+# 침투(위키 Cloak "Infiltrate"),,,,
+Infiltration.MaxDaggers,5,5,침투 시 소환하는 Dagger 수 = 도시 레벨(최대 N),
+Infiltration.DaggerUnitId,dagger,dagger,침투로 소환하는 유닛 CSV Id(위키 Dagger — 물 위면 Boat 칸의 배 = Pirate),
 # 베테랑(위키 Units "Veteran Units"),,,,
 Veteran.KillsRequired,3,3,이만큼 처치(공격/반격)하면 승급 가능,
 Veteran.MaxHpBonus,5,5,승급 시 최대 체력 +N 후 완전 회복,

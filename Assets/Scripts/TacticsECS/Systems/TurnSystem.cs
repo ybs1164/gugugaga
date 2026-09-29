@@ -32,6 +32,7 @@ namespace TacticsECS
             {
                 if (world.Get<Team>(i) != team) continue;
 
+                StealthSystem.OnTurnStart(world, i);
                 bool frozen = world.Get<Frozen>(i).Value;
                 world.Set(i, new HasMoved { Value = frozen });
                 world.Set(i, new HasActed { Value = frozen });

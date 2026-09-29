@@ -51,6 +51,13 @@ namespace TacticsECS
             public static string SeaBoatId = "rammer";
         }
 
+        /// <summary>위키 Cloak "Infiltrate".</summary>
+        public static class Infiltration
+        {
+            public static int MaxDaggers = 5;
+            public static string DaggerUnitId = "dagger";
+        }
+
         /// <summary>위키 Units "Veteran Units".</summary>
         public static class Veteran
         {

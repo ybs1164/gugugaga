@@ -58,6 +58,7 @@ namespace TacticsECS
             var pos = world.Get<GridPosition>(unitId).Value;
             grid.SetStructure(pos, string.Empty);
             world.Set(unitId, new HasActed { Value = true });
+            StealthSystem.Reveal(world, unitId); // 위키 Cloak: 유적 탐험 시 드러난다
 
             var entry = new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Explore, Position = pos, CityIndex = -1 };
 
@@ -134,7 +135,7 @@ namespace TacticsECS
         {
             UnitCsvRow best = null;
             foreach (var row in econ.UnitRows)
-                if (best == null || row.Cost < best.Cost) best = row;
+                if (CitySystem.IsTrainable(row) && (best == null || row.Cost < best.Cost)) best = row;
             return best?.Id ?? string.Empty;
         }
 

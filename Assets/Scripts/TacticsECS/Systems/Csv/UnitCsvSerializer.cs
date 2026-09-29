@@ -26,8 +26,12 @@ namespace TacticsECS
             "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
-            "Cost"
+            "Cost", "Trainable", "Boat"
         };
+
+        /// <summary>옛 행동 이름 -> 지금 이름(CSV 호환). Stealth(은신 플레이스홀더)는 위키 이름 Hide로 바뀌었다.</summary>
+        private static readonly System.Collections.Generic.Dictionary<string, string> LegacyActionNames =
+            new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) { ["Stealth"] = "Hide" };
 
 
         /// <summary>헤더 이름으로 컬럼을 찾아(CsvTableReader — 순서 무관, 메모 컬럼/`#` 주석 행 허용) 한 행씩 파싱한다.
@@ -55,6 +59,8 @@ namespace TacticsECS
                     HealAmount = CsvTableReader.GetInt(t, r, "Heal.Amount", 0, errors),
                     HealRange = CsvTableReader.GetInt(t, r, "Heal.Range", 0, errors),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", UnitCsvRow.DefaultCost, errors),
+                    Trainable = CsvTableReader.GetBool(t, r, "Trainable", true, errors),
+                    Boat = CsvTableReader.Get(t, r, "Boat"),
                 });
             }
             return rows;
@@ -85,15 +91,18 @@ namespace TacticsECS
             row.AttackRange.ToString(CultureInfo.InvariantCulture),
             row.HealAmount.ToString(CultureInfo.InvariantCulture),
             row.HealRange.ToString(CultureInfo.InvariantCulture),
-            row.Cost.ToString(CultureInfo.InvariantCulture)
+            row.Cost.ToString(CultureInfo.InvariantCulture),
+            row.Trainable ? "1" : "0",
+            row.Boat ?? string.Empty
         }));
 
         /// <summary>Action1..N(+ 옛 Actions 칸)의 행동 이름을 ActionType 플래그로 OR한다. 모르는 이름은 errors에 남기고 건너뛴다.</summary>
         private static ActionType ParseActions(CsvTable t, int row, List<string> errors)
         {
             var result = ActionType.None;
-            foreach (var name in CsvTableReader.GetList(t, row, ActionColumn, LegacyActionsColumn))
+            foreach (var raw in CsvTableReader.GetList(t, row, ActionColumn, LegacyActionsColumn))
             {
+                var name = LegacyActionNames.TryGetValue(raw, out var renamed) ? renamed : raw;
                 if (Enum.TryParse<ActionType>(name, true, out var flag) && Enum.IsDefined(typeof(ActionType), flag)) result |= flag;
                 else CsvTableReader.Report(t, row, ActionColumn, $"알 수 없는 행동 '{name}'", errors);
             }

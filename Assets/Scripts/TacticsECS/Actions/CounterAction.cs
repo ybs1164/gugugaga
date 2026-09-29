@@ -42,7 +42,10 @@ namespace TacticsECS
             world.Set(targetId, new Accelerated { Value = false });
 
             if (!UnitQueries.IsAlive(world, targetId))
+            {
                 grid.RemoveOccupant(world.Get<GridPosition>(targetId).Value);
+                VeteranSystem.RecordKill(world, actorId); // 위키: 반격 처치도 베테랑 처치 수에 든다
+            }
 
             return true;
         }

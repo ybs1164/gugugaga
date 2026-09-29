@@ -11,7 +11,8 @@ namespace TacticsECS
         Heal,
         SelfDestruct,
         Wait,
-        Defeated
+        Defeated,
+        Promote
     }
 
     /// <summary>행동 로그 한 줄에 대응하는 값 하나. 계산이나 판정 로직은 전혀 없다 — BattleController가

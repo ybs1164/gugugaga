@@ -118,6 +118,11 @@ namespace TacticsECS
         public int CityIndex;
     }
 
+    // 베테랑(위키 Units "Veteran Units"): 공격/반격으로 적을 처치한 수(Kills)가 GameRules.Veteran.KillsRequired(3)에 이르면 승급할 수
+    // 있고, 승급하면 최대 체력 +5 후 완전 회복(Veteran = true, 한 번만). 판정/적용은 VeteranSystem.
+    [System.Serializable] public struct Kills { public int Value; }
+    [System.Serializable] public struct Veteran { public bool Value; }
+
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이
     // 그 자체로 컴포넌트 타입("팀 소속")으로 재사용한다.
 }

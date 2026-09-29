@@ -46,6 +46,7 @@ namespace TacticsECS
 
             if (!UnitQueries.IsAlive(world, targetId))
             {
+                VeteranSystem.RecordKill(world, actorId);
                 var killedAt = world.Get<GridPosition>(targetId).Value;
                 grid.RemoveOccupant(killedAt);
                 AdvanceAfterKill(grid, world, actorId, killedAt);
@@ -103,7 +104,10 @@ namespace TacticsECS
                 world.Set(i, new Accelerated { Value = false });
 
                 if (!UnitQueries.IsAlive(world, i))
+                {
                     grid.RemoveOccupant(world.Get<GridPosition>(i).Value);
+                    VeteranSystem.RecordKill(world, actorId);
+                }
             }
         }
     }

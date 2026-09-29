@@ -59,6 +59,26 @@ namespace TacticsECS
             return true;
         }
 
+        /// <summary>육지 유닛을 곧바로 navalUnitId 배에 태운다(물 위 유적의 "베테랑 충각선" 보상처럼 배에 탄 채 나타나는 유닛).
+        /// 원래 스탯은 LandForm에 보관되어 육지에 내리면 돌아온다.</summary>
+        public static void EmbarkAs(EntityWorld world, int unitId, string navalUnitId)
+        {
+            var row = FindNavalRow(navalUnitId);
+            if (row == null || IsEmbarked(world, unitId)) return;
+            world.Set(unitId, new LandForm
+            {
+                Attack = world.Get<Attack>(unitId).Value,
+                Defense = world.Get<Defense>(unitId).Value,
+                AttackRange = world.Get<AttackRange>(unitId).Value,
+                MoveRange = world.Get<MoveRange>(unitId).Value,
+                VisionRange = world.GetOrDefault<VisionRange>(unitId).Value,
+                Domain = world.Get<MoveDomain>(unitId).Value,
+                AvailableActions = world.GetOrDefault<AvailableActions>(unitId).Value,
+                Actions = world.Get<UnitActions>(unitId).Value,
+            });
+            ApplyNaval(world, unitId, row);
+        }
+
         private static void EndTurn(EntityWorld world, int unitId)
         {
             world.Set(unitId, new HasMoved { Value = true });

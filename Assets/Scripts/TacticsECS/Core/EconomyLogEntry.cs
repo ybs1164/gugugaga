@@ -20,5 +20,9 @@ namespace TacticsECS
         public int CityIndex;
         /// <summary>비어있지 않으면 이 유닛 CSV Id를 Position(또는 그 근처 빈 칸)에 스폰해야 한다.</summary>
         public string SpawnUnitId;
+        /// <summary>스폰할 유닛을 베테랑으로(유적 "New Friends"/베테랑 충각선).</summary>
+        public bool SpawnVeteran;
+        /// <summary>비어있지 않으면 스폰할 유닛을 이 배(NavalUnits.csv Id)에 태운 채로 물 위에 스폰한다(물 위 유적 보상).</summary>
+        public string SpawnBoatId;
     }
 }

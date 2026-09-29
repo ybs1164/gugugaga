@@ -822,6 +822,17 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-09-29: **구현 계획 3단계 — 베테랑**(위키 Units "Veteran Units").
+  - [`VeteranSystem`](Assets/Scripts/TacticsECS/Systems/VeteranSystem.cs) + `Kills`/`Veteran` 컴포넌트: 공격·스플래시·반격으로 처치하면 처치 수 +1,
+    3회(`GameRules.csv` `Veteran.KillsRequired`)면 유닛 메뉴의 **승급**(최대 체력 +5 `Veteran.MaxHpBonus`, 완전 회복, 한 번). 승급 시점은 플레이어가
+    고른다(위키: 나중에 "공짜 회복"으로 쓸 수 있음). 원문에 행동 소모 여부가 없어 행동을 쓰지 않는다. 배/슈퍼 유닛/고정(`Static`) 유닛은 불가.
+  - [`StaticAction`](Assets/Scripts/TacticsECS/Actions/StaticAction.cs)(위키 Static) 추가, 스파이(Cloak)에 부여.
+  - 유적 "New Friends"를 위키대로: 육지 유적 = 베테랑 검사(`Ruin.NewFriendsUnitId` = gladiator), 물 위 유적 = 전사를 태운 베테랑 충각선
+    (`Ruin.SeaUnitId`/`SeaBoatId`, `EmbarkSystem.EmbarkAs`). 그 유닛 행이 없는 옛 CSV면 가장 싼 유닛.
+  - 화면: 유닛 메뉴에 "처치 n/3" 또는 "베테랑", 베테랑의 머리 위 체력 숫자는 금색, 체력 막대는 늘어난 최대 체력 기준(예전엔 정의값 기준이었음).
+    AI는 승급할 수 있으면 즉시 승급한다(행동 로그 "베테랑 승급").
+  - 검증: `EconomyVerification.VerifyVeterans`(처치/반격 처치/승급/한 번만/고정·배 불가/물 위 유적 충각선), `VerificationSuite`/`EconomySimulation` ALL PASS.
+
 - 2026-09-29: **구현 계획 2단계 — 유닛 소속 도시**(위키 City "Unit Capacity").
   - [`HomeCity`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트(`HasCity` + 인덱스 — 기본값이 "소속 없음"이 되도록)와
     [`IndependentAction`](Assets/Scripts/TacticsECS/Actions/IndependentAction.cs)(위키 Independent — 자리 차지 안 함) 추가.

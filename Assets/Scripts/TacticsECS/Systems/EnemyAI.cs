@@ -51,6 +51,8 @@ namespace TacticsECS
             foreach (var id in ownIds)
             {
                 if (!UnitQueries.IsAlive(world, id)) continue;
+                // 베테랑 승급은 행동을 쓰지 않는다 — AI는 되는 즉시 승급한다(체력이 깎였을수록 이득이지만 단순하게).
+                if (VeteranSystem.Promote(world, id)) entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Promote, TargetId = BattleLogEntry.NoTarget });
                 if (world.Get<HasMoved>(id).Value && world.Get<HasActed>(id).Value) continue;
                 var selfPos = world.Get<GridPosition>(id).Value;
 

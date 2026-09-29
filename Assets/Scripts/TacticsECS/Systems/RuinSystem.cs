@@ -10,8 +10,8 @@ namespace TacticsECS
     ///   - 유적 탐험: 유적 칸에서 턴을 시작한(이번 턴 이동·행동 전) 유닛이 행동을 써서 탐험하면 유적이 사라지고 보상 하나(폴리토피아 위키
     ///     Ruins: 골드 10 / 무료 기술 / 수도 인구 +3 / 탐험가 / 유닛)를 조건이 맞는 것 중 균등하게 무작위로 받는다.
     ///     기술은 트리가 남았을 때, 인구는 수도가 있을 때, 탐험가는 유적 주변 5x5에 구름이 남았을 때만 후보가 된다.
-    ///     원문과 다른 점: "New Friends"(베테랑 검사)는 베테랑 시스템이 없어 가장 싼 유닛으로, 물 위 유적의 충각선 보상은
-    ///     물 위 유적이 생성되지 않아 넣지 않았다.
+    ///     유닛 보상은 위키대로 육지 유적이면 베테랑 검사("New Friends" — GameRules.Ruin.NewFriendsUnitId), 물 위 유적이면 전사를
+    ///     태운 베테랑 충각선(Ruin.SeaUnitId/SeaBoatId). 그 유닛 CSV 행이 없으면(옛 샌드박스 CSV) 가장 싼 유닛(베테랑 아님)으로 대신한다.
     ///   - 해산: "Ability.Disband" 해금 시 이번 턴 이동도 행동도 하지 않은 자기 유닛을 없애고 훈련 비용 절반(내림)을 골드로 돌려받는다
     ///     (위키 Disband — 슈퍼 유닛은 비용 10이라 5, 배는 태운 유닛 비용의 절반이고 배 업그레이드 비용은 돌려받지 않는다:
     ///     UnitTypeId가 태운 육지 유닛 Id라 자연히 그렇게 된다).
@@ -65,7 +65,10 @@ namespace TacticsECS
             foreach (var n in econ.TechNodes)
                 if (TechSystem.IsAvailable(econ.TechNodes, econ.Tech[team], n.Id)) techCandidates.Add(n);
             int capital = CitySystem.FindCapital(econ, team);
-            string unit = CheapestUnitId(econ);
+            bool seaRuin = grid.GetTerrain(pos) == TerrainType.Water;
+            string friendId = seaRuin ? GameRules.Ruin.SeaUnitId : GameRules.Ruin.NewFriendsUnitId;
+            bool friendKnown = CitySystem.FindUnitRow(econ, friendId) != null;
+            string unit = friendKnown ? friendId : CheapestUnitId(econ);
 
             var rewards = new List<RuinReward> { RuinReward.Gold };
             if (techCandidates.Count > 0) rewards.Add(RuinReward.Tech);
@@ -94,8 +97,10 @@ namespace TacticsECS
                     VisionSystem.RunExplorer(grid, econ, team, pos, log);
                     return true;
                 case RuinReward.Unit:
-                    entry.Subject = "유닛";
+                    entry.Subject = !friendKnown ? "유닛" : seaRuin ? "베테랑 충각선" : "새 친구(베테랑)";
                     entry.SpawnUnitId = unit;
+                    entry.SpawnVeteran = friendKnown;
+                    if (friendKnown && seaRuin) entry.SpawnBoatId = GameRules.Ruin.SeaBoatId;
                     break;
                 default:
                 {

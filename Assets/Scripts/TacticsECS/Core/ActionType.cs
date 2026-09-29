@@ -90,5 +90,8 @@ namespace TacticsECS
         /// <summary>독립(위키 Unit Skills "Independent"): 어느 도시에도 속하지 않아 도시 유닛 수용량을 차지하지 않는다
         /// (Dagger 등). 값을 갖지 않는 순수 마커 — Actions/IndependentAction.cs 참고.</summary>
         Independent = 1 << 26,
+        /// <summary>고정(위키 Unit Skills "Static"): 베테랑으로 승급할 수 없다(Cloak/Dagger 등). 값을 갖지 않는 순수 마커 —
+        /// Actions/StaticAction.cs 참고.</summary>
+        Static = 1 << 27,
     }
 }

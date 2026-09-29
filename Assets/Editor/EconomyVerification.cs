@@ -26,6 +26,7 @@ namespace TacticsECS.EditorTools
             VerifyRecoverAndDisband();
             VerifyStarfishAndDestroy();
             VerifyHomeCities();
+            VerifyVeterans();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -359,6 +360,61 @@ namespace TacticsECS.EditorTools
             w2.Set(bender, new Attack { Value = 0 });
             Check(CombatSystem.TryAttack(g2, w2, bender, victim, out _, out _) && w2.Get<Team>(victim) == p && CitySystem.HomeOf(w2, victim) == cap,
                 "converted unit joins the converter's city");
+        }
+
+        /// <summary>위키 Units "Veteran Units": 공격/반격 처치 3회면 승급 가능(최대 체력 +5, 완전 회복, 한 번), 배/슈퍼 유닛/고정 스킬은
+        /// 불가. 유적 "New Friends"는 베테랑으로, 물 위 유적은 베테랑 충각선(전사 탑승)으로 나온다.</summary>
+        private static void VerifyVeterans()
+        {
+            var grid = new GridWorld(8, 3);
+            for (int y = 0; y < 3; y++) for (int x = 0; x < 8; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var world = new EntityWorld();
+            var p = Team.Player; var e = Team.Enemy;
+            int hero = MakeUnit(world, grid, p, new Vector2Int(0, 1), new List<IUnitAction> { MoveAction.FromCsv(1), AttackAction.FromCsv(10, 1), new ComboAction() });
+            world.Set(hero, new Attack { Value = 10 });
+            for (int k = 0; k < 3; k++)
+            {
+                int victim = MakeUnit(world, grid, e, new Vector2Int(1, k == 1 ? 1 : k));
+                world.Set(victim, new Hp { Value = 1 });
+                if (PathfindingSystem.Distance(world.Get<GridPosition>(hero).Value, world.Get<GridPosition>(victim).Value) != 1)
+                {
+                    grid.RemoveOccupant(world.Get<GridPosition>(victim).Value);
+                    var at = world.Get<GridPosition>(hero).Value + Vector2Int.right;
+                    world.Set(victim, new GridPosition { Value = at }); grid.PlaceOccupant(at, victim);
+                }
+                world.Set(hero, new HasActed { Value = false }); world.Set(hero, new HasMoved { Value = false });
+                Check(CombatSystem.TryAttack(grid, world, hero, victim, out _, out _) && !UnitQueries.IsAlive(world, victim), $"kill #{k + 1}");
+            }
+            Check(world.Get<Kills>(hero).Value == 3, $"3 kills recorded (got {world.Get<Kills>(hero).Value})");
+            world.Set(hero, new Hp { Value = 4 });
+            Check(VeteranSystem.CanPromote(world, hero) && VeteranSystem.Promote(world, hero), "promote after 3 kills");
+            Check(world.Get<MaxHp>(hero).Value == 15 && world.Get<Hp>(hero).Value == 15 && VeteranSystem.IsVeteran(world, hero), "veteran: max hp +5, fully healed");
+            Check(!VeteranSystem.CanPromote(world, hero), "promotion happens only once");
+
+            // 반격 처치도 센다.
+            int guard = MakeUnit(world, grid, p, new Vector2Int(5, 1), new List<IUnitAction> { MoveAction.FromCsv(1), new CounterAction() });
+            world.Set(guard, new Defense { Value = 10 });
+            int weak = MakeUnit(world, grid, e, new Vector2Int(6, 1), new List<IUnitAction> { MoveAction.FromCsv(1), AttackAction.FromCsv(1, 1) });
+            world.Set(weak, new Attack { Value = 1 }); world.Set(weak, new Hp { Value = 1 });
+            Check(CombatSystem.TryAttack(grid, world, weak, guard, out _, out int counter) && counter > 0 && !UnitQueries.IsAlive(world, weak) &&
+                  world.Get<Kills>(guard).Value == 1, "retaliation kills count toward veterancy");
+
+            // 승급 불가: 고정(Static), 배.
+            int cloak = MakeUnit(world, grid, p, new Vector2Int(3, 2), new List<IUnitAction> { MoveAction.FromCsv(1), new StaticAction() });
+            world.Set(cloak, new Kills { Value = 5 });
+            Check(!VeteranSystem.CanPromote(world, cloak), "static units cannot be promoted");
+            int boat = MakeUnit(world, grid, p, new Vector2Int(4, 0));
+            world.Set(boat, new Kills { Value = 5 }); world.Set(boat, new MoveDomain { Value = TerrainType.Water });
+            Check(!VeteranSystem.CanPromote(world, boat), "naval units cannot be promoted");
+
+            // 물 위 유적 -> 전사를 태운 베테랑 충각선.
+            var econ = NewEconomy();
+            var g2 = new GridWorld(6, 6);
+            for (int y = 0; y < 6; y++) for (int x = 0; x < 6; x++) { g2.SetTerrain(new Vector2Int(x, y), TerrainType.Water); g2.SetTileType(new Vector2Int(x, y), TerrainGenerationSystem.OceanTileId); }
+            var w2 = new EntityWorld();
+            int id = UnitFactorySystem.SpawnEconomyUnit(g2, w2, econ, p, GameRules.Ruin.SeaUnitId, new Vector2Int(3, 3), HomeCity.None, true, GameRules.Ruin.SeaBoatId);
+            Check(id >= 0 && EmbarkSystem.NavalUnitId(w2, id) == GameRules.Ruin.SeaBoatId && VeteranSystem.IsVeteran(w2, id) && w2.Get<MaxHp>(id).Value == 15,
+                "sea ruin unit spawns as a veteran rammer carrying a warrior");
         }
 
         /// <summary>도시가 지금까지 모은 인구 총량(레벨업으로 차감된 몫까지 되돌려 더한 값).</summary>

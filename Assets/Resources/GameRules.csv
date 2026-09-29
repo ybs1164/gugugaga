@@ -20,6 +20,12 @@ Heal.Other,2,2,중립/적 영토에서 쉬면 회복량,
 Unit.DisbandRefundDivisor,2,2,해산 환급 = 훈련 비용 / 이 값(내림),
 Ruin.Gold,10,10,유적 보상: 골드,
 Ruin.Population,3,3,유적 보상: 인구(수도),
+Ruin.NewFriendsUnitId,gladiator,Swordsman,유적 보상 "New Friends": 육지 유적에서 베테랑으로 나오는 유닛 CSV Id(위키: 베테랑 검사),이 프로젝트의 검사 Id는 gladiator
+Ruin.SeaUnitId,infantry,Warrior,물 위 유적 보상: 배에 태워 나오는 유닛 CSV Id(위키: 전사를 태운 베테랑 충각선),이 프로젝트의 전사 Id는 infantry
+Ruin.SeaBoatId,rammer,rammer,물 위 유적 보상: 그 유닛이 타고 나오는 배(NavalUnits.csv Id),
+# 베테랑(위키 Units "Veteran Units"),,,,
+Veteran.KillsRequired,3,3,이만큼 처치(공격/반격)하면 승급 가능,
+Veteran.MaxHpBonus,5,5,승급 시 최대 체력 +N 후 완전 회복,
 Starfish.Gold,8,8,불가사리 인양 골드(위키 Starfish — 배가 그 칸에서 턴을 시작하면 인양),
 # 기술,,,,
 Tech.DefaultCostBase,4,4,TechTree.csv CostBase를 비웠을 때 값(비용 = 티어 x 도시 수 + 4),

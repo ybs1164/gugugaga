@@ -859,6 +859,7 @@ namespace TacticsECS
                 case BattleLogVerb.SelfDestruct: return $"{Colored(entry.ActorId)} 자폭";
                 case BattleLogVerb.Wait: return entry.Amount > 0 ? $"{Colored(entry.ActorId)} 대기 (+{entry.Amount})" : $"{Colored(entry.ActorId)} 대기";
                 case BattleLogVerb.Defeated: return $"{Colored(entry.ActorId)} 쓰러짐";
+                case BattleLogVerb.Promote: return $"{Colored(entry.ActorId)} 베테랑 승급";
                 default: return Colored(entry.ActorId);
             }
         }
@@ -1108,7 +1109,7 @@ namespace TacticsECS
         {
             foreach (var entry in log)
             {
-                if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex);
+                if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex, entry.SpawnVeteran, entry.SpawnBoatId);
                 _hud.AddLogEntry(FormatEconomyEntry(entry));
             }
             if (log.Count > 0) RefreshRoster();
@@ -1139,7 +1140,7 @@ namespace TacticsECS
 
         /// <summary>유닛 CSV Id로 near 칸(차 있으면 가장 가까운 빈 칸, 반경 3)에 유닛을 스폰한다. 폴리토피아처럼
         /// 새로 생긴 유닛은 그 턴에 움직이거나 행동할 수 없다.</summary>
-        private bool SpawnEconomyUnit(Team team, string unitId, Vector2Int near, int homeCity)
+        private bool SpawnEconomyUnit(Team team, string unitId, Vector2Int near, int homeCity, bool veteran = false, string boatId = null)
         {
             var row = CitySystem.FindUnitRow(_econ, unitId);
             if (row == null || !BasePrefabsByName().TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
@@ -1149,7 +1150,7 @@ namespace TacticsECS
             }
 
             // 엔티티 생성/자리 찾기는 헤드리스 시뮬레이션과 같은 경로(UnitFactorySystem), 여기서는 View만 붙인다.
-            int id = UnitFactorySystem.SpawnEconomyUnit(_grid, _world, _econ, team, unitId, near, homeCity);
+            int id = UnitFactorySystem.SpawnEconomyUnit(_grid, _world, _econ, team, unitId, near, homeCity, veteran, boatId);
             if (id < 0) return false;
             var view = _spawner.AttachCsvView(_grid, _world, id, basePrefab, row);
             _viewsById[id] = view;
@@ -1291,6 +1292,8 @@ namespace TacticsECS
             else if (CitySystem.IsSettlementTile(_grid, pos) && !IsOwnCity(pos))
                 options.Add(new ActionMenuOption { Label = "점령", Detail = "이 칸에서 턴을 시작해야 점령할 수 있다.", Enabled = false });
 
+            if (VeteranSystem.CanPromote(_world, unitId))
+                options.Add(new ActionMenuOption { Label = $"승급 (최대 체력 +{GameRules.Veteran.MaxHpBonus}, 완전 회복)", Detail = "베테랑이 된다(행동을 쓰지 않음).", Enabled = true, OnClick = () => HandlePromote(unitId) });
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
@@ -1321,6 +1324,9 @@ namespace TacticsECS
             // 소속 도시(위키 City "Units will show which city they belong to").
             int home = CitySystem.HomeOf(_world, unitId);
             string homeText = home >= 0 && home < _econ.Cities.Count ? $"소속: {_econ.Cities[home].Name}" : "소속 도시 없음";
+            homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · 베테랑"
+                : VeteranSystem.CannotBePromoted(_world, unitId) ? string.Empty
+                : $" · 처치 {_world.GetOrDefault<Kills>(unitId).Value}/{GameRules.Veteran.KillsRequired}";
             _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", homeText, options);
         }
 
@@ -1395,6 +1401,16 @@ namespace TacticsECS
             _viewsById[unitId].Refresh(_world, unitId);
             RefreshEconomyViews(false);
             ClearSelection();
+        }
+
+        private void HandlePromote(int unitId)
+        {
+            if (!CanUseEconomyMenu || !VeteranSystem.Promote(_world, unitId)) return;
+            _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Promote, TargetId = BattleLogEntry.NoTarget }));
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshRoster();
+            RecomputeHighlightsIfSelected(unitId);
+            RefreshMenu();
         }
 
         private void HandleStarfish(int unitId)

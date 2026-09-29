@@ -46,6 +46,16 @@ namespace TacticsECS
         {
             public static int Gold = 10;
             public static int Population = 3;
+            public static string NewFriendsUnitId = "gladiator";
+            public static string SeaUnitId = "infantry";
+            public static string SeaBoatId = "rammer";
+        }
+
+        /// <summary>위키 Units "Veteran Units".</summary>
+        public static class Veteran
+        {
+            public static int KillsRequired = 3;
+            public static int MaxHpBonus = 5;
         }
 
         /// <summary>위키 Starfish: 배가 불가사리 칸에서 턴을 시작하면 인양(턴 소모)해 골드를 받는다.</summary>

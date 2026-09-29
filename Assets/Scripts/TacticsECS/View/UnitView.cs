@@ -46,6 +46,8 @@ namespace TacticsECS
         private UnitDefinition _definition;
         private Transform _hpGroup;
         private TextMesh _hpText;
+        private Color _hpTextBaseColor = Color.white;
+        private static readonly Color VeteranHpTextColor = new Color(1f, 0.82f, 0.25f);
         private Transform _hpBarFill;
         private Material _hpFillMaterial;
         private GridWorld _grid;
@@ -151,6 +153,7 @@ namespace TacticsECS
             _hpBarFill.GetComponent<Renderer>().sharedMaterial = _hpFillMaterial;
 
             _hpText = _hpGroup.GetComponentInChildren<TextMesh>();
+            _hpTextBaseColor = _hpText.color;
         }
 
         public void Refresh(EntityWorld world, int id)
@@ -162,8 +165,11 @@ namespace TacticsECS
             }
 
             int hp = world.Get<Hp>(id).Value;
-            float hpFraction = _definition.MaxHp > 0 ? (float)hp / _definition.MaxHp : 0f;
+            int maxHp = world.GetOrDefault<MaxHp>(id).Value; // 베테랑은 최대 체력이 늘어난다(정의값이 아니라 world 값)
+            if (maxHp <= 0) maxHp = _definition.MaxHp;
+            float hpFraction = maxHp > 0 ? (float)hp / maxHp : 0f;
             _hpText.text = hp.ToString();
+            _hpText.color = world.GetOrDefault<Veteran>(id).Value ? VeteranHpTextColor : _hpTextBaseColor; // 베테랑은 금색 체력 숫자
             SetHpBarFraction(hpFraction);
             RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
 

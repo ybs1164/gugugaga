@@ -8,8 +8,11 @@ namespace TacticsECS
     ///
     /// 표 형식(1차 비교분석 결과 — docs/GameDataCsv.md): "넓은 표 + Flags 목록" 하이브리드.
     ///   - 숫자/문자열 속성은 컬럼 하나씩(스프레드시트에서 정렬·필터·합계가 된다).
-    ///   - 대부분의 행에 해당 없는 드문 불리언 속성은 컬럼을 늘리지 않고 Flags 칸 하나에 태그로 나열한다
-    ///     (예: 다리 = "Neutral;OppositeLand;ActsAsRoad"). 태그는 정해진 목록에서만 고를 수 있어 오타가 오류로 잡힌다.
+    ///   - 대부분의 행에 해당 없는 드문 불리언 속성은 태그로 나열한다(예: 다리 = Flag1 Neutral, Flag2 OppositeLand, Flag3 ActsAsRoad).
+    ///     태그는 정해진 목록에서만 고를 수 있어 오타가 오류로 잡힌다.
+    ///   - 여러 값을 갖는 속성(Terrain/RequiredStructure/AdjacentBuilding/Flag)은 한 칸에 묶지 않고 번호 붙은 반복 컬럼
+    ///     (Terrain1, Terrain2 ...)으로 나열한다(CLAUDE.md 규칙 6 — CsvTableReader.GetList). 옛 한 칸 목록 컬럼
+    ///     (RequiredStructures/AdjacentBuildings/Flags, "a;b")도 호환용으로 읽는다.
     /// </summary>
     public static class GameTableCsvSerializer
     {
@@ -21,23 +24,26 @@ namespace TacticsECS
         public const string FlagActsAsRoad = "ActsAsRoad";
         public const string FlagTemple = "Temple";
         public const string FlagGoldFromAdjacent = "GoldFromAdjacent";
+        public const string FlagOnePerCity = "OnePerCity";
 
-        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagGoldFromAdjacent };
+        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagGoldFromAdjacent, FlagOnePerCity };
 
         private static readonly string[] BuildingRequired = { "Id", "Terrain" };
         private static readonly string[] BuildingOptional =
-            { "Name", "Unlock", "Cost", "Population", "RequiredStructures", "AdjacentBuildings", "PopulationPerAdjacent", "Flags", "Task", "Description", "Wiki", "Note" };
+            { "Name", "Unlock", "Cost", "Population", "RequiredStructure", "AdjacentBuilding", "PopulationPerAdjacent", "Flag", "Task", "Description", "Wiki", "Note",
+              "RequiredStructures", "AdjacentBuildings", "Flags" };
+        private static readonly string[] BuildingLists = { "Terrain", "RequiredStructure", "AdjacentBuilding", "Flag" };
 
         public static BuildingInfo[] ParseBuildings(string csvText, List<string> errors, string name = "Buildings.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, BuildingRequired, BuildingOptional, errors);
+            CsvTableReader.CheckColumns(t, BuildingRequired, BuildingOptional, errors, BuildingLists);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var list = new List<BuildingInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
             {
                 string id = CsvTableReader.Get(t, r, "Id");
-                var flags = CsvTableReader.GetTags(t, r, "Flags", BuildingFlags, errors);
+                var flags = CsvTableReader.GetTags(t, r, "Flag", BuildingFlags, errors, "Flags");
                 var info = new BuildingInfo
                 {
                     Id = id,
@@ -46,8 +52,8 @@ namespace TacticsECS
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
                     Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
-                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructures"),
-                    AdjacentBuildings = CsvTableReader.GetList(t, r, "AdjacentBuildings"),
+                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
+                    AdjacentBuildings = CsvTableReader.GetList(t, r, "AdjacentBuilding", "AdjacentBuildings"),
                     PopulationPerAdjacent = CsvTableReader.GetInt(t, r, "PopulationPerAdjacent", 0, errors),
                     IsRoad = flags.Contains(FlagRoad),
                     AllowNeutral = flags.Contains(FlagNeutral),
@@ -55,6 +61,7 @@ namespace TacticsECS
                     ActsAsRoad = flags.Contains(FlagActsAsRoad),
                     IsTemple = flags.Contains(FlagTemple),
                     ProducesGoldFromAdjacent = flags.Contains(FlagGoldFromAdjacent),
+                    OnePerCity = flags.Contains(FlagOnePerCity),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 };
@@ -65,7 +72,7 @@ namespace TacticsECS
             // 인접 건물 칸은 같은 표의 Id를 가리켜야 한다(오타 방지).
             for (int r = 0; r < list.Count; r++)
                 foreach (var adj in list[r].AdjacentBuildings)
-                    if (!list.Exists(b => b.Id == adj)) CsvTableReader.Report(t, r, "AdjacentBuildings", $"표에 없는 건물 '{adj}'", errors);
+                    if (!list.Exists(b => b.Id == adj)) CsvTableReader.Report(t, r, "AdjacentBuilding", $"표에 없는 건물 '{adj}'", errors);
             return list.ToArray();
         }
 
@@ -73,12 +80,13 @@ namespace TacticsECS
 
         private static readonly string[] TileActionRequired = { "Id", "Kind", "Terrain" };
         private static readonly string[] TileActionOptional =
-            { "Name", "Unlock", "Cost", "RequiredStructures", "Population", "GoldGain", "Description", "Wiki", "Note" };
+            { "Name", "Unlock", "Cost", "RequiredStructure", "Population", "GoldGain", "Description", "Wiki", "Note", "RequiredStructures" };
+        private static readonly string[] TileActionLists = { "Terrain", "RequiredStructure" };
 
         public static TileActionInfo[] ParseTileActions(string csvText, List<string> errors, string name = "TileActions.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, TileActionRequired, TileActionOptional, errors);
+            CsvTableReader.CheckColumns(t, TileActionRequired, TileActionOptional, errors, TileActionLists);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var list = new List<TileActionInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
@@ -92,7 +100,7 @@ namespace TacticsECS
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
-                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructures"),
+                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
                     GoldGain = CsvTableReader.GetInt(t, r, "GoldGain", 0, errors),
                     Description = CsvTableReader.Get(t, r, "Description"),

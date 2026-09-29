@@ -15,6 +15,9 @@ namespace TacticsECS.EditorTools
     {
         private const string SampleCsvRelativePath = "docs/sample_biomes.csv";
 
+        /// <summary>옛 형식(한 행 = 한 바이옴, Tiles/Structures 칸에 ";" 묶음) 호환 확인용 — 규칙 6 전환 전 sample_biomes.csv의 Grassland 행.</summary>
+        private const string LegacyGrasslandCsv = "Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles,Structures,MountainRate,ForestRate\nGrassland,평원,Perlin,0.15,3,101,1,Grass:Land:0.7:0.5:0:0:0:0:;Water:Water:0.2:0.15:0:25:2:1:,Village:Grass:1:0:0:3:2:0::1::0:0;Resource_Fruit:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Crop:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Animal:Forest:0:0:0:0:0:0::0::0.5:0.158;Resource_Metal:Mountain:0:0:0:0:0:0::0::0.786:0.214;Resource_Fish:Water:0:0:0:0:0:0::0::0.5:0.5;Ruin:Grass|Forest|Mountain|Ocean:1:0:0:2:0:0:0.34:0:Capital|Village:0:0;Starfish:Water|Ocean:1:0:25:2:0:0::0:Capital|Village|Lighthouse:0:0,1,1\n";
+
         public static void Run()
         {
             bool ok = VerifyRoundTrip() &
@@ -49,6 +52,21 @@ namespace TacticsECS.EditorTools
 
             var original = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
             var rewritten = BiomeCsvSerializer.Parse(BiomeCsvSerializer.Write(original));
+
+            // CLAUDE.md 규칙 6: 샘플은 한 칸에 한 값(롱 포맷)이어야 하고, 옛 한 행 묶음 형식도 같은 값으로 읽혀야 한다.
+            if (ReadCsv(SampleCsvRelativePath).Contains(";"))
+            {
+                Debug.LogError("[TerrainGenerationVerification] sample biome CSV still packs several values into one cell (';')");
+                return false;
+            }
+            var legacy = BiomeCsvSerializer.Parse(LegacyGrasslandCsv);
+            var modernGrassland = original.Find(b => b.Id == "Grassland");
+            if (legacy.Count != 1 || modernGrassland == null ||
+                BiomeCsvSerializer.Write(legacy) != BiomeCsvSerializer.Write(new List<BiomeCsvRow> { modernGrassland }))
+            {
+                Debug.LogError("[TerrainGenerationVerification] legacy one-row biome format no longer reads the same as the long format");
+                return false;
+            }
 
             if (original.Count == 0)
             {

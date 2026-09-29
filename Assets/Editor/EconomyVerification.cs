@@ -22,6 +22,7 @@ namespace TacticsECS.EditorTools
             VerifyCityLoop();
             VerifyEveryBuilding();
             VerifyEnemyAiAndDefeat();
+            VerifyRecoverAndDisband();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -232,6 +233,32 @@ namespace TacticsECS.EditorTools
             Check(!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[p], "shield"), "shield locked without Shields");
         }
 
+        /// <summary>위키 Units "Recover"/Disband: 이동도 행동이다 — 이동한 유닛은 턴 종료에 회복하지 않고, 대기/해산도 못 한다.</summary>
+        private static void VerifyRecoverAndDisband()
+        {
+            var grid = new GridWorld(6, 6);
+            for (int y = 0; y < 6; y++) for (int x = 0; x < 6; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var world = new EntityWorld();
+            var econ = NewEconomy();
+            var p = Team.Player;
+            int rested = MakeUnit(world, grid, p, new Vector2Int(1, 1));
+            int moved = MakeUnit(world, grid, p, new Vector2Int(3, 3));
+            world.Set(rested, new Hp { Value = 5 });
+            world.Set(moved, new Hp { Value = 5 });
+            world.Set(moved, new HasMoved { Value = true });
+
+            Check(!new WaitAction().CanExecute(world, moved), "moved unit cannot recover");
+            var healed = AbilitySystem.ApplyTurnEndWait(grid, world, p);
+            Check(healed.Contains(rested) && world.Get<Hp>(rested).Value == 5 + GameRules.Heal.Other, "idle unit auto-recovers at turn end");
+            Check(!healed.Contains(moved) && world.Get<Hp>(moved).Value == 5, "moved unit does not auto-recover");
+
+            econ.Tech[p].Unlocked.Add("Riding");
+            econ.Tech[p].Unlocked.Add("FreeSpirit");
+            int idle = MakeUnit(world, grid, p, new Vector2Int(5, 5));
+            Check(RuinSystem.CanDisband(world, econ, idle), "idle unit can disband with Free Spirit");
+            Check(!RuinSystem.CanDisband(world, econ, moved), "moved unit cannot disband (wiki Disband)");
+        }
+
         /// <summary>도시가 지금까지 모은 인구 총량(레벨업으로 차감된 몫까지 되돌려 더한 값).</summary>
         private static int TotalPop(CityData c)
         {
@@ -289,6 +316,11 @@ namespace TacticsECS.EditorTools
             Build(mill, "Windmill"); Check(Pop() == pop + 1, "windmill +1 per farm"); pop = Pop();
             Build(mtn, "Mine"); Check(Pop() == pop + 2 && grid.GetStructure(mtn) == "", "mine +2, metal consumed"); pop = Pop();
             Build(forge, "Forge"); Check(Pop() == pop + 2, "forge +2 per mine"); pop = Pop();
+            // 위키 Sawmill/Windmill/Forge: 도시당 1개. 두 번째 제재소는 인접 벌목장이 있어도 막힌다.
+            var saw2 = new Vector2Int(0, 2);
+            Check(TileImprovementSystem.GetOptions(grid, econ, p, saw2).Exists(o => o.Id == "Sawmill" && !o.Enabled && o.Detail == "도시당 1개"),
+                "second sawmill in the same city is disabled (one per city)");
+            Check(TileImprovementSystem.GetOptions(grid, econ, p, saw2).Exists(o => o.Id == "Market"), "market has no per-city limit (option still listed)");
             Build(market, "Market"); Check(Pop() == pop, "market gives no population");
             // 시장(5,2) 인접 가공 건물은 풍차(4,1) 하나(인구 1).
             Check(TileImprovementSystem.MarketIncome(grid, p) == 1, $"market income = adjacent windmill pop (got {TileImprovementSystem.MarketIncome(grid, p)})");

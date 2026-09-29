@@ -36,7 +36,7 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
   - `SkeletonWarrior` (해골 전사)
   - `SkeletonMage` (해골 마법사)
 - **팀 색상**: 유닛의 색상은 CSV가 아니라 소속 팀(플레이어: 파랑, 적: 빨강)에 따라 자동으로 적용됩니다.
-- **행동 목록 (`Actions`)**: CSV 컬럼 구분자가 쉼표(`,`)이므로, 유닛에 여러 스킬을 부여할 때는 **세미콜론(`;`)**으로 연결합니다. (예: `Move;Attack;Charge`)
+- **행동 목록 (`Action1`, `Action2`, …)**: 한 칸에 하나씩 적습니다(CLAUDE.md 규칙 6 — 한 칸에 한 값). 스킬이 많으면 `Action8`처럼 컬럼을 늘리면 되고 빈 칸은 무시됩니다. (예: `Action1`=`Move`, `Action2`=`Attack`, `Action3`=`Charge`) 옛 형식의 `Actions` 한 칸 목록(`Move` + `Attack`)도 읽힙니다.
 
 ---
 
@@ -50,7 +50,7 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
 | `MaxHp` | O | 최대 체력 | 자연수 (예: `10`, `20`) |
 | `Defense` | O | 방어력 (피해 경감) | 0 이상의 정수 (예: `0`, `3`) |
 | `BaseVisual` | O | 3D 모델 | 위 7종 중 택 1 (`Melee`, `Ranged`, `Guard`, `RogueHooded`, `Mage`, `SkeletonWarrior`, `SkeletonMage`) |
-| `Actions` | O | 행동 및 패시브 조합 | 사용 가능 행동들을 `;`로 나열 (예: `Move;Attack;Charge`) |
+| `Action1`..`N` | O | 행동 및 패시브 조합 | 칸마다 행동 하나 (예: `Move`, `Attack`, `Charge`) |
 | `Move.Range` | 선택 | 이동 사거리 (칸) | 자연수 (`Actions`에 `Move`가 있을 때 적용) |
 | `Attack.Attack` | 선택 | 기본 공격력 | 0 이상의 정수 (`Actions`에 `Attack`이 있을 때 적용) |
 | `Attack.Range` | 선택 | 공격 사거리 (칸) | 자연수 (1: 인접 근접, 2 이상: 원거리) |
@@ -97,12 +97,12 @@ CSV 파일 편집만으로 유닛의 스탯과 스킬(행동) 조합을 자유�
 
 ## 5. 추천 유닛 조합 예시
 
-- **기본 보병**: `Move;Attack;Charge` (기본 근접 딜러)
-- **철벽 방패병**: `Move;Attack;Defend;Counter` (방어 및 반격 특화 탱커)
-- **돌격 기병**: `Move;Attack;Charge;Retreat` (치고 빠지는 기동 딜러)
-- **광전사 기사**: `Move;Attack;Charge;Combo` (연쇄 처치 특화 유닛)
-- **저격 궁병**: `Move;Attack;Charge` (사거리 3 이상의 원거리 딜러)
-- **투석기**: `Move;Attack;Splash;Stiff` (사거리 4의 광역 포격 유닛, 대각선 사격 불가)
-- **성직자**: `Move;Attack;Heal;Convert` (아군 치유 및 적 전향 지원가)
-- **암살자**: `Move;Attack;Charge;Infiltrate;Ambush` (적을 뚫고 지나가 반격 없이 기습)
-- **빙결 법사**: `Move;Attack;Freeze` (적을 얼려 묶어두는 군중 제어 유닛)
+- **기본 보병**: `Move` + `Attack` + `Charge` (기본 근접 딜러)
+- **철벽 방패병**: `Move` + `Attack` + `Defend` + `Counter` (방어 및 반격 특화 탱커)
+- **돌격 기병**: `Move` + `Attack` + `Charge` + `Retreat` (치고 빠지는 기동 딜러)
+- **광전사 기사**: `Move` + `Attack` + `Charge` + `Combo` (연쇄 처치 특화 유닛)
+- **저격 궁병**: `Move` + `Attack` + `Charge` (사거리 3 이상의 원거리 딜러)
+- **투석기**: `Move` + `Attack` + `Splash` + `Stiff` (사거리 4의 광역 포격 유닛, 대각선 사격 불가)
+- **성직자**: `Move` + `Attack` + `Heal` + `Convert` (아군 치유 및 적 전향 지원가)
+- **암살자**: `Move` + `Attack` + `Charge` + `Infiltrate` + `Ambush` (적을 뚫고 지나가 반격 없이 기습)
+- **빙결 법사**: `Move` + `Attack` + `Freeze` (적을 얼려 묶어두는 군중 제어 유닛)

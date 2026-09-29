@@ -1,22 +1,22 @@
-﻿Id,Name,Unlock,Cost,Population,Terrain,RequiredStructures,AdjacentBuildings,PopulationPerAdjacent,Flags,Task,Description
-LumberHut,벌목장,Build.LumberHut,3,1,Forest,,,0,,,인구 +1.
-Farm,농장,Build.Farm,5,2,Field,Resource_Crop,,0,,,작물 위. 인구 +2.
-Mine,광산,Build.Mine,5,2,Mountain,Resource_Metal;Resource_Ore,,0,,,광물 위. 인구 +2.
-Port,항구,Build.Port,7,1,ShallowWater,,,0,,,"얕은 물. 인구 +1, 들어온 육지 유닛은 뗏목이 된다, 물 5칸 이내 항구와 수도 연결."
-Sawmill,제재소,Build.Sawmill,5,0,Field,,LumberHut,1,,,인접 벌목장 하나당 인구 +1.
-Windmill,풍차,Build.Windmill,5,0,Field,,Farm,1,,,인접 농장 하나당 인구 +1.
-Forge,대장간,Build.Forge,5,0,Field,,Mine,2,,,인접 광산 하나당 인구 +2.
-Market,시장,Build.Market,5,0,Field,,Sawmill;Windmill;Forge,0,GoldFromAdjacent,,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 골드 (최대 8).
-Temple,신전,Build.Temple,20,1,Field,,,0,Temple,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-ForestTemple,숲 신전,Build.ForestTemple,15,1,Forest,,,0,Temple,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-MountainTemple,산악 신전,Build.MountainTemple,20,1,Mountain,,,0,Temple,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-WaterTemple,해양 신전,Build.WaterTemple,20,1,ShallowWater;Ocean,,,0,Temple,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-Road,도로,Build.Road,3,0,Field;Forest,,,0,Road;Neutral,,"도로끼리 이동 비용 0.5, 숲 이동 제한 해제, 수도 연결. 중립 땅에도 건설 가능."
-Bridge,다리,Build.Road,5,0,ShallowWater,,,0,Neutral;OppositeLand;ActsAsRoad,,양쪽(상하/좌우)이 육지인 물 1칸. 육지 유닛 통행 + 도로 효과 + 수도 연결. 중립 물에도 건설 가능.
-AltarOfPeace,평화의 제단,,0,3,Field;ShallowWater,,,0,,Pacifist,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-EmperorsTomb,황제의 무덤,,0,3,Field;ShallowWater,,,0,,Wealth,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-EyeOfGod,신의 눈,,0,3,Field;ShallowWater,,,0,,Explorer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-GateOfPower,힘의 문,,0,3,Field;ShallowWater,,,0,,Killer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-GrandBazaar,대시장,,0,3,Field;ShallowWater,,,0,,Network,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-ParkOfFortune,행운의 공원,,0,3,Field;ShallowWater,,,0,,Metropolis,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-TowerOfWisdom,지혜의 탑,,0,3,Field;ShallowWater,,,0,,Genius,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+﻿Id,Name,Unlock,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,AdjacentBuilding1,AdjacentBuilding2,AdjacentBuilding3,PopulationPerAdjacent,Flag1,Flag2,Flag3,Task,Description
+LumberHut,벌목장,Build.LumberHut,3,1,Forest,,,,,,,0,,,,,인구 +1.
+Farm,농장,Build.Farm,5,2,Field,,Resource_Crop,,,,,0,,,,,작물 위. 인구 +2.
+Mine,광산,Build.Mine,5,2,Mountain,,Resource_Metal,Resource_Ore,,,,0,,,,,광물 위. 인구 +2.
+Port,항구,Build.Port,7,1,ShallowWater,,,,,,,0,,,,,"얕은 물. 인구 +1, 들어온 육지 유닛은 뗏목이 된다, 물 5칸 이내 항구와 수도 연결."
+Sawmill,제재소,Build.Sawmill,5,0,Field,,,,LumberHut,,,1,OnePerCity,,,,인접 벌목장 하나당 인구 +1. 도시당 1개.
+Windmill,풍차,Build.Windmill,5,0,Field,,,,Farm,,,1,OnePerCity,,,,인접 농장 하나당 인구 +1. 도시당 1개.
+Forge,대장간,Build.Forge,5,0,Field,Forest,,,Mine,,,2,OnePerCity,,,,인접 광산 하나당 인구 +2. 평지/숲. 도시당 1개.
+Market,시장,Build.Market,5,0,Field,,,,Sawmill,Windmill,Forge,0,GoldFromAdjacent,,,,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 골드 (최대 8).
+Temple,신전,Build.Temple,20,1,Field,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
+ForestTemple,숲 신전,Build.ForestTemple,15,1,Forest,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
+MountainTemple,산악 신전,Build.MountainTemple,20,1,Mountain,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
+WaterTemple,해양 신전,Build.WaterTemple,20,1,ShallowWater,Ocean,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
+Road,도로,Build.Road,3,0,Field,Forest,,,,,,0,Road,Neutral,,,"도로끼리 이동 비용 0.5, 숲 이동 제한 해제, 수도 연결. 중립 땅에도 건설 가능."
+Bridge,다리,Build.Road,5,0,ShallowWater,,,,,,,0,Neutral,OppositeLand,ActsAsRoad,,양쪽(상하/좌우)이 육지인 물 1칸. 육지 유닛 통행 + 도로 효과 + 수도 연결. 중립 물에도 건설 가능.
+AltarOfPeace,평화의 제단,,0,3,Field,ShallowWater,,,,,,0,,,,Pacifist,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+EmperorsTomb,황제의 무덤,,0,3,Field,ShallowWater,,,,,,0,,,,Wealth,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+EyeOfGod,신의 눈,,0,3,Field,ShallowWater,,,,,,0,,,,Explorer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+GateOfPower,힘의 문,,0,3,Field,ShallowWater,,,,,,0,,,,Killer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+GrandBazaar,대시장,,0,3,Field,ShallowWater,,,,,,0,,,,Network,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+ParkOfFortune,행운의 공원,,0,3,Field,ShallowWater,,,,,,0,,,,Metropolis,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+TowerOfWisdom,지혜의 탑,,0,3,Field,ShallowWater,,,,,,0,,,,Genius,"기념물. 인구 +3, 점수 400. 팀당 한 번."

@@ -21,7 +21,9 @@
 - **컬럼은 이름으로 찾는다** — 순서를 바꾸거나 메모 컬럼(`Note`, `Wiki`)을 끼워 넣어도 된다. 없는 선택 컬럼은 기본값.
 - 모르는 컬럼, 잘못된 숫자/지형/태그, 중복 Id, 표에 없는 건물을 가리키는 인접 조건은 **`파일:줄 컬럼: 내용`** 형식으로
   경고한다(`[GameData] Buildings.csv:5 Terrain: 알 수 없는 값 'Feild'`). 게임은 멈추지 않고 그 칸만 기본값으로 읽는다.
-- 한 칸에 여러 값은 `;`로 나열(`Field;Forest`, `Resource_Metal;Resource_Ore`).
+- **한 칸에 한 값**(CLAUDE.md 규칙 6): 여러 값은 번호 붙은 반복 컬럼에 하나씩 나열한다 — `Terrain1`=`Field`, `Terrain2`=`Forest` /
+  `RequiredStructure1`=`Resource_Metal`, `RequiredStructure2`=`Resource_Ore`. 필요한 만큼 컬럼을 늘리면 되고 빈 칸은 무시된다.
+  옛 한 칸 목록(`RequiredStructures`=`a;b`)도 호환용으로 읽는다.
 - 첫 칸이 `#`으로 시작하는 행은 주석. 큰따옴표 인용(`"쉼표, 포함"`)은 스프레드시트 저장 형식 그대로.
 - 파일은 `Assets/Resources/`에 두고 [`GameDataLoader.LoadAll`](../Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이
   전투 시작(`BattleController.Awake`)과 에디터 검증/시뮬레이션 시작 시 읽어 Data 표(`BuildingDefinition.All` 등)에 채운다.
@@ -87,11 +89,11 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 | `Unlock` | | 필요한 해금 키(TechTree.csv `Unlocks`와 같은 문자열). 비우면 기술 불필요 |
 | `Cost` | | 골드 |
 | `Population` | | 지을 때 도시에 더해지는 고정 인구 |
-| `Terrain` | O | `Field;Forest;Mountain;ShallowWater;Ocean` 중 지을 수 있는 지형 |
-| `RequiredStructures` | | 이 자원(구조물) 중 하나 위에만 — 지으면 소모 (예: `Resource_Crop`) |
-| `AdjacentBuildings` | | 인접(8방향, 같은 팀 영토)에 이 건물 중 하나가 있어야 함 — 같은 표의 Id |
+| `Terrain1`..`N` | O | 지을 수 있는 지형 — 칸마다 `Field`/`Forest`/`Mountain`/`ShallowWater`/`Ocean` 중 하나 |
+| `RequiredStructure1`..`N` | | 이 자원(구조물) 중 하나 위에만 — 지으면 소모 (예: `Resource_Crop`) |
+| `AdjacentBuilding1`..`N` | | 인접(8방향, 같은 팀 영토)에 이 건물 중 하나가 있어야 함 — 같은 표의 Id |
 | `PopulationPerAdjacent` | | 인접 건물 하나당 인구(풍차/제재소/대장간) |
-| `Flags` | | `Road`(타일 개량, 건물과 공존) `Neutral`(중립 땅/물 가능) `OppositeLand`(상하/좌우 양쪽 육지) `ActsAsRoad`(도로 효과) `Temple`(레벨·점수) `GoldFromAdjacent`(인접 인구만큼 골드/턴) |
+| `Flag1`..`N` | | 칸마다 태그 하나: `Road`(타일 개량, 건물과 공존) `Neutral`(중립 땅/물 가능) `OppositeLand`(상하/좌우 양쪽 육지) `ActsAsRoad`(도로 효과) `Temple`(레벨·점수) `GoldFromAdjacent`(인접 인구만큼 골드/턴) `OnePerCity`(도시당 1개 — 위키 제재소/풍차/대장간) |
 | `Task` | | 기념물이면 과업 Id(`Pacifist`/`Wealth`/`Explorer`/`Killer`/`Network`/`Metropolis`/`Genius`) — 과업 달성 시 팀당 1회 |
 | `Description` | | 메뉴 설명 |
 

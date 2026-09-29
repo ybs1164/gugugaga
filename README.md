@@ -277,12 +277,10 @@ Sandbox 씬에서 바이옴 CSV를 불러와 "지형 생성" 버튼 한 번으�
   `MoveAction` 등 이동 로직은 전혀 건드리지 않았다.
 - [`Data/Csv/BiomeCsvRow.cs`](Assets/Scripts/TacticsECS/Data/Csv/BiomeCsvRow.cs) +
   [`Systems/Csv/BiomeCsvSerializer.cs`](Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs):
-  `UnitCsvRow`/`UnitCsvSerializer`와 같은 패턴의 바이옴 CSV 파서. 컬럼:
-  `Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles,Structures` — `Tiles`는
-  `TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:Exclude1|Exclude2`,
-  `Structures`(3차 재정비, 아래 참고)는
-  `StructureId:AllowedTileType1|AllowedTileType2:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin`
-  형식의 엔트리를 세미콜론으로 나열한다(콤마를 쓰지 않아 따옴표 없이도 안전하게 파싱). 예시:
+  `UnitCsvRow`/`UnitCsvSerializer`와 같은 패턴의 바이옴 CSV 파서. 2026-09-29부터 **한 칸에 한 값인 롱 포맷**(CLAUDE.md 규칙 6):
+  한 행이 바이옴(`Kind=Biome`) 또는 그 바이옴의 타일 엔트리(`Kind=Tile`) 또는 구조물 엔트리(`Kind=Structure`) 하나이고,
+  이름 여러 개는 `AllowedTile1..N`/`Exclude1..N` 반복 컬럼에 하나씩 적는다. 예전의 한 행 묶음 형식(`Tiles`/`Structures` 칸에
+  `;`/`:`/`|`)도 읽힌다. 컬럼 명세는 [`docs/BiomeCsvSandbox.md`](docs/BiomeCsvSandbox.md). 예시:
   [`docs/sample_biomes.csv`](docs/sample_biomes.csv)(Grassland/Desert/Highland 3바이옴, 각 3타일 + 3구조물).
 - [`Systems/NoiseSystem.cs`](Assets/Scripts/TacticsECS/Systems/NoiseSystem.cs): 옥타브를 누적하는 순수
   프랙탈 Perlin 노이즈 함수 하나(무상태).
@@ -758,7 +756,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   화전 비용 5 → 3, 기술 Id를 현재 위키 이름(Climbing/Organization/Smithery/Aquatism)으로.
 - 건물/타일 행동 표를 C# 배열에서 **[`Assets/Resources/Buildings.csv`](Assets/Resources/Buildings.csv) / [`TileActions.csv`](Assets/Resources/TileActions.csv)** 로 이동.
   형식은 3안(순수 넓은 표 / 롱·EAV / 효과 DSL) + 하이브리드를 실제로 만들어 편집 diff·빈칸 비율·정렬 가능성으로 비교한 뒤
-  **넓은 표 + `Flags` 태그 목록**을 채택(숫자는 컬럼, 드문 불리언은 태그 한 칸).
+  **넓은 표 + `Flags` 태그 목록**을 채택(숫자는 컬럼, 드문 불리언은 태그 한 칸). 2026-09-29에 CLAUDE.md 규칙 6(한 칸에 한 값)에 맞춰
+  목록 칸은 전부 번호 붙은 반복 컬럼(`Terrain1`/`Terrain2`, `Flag1`.., `Unlock1`.., `Action1`..)으로 바꿨다(아래 작업 로그).
 - 공용 [`CsvTableReader`](Assets/Scripts/TacticsECS/Systems/Csv/CsvTableReader.cs): **헤더 이름 기반**(컬럼 순서 무관, 메모 컬럼 허용, `#` 주석 행),
   잘못된 값은 `파일:줄 컬럼: 내용` 경고 후 기본값. `TechTree.csv`도 이 방식으로 읽는다.
   [`GameDataLoader.LoadAll`](Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이 `BattleController.Awake`/에디터 검증 시작 시 Data 표를 채운다(코드 기본 표 없음 — CSV가 유일한 원본).
@@ -823,6 +822,25 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 검증: `GameDataCsvVerification`(유닛/배 모델 존재 추가)/`UIVerification`/`UnitCsvVerification`/`BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
 
 ## 작업 로그
+
+- 2026-09-29: **구현 계획 0단계 — 기반 정리** (미구현 항목 순차 구현 계획의 첫 단계).
+  - **CLAUDE.md 규칙 6 적용(한 칸에 한 값)**: 목록 칸을 번호 붙은 반복 컬럼으로 전환 —
+    `Buildings.csv`(`Terrain1..2`/`RequiredStructure1..2`/`AdjacentBuilding1..3`/`Flag1..3`), `TileActions.csv`(`Terrain1..5`/`RequiredStructure1..2`),
+    `TechTree.csv`(`Unlock1..4`), 유닛 CSV(`SandboxUnits.csv`/`NavalUnits.csv`/`docs/sample_units.csv` — `Action1..N`).
+    [`CsvTableReader.GetList`](Assets/Scripts/TacticsECS/Systems/Csv/CsvTableReader.cs)가 `이름1..N` 컬럼을 헤더 순서대로 모으고(`CheckColumns`도 인식),
+    작성기는 `ListHeader`/`ListCells`로 항상 반복 컬럼을 쓴다. 옛 한 칸 목록(`Actions`=`Move;Attack` 등)은 호환용으로만 읽는다.
+    바이옴 CSV([`docs/sample_biomes.csv`](docs/sample_biomes.csv))는 한 칸에 서브 표를 통째로 묶던 형식이라 `Kind`(Biome/Tile/Structure) 롱 포맷으로
+    재설계([`BiomeCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs) — 옛 형식도 읽음, [`docs/BiomeCsvSandbox.md`](docs/BiomeCsvSandbox.md)).
+    검증: 배포 CSV에 `;` 목록이 없는지, 반복 컬럼 읽기/쓰기 왕복, 모르는 행동 이름 경고, 옛 바이옴 형식 = 새 형식.
+  - **위키 대조 버그 수정**
+    - 회복(위키 Units "Recover"): 이동도 행동이라 **이동한 유닛은 턴 종료에 자동 회복하지 않고** 대기 버튼도 사라진다(`WaitAction.CanExecute`).
+    - 해산(위키 Disband): 이동한 유닛은 해산 불가.
+    - 제재소/풍차/대장간 **도시당 1개**(위키 각 문서) — 건물 `OnePerCity` 플래그. 시장은 제한 없음(위키 Market). 대장간은 **숲에도** 건설 가능(위키 Forge).
+    - 수도 연결을 시야 갱신마다 다시 계산(`VisionSystem.Refresh` → `CitySystem.RefreshConnections`) — 항해 연구·구름 걷힘 직후에도 인구/발전도에 바로 반영.
+    - 자폭 뒤 경제 화면(점수/시야/포위) 갱신, 샌드박스 "전투 시작"은 두 팀 모두 유닛이 있어야 가능.
+  - **해변(얕은 물) 판정**: 코드는 이미 상하좌우 4방향 기준(`TerrainGenerationSystem.ClassifyWaterDepth`, 2026-09-26 `2b9c4de`)이고
+    다른 육지-물 인접 판정도 전부 4방향임을 재확인했다. `Builds/gugugaga.exe`는 2026-09-13 빌드라 그 이전(8방향) 규칙으로 보인다 — 다시 빌드해야 반영된다.
+  - 검증: 새 [`VerificationSuite`](Assets/Editor/VerificationSuite.cs)(검증 7종을 한 번의 Unity 실행으로) ALL PASS, `EconomySimulation` ALL PASS.
 
 - 2026-09-29: CLAUDE.md에 규칙 6 추가 — CSV에서 한 값에 여러 속성이 담기면 한 칸에 묶지 않고 여러 값으로 나열한다.
 

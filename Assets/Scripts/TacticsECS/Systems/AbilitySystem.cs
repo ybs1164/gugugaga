@@ -33,7 +33,8 @@ namespace TacticsECS
             return fallback.Execute(grid, world, unitId, out _);
         }
 
-        /// <summary>턴 종료 시 해당 팀의 모든 미행동(!HasActed) 유닛을 자동으로 대기(회복) 처리한다.</summary>
+        /// <summary>턴 종료 시 해당 팀에서 이번 턴 이동도 행동도 하지 않은 유닛을 자동으로 대기(회복) 처리한다(위키 Recover —
+        /// 이동한 유닛은 회복하지 않는다. 판정은 WaitAction.CanExecute).</summary>
         public static List<int> ApplyTurnEndWait(GridWorld grid, EntityWorld world, Team team)
         {
             var waitedIds = new List<int>();

@@ -28,13 +28,14 @@ CSV 파일만 편집해서 맵의 바이옴(지형 타입) 구성과 타일/구�
 
 ## 2. 반드시 알아야 할 규칙
 
-- **구분자 3단계**: CSV 컬럼 구분자가 쉼표(`,`)라서, 값 여러 개를 담는 `Tiles`/`Structures` 컬럼은 자체 구분자를 씁니다.
-  - 세미콜론(`;`) = 엔트리(타일 하나/구조물 하나) 구분
-  - 콜론(`:`) = 한 엔트리 안의 필드 구분
-  - 파이프(`|`) = 필드 안에서 여러 이름을 나열할 때
-  - `Tiles`/`Structures` 값 안에는 쉼표를 절대 쓰지 않습니다(CSV 컬럼이 깨짐).
+- **한 칸에 한 값(롱 포맷)**: 바이옴 하나, 타일 엔트리 하나, 구조물 엔트리 하나가 각각 **한 행**입니다. `Kind` 컬럼이
+  행 종류(`Biome`/`Tile`/`Structure`), `Biome` 컬럼이 소속 바이옴 Id입니다. 이름 여러 개(인접 배제, 허용 타일)는
+  `Exclude1`, `Exclude2` …처럼 번호 붙은 컬럼에 하나씩 적습니다(CLAUDE.md 규칙 6). 행 종류마다 안 쓰는 칸은 비웁니다.
+  - 예전 형식(한 행 = 한 바이옴, `Tiles`/`Structures` 칸에 `;`/`:`/`|`로 묶음)도 헤더에 `Tiles`가 있으면 그대로 읽힙니다.
+    저장(내보내기)은 항상 새 형식입니다.
+- **컬럼은 이름으로 찾습니다**: 순서를 바꾸거나 메모 컬럼을 끼워도 됩니다. `#`으로 시작하는 행은 주석입니다.
 - **값이 비거나 잘못돼도 안전**: 숫자 칸이 비었거나 형식이 틀리면 `0`(TerrainType은 `Land`)으로 채워집니다.
-  손으로 편집하다 실수해도 불러오기는 항상 성공합니다. 엔트리 끝쪽 필드는 통째로 생략해도 됩니다.
+  손으로 편집하다 실수해도 불러오기는 항상 성공합니다. 안 쓰는 컬럼은 헤더에서 통째로 빼도 됩니다.
 - **NoiseType**: 현재는 `Perlin`만 지원합니다. 비우면 자동으로 `Perlin`.
 - **미등록 Id는 조용히 무시**: 아무 `TileId`/`StructureId`나 적을 수 있지만, 색이나 모델로 보이려면 6·7번의 등록된
   값이어야 합니다. 미등록 값은 에러 없이 표시만 안 됩니다(타일은 육지/물 기본색, 구조물은 안 보임).
@@ -44,81 +45,80 @@ CSV 파일만 편집해서 맵의 바이옴(지형 타입) 구성과 타일/구�
 
 ---
 
-## 3. CSV 컬럼 명세 (최상위)
+## 3. CSV 컬럼 명세 — `Kind = Biome` 행
 
-한 행(Row)이 바이옴 하나입니다. 바이옴은 Polytopia의 "종족"에 해당하며, 바이옴 수 = 수도 수 = 플레이어 수입니다.
+`Kind`가 `Biome`인 행이 바이옴 하나입니다. 바이옴은 Polytopia의 "종족"에 해당하며, 바이옴 수 = 수도 수 = 플레이어 수입니다.
+그 바이옴의 타일/구조물 규칙은 같은 `Biome` 값을 가진 `Tile`/`Structure` 행들입니다(4·5번).
+
+```
+Kind,Biome,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,MountainRate,ForestRate,Entry,TerrainType,...
+Biome,Grassland,평원,Perlin,0.15,3,101,1,1,1,,,...
+Tile,Grassland,,,,,,,,,Grass,Land,0.7,0.5,...
+Structure,Grassland,,,,,,,,,Ruin,,,,1,0,0,2,0,0,0.34,0,0,0,Grass,Forest,Mountain,Ocean,,Capital,Village,
+```
 
 | 컬럼 | 필수 | 의미 | 값 예시 |
 |---|---|---|---|
-| `Id` | O | 바이옴 고유 식별자(행끼리 중복 불가) | `Grassland` |
+| `Kind` | O | 행 종류 | `Biome` |
+| `Biome` | O | 바이옴 고유 식별자(`Biome` 행끼리 중복 불가) | `Grassland` |
 | `Name` | O | 표시용 이름 | `평원` |
 | `NoiseType` | 선택 | 노이즈 종류 | `Perlin`(비우면 자동) |
 | `Frequency` | O | 노이즈 주파수(클수록 잘게 쪼개짐) | `0.15` |
 | `Octaves` | O | 노이즈 옥타브 수 | `3` |
 | `SeedOffset` | O | 이 바이옴만의 노이즈 시드 오프셋 | `101` |
 | `InnerRadius` | O | 가장 가까운 도시(수도 + 지형 전에 정해진 마을)로부터 이 거리 이내를 "Inner"로 봄. 타일 확률(`InnerWeight`/`OuterWeight`)에만 쓰임 | `1`(원문의 "도시에 인접" = 1) |
-| `Tiles` | O | 타일 생성 규칙 목록 | 4번 참고 |
-| `Structures` | 선택 | 구조물 생성 규칙 목록 | 5번 참고 |
 | `MountainRate` | 선택 | 산 배수. `1`이면 육지의 14%가 `Mountain` | `1`, `1.5`. 비우면 `0` = 산 없음 |
 | `ForestRate` | 선택 | 숲 배수. `1`이면 육지의 38%가 `Forest`(산 배수 반영 후 비례 보정) | `1`, `0.5`. 비우면 `0` = 숲 없음 |
 
-> **숲/산 레이어**: `Tiles`로 육지를 채운 뒤, 바이옴마다 수도/마을 칸을 뺀 육지 중 정확히
+> **숲/산 레이어**: `Tile` 행들로 육지를 채운 뒤, 바이옴마다 수도/마을 칸을 뺀 육지 중 정확히
 > `산 = 14% × MountainRate`, `숲 = 38% × (100%−산%)/86% × ForestRate`만큼을 `Mountain`/`Forest`로 바꿉니다(확률이
 > 아니라 개수 쿼터, 노이즈 순위로 골라 덩어리로 뭉침). 나머지 육지 타일(`Grass`/`Sand`/…)이 "평지"입니다. 그래서
-> `Tiles`에는 `Forest` 엔트리를 따로 넣지 않는 것을 권장합니다.
+> `Tile` 행에는 `Forest` 엔트리를 따로 넣지 않는 것을 권장합니다.
 
 ---
 
-## 4. `Tiles` 컬럼 — 타일 엔트리
+## 4. `Kind = Tile` 행 — 타일 엔트리
 
-```
-TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:ExcludeAdjacent
-```
-
-| 순서 | 필드 | 필수 | 의미 | 값 예시 |
+| 컬럼 | 필드 | 필수 | 의미 | 값 예시 |
 |---|---|---|---|---|
-| 1 | `TileId` | O | 타일 타입 키 | `Grass`, `Water` — 색 목록은 6번 |
-| 2 | `TerrainType` | O | 이동 판정상 육지/물 | `Land` / `Water`(대소문자 무관, 잘못 적으면 `Land`) |
-| 3 | `InnerWeight` | O | Inner 영역에서의 배치 확률 계수 | `0.7` |
-| 4 | `OuterWeight` | O | Outer 영역에서의 배치 확률 계수 | `0.5` |
-| 5 | `MinCount` | 선택 | 이 바이옴 영역 안 최소 보장 개수 | `0` |
-| 6 | `CountPerTiles` | 선택 | "바이옴 영역 칸 수 / 이 값"(반올림)만큼 최소 개수를 늘림. `MinCount`와 큰 쪽 사용 | `25`, `0`=끔 |
-| 7 | `MinDistance` | 선택 | 같은 `TileId`끼리 최소 거리(체비쇼프) | `2`, `0`=제약 없음 |
-| 8 | `EdgeMargin` | 선택 | 맵 가장자리로부터 최소 거리 | `1`, `0`=제약 없음 |
-| 9 | `ExcludeAdjacent` | 선택 | 상하좌우로 인접할 수 없는 `TileId` 목록 | `Water`, 비우면 제약 없음 |
+| `Entry` | `TileId` | O | 타일 타입 키 | `Grass`, `Water` — 색 목록은 6번 |
+| `TerrainType` | `TerrainType` | O | 이동 판정상 육지/물 | `Land` / `Water`(대소문자 무관, 잘못 적으면 `Land`) |
+| `InnerWeight` | `InnerWeight` | O | Inner 영역에서의 배치 확률 계수 | `0.7` |
+| `OuterWeight` | `OuterWeight` | O | Outer 영역에서의 배치 확률 계수 | `0.5` |
+| `MinCount` | `MinCount` | 선택 | 이 바이옴 영역 안 최소 보장 개수 | `0` |
+| `CountPerTiles` | `CountPerTiles` | 선택 | "바이옴 영역 칸 수 / 이 값"(반올림)만큼 최소 개수를 늘림. `MinCount`와 큰 쪽 사용 | `25`, `0`=끔 |
+| `MinDistance` | `MinDistance` | 선택 | 같은 `TileId`끼리 최소 거리(체비쇼프) | `2`, `0`=제약 없음 |
+| `EdgeMargin` | `EdgeMargin` | 선택 | 맵 가장자리로부터 최소 거리 | `1`, `0`=제약 없음 |
+| `Exclude1`..`ExcludeN` | `ExcludeAdjacent` | 선택 | 상하좌우로 인접할 수 없는 `TileId` — 칸마다 하나 | `Water`, 비우면 제약 없음 |
 
 - 가중치는 노이즈로 한 번 더 보정되어 최종 확률이 됩니다(`TerrainGenerationSystem.ComputeWeight`).
 - **물 타일 규칙은 Drylands에서만 그대로 쓰입니다.** 나머지 맵 타입은 대륙 모양(랜드마스 마스크)이 육지/바다를 먼저
   정하고, 바다 칸은 그 바이옴의 첫 번째 `Water` 타일로 채웁니다.
 - **얕은 물 / 깊은 바다**: 생성이 끝나면, 상하좌우 4방향으로 육지와 맞닿은 물 칸은 바이옴의 물 타일(예: `Water`, 얕은 물)로
   남고, 육지와 닿지 않은 물 칸은 자동으로 `Ocean`(깊은 바다)이 됩니다. 물고기는 얕은 물, 바다 유적은 깊은 바다에
-  놓으려면 이 두 Id를 `AllowedTileTypes`에서 구분해 쓰면 됩니다.
+  놓으려면 이 두 Id를 `AllowedTile1..N`에서 구분해 쓰면 됩니다.
 
 ---
 
-## 5. `Structures` 컬럼 — 구조물 엔트리
+## 5. `Kind = Structure` 행 — 구조물 엔트리
 
-```
-StructureId:AllowedTileTypes:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:MaxDistanceFromCity:MaxWaterFractionOnLakes:FillRemaining:ExcludeAdjacentStructures:InnerRate:OuterRate
-```
-
-| 순서 | 필드 | 필수 | 의미 | 값 예시 |
+| 컬럼 | 필드 | 필수 | 의미 | 값 예시 |
 |---|---|---|---|---|
-| 1 | `StructureId` | O | 구조물 키 | 7번 목록(예: `Village`, `Resource_Fruit`, `Ruin`) |
-| 2 | `AllowedTileTypes` | O | 놓일 수 있는 `TileId` 목록. **비우면 어디에도 안 놓임**(오타 방지) | `Grass\|Forest`, `Water\|Ocean` |
-| 3 | `Weight` | 선택 | 같은 칸에 같은 Id 엔트리가 여럿일 때의 가중치(자원에는 안 쓰임) | `1` |
-| 4 | `MinCount` | 선택 | 최소 개수(바이옴별, 맵 전체로 합산) | `0` |
-| 5 | `CountPerTiles` | 선택 | "허용 타일 칸 수 / 이 값"(반올림)만큼 목표를 늘림. 바이옴별로 계산해 맵 전체로 합산 | `25`(물 25칸당 1개) |
-| 6 | `MinDistance` | 선택 | 같은 `StructureId`끼리 최소 거리(체비쇼프, 맵 전체) | `2` = 바로 옆 금지 |
-| 7 | `EdgeMargin` | 선택 | 맵 가장자리로부터 최소 거리 | `2` |
-| 8 | `MaxDistanceFromCity` | 선택 | 0보다 크면 가장 가까운 도시(수도/마을)로부터 이 거리 이내에만. 자원은 이 값과 무관하게 항상 2칸 이내 | `0`=제약 없음 |
-| 9 | `MaxWaterFractionOnLakes` | 선택 | **Lakes 맵에서만** 물 위에 놓이는 비율 상한(0~1) | `0.34`, **빈 값** = 제약 없음(`0`은 "물 위 0%"라서 주의) |
-| 10 | `FillRemaining` | 선택 | `1`이면 목표 개수 없이 자리가 없을 때까지 채움 | `0` / `1` |
-| 11 | `ExcludeAdjacentStructures` | 선택 | **8방향(대각선 포함)**으로 인접할 수 없는 `StructureId` 목록 | `Capital\|Village` |
-| 12 | `InnerRate` | 선택 | **자원 전용.** 도시 바로 옆(거리 1) 허용 타일 칸 중 이 자원이 되는 비율(0~1) | `0.375` |
-| 13 | `OuterRate` | 선택 | **자원 전용.** 도시에서 거리 2인 허용 타일 칸 중 비율(0~1) | `0.125` |
+| `Entry` | `StructureId` | O | 구조물 키 | 7번 목록(예: `Village`, `Resource_Fruit`, `Ruin`) |
+| `AllowedTile1`..`AllowedTileN` | `AllowedTileTypes` | O | 놓일 수 있는 `TileId` — 칸마다 하나. **다 비우면 어디에도 안 놓임**(오타 방지) | `Grass`, `Forest` / `Water`, `Ocean` |
+| `Weight` | `Weight` | 선택 | 같은 칸에 같은 Id 엔트리가 여럿일 때의 가중치(자원에는 안 쓰임) | `1` |
+| `MinCount` | `MinCount` | 선택 | 최소 개수(바이옴별, 맵 전체로 합산) | `0` |
+| `CountPerTiles` | `CountPerTiles` | 선택 | "허용 타일 칸 수 / 이 값"(반올림)만큼 목표를 늘림. 바이옴별로 계산해 맵 전체로 합산 | `25`(물 25칸당 1개) |
+| `MinDistance` | `MinDistance` | 선택 | 같은 `StructureId`끼리 최소 거리(체비쇼프, 맵 전체) | `2` = 바로 옆 금지 |
+| `EdgeMargin` | `EdgeMargin` | 선택 | 맵 가장자리로부터 최소 거리 | `2` |
+| `MaxDistanceFromCity` | `MaxDistanceFromCity` | 선택 | 0보다 크면 가장 가까운 도시(수도/마을)로부터 이 거리 이내에만. 자원은 이 값과 무관하게 항상 2칸 이내 | `0`=제약 없음 |
+| `MaxWaterFractionOnLakes` | `MaxWaterFractionOnLakes` | 선택 | **Lakes 맵에서만** 물 위에 놓이는 비율 상한(0~1) | `0.34`, **빈 값** = 제약 없음(`0`은 "물 위 0%"라서 주의) |
+| `FillRemaining` | `FillRemaining` | 선택 | `1`이면 목표 개수 없이 자리가 없을 때까지 채움 | `0` / `1` |
+| `Exclude1`..`ExcludeN` | `ExcludeAdjacentStructures` | 선택 | **8방향(대각선 포함)**으로 인접할 수 없는 `StructureId` — 칸마다 하나 | `Capital`, `Village` |
+| `InnerRate` | `InnerRate` | 선택 | **자원 전용.** 도시 바로 옆(거리 1) 허용 타일 칸 중 이 자원이 되는 비율(0~1) | `0.375` |
+| `OuterRate` | `OuterRate` | 선택 | **자원 전용.** 도시에서 거리 2인 허용 타일 칸 중 비율(0~1) | `0.125` |
 
-12·13번 필드가 없는 예전 CSV도 그대로 읽힙니다(0 = 자원 아님).
+`InnerRate`/`OuterRate` 컬럼이 없으면 0(= 자원 아님)입니다.
 
 ### 5.1 엔트리가 처리되는 단계
 
@@ -199,12 +199,23 @@ Polytopia 원문 표(육지 전체 대비 %)를 **그 지형 칸 중 몇 %**로 
 ## 8. 예시 — `docs/sample_biomes.csv`의 `Grassland` 행
 
 ```
-Grassland,평원,Perlin,0.15,3,101,1,Grass:Land:0.7:0.5:0:0:0:0:;Water:Water:0.2:0.15:0:25:2:1:,Village:Grass:1:0:0:3:2:0::1::0:0;Resource_Fruit:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Crop:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Animal:Forest:0:0:0:0:0:0::0::0.5:0.158;Resource_Metal:Mountain:0:0:0:0:0:0::0::0.786:0.214;Resource_Fish:Water:0:0:0:0:0:0::0::0.5:0.5;Ruin:Grass|Forest|Mountain|Ocean:1:0:0:2:0:0:0.34:0:Capital|Village:0:0;Starfish:Water|Ocean:1:0:25:2:0:0::0:Capital|Village|Lighthouse:0:0,1,1
+Kind,Biome,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,MountainRate,ForestRate,Entry,TerrainType,InnerWeight,OuterWeight,Weight,MinCount,CountPerTiles,MinDistance,EdgeMargin,MaxDistanceFromCity,MaxWaterFractionOnLakes,FillRemaining,InnerRate,OuterRate,AllowedTile1,AllowedTile2,AllowedTile3,AllowedTile4,AllowedTile5,Exclude1,Exclude2,Exclude3
+Biome,Grassland,평원,Perlin,0.15,3,101,1,1,1,,,,,,,,,,,,,,,,,,,,,,
+Tile,Grassland,,,,,,,,,Grass,Land,0.7,0.5,,0,0,0,0,,,,,,,,,,,,,
+Tile,Grassland,,,,,,,,,Water,Water,0.2,0.15,,0,25,2,1,,,,,,,,,,,,,
+Structure,Grassland,,,,,,,,,Village,,,,1,0,0,3,2,0,,1,0,0,Grass,,,,,,,
+Structure,Grassland,,,,,,,,,Resource_Fruit,,,,0,0,0,0,0,0,,0,0.375,0.125,Grass,,,,,,,
+Structure,Grassland,,,,,,,,,Resource_Crop,,,,0,0,0,0,0,0,,0,0.375,0.125,Grass,,,,,,,
+Structure,Grassland,,,,,,,,,Resource_Animal,,,,0,0,0,0,0,0,,0,0.5,0.158,Forest,,,,,,,
+Structure,Grassland,,,,,,,,,Resource_Metal,,,,0,0,0,0,0,0,,0,0.786,0.214,Mountain,,,,,,,
+Structure,Grassland,,,,,,,,,Resource_Fish,,,,0,0,0,0,0,0,,0,0.5,0.5,Water,,,,,,,
+Structure,Grassland,,,,,,,,,Ruin,,,,1,0,0,2,0,0,0.34,0,0,0,Grass,Forest,Mountain,Ocean,,Capital,Village,
+Structure,Grassland,,,,,,,,,Starfish,,,,1,0,25,2,0,0,,0,0,0,Water,Ocean,,,,Capital,Village,Lighthouse
 ```
 
 - **바이옴**: `InnerRadius=1`(도시 바로 옆이 Inner), `MountainRate=1`, `ForestRate=1`(육지의 14%가 산, 38%가 숲).
-- **Tiles**: `Grass`(평지), `Water`(Drylands에서 25칸당 1개 이상, 물끼리 거리 2, 가장자리 1칸 여백).
-- **Structures**:
+- **Tile 행**: `Grass`(평지), `Water`(Drylands에서 25칸당 1개 이상, 물끼리 거리 2, 가장자리 1칸 여백).
+- **Structure 행**:
   - `Village` — 평지 위, 도시끼리 거리 3, 가장자리 2칸 여백, 자리가 없을 때까지 채움(`FillRemaining=1`).
   - `Resource_Fruit`/`Resource_Crop` — 평지, 도시 옆 37.5% / 거리 2에서 12.5%씩.
   - `Resource_Animal` — 숲, 50% / 15.8%. `Resource_Metal` — 산, 78.6% / 21.4%. `Resource_Fish` — 얕은 물, 50% / 50%.

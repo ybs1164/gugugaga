@@ -22,7 +22,7 @@
 | `Icon` | 선택 | 아이콘 이름(`Assets/Art/GameIcons/Resources/Icons/<이름>.png`) | `farming` |
 | `CostBase` | 선택 | 비용 공식의 고정값. 비우면 `4` | `4` |
 | `CostPerCity` | 선택 | 도시 하나당 늘어나는 비용. 비우면 `Tier` 값 | `2` |
-| `Unlocks` | O | 이 기술이 여는 것들 — 아래 2절의 **해금 키**를 `;`로 나열 | `Build.Farm` |
+| `Unlock1`..`N` | O | 이 기술이 여는 것들 — 아래 2절의 **해금 키**를 칸마다 하나씩(CLAUDE.md 규칙 6) | `Build.Farm` |
 | `Effect` | 선택 | 기술트리 상세 패널에 보여줄 설명(쉼표를 쓰려면 칸 전체를 `"..."`로 감싸기 — 스프레드시트는 자동으로 해준다) | `농장 건설 가능.` |
 
 **연구 비용 = `CostBase` + `CostPerCity` × (보유 도시 수)** — 기본값(4, 티어)이면 폴리토피아 공식 "(티어) × (도시 수) + 4"와

@@ -57,6 +57,9 @@ namespace TacticsECS
         /// <summary>신전류(레벨이 오르며 점수가 늘어난다 — ScoreSystem).</summary>
         public bool IsTemple;
 
+        /// <summary>한 도시(영토)에 하나만 지을 수 있다(위키 Sawmill/Windmill/Forge: "only one can be built per city").</summary>
+        public bool OnePerCity;
+
         public string Description;
     }
 }

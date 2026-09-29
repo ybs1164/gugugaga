@@ -10,7 +10,9 @@ namespace TacticsECS
     ///     기술은 트리가 남았을 때, 인구는 수도가 있을 때, 탐험가는 유적 주변 5x5에 구름이 남았을 때만 후보가 된다.
     ///     원문과 다른 점: "New Friends"(베테랑 검사)는 베테랑 시스템이 없어 가장 싼 유닛으로, 물 위 유적의 충각선 보상은
     ///     물 위 유적이 생성되지 않아 넣지 않았다.
-    ///   - 해산: "Ability.Disband" 해금 시 자기 유닛을 없애고 훈련 비용 절반(내림)을 골드로 돌려받는다.
+    ///   - 해산: "Ability.Disband" 해금 시 이번 턴 이동도 행동도 하지 않은 자기 유닛을 없애고 훈련 비용 절반(내림)을 골드로 돌려받는다
+    ///     (위키 Disband — 슈퍼 유닛은 비용 10이라 5, 배는 태운 유닛 비용의 절반이고 배 업그레이드 비용은 돌려받지 않는다:
+    ///     UnitTypeId가 태운 육지 유닛 Id라 자연히 그렇게 된다).
     /// </summary>
     public static class RuinSystem
     {
@@ -103,7 +105,7 @@ namespace TacticsECS
         }
 
         public static bool CanDisband(EntityWorld world, EconomyWorld econ, int unitId) =>
-            econ != null && UnitQueries.IsAlive(world, unitId) && !world.Get<HasActed>(unitId).Value &&
+            econ != null && UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value && !world.Get<HasActed>(unitId).Value &&
             TechSystem.HasUnlock(econ.TechNodes, econ.Tech[world.Get<Team>(unitId)], DisbandKey);
 
         public static int DisbandRefund(EntityWorld world, EconomyWorld econ, int unitId)

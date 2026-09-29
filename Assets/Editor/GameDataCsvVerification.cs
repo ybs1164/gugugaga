@@ -61,7 +61,39 @@ namespace TacticsECS.EditorTools
 
             var nodes = TechCsvSerializer.Parse("Unlocks,Id,Tier\nBuild.Farm,A,2\n");
             Check(nodes.Count == 1 && nodes[0].Id == "A" && nodes[0].Tier == 2 && nodes[0].CostPerCity == 2 && nodes[0].Unlocks[0] == "Build.Farm",
-                "tech CSV is header-based too");
+                "tech CSV is header-based too (legacy Unlocks column)");
+
+            // CLAUDE.md 규칙 6: 여러 값은 번호 붙은 반복 컬럼(한 칸에 값 하나). 빈 칸은 건너뛰고 헤더 순서대로 모은다.
+            errors.Clear();
+            var multi = GameTableCsvSerializer.ParseBuildings("Id,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,Flag1,Flag2\nW,Field,ShallowWater,Resource_Metal,,Neutral,Road\n", errors);
+            Check(multi.Length == 1 && multi[0].Terrain == (TileClass.Field | TileClass.ShallowWater) && multi[0].RequiredStructures.Length == 1 &&
+                  multi[0].AllowNeutral && multi[0].IsRoad && errors.Count == 0, "numbered list columns are read one value per cell: " + string.Join(" | ", errors));
+            var numberedTech = TechCsvSerializer.Parse("Id,Unlock1,Unlock2\nA,Build.Farm,Unit.shield\n");
+            Check(numberedTech[0].Unlocks.Length == 2 && numberedTech[0].Unlocks[1] == "Unit.shield", "tech Unlock1..N columns");
+            var techRound = TechCsvSerializer.Parse(TechCsvSerializer.Write(numberedTech));
+            Check(techRound[0].Unlocks.Length == 2 && !TechCsvSerializer.Write(numberedTech).Contains(";"), "tech writer emits numbered columns without ';'");
+            var unitText = UnitCsvSerializer.Write(UnitCsvSerializer.Parse("Id,Action1,Action2\nu,Move,Attack\n"));
+            Check(!unitText.Contains(";") && unitText.Contains("Action2") && UnitCsvSerializer.Parse(unitText)[0].Actions == (ActionType.Move | ActionType.Attack),
+                "unit writer emits Action1..N and round-trips");
+            errors.Clear();
+            UnitCsvSerializer.Parse("Id,Action1\nu,Atack\n", errors);
+            Check(errors.Exists(e => e.Contains("Atack")), "unknown action name is reported");
+
+            // 배포되는 게임 데이터 CSV에는 한 칸에 여러 값(세미콜론 목록)이 없어야 한다(설명/메모 칸 제외).
+            foreach (var file in new[] { "Buildings", "TileActions", "TechTree", "NavalUnits", "CityRewards", "Tasks", "GameRules" })
+            {
+                var text = Resources.Load<TextAsset>(file)?.text ?? string.Empty;
+                var table = CsvTableReader.Parse(file + ".csv", text);
+                bool packed = false;
+                for (int r = 0; r < table.Rows.Count; r++)
+                    for (int c = 0; c < table.Header.Length && c < table.Rows[r].Length; c++)
+                    {
+                        string h = table.Header[c];
+                        if (h == "Description" || h == "Note" || h == "Effect" || h == "Wiki") continue;
+                        if (table.Rows[r][c].Contains(";")) packed = true;
+                    }
+                Check(!packed, $"{file}.csv has one value per cell (rule 6)");
+            }
         }
 
         private static void VerifyBuildingsAndActions()

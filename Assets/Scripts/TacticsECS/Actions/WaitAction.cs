@@ -4,9 +4,10 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 대기(회복) 행동. 이번 턴 유닛의 행동을 종료하고 체력을 회복한다.
+    /// 대기(회복, 위키 Units "Recover") 행동. 이번 턴 유닛의 행동을 종료하고 체력을 회복한다.
     /// 기본 2 회복, 자기 영토(도시 영토, CitySystem) 안에서는 4 회복.
-    /// 턴 종료 시 행동하지 않은(HasActed=false) 유닛은 자동으로 이 행동이 적용된다.
+    /// 위키: "If a unit does not take any action in a given turn, it will automatically heal" — 이동도 행동이므로
+    /// 이번 턴 이동하지도 행동하지도 않은 유닛만 쓸 수 있고, 턴 종료 시 그런 유닛에게 자동으로 적용된다.
     /// 모든 유닛이 기본적으로 이 행동을 보유한다.
     /// </summary>
     [System.Serializable]
@@ -16,7 +17,7 @@ namespace TacticsECS
         public ActionType GetActionType() => ActionType.Wait;
 
         public bool CanExecute(EntityWorld world, int unitId) =>
-            UnitQueries.IsAlive(world, unitId) && !world.Get<HasActed>(unitId).Value;
+            UnitQueries.IsAlive(world, unitId) && !world.Get<HasMoved>(unitId).Value && !world.Get<HasActed>(unitId).Value;
 
         public bool Execute(GridWorld grid, EntityWorld world, int unitId, out List<int> affectedIds)
         {

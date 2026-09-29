@@ -549,6 +549,14 @@ namespace TacticsECS
 
         private void HandleSandboxStartBattle()
         {
+            // 두 팀 모두 유닛이 있어야 수도가 정해지고 승패가 성립한다(없으면 첫 턴에 바로 끝난다).
+            foreach (var team in CitySystem.Teams)
+            {
+                if (UnitQueries.AnyAlive(_world, team)) continue;
+                _sandboxHud.SetStatus($"{(team == Team.Player ? "아군" : "적")} 유닛을 하나 이상 배치해야 전투를 시작할 수 있습니다.");
+                return;
+            }
+
             _unitRows = new List<UnitCsvRow>(_placementController.Rows);
             _placementActive = false;
             Destroy(_sandboxHud.gameObject);
@@ -1413,6 +1421,8 @@ namespace TacticsECS
             int unitId = _selectedUnitId;
 
             var available = _world.Get<AvailableActions>(unitId).Value;
+            // 대기(회복)는 이번 턴 움직이지 않은 유닛만(위키 Recover — WaitAction.CanExecute).
+            if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
 
             _reachableTiles = null;
             var move = UnitActionQueries.Find<MoveAction>(_world, unitId);
@@ -1549,6 +1559,8 @@ namespace TacticsECS
             foreach (var id in damagedIds)
                 _viewsById[id].Refresh(_world, id);
             RefreshRoster();
+            // 유닛이 사라지면 점수/시야/도시 포위(수입) 상태가 바뀐다.
+            RefreshEconomyViews(false);
 
             CheckBattleEnd();
             ClearSelection();

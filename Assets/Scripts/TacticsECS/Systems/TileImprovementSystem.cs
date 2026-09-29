@@ -185,7 +185,9 @@ namespace TacticsECS
                 }
 
                 string reason = null;
-                if (b.AdjacentBuildings != null && b.AdjacentBuildings.Length > 0 &&
+                if (b.OnePerCity && CityHasBuilding(grid, tile.OwnerCity, b.Id))
+                    reason = "도시당 1개";
+                else if (b.AdjacentBuildings != null && b.AdjacentBuildings.Length > 0 &&
                     CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings) == 0)
                     reason = "인접 조건: " + string.Join("/", NamesOf(b.AdjacentBuildings));
                 else if (gold < b.Cost)
@@ -219,6 +221,19 @@ namespace TacticsECS
                 options.Add(new TileOption { Id = a.Id, IsBuilding = false, Name = a.Name, Cost = a.Cost, Enabled = reason == null, Detail = reason ?? a.Description });
             }
             return options;
+        }
+
+        /// <summary>cityIndex 도시의 영토 안에 buildingId 건물이 이미 있는지(도시당 1개 건물 — BuildingInfo.OnePerCity).</summary>
+        public static bool CityHasBuilding(GridWorld grid, int cityIndex, string buildingId)
+        {
+            if (cityIndex == TileData.NoOwner) return false;
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var t = grid.GetTile(new Vector2Int(x, y));
+                if (t.OwnerCity == cityIndex && t.BuildingId == buildingId) return true;
+            }
+            return false;
         }
 
         private static IEnumerable<string> NamesOf(string[] buildingIds)

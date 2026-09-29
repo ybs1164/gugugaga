@@ -53,6 +53,7 @@ namespace TacticsECS
             // 경제 연동 컴포넌트 기본값 — 제한/보너스 없음. 경제(기술트리)가 켜진 전투에서는 스폰 직후
             // TechEffectSystem.RefreshUnits로 팀 기술에 맞게 다시 채운다.
             world.Set(id, new UnitTypeId { Value = unitTypeId ?? string.Empty });
+            world.Set(id, new HomeCity()); // 소속 없음 — 경제가 있으면 CitySystem/SpawnEconomyUnit이 배정
             world.Set(id, new TerrainAccess { Mountain = true, Ocean = true });
             world.Set(id, new PositionalDefenseBonus { Value = 0 });
 
@@ -104,8 +105,9 @@ namespace TacticsECS
         }
 
         /// <summary>경제 기록의 스폰 요청(훈련/슈퍼 유닛/유적 유닛)을 View 없이 처리한다: near 근처에 만들고, 그 턴에는
-        /// 움직이거나 행동할 수 없게 한다. 만든 id, 실패하면 -1.</summary>
-        public static int SpawnEconomyUnit(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, string unitId, Vector2Int near)
+        /// 움직이거나 행동할 수 없게 한다. homeCity는 소속 도시(훈련/보상 도시) — 음수면 near에서 가장 가까운 자리 있는 자기 도시
+        /// (유적 유닛). 만든 id, 실패하면 -1.</summary>
+        public static int SpawnEconomyUnit(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, string unitId, Vector2Int near, int homeCity = HomeCity.None)
         {
             var row = CitySystem.FindUnitRow(econ, unitId);
             if (row == null) return -1;
@@ -114,6 +116,7 @@ namespace TacticsECS
             int id = CreateFromCsv(grid, world, team, row, spot.Value);
             world.Set(id, new HasMoved { Value = true });
             world.Set(id, new HasActed { Value = true });
+            CitySystem.AssignHome(world, econ, id, homeCity >= 0 ? homeCity : CitySystem.NearestCityWithRoom(world, econ, team, near));
             return id;
         }
     }

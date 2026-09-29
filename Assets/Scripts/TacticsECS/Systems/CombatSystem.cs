@@ -114,7 +114,11 @@ namespace TacticsECS
                 // 전향: 공격자가 가졌으면 반격 판정보다 먼저 대상의 팀을 공격자 팀으로 바꾼다 — 그래야
                 // 뒤이은 반격이 (이미 팀이 같아진) CounterAction.Execute의 팀 체크로 걸러진다.
                 if (UnitActionQueries.Find<ConvertAction>(world, attackerId) != null)
+                {
                     world.Set(targetId, world.Get<Team>(attackerId));
+                    // 위키 Mind Bender: 전향된 유닛은 공짜이고 도시 유닛 상한을 넘어도 된다 — 전향시킨 유닛의 도시 소속으로.
+                    world.Set(targetId, world.GetOrDefault<HomeCity>(attackerId));
+                }
 
                 if (UnitActionQueries.Find<AmbushAction>(world, attackerId) == null &&
                     UnitActionQueries.Find<StiffAction>(world, targetId) == null)

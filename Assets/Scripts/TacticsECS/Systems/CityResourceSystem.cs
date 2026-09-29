@@ -11,15 +11,12 @@ namespace TacticsECS
     /// </summary>
     public static class CityResourceSystem
     {
-        /// <summary>해당 팀이 보유한(=인구를 소모하는) 살아있는 유닛 수.</summary>
+        /// <summary>해당 팀에서 도시 자리를 차지하는(소속 도시가 있는) 살아있는 유닛 수 — 자원 바의 "유닛 수/수용량"(CitySystem.TakesUnitSlot).</summary>
         public static int CountPopulation(EntityWorld world, Team team)
         {
             int count = 0;
             for (int i = 0; i < world.EntityCount; i++)
-            {
-                if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == team)
-                    count++;
-            }
+                if (world.Get<Team>(i) == team && CitySystem.TakesUnitSlot(world, i)) count++;
             return count;
         }
 

@@ -618,7 +618,9 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 4. **도시 성장** — 레벨 L에서 인구 L+1이 차면 레벨업(남는 인구 이월), 레벨마다 2지선다 보상(Lv2 공방/탐험가,
    Lv3 성벽/골드 5, Lv4 인구 +3/국경 확장, Lv5+ 공원/슈퍼 유닛). 도시를 클릭하면 보상 버튼이 뜬다.
 5. **훈련** — 우리 도시(빈 칸)를 클릭하면 유닛 CSV의 유닛을 골드로 훈련한다(`Unit.<Id>` 기술 필요한 유닛은 해금 후).
-   팀 유닛 수 상한 = 도시마다 (레벨 + 1)의 합. 새 유닛은 그 턴에 행동할 수 없다.
+   도시마다 (레벨 + 1)개까지 유닛을 지원하고(위키 City "Unit Capacity"), 유닛은 소속 도시(`HomeCity`)를 가진다 — 훈련한 도시,
+   점령한 유닛은 점령한 도시, 전향된 유닛은 전향시킨 유닛의 도시(상한 초과 허용), 독립(`Independent`) 유닛은 소속 없음.
+   도시 메뉴에 "유닛 n/L+1", 유닛 메뉴에 소속 도시가 보인다. 새 유닛은 그 턴에 행동할 수 없다.
 6. **이동/전투/점령** — 마을·적 도시·주인 없는 수도 위에서 턴을 시작한 유닛은 유닛 메뉴의 "점령"으로 그 칸을 도시로
    만든다(반경 1 영토, 턴 종료). 유적 위 유닛은 "유적 탐험"(골드 10/무료 기술/인구 +3/유닛 중 하나).
 7. **승패** — 도시를 가졌던 팀은 도시를 전부 잃으면 패배(유닛이 남아 있어도), 처음부터 도시가 없던 팀은 예전처럼 유닛 전멸.
@@ -647,7 +649,7 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   농장+풍차 인접, 파괴, 마을 점령, 도로 수도 연결, 산 진입/요새화 방어, 적 AI 연구/훈련/점령, 도시 전멸 패배.
 
 **위키와 다르게 단순화한 것**: 발전도(연구)와 골드(건설/훈련)를 분리한 것은 이 프로젝트 기존 기획(도시 발전도로 기술 해금)을
-따른 것. 인구 상한은 도시별이 아니라 팀 합계. 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 2026-09-29부터
+따른 것. (예전엔 유닛 상한을 팀 합계로 봤지만 2026-09-29부터 위키대로 도시별.) 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 2026-09-29부터
 위키대로 배의 행동(불가사리 칸에서 턴을 시작한 배, 영토 무관, 골드 8 — `RuinSystem.HarvestStarfish`). 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
 레벨/항구 승선/시야/점수는 아래 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절에서 채웠다.
 
@@ -819,6 +821,16 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 검증: `GameDataCsvVerification`(유닛/배 모델 존재 추가)/`UIVerification`/`UnitCsvVerification`/`BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
 
 ## 작업 로그
+
+- 2026-09-29: **구현 계획 2단계 — 유닛 소속 도시**(위키 City "Unit Capacity").
+  - [`HomeCity`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs) 컴포넌트(`HasCity` + 인덱스 — 기본값이 "소속 없음"이 되도록)와
+    [`IndependentAction`](Assets/Scripts/TacticsECS/Actions/IndependentAction.cs)(위키 Independent — 자리 차지 안 함) 추가.
+  - [`CitySystem`](Assets/Scripts/TacticsECS/Systems/CitySystem.cs): `CityCapacity`(레벨 + 1)/`SupportedUnits`/`HomeOf`/`AssignHome`/
+    `NearestCityWithRoom`/`AssignUnitsToCapital`. 훈련은 **그 도시**에 자리가 있어야 한다(예전: 팀 합계). 시작 유닛은 수도 소속,
+    점령한 유닛은 새 도시 소속, 빼앗긴 도시 소속 유닛은 소속을 잃는다(원문에 명시가 없어 "자리 없음"으로 정함), 유적 유닛은 가장
+    가까운 자리 있는 도시, 슈퍼 유닛은 보상 도시, 전향된 유닛은 전향시킨 유닛의 도시(위키 Mind Bender: 상한 초과 허용).
+  - 자원 바의 유닛 수는 자리를 차지하는 유닛만 센다. `GameRules.csv` `City.UnitCapacityBase`의 "원문과 다른 점" 메모 삭제.
+  - 검증: `EconomyVerification.VerifyHomeCities` 추가, `VerificationSuite`/`EconomySimulation` ALL PASS.
 
 - 2026-09-29: **구현 계획 1단계 — 작은 독립 기능**.
   - **불가사리 인양 = 배의 행동**(위키 Starfish): 항해 연구 팀의 배가 불가사리 칸에서 턴을 시작하면 영토와 무관하게 인양(턴 소모, 골드

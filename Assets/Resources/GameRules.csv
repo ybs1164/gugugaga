@@ -9,7 +9,7 @@ Economy.DevelopmentCapital,1,,수도 추가 발전도/턴,프로젝트 고유
 City.GoldPerLevel,1,1,도시 레벨당 골드/턴,
 City.CapitalGold,1,1,수도 추가 골드/턴(위키: 사람 플레이어 수도),
 City.DefaultBorderRadius,1,1,새 도시 영토 반경(1 = 3x3),
-City.UnitCapacityBase,1,1,도시 하나가 지원하는 유닛 수 = 레벨 + 이 값,원문과 다른 점: 위키는 도시별 상한이지만 팀 합계로 판정
+City.UnitCapacityBase,1,1,도시 하나가 지원하는 유닛 수 = 레벨 + 이 값(도시별 — 유닛 소속 도시 HomeCity),
 City.MarketGoldPerLevel,1,1,시장: 인접 가공 건물 레벨 하나당 골드/턴,위키 Stars 문서는 2로 적혀 있으나 Market/Buildings 문서(1)를 따름
 City.MarketGoldCap,8,8,시장 골드 상한(위키: 최대 레벨 8),
 City.MaxPortWaterGap,5,5,항구 연결: 항구 사이 물 칸 최대 수(City Connections),

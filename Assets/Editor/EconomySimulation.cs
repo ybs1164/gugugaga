@@ -169,6 +169,7 @@ namespace TacticsECS.EditorTools
                 VisionSystem.Reveal(grid, team, pos, GameRules.Vision.StartRevealRadius);
                 UnitFactorySystem.CreateFromCsv(grid, world, team, starter, pos);
             }
+            CitySystem.AssignUnitsToCapital(world, econ);
             CitySystem.RefreshConnections(grid, econ, null);
             TechEffectSystem.RefreshUnits(grid, world, econ);
             VisionSystem.Refresh(grid, world, econ, null);
@@ -217,7 +218,7 @@ namespace TacticsECS.EditorTools
             log.AddRange(EconomyAI.RunTurn(grid, world, econ, team));
             foreach (var e in log)
             {
-                if (!string.IsNullOrEmpty(e.SpawnUnitId)) UnitFactorySystem.SpawnEconomyUnit(grid, world, econ, e.Team, e.SpawnUnitId, e.Position);
+                if (!string.IsNullOrEmpty(e.SpawnUnitId)) UnitFactorySystem.SpawnEconomyUnit(grid, world, econ, e.Team, e.SpawnUnitId, e.Position, e.CityIndex);
                 if (e.Kind == EconomyLogKind.Upgrade) result.Upgrades++;
                 if (e.Kind == EconomyLogKind.Capture) result.Captures++;
                 if (e.Kind == EconomyLogKind.Task) result.Tasks++;

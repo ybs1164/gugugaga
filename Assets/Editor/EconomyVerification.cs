@@ -25,6 +25,7 @@ namespace TacticsECS.EditorTools
             VerifyEnemyAiAndDefeat();
             VerifyRecoverAndDisband();
             VerifyStarfishAndDestroy();
+            VerifyHomeCities();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -302,6 +303,62 @@ namespace TacticsECS.EditorTools
             Check(TileImprovementSystem.Execute(grid, econ, p, road, "Road", null), "build road");
             Check(!TileImprovementSystem.GetOptions(grid, econ, p, road).Exists(o => o.Id == "DestroyBuilding"), "roads cannot be destroyed (wiki Roads)");
             Check(city >= 0, "city founded");
+        }
+
+        /// <summary>위키 City "Unit Capacity": 도시마다 (레벨 + 1)개까지 지원, 시작 유닛은 수도 소속, 점령한 유닛은 새 도시 소속,
+        /// 빼앗긴 도시 소속 유닛은 소속을 잃음, 독립 스킬은 자리를 차지하지 않음, 전향된 유닛은 전향시킨 유닛의 도시 소속(상한 초과 허용).</summary>
+        private static void VerifyHomeCities()
+        {
+            var grid = new GridWorld(10, 10);
+            for (int y = 0; y < 10; y++) for (int x = 0; x < 10; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var world = new EntityWorld();
+            var econ = NewEconomy();
+            var p = Team.Player; var e = Team.Enemy;
+            int a = MakeUnit(world, grid, p, new Vector2Int(1, 1));
+            int b = MakeUnit(world, grid, p, new Vector2Int(2, 1));
+            int foe = MakeUnit(world, grid, e, new Vector2Int(8, 8));
+            CitySystem.InitializeCapitals(grid, world, econ);
+            int cap = CitySystem.FindCapital(econ, p), foeCap = CitySystem.FindCapital(econ, e);
+            Check(CitySystem.HomeOf(world, a) == cap && CitySystem.HomeOf(world, b) == cap && CitySystem.HomeOf(world, foe) == foeCap,
+                "starting units belong to their capital");
+            Check(CitySystem.SupportedUnits(world, cap) == 2 && CitySystem.CityCapacity(econ.Cities[cap]) == 2, "L1 capital supports 2 and has 2");
+
+            // 수도 칸을 비우고 훈련 시도: 수도가 꽉 차서 안 된다.
+            var capPos = econ.Cities[cap].Position;
+            int occ = grid.GetOccupant(capPos);
+            if (occ != TileData.NoOccupant) { grid.RemoveOccupant(capPos); world.Set(occ, new GridPosition { Value = new Vector2Int(0, 9) }); grid.PlaceOccupant(new Vector2Int(0, 9), occ); }
+            Give(econ, p, 20, 0);
+            Check(!CitySystem.CanTrain(grid, world, econ, p, cap, econ.UnitRows[0], out var why) && why.StartsWith("유닛 수용량"), $"full capital cannot train (reason '{why}')");
+
+            // 마을 점령: 점령한 유닛은 새 도시 소속 -> 수도 자리가 하나 빈다.
+            var village = new Vector2Int(5, 2);
+            grid.SetStructure(village, StructureGenerationSystem.VillageStructureId);
+            grid.RemoveOccupant(world.Get<GridPosition>(b).Value); world.Set(b, new GridPosition { Value = village }); grid.PlaceOccupant(village, b);
+            int v = CitySystem.Capture(grid, world, econ, b, null);
+            Check(v >= 0 && CitySystem.HomeOf(world, b) == v, "capturing unit is supported by the captured city");
+            Check(CitySystem.CanTrain(grid, world, econ, p, cap, econ.UnitRows[0], out _), "capital has room again after its unit captured a village");
+
+            // 독립 스킬 유닛은 자리를 차지하지 않는다.
+            int indie = MakeUnit(world, grid, p, new Vector2Int(0, 5), new List<IUnitAction> { MoveAction.FromCsv(1), new IndependentAction() });
+            CitySystem.AssignHome(world, econ, indie, cap);
+            Check(CitySystem.HomeOf(world, indie) == HomeCity.None && CitySystem.SupportedUnits(world, cap) == 1, "independent units take no slot");
+
+            // 적 수도를 점령하면 그 도시 소속이던 적 유닛은 소속을 잃는다.
+            var foeCapPos = econ.Cities[foeCap].Position;
+            int attacker = MakeUnit(world, grid, p, foeCapPos == world.Get<GridPosition>(foe).Value ? foeCapPos + Vector2Int.left : foeCapPos);
+            if (grid.GetOccupant(foeCapPos) == foe) { grid.RemoveOccupant(foeCapPos); world.Set(foe, new GridPosition { Value = new Vector2Int(9, 0) }); grid.PlaceOccupant(new Vector2Int(9, 0), foe); }
+            if (world.Get<GridPosition>(attacker).Value != foeCapPos) { grid.RemoveOccupant(world.Get<GridPosition>(attacker).Value); world.Set(attacker, new GridPosition { Value = foeCapPos }); grid.PlaceOccupant(foeCapPos, attacker); }
+            Check(CitySystem.Capture(grid, world, econ, attacker, null) == foeCap, "capture enemy capital");
+            Check(CitySystem.HomeOf(world, foe) == HomeCity.None, "enemy units of a captured city lose their home");
+
+            // 전향: 전향된 유닛은 전향시킨 유닛의 도시 소속(상한을 넘어도 됨).
+            var w2 = new EntityWorld(); var g2 = new GridWorld(4, 4);
+            int bender = MakeUnit(w2, g2, p, new Vector2Int(0, 0), new List<IUnitAction> { AttackAction.FromCsv(0, 1), new ConvertAction() });
+            int victim = MakeUnit(w2, g2, e, new Vector2Int(1, 0));
+            w2.Set(bender, new HomeCity { HasCity = true, CityIndex = cap }); w2.Set(victim, new HomeCity { HasCity = true, CityIndex = foeCap });
+            w2.Set(bender, new Attack { Value = 0 });
+            Check(CombatSystem.TryAttack(g2, w2, bender, victim, out _, out _) && w2.Get<Team>(victim) == p && CitySystem.HomeOf(w2, victim) == cap,
+                "converted unit joins the converter's city");
         }
 
         /// <summary>도시가 지금까지 모은 인구 총량(레벨업으로 차감된 몫까지 되돌려 더한 값).</summary>

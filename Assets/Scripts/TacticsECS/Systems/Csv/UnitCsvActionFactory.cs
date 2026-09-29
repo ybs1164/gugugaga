@@ -28,6 +28,8 @@ namespace TacticsECS
                 actions.Add(new CounterAction());
             if ((row.Actions & ActionType.Charge) != 0)
                 actions.Add(new ChargeAction());
+            if ((row.Actions & ActionType.Independent) != 0)
+                actions.Add(new IndependentAction());
             if ((row.Actions & ActionType.Retreat) != 0)
                 actions.Add(new RetreatAction());
             if ((row.Actions & ActionType.Ambush) != 0)

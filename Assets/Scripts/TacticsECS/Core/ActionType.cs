@@ -87,5 +87,8 @@ namespace TacticsECS
         /// <summary>대각선 이동: 8방향 이동을 허용한다(없으면 상하좌우 4방향만). 값을 갖지 않는 순수 마커 —
         /// Actions/AllowDiagonalAction.cs 참고.</summary>
         AllowDiagonal = 1 << 25,
+        /// <summary>독립(위키 Unit Skills "Independent"): 어느 도시에도 속하지 않아 도시 유닛 수용량을 차지하지 않는다
+        /// (Dagger 등). 값을 갖지 않는 순수 마커 — Actions/IndependentAction.cs 참고.</summary>
+        Independent = 1 << 26,
     }
 }

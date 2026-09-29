@@ -13,7 +13,9 @@ namespace TacticsECS
     ///   - 레벨 L -> L+1에 인구 L+1이 필요하고, 남는 인구는 이월된다. 레벨업마다 2지선다 보상 하나.
     ///   - 골드 수입 = 도시마다 (레벨 + 공방 + 공원 + 수도 1 + 음수 인구) (0 미만 불가) + 시장. 적 유닛이 도시
     ///     칸에 서 있으면(포위) 그 도시는 수입이 없다.
-    ///   - 팀의 유닛 수용량(인구 상한) = 도시마다 (레벨 + 1)의 합.
+    ///   - 도시 하나가 지원하는 유닛 = 레벨 + 1(위키 City "Unit Capacity"). 유닛은 소속 도시(HomeCity)를 갖고, 훈련은 그 도시에
+    ///     자리가 있어야 한다. 점령한 유닛은 점령한 도시 소속이 되고, 도시를 빼앗긴 쪽의 그 도시 소속 유닛은 소속을 잃는다(자리 없음 —
+    ///     원문에 명시가 없어 "죽거나 해산하면 자리가 빈다"와 같은 취급으로 정함). 팀 합계(UnitCapacity)는 자원 바 표시용이다.
     ///   - 마을/적 도시는 그 칸에서 턴을 시작한(=이번 턴 아직 이동/행동하지 않은) 유닛이 점령한다. 점령은 그
     ///     유닛의 턴을 끝낸다.
     ///   - 도시를 한 번이라도 가졌던 팀이 도시를 전부 잃으면 패배.
@@ -61,12 +63,71 @@ namespace TacticsECS
         public static bool HasLost(EconomyWorld econ, Team team) =>
             econ != null && econ.HadCity.Contains(team) && CountCities(econ, team) == 0;
 
+        /// <summary>팀 도시들의 유닛 수용량 합(자원 바 표시용 — 훈련 판정은 도시별 CityCapacity/SupportedUnits).</summary>
         public static int UnitCapacity(EconomyWorld econ, Team team)
         {
             int cap = 0;
             foreach (var c in econ.Cities)
-                if (c.Owner == team) cap += c.Level + GameRules.City.UnitCapacityBase;
+                if (c.Owner == team) cap += CityCapacity(c);
             return cap;
+        }
+
+        /// <summary>도시 하나가 지원하는 유닛 수 = 레벨 + UnitCapacityBase(1) — 위키 City "population bars".</summary>
+        public static int CityCapacity(CityData city) => city.Level + GameRules.City.UnitCapacityBase;
+
+        /// <summary>이 유닛이 도시 자리를 차지하는지(살아있고 소속 도시가 있음 — 독립 스킬/소속을 잃은 유닛은 아님).</summary>
+        public static bool TakesUnitSlot(EntityWorld world, int unitId) =>
+            UnitQueries.IsAlive(world, unitId) && HomeOf(world, unitId) >= 0;
+
+        /// <summary>유닛의 소속 도시 인덱스, 없으면 HomeCity.None.</summary>
+        public static int HomeOf(EntityWorld world, int unitId)
+        {
+            var h = world.GetOrDefault<HomeCity>(unitId);
+            return h.HasCity ? h.CityIndex : HomeCity.None;
+        }
+
+        /// <summary>cityIndex 도시가 지금 지원하는 살아있는 유닛 수.</summary>
+        public static int SupportedUnits(EntityWorld world, int cityIndex)
+        {
+            int n = 0;
+            for (int i = 0; i < world.EntityCount; i++)
+                if (UnitQueries.IsAlive(world, i) && HomeOf(world, i) == cityIndex) n++;
+            return n;
+        }
+
+        /// <summary>유닛의 소속 도시를 정한다. 독립 스킬 유닛(위키 Independent)과 경제 없는 씬은 항상 None.</summary>
+        public static void AssignHome(EntityWorld world, EconomyWorld econ, int unitId, int cityIndex)
+        {
+            if (econ == null || UnitActionQueries.Find<IndependentAction>(world, unitId) != null) cityIndex = HomeCity.None;
+            world.Set(unitId, new HomeCity { HasCity = cityIndex >= 0, CityIndex = cityIndex });
+        }
+
+        /// <summary>pos에서 가장 가까운(체비쇼프) 자리가 남은 자기 도시, 없으면 가장 가까운 자기 도시, 도시가 없으면 None.</summary>
+        public static int NearestCityWithRoom(EntityWorld world, EconomyWorld econ, Team team, Vector2Int pos)
+        {
+            if (econ == null) return HomeCity.None;
+            int best = HomeCity.None, bestAny = HomeCity.None, bestD = int.MaxValue, bestAnyD = int.MaxValue;
+            for (int i = 0; i < econ.Cities.Count; i++)
+            {
+                var c = econ.Cities[i];
+                if (c.Owner != team) continue;
+                int d = Mathf.Max(Mathf.Abs(c.Position.x - pos.x), Mathf.Abs(c.Position.y - pos.y));
+                if (d < bestAnyD) { bestAnyD = d; bestAny = i; }
+                if (d < bestD && SupportedUnits(world, i) < CityCapacity(c)) { bestD = d; best = i; }
+            }
+            return best >= 0 ? best : bestAny;
+        }
+
+        /// <summary>소속 도시가 없는 유닛(전투 시작 시 배치된 유닛 등)을 그 팀 수도 소속으로 한다 — 위키: 시작 유닛은 수도 소속.
+        /// 독립 스킬 유닛은 그대로 둔다(AssignHome).</summary>
+        public static void AssignUnitsToCapital(EntityWorld world, EconomyWorld econ)
+        {
+            for (int i = 0; i < world.EntityCount; i++)
+            {
+                if (!UnitQueries.IsAlive(world, i) || HomeOf(world, i) >= 0) continue;
+                int capital = FindCapital(econ, world.Get<Team>(i));
+                if (capital >= 0) AssignHome(world, econ, i, capital);
+            }
         }
 
         /// <summary>econ.RandomCounter를 하나 올리며 [0, maxExclusive) 정수를 만든다(상태 없는 결정적 난수).</summary>
@@ -180,6 +241,7 @@ namespace TacticsECS
                 FoundCity(grid, econ, best.Value, team, true, team == Team.Player ? "아군 수도" : "적 수도");
                 VisionSystem.Reveal(grid, team, best.Value, GameRules.Vision.StartRevealRadius); // 시작 시 수도 주변 5x5
             }
+            AssignUnitsToCapital(world, econ);
             RefreshConnections(grid, econ, null);
         }
 
@@ -208,6 +270,10 @@ namespace TacticsECS
             }
             else
             {
+                // 빼앗긴 도시 소속이던 예전 주인 유닛들은 소속을 잃는다(자리를 차지하지 않게 됨).
+                for (int i = 0; i < world.EntityCount; i++)
+                    if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) != team && HomeOf(world, i) == index)
+                        world.Set(i, new HomeCity());
                 var city = econ.Cities[index];
                 city.Owner = team;
                 city.IsCapital = false; // 피점령 수도는 일반 도시 취급
@@ -228,6 +294,7 @@ namespace TacticsECS
 
             world.Set(unitId, new HasMoved { Value = true });
             world.Set(unitId, new HasActed { Value = true });
+            AssignHome(world, econ, unitId, index); // 위키 City: 점령한 유닛은 새 도시가 지원한다
             log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Capture, Subject = econ.Cities[index].Name, Position = pos, CityIndex = index });
             RefreshConnections(grid, econ, log);
             return index;
@@ -453,7 +520,8 @@ namespace TacticsECS
             if (IsSuperUnit(row.Id)) { reason = "보상 전용(슈퍼 유닛)"; return false; }
             if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = "기술 필요"; return false; }
             if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
-            if (CityResourceSystem.CountPopulation(world, team) >= UnitCapacity(econ, team)) { reason = "인구 상한"; return false; }
+            int supported = SupportedUnits(world, cityIndex), capacity = CityCapacity(city);
+            if (supported >= capacity) { reason = $"유닛 수용량 ({supported}/{capacity})"; return false; }
             if (econ.Resources[team].Gold < row.Cost) { reason = $"골드 부족 ({econ.Resources[team].Gold}/{row.Cost})"; return false; }
             return true;
         }

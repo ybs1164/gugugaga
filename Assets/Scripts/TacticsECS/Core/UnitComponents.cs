@@ -104,6 +104,20 @@ namespace TacticsECS
     // TechEffectSystem.RefreshUnits(위치/기술/도시가 바뀔 때마다), 적용은 CombatSystem.DefenseMultiplier.
     [System.Serializable] public struct PositionalDefenseBonus { public int Value; }
 
+    // 소속 도시(위키 City "Unit Capacity"): 이 유닛을 지원하는 도시(EconomyWorld.Cities 인덱스). 도시 하나는 (레벨 + 1)개까지
+    // 지원하고, 훈련한 유닛은 그 도시, 점령한 유닛은 점령한 도시, 전향된 유닛은 전향시킨 유닛의 도시 소속이 된다(전향은 상한을
+    // 넘어도 된다 — 위키 Mind Bender). None이면 어느 도시에도 속하지 않아 자리를 차지하지 않는다(독립 스킬 유닛, 소속 도시를 잃은
+    // 유닛, 경제 없는 씬). 판정/배정은 CitySystem(HomeOf/SupportedUnits/CanTrain/Capture/AssignUnitsToCapital).
+    // HasCity를 따로 두는 이유: 이 컴포넌트를 한 번도 받지 않은 엔티티를 GetOrDefault로 읽으면 CityIndex가 0이 되어 "0번 도시 소속"으로
+    // 오인되기 때문 — 기본값(HasCity = false)이 곧 "소속 없음"이 되게 한다.
+    [System.Serializable]
+    public struct HomeCity
+    {
+        public const int None = -1;
+        public bool HasCity;
+        public int CityIndex;
+    }
+
     // Team(Core/Team.cs)은 이미 다른 목적으로 쓰이지 않는 고유한 타입이라 별도 래퍼 없이
     // 그 자체로 컴포넌트 타입("팀 소속")으로 재사용한다.
 }

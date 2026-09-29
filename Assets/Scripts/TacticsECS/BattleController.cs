@@ -1108,7 +1108,7 @@ namespace TacticsECS
         {
             foreach (var entry in log)
             {
-                if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position);
+                if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex);
                 _hud.AddLogEntry(FormatEconomyEntry(entry));
             }
             if (log.Count > 0) RefreshRoster();
@@ -1139,7 +1139,7 @@ namespace TacticsECS
 
         /// <summary>유닛 CSV Id로 near 칸(차 있으면 가장 가까운 빈 칸, 반경 3)에 유닛을 스폰한다. 폴리토피아처럼
         /// 새로 생긴 유닛은 그 턴에 움직이거나 행동할 수 없다.</summary>
-        private bool SpawnEconomyUnit(Team team, string unitId, Vector2Int near)
+        private bool SpawnEconomyUnit(Team team, string unitId, Vector2Int near, int homeCity)
         {
             var row = CitySystem.FindUnitRow(_econ, unitId);
             if (row == null || !BasePrefabsByName().TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
@@ -1149,7 +1149,7 @@ namespace TacticsECS
             }
 
             // 엔티티 생성/자리 찾기는 헤드리스 시뮬레이션과 같은 경로(UnitFactorySystem), 여기서는 View만 붙인다.
-            int id = UnitFactorySystem.SpawnEconomyUnit(_grid, _world, _econ, team, unitId, near);
+            int id = UnitFactorySystem.SpawnEconomyUnit(_grid, _world, _econ, team, unitId, near, homeCity);
             if (id < 0) return false;
             var view = _spawner.AttachCsvView(_grid, _world, id, basePrefab, row);
             _viewsById[id] = view;
@@ -1185,7 +1185,7 @@ namespace TacticsECS
             {
                 var city = _econ.Cities[cityIndex];
                 title = $"{city.Name} (Lv {city.Level})";
-                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
+                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 유닛 {CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
                 body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
 
                 if (city.Owner == Team.Player && city.IsCapital)
@@ -1318,8 +1318,10 @@ namespace TacticsECS
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
                 options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => { ClearSelection(); ShowTileMenu(pos); } });
 
-            if (options.Count == 0) { _actionMenu.Hide(); return; }
-            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", null, options);
+            // 소속 도시(위키 City "Units will show which city they belong to").
+            int home = CitySystem.HomeOf(_world, unitId);
+            string homeText = home >= 0 && home < _econ.Cities.Count ? $"소속: {_econ.Cities[home].Name}" : "소속 도시 없음";
+            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", homeText, options);
         }
 
         private void HandleNavalUpgrade(int unitId, string navalUnitId)

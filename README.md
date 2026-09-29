@@ -824,6 +824,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-09-29: CLAUDE.md에 규칙 6 추가 — CSV에서 한 값에 여러 속성이 담기면 한 칸에 묶지 않고 여러 값으로 나열한다.
+
 - 2026-09-27: 모델링 3차 — 유닛/배를 위키식 블록 유닛으로(팀색 옷, 탈것, 투석기 기계, 큰 거인, 배 4종).
   - [모델링](#모델링-위키-대조--방식-비교) 절, [`docs/ModelingPlan.md`](docs/ModelingPlan.md) 3차와 3회 반복 요약.
   - **검증**: 에디터가 꺼진 상태에서 CLI로 `ModelShowcase` + 위 검증 5종 ALL PASS.

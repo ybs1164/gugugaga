@@ -34,6 +34,7 @@ namespace TacticsECS
         public static bool IsAvailable(IReadOnlyList<TechNodeData> nodes, TechTreeData tech, string id)
         {
             if (IsUnlocked(tech, id)) return false;
+            if (tech.Allowed != null && !tech.Allowed.Contains(id)) return false; // 종족 기술 그룹 밖
             var node = Find(nodes, id);
             if (node == null) return false;
             return string.IsNullOrEmpty(node.Value.ParentId) || IsUnlocked(tech, node.Value.ParentId);

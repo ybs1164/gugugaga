@@ -10,6 +10,9 @@ namespace TacticsECS
     {
         public HashSet<string> Unlocked;
 
+        /// <summary>이 팀이 연구할 수 있는 기술 Id(종족 기술 그룹 — TechGroups.csv). null이면 트리 전체.</summary>
+        public HashSet<string> Allowed;
+
         public static TechTreeData CreateEmpty()
         {
             return new TechTreeData { Unlocked = new HashSet<string>() };

@@ -134,6 +134,10 @@ namespace TacticsECS
         private bool _placementActive;
         private List<BiomeCsvRow> _loadedBiomes;
 
+        /// <summary>샌드박스 "기술 불러오기"로 읽은 커스텀 기술트리. null이면 기본 Assets/Resources/TechTree.csv.
+        /// 유닛/바이옴과 달리 "다시 시작"(HandleReturnToSetup)해도 유지한다 — 같은 트리로 여러 판을 시험하기 위함.</summary>
+        private List<TechNodeData> _customTechNodes;
+
         /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
         /// (docs/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
         private static readonly (string Name, int Size)[] MapSizePresets =
@@ -152,6 +156,24 @@ namespace TacticsECS
         };
         private const int WetnessBaselineIndex = 2; // "Continents"
         private int _selectedWetnessIndex = WetnessBaselineIndex;
+
+        /// <summary>습도 탭 슬라이더 — 1차 지형(아웃라인)의 목표 물 비율. 맵 타입을 고르면 그 타입의 대표값으로 돌아간다.</summary>
+        private float _waterRatio = WetnessPresets[WetnessBaselineIndex].Wetness;
+
+        /// <summary>습도 탭 바이옴 드롭다운: 0 = 자동(전체 바이옴, 종족이 있으면 종족 바이옴), k = 바이옴 목록의 k-1번째 하나만.</summary>
+        private int _biomeChoice;
+
+        /// <summary>습도 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
+        private readonly Dictionary<Team, int> _tribeByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
+
+        /// <summary>마지막 1차 지형. "지형 생성"은 설정(크기/수도 수/맵 타입/물 비율)이 같으면 이 아웃라인 위에 바이옴만 다시 채운다.</summary>
+        private TerrainOutlineData? _outline;
+
+        /// <summary>종족 모드로 생성한 지형의 팀별 수도 자리(영역 i = CitySystem.Teams[i]) — 전투 시작 때 그 팀 수도가 된다.</summary>
+        private readonly Dictionary<Team, Vector2Int> _tribeCapitals = new Dictionary<Team, Vector2Int>();
+
+        /// <summary>바이옴 CSV를 불러오지 않았을 때 쓰는 기본 바이옴 표(Resources/Tables/Biomes.csv).</summary>
+        private List<BiomeCsvRow> _defaultBiomes;
 
         private CityResourceHud _cityResourceHud;
         private TechTreeHud _techTreeHud;
@@ -178,15 +200,15 @@ namespace TacticsECS
 
         private enum SelectState { None, UnitSelected }
         private SelectState _state = SelectState.None;
-        private int _selectedUnitId = -1;
-        private HashSet<Vector2Int> _reachableTiles;
-        private List<int> _attackableTargets;
-
 
         // 마지막으로 클릭해 포커스한 칸과 그 칸에서 포커스한 대상 — 같은 칸을 다시 누르면 다음 대상으로 넘긴다.
         private enum FocusLayer { Unit, Tile }
         private Vector2Int? _focusPos;
         private FocusLayer _focusLayer;
+        private int _selectedUnitId = -1;
+        private HashSet<Vector2Int> _reachableTiles;
+        private List<int> _attackableTargets;
+
         private bool _battleOver;
 
         private void Awake()
@@ -248,7 +270,7 @@ namespace TacticsECS
                 {
                     _techTreeHud = Instantiate(techTreeHudPrefab, transform);
                     _techTreeHud.name = "TechTreeHud";
-                    _techTreeHud.Init(GameDataLoader.LoadTechNodes());
+                    _techTreeHud.Init(CurrentTechNodes());
                     _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
                     RefreshTechTree();
                 }
@@ -312,6 +334,8 @@ namespace TacticsECS
             _sandboxHud = null;
             _placementController = null;
             _loadedBiomes = null;
+            _outline = null;
+            _tribeCapitals.Clear();
             _cityResourceHud = null;
             _techTreeHud = null;
             _actionMenu = null;
@@ -343,15 +367,139 @@ namespace TacticsECS
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
+            _sandboxHud.OnLoadTechClicked += HandleTechLoad;
+            _sandboxHud.OnExportTechClicked += HandleTechExport;
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
             _sandboxHud.SetSelectedTeam(Team.Player);
             _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
 
+            _sandboxHud.OnMapTypeSelected += HandleMapTypeSelected;
+            _sandboxHud.OnWaterRatioChanged += HandleWaterRatioChanged;
+            _sandboxHud.OnGenerateOutlineClicked += HandleGenerateOutline;
+            _sandboxHud.OnBiomeChoiceSelected += HandleBiomeChoiceSelected;
+            _sandboxHud.OnTribeSelected += HandleTribeSelected;
+
             InitMapSizeSelection();
             _sandboxHud.SetMapSizeLabel(MapSizePresets[_selectedMapSizeIndex].Name, MapSizePresets[_selectedMapSizeIndex].Size);
-            _sandboxHud.SetWetnessLabel(WetnessPresets[_selectedWetnessIndex].Name);
+            _sandboxHud.SetMapTypeOptions(WetnessPresets.Select(p => $"{p.Name} ({Mathf.RoundToInt(p.Wetness * 100f)}%)").ToList(), _selectedWetnessIndex);
+            _sandboxHud.SetWaterRatio(_waterRatio);
+            RefreshWetnessLabel();
+            RefreshBiomeOptions();
+            _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
+            RefreshTribeInfo();
+        }
+
+        // ---------- Sandbox: 습도 탭(1차 지형 · 바이옴 선택 · 종족) ----------
+
+        private List<BiomeCsvRow> ActiveBiomes() => _loadedBiomes ?? (_defaultBiomes ??= GameDataLoader.LoadDefaultBiomes());
+
+        private TribeRow? TribeOf(Team team) =>
+            _tribeByTeam.TryGetValue(team, out int i) && TribeSystem.IsValid(i) ? GameTables.Tribes[i] : (TribeRow?)null;
+
+        private bool AnyTribe() => CitySystem.Teams.Any(t => TribeOf(t) != null);
+
+        private void RefreshWetnessLabel() =>
+            _sandboxHud.SetWetnessLabel($"{WetnessPresets[_selectedWetnessIndex].Name} 물 {Mathf.RoundToInt(_waterRatio * 100f)}%");
+
+        private void RefreshBiomeOptions()
+        {
+            var biomes = ActiveBiomes();
+            if (_biomeChoice > biomes.Count) _biomeChoice = 0;
+            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), _biomeChoice);
+        }
+
+        private void RefreshTribeInfo()
+        {
+            var biomes = ActiveBiomes();
+            var unitRows = CurrentUnitRows();
+            var lines = new List<string>();
+            foreach (var team in CitySystem.Teams)
+            {
+                var tribe = TribeOf(team);
+                if (tribe != null) lines.Add((team == Team.Player ? "아군 " : "적 ") + TribeSystem.Summary(tribe.Value, biomes, unitRows));
+            }
+            _sandboxHud.SetTribeInfo(lines.Count > 0 ? string.Join("\n", lines)
+                : "종족을 고르면 시작 골드/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다(Assets/Resources/Tables).");
+        }
+
+        /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 SandboxUnits.csv — 종족 StartUnit Index가 가리키는 표.</summary>
+        private List<UnitCsvRow> CurrentUnitRows() =>
+            _placementController != null && _placementController.Rows.Count > 0 ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
+
+        private void HandleMapTypeSelected(int index)
+        {
+            _selectedWetnessIndex = Mathf.Clamp(index, 0, WetnessPresets.Length - 1);
+            _waterRatio = WetnessPresets[_selectedWetnessIndex].Wetness;
+            _sandboxHud.SetWaterRatio(_waterRatio);
+            RefreshWetnessLabel();
+        }
+
+        private void HandleWaterRatioChanged(float value)
+        {
+            _waterRatio = Mathf.Clamp01(value);
+            RefreshWetnessLabel();
+        }
+
+        private void HandleBiomeChoiceSelected(int choice)
+        {
+            _biomeChoice = choice;
+            var biomes = ActiveBiomes();
+            _sandboxHud.SetStatus(choice > 0 && choice <= biomes.Count
+                ? $"바이옴 '{biomes[choice - 1].Name}'만으로 채웁니다. \"지형 생성\"을 누르세요(1차 지형이 있으면 그 모양 그대로)."
+                : "자동: 전체 바이옴(종족이 있으면 종족 바이옴)으로 채웁니다.");
+        }
+
+        private void HandleTribeSelected(Team team, int tribeIndex)
+        {
+            _tribeByTeam[team] = TribeSystem.IsValid(tribeIndex) ? tribeIndex : -1;
+            RefreshTribeInfo();
+        }
+
+        /// <summary>종족이 하나라도 있으면 팀마다 영역 하나(종족 바이옴 — 바이옴을 하나 골랐으면 그 바이옴), 없으면 바이옴 하나를 골랐을 때
+        /// 그 바이옴 영역 2개(수도 2개), 자동이면 불러온 바이옴 전부(바이옴마다 수도 하나 — 예전 동작).</summary>
+        private List<BiomeCsvRow> ResolveRegionBiomes(out bool perTeam)
+        {
+            var biomes = ActiveBiomes();
+            perTeam = AnyTribe();
+            var single = _biomeChoice > 0 && _biomeChoice <= biomes.Count ? biomes[_biomeChoice - 1] : null;
+            if (perTeam)
+                return CitySystem.Teams.Select(team => single ?? (TribeOf(team) is TribeRow t ? TribeSystem.RegionBiome(t, biomes) : biomes[0])).ToList();
+            if (single != null) return new List<BiomeCsvRow> { single, single };
+            return new List<BiomeCsvRow>(biomes);
+        }
+
+        private bool EnsureGridSize()
+        {
+            int targetSize = MapSizePresets[_selectedMapSizeIndex].Size;
+            if (targetSize == _grid.Width) return true;
+            if (!RebuildGridForSize(targetSize)) return false;
+            _outline = null;
+            return true;
+        }
+
+        private bool OutlineMatches(int regionCount, TerrainGenerationSystem.MapShapeMode mode) =>
+            _outline is TerrainOutlineData o && o.Width == _grid.Width && o.Height == _grid.Height && o.Anchors.Length == regionCount &&
+            o.ShapeMode == mode && Mathf.Abs(o.WaterFraction - _waterRatio) < 0.001f;
+
+        /// <summary>습도 탭 "1차 지형 생성": 선택한 맵 타입 + 물 비율로 육지/물 모양과 수도/사전 마을 자리만 먼저 만든다(바이옴 없음 —
+        /// 회색 육지/파란 물). 이어서 "지형 생성"을 누르면 이 모양 그대로 바이옴을 채운다.</summary>
+        private void HandleGenerateOutline()
+        {
+            if (!EnsureGridSize()) return;
+            var regions = ResolveRegionBiomes(out _);
+            var mode = ResolveShapeMode(WetnessPresets[_selectedWetnessIndex].Name);
+            int seed = System.Environment.TickCount;
+            var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, mode, _waterRatio);
+            _outline = outline;
+            _tribeCapitals.Clear();
+            TerrainGenerationSystem.ApplyOutline(_grid, outline);
+            _gridView.RefreshTerrain(_grid);
+            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
+            _sandboxHud.SetStatus($"1차 지형: 물 {Mathf.RoundToInt(TerrainGenerationSystem.OutlineWaterFraction(outline) * 100f)}% " +
+                $"(목표 {Mathf.RoundToInt(_waterRatio * 100f)}%, {WetnessPresets[_selectedWetnessIndex].Name}), 수도 {outline.Anchors.Length}, " +
+                $"사전 마을 {outline.Suburbs.Length + outline.PlannedVillages.Length}. \"지형 생성\"으로 바이옴을 채우세요.");
         }
 
         /// <summary>유닛 CSV의 BaseVisual 이름 -> 외형 프리팹. 배치 단계 팔레트와 전투 중 도시 훈련이 공유한다.</summary>
@@ -368,8 +516,7 @@ namespace TacticsECS
 
         private void HandleWetnessCycle()
         {
-            _selectedWetnessIndex = (_selectedWetnessIndex + 1) % WetnessPresets.Length;
-            _sandboxHud.SetWetnessLabel(WetnessPresets[_selectedWetnessIndex].Name);
+            HandleMapTypeSelected((_selectedWetnessIndex + 1) % WetnessPresets.Length);
         }
 
         /// <summary>현재 gridWidth(인스펙터 값)와 가장 가까운 프리셋을 기본 선택값으로 삼는다.</summary>
@@ -401,6 +548,7 @@ namespace TacticsECS
                 _sandboxHud.SetPalette(rows);
                 _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
                 _sandboxHud.SetStatus($"{rows.Count}개 유닛을 불러왔습니다. 팔레트에서 골라 빈 칸을 클릭하세요.");
+                RefreshTribeInfo(); // 종족 시작 유닛 Index가 이 표를 가리킨다
             }
             catch (System.Exception e)
             {
@@ -422,6 +570,57 @@ namespace TacticsECS
             }
         }
 
+        private List<TechNodeData> CurrentTechNodes() => _customTechNodes ?? GameDataLoader.LoadTechNodes();
+
+        /// <summary>기술트리 CSV(TechTree.csv와 같은 형식)를 불러와 이후 전투의 기술트리로 쓴다. 기술트리 패널도 바로 다시 그려
+        /// 배치 단계에서 모양을 확인할 수 있다. 형식 오류(TechCsvSerializer)와 참조 오류(TechTreeValidationSystem)는 콘솔에
+        /// 경고로 남기고, 상태 줄에는 개수만 보인다 — 경고가 있어도 읽을 수 있는 만큼은 적용한다.</summary>
+        private void HandleTechLoad(string path)
+        {
+            try
+            {
+                var errors = new List<string>();
+                var nodes = TechCsvSerializer.Parse(System.IO.File.ReadAllText(path), errors);
+                if (nodes.Count == 0)
+                {
+                    _sandboxHud.SetStatus("기술트리 불러오기 실패: 기술 행이 없습니다.");
+                    return;
+                }
+                // 전투에 쓰일 유닛 목록과 같은 기준(InitEconomy): 불러온 유닛 CSV, 없으면 SandboxUnits.csv.
+                var unitRows = _placementController != null && _placementController.Rows.Count > 0
+                    ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
+                var unitIds = unitRows.Count > 0 ? unitRows.Select(r => r.Id) : null;
+                errors.AddRange(TechTreeValidationSystem.Validate(nodes, unitIds));
+                var missing = TechTreeValidationSystem.MissingContentKeys(nodes);
+                foreach (var e in errors) Debug.LogWarning("[TechTree] " + e);
+                if (missing.Count > 0) Debug.Log("[TechTree] 트리에 없어 쓸 수 없게 된 해금 키: " + string.Join(", ", missing));
+
+                _customTechNodes = nodes;
+                if (_techTreeHud != null) _techTreeHud.SetNodes(nodes);
+                _sandboxHud.SetStatus($"기술 {nodes.Count}개를 불러왔습니다." +
+                                      (errors.Count > 0 ? $" 경고 {errors.Count}개(콘솔)." : string.Empty) +
+                                      (missing.Count > 0 ? $" 잠긴 채 남는 해금 {missing.Count}개." : string.Empty));
+            }
+            catch (System.Exception e)
+            {
+                _sandboxHud.SetStatus($"기술트리 불러오기 실패: {e.Message}");
+            }
+        }
+
+        private void HandleTechExport(string path)
+        {
+            try
+            {
+                var nodes = CurrentTechNodes();
+                System.IO.File.WriteAllText(path, TechCsvSerializer.Write(nodes), new System.Text.UTF8Encoding(true));
+                _sandboxHud.SetStatus($"기술 {nodes.Count}개를 {path}에 내보냈습니다.");
+            }
+            catch (System.Exception e)
+            {
+                _sandboxHud.SetStatus($"기술트리 내보내기 실패: {e.Message}");
+            }
+        }
+
         /// <summary>바이옴 CSV를 불러오기만 한다 — 실제 지형 생성은 "지형 생성" 버튼(HandleGenerateTerrain)을
         /// 눌러야 실행된다(불러오기와 생성을 분리해, 같은 바이옴 목록으로 여러 번 재생성해볼 수 있게).</summary>
         private void HandleBiomeLoad(string path)
@@ -429,8 +628,20 @@ namespace TacticsECS
             try
             {
                 var csvText = System.IO.File.ReadAllText(path);
-                _loadedBiomes = BiomeCsvSerializer.Parse(csvText);
-                _sandboxHud.SetStatus($"{_loadedBiomes.Count}개 바이옴을 불러왔습니다. \"지형 생성\"을 눌러 지형을 만드세요.");
+                var biomes = BiomeCsvSerializer.Parse(csvText);
+                if (biomes.Count == 0)
+                {
+                    _sandboxHud.SetStatus("바이옴 불러오기 실패: Biome 행이 없습니다.");
+                    return;
+                }
+                _loadedBiomes = biomes;
+                _biomeChoice = 0;
+                RefreshBiomeOptions();
+                RefreshTribeInfo();
+                var tribeWarnings = ArrayTableValidationSystem.ValidateLoaded(biomeCount: biomes.Count).Where(w => w.Contains("BiomeIndex")).ToList();
+                foreach (var w in tribeWarnings) Debug.LogWarning("[Tribes] " + w);
+                _sandboxHud.SetStatus($"{biomes.Count}개 바이옴을 불러왔습니다. 습도 탭의 바이옴 목록에서 하나를 골라 규칙을 확인할 수 있습니다." +
+                                      (tribeWarnings.Count > 0 ? $" 종족 바이옴 참조 경고 {tribeWarnings.Count}개(콘솔)." : string.Empty));
             }
             catch (System.Exception e)
             {
@@ -438,43 +649,59 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>불러온 바이옴 목록으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와
-        /// 다르면 먼저 그리드 자체를 다시 만든다(RebuildGridForSize). 이미 유닛이 놓인 칸은
-        /// TerrainGenerationSystem이 알아서 건드리지 않으므로(크기가 그대로라면) 배치 중에 눌러도
-        /// 안전하다. 매번 새 시드를 뽑아서, 같은 바이옴 CSV로도 누를 때마다 다른 결과가 나오게 한다.
-        /// 지형 생성 직후 반환되는 바이옴 앵커 + Suburb/Pre-terrain 마을 위치(7차 재정비 — 수도/마을을
-        /// 지형보다 먼저 확정하고, 지형 생성이 그 위치를 육지로 보장한다)로 StructureGenerationSystem
-        /// (수도/마을/유적/자원/불가사리)까지 이어서 실행한다. 습도 프리셋 이름이 Pangea/Lakes/Continents/
-        /// Archipelago/Waterworld 중 하나면 TerrainGenerationSystem이 완전히 다른 경로(랜드마스 마스크로
-        /// 모양 자체를 확정)를 타도록 ResolveShapeMode로 매핑한 MapShapeMode를 함께 넘긴다. Drylands는
-        /// 물이 거의 없어(목표 0~10%) 마스크 없이도 기존 방식으로 충분해 Freeform(습도 배율)만 쓴다.</summary>
+        /// <summary>바이옴으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와 다르면 먼저 그리드 자체를 다시 만든다
+        /// (RebuildGridForSize). 이미 유닛이 놓인 칸은 생성 시스템이 건드리지 않으므로 배치 중에 눌러도 안전하다.
+        /// 2단계 생성(습도 탭): 1차 지형(아웃라인 — 수도/사전 마을 자리 + 육지/물 모양)이 지금 설정(맵 크기/수도 수/맵 타입/물 비율)과
+        /// 맞으면 그 모양 그대로, 아니면 새 아웃라인을 만든 뒤 영역별 바이옴(ResolveRegionBiomes — 자동/단일 바이옴/종족 바이옴)으로
+        /// 채운다(채우기 시드는 매번 새로). 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지
+        /// 적용한다. 바이옴 CSV를 불러오지 않았으면 기본 바이옴 표(Resources/Tables/Biomes.csv)를 쓴다.</summary>
         private void HandleGenerateTerrain()
         {
-            if (_loadedBiomes == null || _loadedBiomes.Count == 0)
+            if (ActiveBiomes().Count == 0)
             {
-                _sandboxHud.SetStatus("먼저 \"바이옴 불러오기\"로 바이옴 CSV를 불러오세요.");
+                _sandboxHud.SetStatus("바이옴이 없습니다. \"바이옴 불러오기\"로 바이옴 CSV를 불러오세요.");
                 return;
             }
+            if (!EnsureGridSize()) return;
 
-            int targetSize = MapSizePresets[_selectedMapSizeIndex].Size;
-            if (targetSize != _grid.Width && !RebuildGridForSize(targetSize))
-                return;
+            var mapTypeName = WetnessPresets[_selectedWetnessIndex].Name;
+            var shapeMode = ResolveShapeMode(mapTypeName);
+            var regions = ResolveRegionBiomes(out bool perTeam);
+            bool reusedOutline = OutlineMatches(regions.Count, shapeMode);
+            if (!reusedOutline)
+                _outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, System.Environment.TickCount, shapeMode, _waterRatio);
+            var outline = _outline.Value;
 
-            var selectedWetness = WetnessPresets[_selectedWetnessIndex];
-            var shapeMode = ResolveShapeMode(selectedWetness.Name);
-            float wetnessMultiplier = selectedWetness.Wetness / WetnessPresets[WetnessBaselineIndex].Wetness;
             int seed = System.Environment.TickCount;
-            var anchors = TerrainGenerationSystem.Generate(_grid, _loadedBiomes, seed, wetnessMultiplier, shapeMode, selectedWetness.Wetness,
-                out var suburbPositions, out var plannedVillagePositions);
-            StructureGenerationSystem.Generate(_grid, _loadedBiomes, anchors, seed, suburbPositions, plannedVillagePositions, shapeMode);
+            var anchors = TerrainGenerationSystem.GenerateFromOutline(_grid, regions, outline, seed);
+            StructureGenerationSystem.Generate(_grid, regions, anchors, seed, outline.Suburbs, outline.PlannedVillages, shapeMode);
+
+            // 종족 모드: 영역 i = CitySystem.Teams[i]. 그 팀 종족의 시작 조건을 수도 주변에 적용하고, 전투 시작 때 그 자리를 수도로 쓴다.
+            _tribeCapitals.Clear();
+            int startChanges = 0;
+            if (perTeam)
+            {
+                for (int i = 0; i < CitySystem.Teams.Length && i < anchors.Length; i++)
+                {
+                    var team = CitySystem.Teams[i];
+                    _tribeCapitals[team] = anchors[i];
+                    var tribe = TribeOf(team);
+                    var condition = tribe != null ? TribeSystem.StartCondition(tribe.Value) : null;
+                    if (condition != null)
+                        startChanges += StartConditionSystem.Apply(_grid, anchors[i], condition.Value, GameTables.StartConditionRules, mapTypeName, seed + i);
+                }
+                if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(_grid, regions, anchors);
+            }
 
             // 구조물 단계가 지형을 바꿀 수 있으므로(외딴 섬 마을, Lakes 육지 다리, 얕은 물/깊은 바다 재분류)
             // 지형 표시는 구조물 생성까지 끝난 뒤에 갱신한다.
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
-            _sandboxHud.SetStatus($"지형을 새로 생성했습니다 (바이옴 {_loadedBiomes.Count}개, {_grid.Width}x{_grid.Height}, " +
-                $"습도={WetnessPresets[_selectedWetnessIndex].Name}, seed={seed}).");
+            string regionText = perTeam ? "종족 영역 " + string.Join("/", regions.Select(b => b.Name))
+                : _biomeChoice > 0 ? $"바이옴 '{regions[0].Name}'만" : $"바이옴 {regions.Count}개";
+            _sandboxHud.SetStatus($"지형 생성: {regionText}, {_grid.Width}x{_grid.Height}, {mapTypeName} 물 {Mathf.RoundToInt(outline.WaterFraction * 100f)}%" +
+                (reusedOutline ? " (1차 지형 유지)" : " (새 1차 지형)") + (startChanges > 0 ? $", 시작 조건 {startChanges}칸" : string.Empty) + $", seed={seed}.");
         }
 
         /// <summary>습도 프리셋 이름 -> TerrainGenerationSystem.MapShapeMode. Drylands만 Freeform(마스크
@@ -942,6 +1169,11 @@ namespace TacticsECS
                 _sandboxHud.HideStructurePanel();
         }
 
+        /// <summary>
+        /// 그리드 클릭. 유닛이 선택된 상태에서 공격 대상/이동 가능 칸을 누르면 그 행동을 하고, 그 밖의 클릭은
+        /// 선택 취소 없이 곧바로 클릭한 칸으로 포커스를 옮긴다. 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면
+        /// 같은 칸을 다시 누를 때마다 유닛 → 칸(도시/건물) → 유닛 … 순서로 포커스가 하나씩 넘어간다.
+        /// </summary>
         private void HandleClick()
         {
             if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var gridPos)) return;
@@ -996,6 +1228,7 @@ namespace TacticsECS
             else
             {
                 ClearSelection();
+                _hud.ShowUnitPanel(_world, unitId);
                 // 뗏목 업그레이드는 행동을 쓰지 않아 승선한 그 턴에도 할 수 있다(위키 Raft).
                 if (own && EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId) ShowUnitMenu(unitId);
             }
@@ -1012,11 +1245,19 @@ namespace TacticsECS
             if (!string.IsNullOrEmpty(structureId))
                 _hud.ShowStructurePanel(structureId);
             ShowTileMenu(pos);
-        /// <summary>
-        /// 그리드 클릭. 유닛이 선택된 상태에서 공격 대상/이동 가능 칸을 누르면 그 행동을 하고, 그 밖의 클릭은
-        /// 선택 취소 없이 곧바로 클릭한 칸으로 포커스를 옮긴다. 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면
-        /// 같은 칸을 다시 누를 때마다 유닛 → 칸(도시/건물) → 유닛 … 순서로 포커스가 하나씩 넘어간다.
-        /// </summary>
+            _focusPos = pos;
+            _focusLayer = FocusLayer.Tile;
+        }
+
+        /// <summary>유닛과 겹쳐 있을 때 따로 포커스할 만한 것이 칸에 있는지 — 보이는 구조물, 도시, 건물, 도로,
+        /// 또는 그 칸의 채집/건설 선택지.</summary>
+        private bool HasTileContent(Vector2Int pos)
+        {
+            if (!string.IsNullOrEmpty(VisibleStructure(pos))) return true;
+            if (_econ == null) return false;
+            var tile = _grid.GetTile(pos);
+            if (CitySystem.FindCityAt(_econ, pos) >= 0 || !string.IsNullOrEmpty(tile.BuildingId) || tile.HasRoad) return true;
+            return TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos).Count > 0;
         }
 
         // ---------- Economy (도시/영토/기술/건설) ----------
@@ -1025,7 +1266,9 @@ namespace TacticsECS
         /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals), 유닛 없이 시작한 팀의 시작 유닛(CitySystem.StartingUnitRequests).</summary>
         private void InitEconomy()
         {
-            _econ = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
+            // 종족이 하나라도 정해졌으면 기술트리는 배열형 기술 표(Resources/Tables/Techs.csv — 기술 그룹 Index가 이 표를 가리킨다).
+            bool tribeMode = AnyTribe();
+            _econ = new EconomyWorld { TechNodes = tribeMode ? TechGroupSystem.BuildTechNodes() : CurrentTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
             if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
             foreach (var team in CitySystem.Teams)
             {
@@ -1034,17 +1277,37 @@ namespace TacticsECS
                 res.Development = GameRules.Economy.StartingDevelopment;
                 _econ.Resources[team] = res;
                 _econ.Tech[team] = TechTreeData.CreateEmpty();
+                // 종족: 시작 골드 / 기술 그룹(연구 가능 목록) / 시작 기술 / 시작 유닛.
+                if (TribeOf(team) is TribeRow tribe) TribeSystem.Apply(_econ, team, tribe, _econ.UnitRows);
             }
+            if (tribeMode && _techTreeHud != null)
+                _techTreeHud.SetNodes(TechGroupSystem.Filter(_econ.TechNodes, _econ.Tech[Team.Player].Allowed));
             TaskSystem.Init(_econ);
             // 시야(구름)는 경제가 켜진 전투에서만 쓴다: 수도 주변 5x5 + 유닛 주변 + 영토만 보인 채로 시작한다.
             _grid.FogEnabled = true;
+            FoundTribeCapitals();
             CitySystem.InitializeCapitals(_grid, _world, _econ, includeUnitlessTeams: true);
             // 유닛 없이 시작한 팀은 수도에 기본 유닛(기술 없이 훈련 가능한 가장 싼 육지 유닛) 하나를 받는다.
             ProcessEconomyLog(CitySystem.StartingUnitRequests(_world, _econ));
             RefreshEconomyViews(false);
         }
 
-                _hud.ShowUnitPanel(_world, unitId);
+        /// <summary>종족 모드로 생성한 지형이면 팀마다 자기 영역의 수도 자리(_tribeCapitals)를 수도로 세운다 — 시작 조건이 그 수도 주변에
+        /// 적용됐으므로. 나머지 팀은 InitializeCapitals의 기본 규칙(유닛 무게중심에서 가장 가까운 수도)을 따른다.</summary>
+        private void FoundTribeCapitals()
+        {
+            foreach (var kv in _tribeCapitals)
+            {
+                var pos = kv.Value;
+                if (!_grid.InBounds(pos) || _grid.GetStructure(pos) != StructureGenerationSystem.CapitalStructureId) continue;
+                if (CitySystem.FindCapital(_econ, kv.Key) >= 0 || CitySystem.FindCityAt(_econ, pos) >= 0) continue;
+                var tribe = TribeOf(kv.Key);
+                string name = tribe != null ? $"{tribe.Value.Name} 수도" : (kv.Key == Team.Player ? "아군 수도" : "적 수도");
+                CitySystem.FoundCity(_grid, _econ, pos, kv.Key, true, name);
+                VisionSystem.Reveal(_grid, kv.Key, pos, GameRules.Vision.StartRevealRadius);
+            }
+        }
+
         private static List<UnitCsvRow> LoadFallbackUnitRows()
         {
             try
@@ -1075,19 +1338,6 @@ namespace TacticsECS
             RefreshProduction();
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
-            _focusPos = pos;
-            _focusLayer = FocusLayer.Tile;
-        }
-
-        /// <summary>유닛과 겹쳐 있을 때 따로 포커스할 만한 것이 칸에 있는지 — 보이는 구조물, 도시, 건물, 도로,
-        /// 또는 그 칸의 채집/건설 선택지.</summary>
-        private bool HasTileContent(Vector2Int pos)
-        {
-            if (!string.IsNullOrEmpty(VisibleStructure(pos))) return true;
-            if (_econ == null) return false;
-            var tile = _grid.GetTile(pos);
-            if (CitySystem.FindCityAt(_econ, pos) >= 0 || !string.IsNullOrEmpty(tile.BuildingId) || tile.HasRoad) return true;
-            return TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos).Count > 0;
             _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
             _gridView.RefreshFog(_grid, Team.Player);
@@ -1530,6 +1780,8 @@ namespace TacticsECS
             }
             RecomputeHighlights();
             ShowUnitMenu(_selectedUnitId);
+            _focusPos = pos;
+            _focusLayer = FocusLayer.Unit;
         }
 
         private void TryAttack(int attackerId, int targetId)
@@ -1587,8 +1839,6 @@ namespace TacticsECS
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)
                 _viewsById[id].Refresh(_world, id);
-            _focusPos = pos;
-            _focusLayer = FocusLayer.Unit;
             RefreshRoster();
 
             ClearSelection();
@@ -1656,6 +1906,7 @@ namespace TacticsECS
             if (_gridView != null) _gridView.ClearHighlights();
             if (_actionMenu != null) _actionMenu.Hide();
             _menuTile = null;
+            _focusPos = null;
             if (_hud != null)
             {
                 _hud.HideUnitPanel();
@@ -1666,4 +1917,3 @@ namespace TacticsECS
         }
     }
 }
-            _focusPos = null;

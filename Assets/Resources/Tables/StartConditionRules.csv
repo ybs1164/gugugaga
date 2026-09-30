@@ -1,0 +1,3 @@
+Index,Id,Kind,Target,TerrainType,Count,MinDistance,MaxDistance,MapType,AllowedTile1,Description
+0,DrylandsWater,Tile,Water,Water,2,1,1,Drylands,,수도 바로 옆(거리 1)에 얕은 물 2칸 보장
+1,DrylandsFish,Structure,Resource_Fish,Water,2,1,1,Drylands,Water,그 물 칸마다 물고기 — 2개 보장

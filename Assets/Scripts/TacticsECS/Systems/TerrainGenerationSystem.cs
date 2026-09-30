@@ -114,6 +114,129 @@ namespace TacticsECS
             return result.Anchors;
         }
 
+        // ---------- 2단계 생성: 1차 지형(아웃라인) -> 바이옴 채우기 ----------
+        // 샌드박스 "습도 탭"용. Generate(한 번에 전부)와 같은 순서(수도 -> 사전 마을 -> 육지/물 모양)를 앞부분만 떼어 아웃라인으로
+        // 먼저 확정하고(PlanOutline), 그 아웃라인 위에 영역별 바이옴을 채운다(GenerateFromOutline). 같은 아웃라인에 바이옴만 바꿔 여러 번
+        // 채울 수 있어 "이 바이옴 규칙이 어떻게 나오는지"를 같은 땅 모양으로 비교할 수 있다.
+        // 원문과 다른 점: Drylands(Freeform)도 아웃라인에서는 순수 노이즈 마스크(목표 물 비율로 순위 컷)를 쓴다 — 원문/한 번에 생성하는
+        // Generate는 Drylands에서 바이옴 물 타일 확률로만 물을 흩뿌리지만, 슬라이더로 비율을 직접 맞추려면 마스크가 필요하다.
+
+        /// <summary>1차 지형: 육지/물 마스크와 수도·사전 마을 위치만 정한다(그리드는 바꾸지 않음 — ApplyOutline으로 표시).
+        /// regionCount = 수도(영역) 수. waterFraction = 목표 물 비율(0~1).</summary>
+        public static TerrainOutlineData PlanOutline(GridWorld grid, int regionCount, int seed, MapShapeMode shapeMode, float waterFraction)
+        {
+            regionCount = Mathf.Max(1, regionCount);
+            waterFraction = Mathf.Clamp01(waterFraction);
+            var rng = new Random(seed);
+            bool capitalsAfterLand = shapeMode == MapShapeMode.Pangea || shapeMode == MapShapeMode.Continents;
+            var capitalAnchors = capitalsAfterLand ? Array.Empty<Vector2Int>() : GenerateQuadrantAnchors(grid, regionCount, rng);
+            var (suburbs, preTerrain) = PlanPreTerrainVillages(grid, shapeMode, capitalAnchors, rng);
+
+            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), suburbs, preTerrain);
+            var shapeParams = shapeMode == MapShapeMode.Freeform ? new MapShapeParams(0, 0f, false) : GetShapeParams(shapeMode, regionCount);
+            var landMask = shapeMode == MapShapeMode.Continents
+                ? GenerateContinentsLandMask(grid, rng, waterFraction, regionCount)
+                : GenerateMapShapeLandMask(grid, rng, waterFraction, shapeParams, guaranteedLand);
+
+            Vector2Int[] anchors, snappedSuburbs, snappedPreTerrain;
+            if (capitalAnchors.Length > 0)
+            {
+                anchors = SnapAllToLand(grid, capitalAnchors, landMask);
+                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, CityMinDistance);
+                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), CityMinDistance);
+            }
+            else
+            {
+                anchors = SelectCapitalsOnLand(grid, landMask, regionCount, preferDistinctLandmass: shapeMode == MapShapeMode.Continents, rng);
+                snappedSuburbs = Array.Empty<Vector2Int>();
+                snappedPreTerrain = PlanVillagesOnLand(grid, landMask, ensureEveryLandmass: shapeMode == MapShapeMode.Continents, anchors, rng);
+            }
+
+            return new TerrainOutlineData
+            {
+                Seed = seed, Width = grid.Width, Height = grid.Height, ShapeMode = shapeMode, WaterFraction = waterFraction,
+                LandMask = landMask, Anchors = anchors, Suburbs = snappedSuburbs, PlannedVillages = snappedPreTerrain
+            };
+        }
+
+        /// <summary>아웃라인만 그리드에 그린다: 육지/물 지형 + 타일 타입 비움(표시는 회색 육지/파란 물), 구조물은 수도/마을만.
+        /// 유닛이 있는 칸은 건드리지 않는다.</summary>
+        public static void ApplyOutline(GridWorld grid, TerrainOutlineData outline)
+        {
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    grid.SetStructure(pos, string.Empty);
+                    if (grid.IsOccupied(pos)) continue;
+                    grid.SetTerrain(pos, outline.LandMask[grid.Index(pos)] ? TerrainType.Land : TerrainType.Water);
+                    grid.SetTileType(pos, string.Empty);
+                }
+            foreach (var p in outline.Anchors) grid.SetStructure(p, StructureGenerationSystem.CapitalStructureId);
+            foreach (var p in Concat(outline.Suburbs, outline.PlannedVillages)) grid.SetStructure(p, StructureGenerationSystem.VillageStructureId);
+        }
+
+        /// <summary>실제 물 비율(아웃라인 마스크 기준).</summary>
+        public static float OutlineWaterFraction(TerrainOutlineData outline)
+        {
+            int water = 0;
+            foreach (var land in outline.LandMask) if (!land) water++;
+            return outline.LandMask.Length == 0 ? 0f : (float)water / outline.LandMask.Length;
+        }
+
+        /// <summary>아웃라인의 육지/물 모양 그대로 바이옴 타일을 채운다. regionBiomes[i]가 i번째 수도 영역(가장 가까운 수도 기준 Voronoi)을
+        /// 채운다 — 같은 바이옴을 여러 번 넣으면 그 바이옴 하나로 맵 전체를 채운다(샌드박스 바이옴 드롭다운의 단일 선택). 바다 칸은 영역
+        /// 바이옴의 물 타일, 육지 칸은 물 엔트리를 뺀 가중치 채우기 + 숲/산 레이어, 마지막에 얕은 물/깊은 바다 분류. 수도 앵커를 돌려준다.</summary>
+        public static Vector2Int[] GenerateFromOutline(GridWorld grid, IReadOnlyList<BiomeCsvRow> regionBiomes, TerrainOutlineData outline, int fillSeed)
+        {
+            if (grid == null || regionBiomes == null || regionBiomes.Count == 0 || outline.LandMask == null ||
+                outline.Width != grid.Width || outline.Height != grid.Height)
+                return Array.Empty<Vector2Int>();
+
+            var rng = new Random(fillSeed);
+            var anchors = outline.Anchors;
+            var biomeIndexPerCell = ComputeBiomeIndexPerCell(grid, anchors);
+            for (int i = 0; i < biomeIndexPerCell.Length; i++) biomeIndexPerCell[i] = Mathf.Min(biomeIndexPerCell[i], regionBiomes.Count - 1);
+            var cities = Combine(anchors, outline.Suburbs, outline.PlannedVillages);
+
+            // 유닛이 선 칸도 아웃라인과 같은 육지/물이 되도록 먼저 지형만 맞춘다(타일 타입은 ClearGeneratedTiles가 빈 칸만 지운다).
+            for (int i = 0; i < outline.LandMask.Length; i++)
+            {
+                var pos = new Vector2Int(i % grid.Width, i / grid.Width);
+                if (!grid.IsOccupied(pos)) grid.SetTerrain(pos, outline.LandMask[i] ? TerrainType.Land : TerrainType.Water);
+            }
+
+            ClearGeneratedTiles(grid);
+            var placedPositionsByType = BuildInitialPlacedPositions(grid);
+            ApplyLandmassMask(grid, regionBiomes, biomeIndexPerCell, outline.LandMask, placedPositionsByType);
+
+            var landOnlyBiomes = StripWaterTiles(regionBiomes);
+            var regionSizePerBiome = CountRegionSizes(biomeIndexPerCell, regionBiomes.Count);
+            PlaceMinCountQuota(grid, landOnlyBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
+            FillRemaining(grid, landOnlyBiomes, biomeIndexPerCell, cities, placedPositionsByType, rng);
+            // 제약 때문에 채우기가 비워 둔 아웃라인 육지 칸은 그 영역 바이옴의 첫 육지 타일로 보정한다.
+            foreach (var pos in LandCells(grid, outline.LandMask))
+            {
+                string landTileId = FindFirstLandTileId(regionBiomes[biomeIndexPerCell[grid.Index(pos)]]);
+                if (landTileId != null) grid.SetTileType(pos, landTileId);
+            }
+
+            ApplyForestAndMountains(grid, regionBiomes, biomeIndexPerCell, cities, rng);
+            ClassifyWaterDepth(grid, regionBiomes, anchors);
+            return anchors;
+        }
+
+        private static Vector2Int[] LandCells(GridWorld grid, bool[] landMask)
+        {
+            var cells = new List<Vector2Int>();
+            for (int i = 0; i < landMask.Length; i++)
+            {
+                var pos = new Vector2Int(i % grid.Width, i / grid.Width);
+                if (landMask[i] && string.IsNullOrEmpty(grid.GetTileType(pos))) cells.Add(pos);
+            }
+            return cells.ToArray();
+        }
+
         /// <summary>물 칸을 얕은 물/깊은 바다로 나눈다(원문 3/9/10절 — 물고기는 얕은 물, 유적은 깊은 바다).
         /// 상하좌우 4방향 이웃 중 육지가 하나라도 있으면 얕은 물(그 칸 바이옴의 첫 물 타일 Id), 없으면 OceanTileId —
         /// 대각선으로만 육지에 닿는 물 칸은 깊은 바다다.

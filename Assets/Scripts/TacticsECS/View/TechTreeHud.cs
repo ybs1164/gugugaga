@@ -91,6 +91,17 @@ namespace TacticsECS
             RefreshDetail();
         }
 
+        /// <summary>노드 목록만 바꿔 트리를 다시 그린다(샌드박스 "기술 불러오기" — 버튼 연결은 Init에서 한 번만). 선택은 풀린다.</summary>
+        public void SetNodes(IReadOnlyList<TechNodeData> nodes)
+        {
+            if (_panel == null) return;
+            _nodes = nodes ?? new List<TechNodeData>();
+            _selectedId = null;
+            BuildTree((RectTransform)_panel.transform.Find("Tree"));
+            RefreshNodeColors();
+            RefreshDetail();
+        }
+
         // ---------- 노드 배치 ----------
 
         private void BuildTree(RectTransform tree)

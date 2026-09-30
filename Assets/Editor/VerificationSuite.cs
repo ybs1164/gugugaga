@@ -19,6 +19,7 @@ namespace TacticsECS.EditorTools
             Step("TerrainGenerationVerification", TerrainGenerationVerification.Run);
             Step("StructureGenerationVerification", StructureGenerationVerification.Run);
             Step("UIVerification", UIVerification.Run);
+            Step("ArrayTableVerification", ArrayTableVerification.Run);
             Debug.Log("[VerificationSuite] DONE");
         }
 

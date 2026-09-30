@@ -28,6 +28,9 @@ namespace TacticsECS
         /// <summary>훈련 가능한 유닛 종류(샌드박스에서 불러온 유닛 CSV 행). 비어있으면 훈련 메뉴가 없다.</summary>
         public List<UnitCsvRow> UnitRows = new List<UnitCsvRow>();
 
+        /// <summary>종족이 정해진 팀의 시작 유닛(유닛 CSV Id 목록, Tribes.csv StartUnit*). 없는 팀은 기본 규칙(CitySystem.StartingUnitId).</summary>
+        public readonly Dictionary<Team, string[]> StartUnitIds = new Dictionary<Team, string[]>();
+
         /// <summary>팀별 과업(기념물) 진행.</summary>
         public readonly Dictionary<Team, TaskProgressData> Tasks = new Dictionary<Team, TaskProgressData>();
 

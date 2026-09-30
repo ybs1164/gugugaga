@@ -416,13 +416,19 @@ namespace TacticsECS
             {
                 if (UnitQueries.AnyAlive(world, team)) continue;
                 int capital = FindCapital(econ, team);
-                string unitId = StartingUnitId(econ, team);
-                if (capital < 0 || string.IsNullOrEmpty(unitId)) continue;
-                log.Add(new EconomyLogEntry
+                if (capital < 0) continue;
+                // 종족이 정해진 팀은 Tribes.csv의 시작 유닛들(TribeSystem.Apply가 채움), 아니면 기본 규칙 유닛 하나.
+                var unitIds = econ.StartUnitIds.TryGetValue(team, out var tribeUnits) ? tribeUnits : new[] { StartingUnitId(econ, team) };
+                foreach (var unitId in unitIds)
                 {
-                    Team = team, Kind = EconomyLogKind.StartUnit, Subject = FindUnitRow(econ, unitId).Name, SpawnUnitId = unitId,
-                    Position = econ.Cities[capital].Position, CityIndex = capital
-                });
+                    var row = FindUnitRow(econ, unitId);
+                    if (row == null) continue;
+                    log.Add(new EconomyLogEntry
+                    {
+                        Team = team, Kind = EconomyLogKind.StartUnit, Subject = row.Name, SpawnUnitId = unitId,
+                        Position = econ.Cities[capital].Position, CityIndex = capital
+                    });
+                }
             }
             return log;
         }

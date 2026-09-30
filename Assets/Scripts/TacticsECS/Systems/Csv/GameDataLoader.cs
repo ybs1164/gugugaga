@@ -27,8 +27,29 @@ namespace TacticsECS
             NavalUnitDefinition.Upgrades = upgrades;
             NavalUnitDefinition.Special = special;
             LoadModels(errors);
+            LoadArrayTables(errors);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return errors;
+        }
+
+        /// <summary>배열형 테이블(Assets/Resources/Tables, docs/ArrayTables.md) -&gt; GameTables. 표 사이 Index 참조도 여기서 한 번 검사한다
+        /// (바이옴 수는 기본 바이옴 표 기준, 유닛 수는 샌드박스에서 바뀌므로 여기서는 보지 않는다).</summary>
+        private static void LoadArrayTables(List<string> errors)
+        {
+            GameTables.TechUnlocks = ArrayTableCsvSerializer.ParseTechUnlocks(Read(GameTables.TechUnlocksPath, errors), errors);
+            GameTables.Techs = ArrayTableCsvSerializer.ParseTechs(Read(GameTables.TechsPath, errors), errors);
+            GameTables.TechGroups = ArrayTableCsvSerializer.ParseTechGroups(Read(GameTables.TechGroupsPath, errors), errors);
+            GameTables.Tribes = ArrayTableCsvSerializer.ParseTribes(Read(GameTables.TribesPath, errors), errors);
+            GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors), errors);
+            GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors), errors);
+            errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(biomeCount: LoadDefaultBiomes().Count));
+        }
+
+        /// <summary>기본 바이옴 표(Assets/Resources/Tables/Biomes.csv). 없으면 빈 목록.</summary>
+        public static List<BiomeCsvRow> LoadDefaultBiomes()
+        {
+            var asset = Resources.Load<TextAsset>(GameTables.DefaultBiomesPath);
+            return asset != null ? BiomeCsvSerializer.Parse(asset.text) : new List<BiomeCsvRow>();
         }
 
         /// <summary>모델 팔레트 + 파츠 CSV(Assets/Resources/Models) -&gt; ModelDefinition. 파일이 없으면 그 모델들만 비어 있다

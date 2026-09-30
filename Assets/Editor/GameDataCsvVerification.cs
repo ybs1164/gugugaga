@@ -22,6 +22,7 @@ namespace TacticsECS.EditorTools
             VerifyReader();
             VerifyBuildingsAndActions();
             VerifyTechTreeMatchesWiki();
+            VerifyCustomTechTree();
             VerifyCapitalVision();
             VerifyGameRules();
             VerifyRewardsAndTasks();
@@ -129,6 +130,32 @@ namespace TacticsECS.EditorTools
             Check(TechSystem.Find(nodes, "Climbing") != null && TechSystem.Find(nodes, "Organization") != null &&
                   TechSystem.Find(nodes, "Smithery") != null && TechSystem.Find(nodes, "Aquatism") != null, "tech ids use current wiki names");
             Check(TaskDefinition.All.First(t => t.Id == TaskDefinition.Network).UnlockKey == "Task.Network", "Network task gated by Task.Network");
+        }
+
+        /// <summary>샌드박스 "기술 불러오기"(커스텀 기술트리 CSV)의 참조 검증과 내보내기 왕복.</summary>
+        private static void VerifyCustomTechTree()
+        {
+            var nodes = GameDataLoader.LoadTechNodes();
+            var warnings = TechTreeValidationSystem.Validate(nodes, null);
+            Check(warnings.Count == 0, "default tech tree has no reference warnings: " + string.Join(" | ", warnings));
+            Check(TechTreeValidationSystem.MissingContentKeys(nodes).Count == 0, "default tech tree gates every building/action/task key");
+
+            var round = TechCsvSerializer.Parse(TechCsvSerializer.Write(nodes));
+            Check(round.Count == nodes.Count && round.Zip(nodes, (a, b) => a.Id == b.Id && a.ParentId == b.ParentId && a.Tier == b.Tier &&
+                  a.CostBase == b.CostBase && a.Effect == b.Effect && a.Unlocks.SequenceEqual(b.Unlocks)).All(x => x), "tech tree export round-trips");
+
+            var custom = TechCsvSerializer.Parse(
+                "Id,Parent,Tier,Unlock1,Unlock2\n" +
+                "A,,1,Build.Farm,Unit.knight\n" +
+                "B,Nope,2,Build.Fram,\n" +          // 없는 선행 기술 + 오타 키
+                "C,D,2,Reveal.Resource_Crop,\n" +   // C <-> D 순환
+                "D,C,1,Reveal.Nothing,\n");         // 없는 구조물 + Tier가 부모 이하
+            var w = TechTreeValidationSystem.Validate(custom, new[] { "infantry" });
+            bool Warned(string id, string part) => w.Any(x => x.StartsWith(id + ":") && x.Contains(part));
+            Check(Warned("B", "'Nope'") && Warned("B", "Build.Fram"), "custom tree: missing parent + unknown key");
+            Check(Warned("A", "knight") && !Warned("A", "Build.Farm"), "custom tree: Unit.* checked against loaded unit ids");
+            Check(Warned("C", "순환") && Warned("D", "순환") && Warned("D", "Nothing"), "custom tree: cycle + unknown structure");
+            Check(TechTreeValidationSystem.MissingContentKeys(custom).Contains("Build.Mine"), "custom tree: dropped building key reported");
         }
 
         private static void VerifyGameRules()

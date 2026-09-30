@@ -609,6 +609,7 @@ namespace TacticsECS.EditorTools
 
             var canvasRoot = CreateCanvas(root.transform);
             BuildSandboxToolbar(font, canvasRoot);
+            BuildGenerationTab(font, canvasRoot);
             BuildSandboxPalette(canvasRoot);
             BuildStructurePanel(font, canvasRoot);
             BuildSandboxStartButton(font, canvasRoot);
@@ -628,7 +629,7 @@ namespace TacticsECS.EditorTools
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(SandboxPanelWidth, 204f);
+            panel.sizeDelta = new Vector2(SandboxPanelWidth, 240f);
             CreatePanelImage(panel, SandboxPanelBackground);
 
             float halfWidth = (SandboxPanelWidth - 24f) / 2f;
@@ -639,18 +640,139 @@ namespace TacticsECS.EditorTools
             CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "맵크기", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "습도", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "지형생성", new Vector2(8f, -152f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술불러오기", new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술내보내기", new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "지형생성", new Vector2(8f, -188f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
             statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -186f);
+            statusRect.anchoredPosition = new Vector2(8f, -222f);
             statusRect.sizeDelta = new Vector2(SandboxPanelWidth - 16f, 18f);
             var status = statusRect.gameObject.AddComponent<Text>();
             status.font = font;
             status.fontSize = 13;
             status.color = new Color(1f, 1f, 1f, 0.75f);
             status.horizontalOverflow = HorizontalWrapMode.Wrap;
+        }
+
+        // ---------- SandboxHud: 습도 탭(1차 지형 아웃라인 + 바이옴/종족 선택) ----------
+
+        /// <summary>툴바(16~236) 오른쪽에 붙고 상단 중앙 자원 바(약 500부터) 앞에서 끝나는 폭.</summary>
+        private const float GenerationTabWidth = 252f;
+        private static readonly Color DropdownListBackground = new Color(0.12f, 0.13f, 0.16f, 0.98f);
+        private static readonly Color DropdownItemBackground = new Color(0.20f, 0.22f, 0.27f, 1f);
+
+        /// <summary>툴바 오른쪽에 붙는 "습도 탭" 패널 — 툴바의 습도 버튼이 열고 닫는다(처음엔 닫힘). 맵 타입 드롭다운, 물 비율 슬라이더,
+        /// 1차 지형(아웃라인) 버튼, 바이옴 드롭다운(불러온 바이옴 CSV 중 하나만 골라 생성), 팀별 종족 드롭다운, 종족 요약 텍스트.
+        /// 드롭다운/슬라이더는 uGUI 표준 구성(DefaultControls)으로 만들고 색/폰트만 입힌다. 옵션 목록은 SandboxHud가 런타임에 채운다.</summary>
+        private static void BuildGenerationTab(Font font, Transform root)
+        {
+            var panel = CreateRect("GenerationTab", root);
+            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
+            panel.pivot = new Vector2(0f, 1f);
+            panel.anchoredPosition = new Vector2(16f + SandboxPanelWidth + 8f, -16f);
+            panel.sizeDelta = new Vector2(GenerationTabWidth, 318f);
+            CreatePanelImage(panel, SandboxPanelBackground);
+
+            CreateLabel(font, panel, "Title", "습도 탭 — 1차 지형 · 바이옴 · 종족", new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
+
+            float labelW = 76f, controlX = 8f + labelW + 4f, controlW = GenerationTabWidth - controlX - 8f;
+            CreateLabel(font, panel, "MapTypeLabel", "맵 타입", new Vector2(8f, -34f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "MapTypeDropdown", new Vector2(controlX, -34f), new Vector2(controlW, 26f));
+
+            CreateLabel(font, panel, "WaterLabel", "물 비율", new Vector2(8f, -68f), new Vector2(labelW, 26f), 14);
+            CreateSlider(panel, "WaterSlider", new Vector2(controlX, -73f), new Vector2(controlW - 50f, 16f));
+            CreateLabel(font, panel, "WaterValue", "55%", new Vector2(GenerationTabWidth - 52f, -68f), new Vector2(44f, 26f), 14);
+
+            CreateTextButtonPlaceholder(font, panel, "1차지형생성", new Vector2(8f, -102f), new Vector2(GenerationTabWidth - 16f, 28f), ButtonIdle);
+
+            CreateLabel(font, panel, "BiomeLabel", "바이옴", new Vector2(8f, -140f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "BiomeDropdown", new Vector2(controlX, -140f), new Vector2(controlW, 26f));
+            CreateLabel(font, panel, "PlayerTribeLabel", "종족(아군)", new Vector2(8f, -174f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "PlayerTribeDropdown", new Vector2(controlX, -174f), new Vector2(controlW, 26f));
+            CreateLabel(font, panel, "EnemyTribeLabel", "종족(적)", new Vector2(8f, -208f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "EnemyTribeDropdown", new Vector2(controlX, -208f), new Vector2(controlW, 26f));
+
+            var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -242f), new Vector2(GenerationTabWidth - 16f, 70f), 12);
+            info.alignment = TextAnchor.UpperLeft;
+            info.horizontalOverflow = HorizontalWrapMode.Wrap;
+            info.color = new Color(1f, 1f, 1f, 0.75f);
+
+            panel.gameObject.SetActive(false);
+        }
+
+        private static Text CreateLabel(Font font, Transform parent, string name, string text, Vector2 anchoredPos, Vector2 size, int fontSize)
+        {
+            var rect = CreateRect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
+            var label = rect.gameObject.AddComponent<Text>();
+            label.font = font;
+            label.fontSize = fontSize;
+            label.alignment = TextAnchor.MiddleLeft;
+            label.color = Color.white;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            label.text = text;
+            return label;
+        }
+
+        private static void CreateDropdown(Font font, Transform parent, string name, Vector2 anchoredPos, Vector2 size)
+        {
+            var go = DefaultControls.CreateDropdown(new DefaultControls.Resources());
+            go.name = name;
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
+
+            foreach (var text in go.GetComponentsInChildren<Text>(true))
+            {
+                text.font = font;
+                text.fontSize = 13;
+                text.color = Color.white;
+                // 기본 캡션 영역(높이 - 13px)은 이 폰트 줄 높이보다 작아, Truncate면 글자가 통째로 안 그려진다.
+                text.verticalOverflow = VerticalWrapMode.Overflow;
+                text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            var caption = (RectTransform)go.transform.Find("Label");
+            caption.offsetMin = new Vector2(8f, 0f);
+            caption.offsetMax = new Vector2(-20f, 0f);
+            go.GetComponent<Image>().color = ButtonIdle;
+            var template = go.transform.Find("Template");
+            template.GetComponent<Image>().color = DropdownListBackground;
+            ((RectTransform)template).sizeDelta = new Vector2(0f, 220f);
+            var item = template.Find("Viewport/Content/Item");
+            item.Find("Item Background").GetComponent<Image>().color = DropdownItemBackground;
+            item.Find("Item Checkmark").GetComponent<Image>().color = PlayerAccent;
+            var arrow = go.transform.Find("Arrow");
+            arrow.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.6f);
+            ((RectTransform)arrow).sizeDelta = new Vector2(8f, 8f);
+            var scrollbar = template.Find("Scrollbar");
+            if (scrollbar != null) scrollbar.GetComponent<Image>().color = DropdownListBackground;
+        }
+
+        private static void CreateSlider(Transform parent, string name, Vector2 anchoredPos, Vector2 size)
+        {
+            var go = DefaultControls.CreateSlider(new DefaultControls.Resources());
+            go.name = name;
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = size;
+            go.transform.Find("Background").GetComponent<Image>().color = ButtonIdle;
+            go.transform.Find("Fill Area/Fill").GetComponent<Image>().color = new Color(0.36f, 0.76f, 0.90f); // 물 색(TileView Water)
+            go.transform.Find("Handle Slide Area/Handle").GetComponent<Image>().color = Color.white;
+            var slider = go.GetComponent<Slider>();
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = 0.55f;
         }
 
         private static void CreateTextButtonPlaceholder(Font font, Transform parent, string label, Vector2 anchoredPos, Vector2 size, Color bg)
@@ -686,7 +808,7 @@ namespace TacticsECS.EditorTools
         {
             BuildScrollPanel("Palette", root,
                 anchor: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(16f, -228f),
+                anchoredPos: new Vector2(16f, -264f),
                 size: new Vector2(SandboxPanelWidth, SandboxPaletteHeight),
                 background: SandboxPanelBackground, scrollbarWidth: SandboxScrollbarWidth);
         }

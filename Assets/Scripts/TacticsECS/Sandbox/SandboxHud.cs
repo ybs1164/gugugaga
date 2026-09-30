@@ -25,9 +25,20 @@ namespace TacticsECS
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
         public event Action<string> OnLoadBiomeClicked;
+        public event Action<string> OnLoadTechClicked;
+        public event Action<string> OnExportTechClicked;
         public event Action OnGenerateTerrainClicked;
         public event Action OnMapSizeCycleClicked;
         public event Action OnWetnessCycleClicked;
+
+        // 습도 탭(GenerationTab): 맵 타입/물 비율/1차 지형/바이옴 선택/팀별 종족.
+        public event Action<int> OnMapTypeSelected;
+        public event Action<float> OnWaterRatioChanged;
+        public event Action OnGenerateOutlineClicked;
+        /// <summary>0 = 자동(전체 바이옴 또는 종족 바이옴), k = 불러온 바이옴 목록의 k-1번째 하나만.</summary>
+        public event Action<int> OnBiomeChoiceSelected;
+        /// <summary>종족 Index(Tribes.csv), -1 = 종족 없음.</summary>
+        public event Action<Team, int> OnTribeSelected;
 
         [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
         [SerializeField] private GameObject paletteButtonPrefab;
@@ -40,6 +51,14 @@ namespace TacticsECS
         private Text _statusText;
         private Text _mapSizeLabel;
         private Text _wetnessLabel;
+        private GameObject _generationTab;
+        private Dropdown _mapTypeDropdown;
+        private Slider _waterSlider;
+        private Text _waterValueText;
+        private Dropdown _biomeDropdown;
+        private Dropdown _playerTribeDropdown;
+        private Dropdown _enemyTribeDropdown;
+        private Text _tribeInfoText;
         private Button _playerButton;
         private Button _enemyButton;
         private Image _playerButtonBg;
@@ -90,6 +109,7 @@ namespace TacticsECS
             }
 
             WireToolbar(canvas);
+            WireGenerationTab(canvas);
             WirePalette(canvas);
             WireStructurePanel(canvas);
             WireStartButton(canvas);
@@ -116,13 +136,20 @@ namespace TacticsECS
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
             panel.Find("바이옴불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadBiomeClicked);
+            WireOptionalButton(panel, "기술불러오기Button", HandleLoadTechClicked);
+            WireOptionalButton(panel, "기술내보내기Button", HandleExportTechClicked);
 
             var mapSizeButtonTransform = panel.Find("맵크기Button");
             mapSizeButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnMapSizeCycleClicked?.Invoke());
             _mapSizeLabel = mapSizeButtonTransform.Find("Label").GetComponent<Text>();
 
             var wetnessButtonTransform = panel.Find("습도Button");
-            wetnessButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnWetnessCycleClicked?.Invoke());
+            // 습도 탭이 있으면 버튼은 탭을 열고 닫는다. 옛 프리팹(탭 없음)이면 예전처럼 맵 타입을 순환한다.
+            wetnessButtonTransform.GetComponent<Button>().onClick.AddListener(() =>
+            {
+                if (_generationTab != null) _generationTab.SetActive(!_generationTab.activeSelf);
+                else OnWetnessCycleClicked?.Invoke();
+            });
             _wetnessLabel = wetnessButtonTransform.Find("Label").GetComponent<Text>();
 
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
@@ -136,7 +163,100 @@ namespace TacticsECS
 
         /// <summary>"습도" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleWetnessCycle이
         /// 클릭마다 호출).</summary>
-        public void SetWetnessLabel(string name) => _wetnessLabel.text = $"습도: {name}";
+        public void SetWetnessLabel(string name) => _wetnessLabel.text = $"습도 탭: {name}";
+
+        // ---------- 습도 탭 ----------
+
+        private void WireGenerationTab(Transform canvas)
+        {
+            var tab = canvas.Find("GenerationTab");
+            if (tab == null) { Debug.LogWarning("[SandboxHud] GenerationTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            _generationTab = tab.gameObject;
+            _mapTypeDropdown = tab.Find("MapTypeDropdown").GetComponent<Dropdown>();
+            _waterSlider = tab.Find("WaterSlider").GetComponent<Slider>();
+            _waterValueText = tab.Find("WaterValue").GetComponent<Text>();
+            _biomeDropdown = tab.Find("BiomeDropdown").GetComponent<Dropdown>();
+            _playerTribeDropdown = tab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
+            _enemyTribeDropdown = tab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
+            _tribeInfoText = tab.Find("TribeInfo").GetComponent<Text>();
+            tab.Find("1차지형생성Button/Label").GetComponent<Text>().text = "1차 지형 생성 (육지/물 아웃라인)";
+
+            _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
+            _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });
+            tab.Find("1차지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateOutlineClicked?.Invoke());
+            _biomeDropdown.onValueChanged.AddListener(i => OnBiomeChoiceSelected?.Invoke(i));
+            _playerTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Player, i - 1));
+            _enemyTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Enemy, i - 1));
+        }
+
+        private static string Percent(float v) => $"{Mathf.RoundToInt(v * 100f)}%";
+
+        private static void SetOptions(Dropdown dropdown, IReadOnlyList<string> options, int selected)
+        {
+            if (dropdown == null) return;
+            dropdown.ClearOptions();
+            var list = new List<string>(options);
+            dropdown.AddOptions(list);
+            dropdown.SetValueWithoutNotify(Mathf.Clamp(selected, 0, Mathf.Max(0, list.Count - 1)));
+            dropdown.RefreshShownValue();
+        }
+
+        public void SetMapTypeOptions(IReadOnlyList<string> names, int selected) => SetOptions(_mapTypeDropdown, names, selected);
+
+        /// <summary>슬라이더 값만 바꾼다(이벤트 없음) — 맵 타입을 고르면 그 타입의 대표 물 비율로 되돌릴 때 쓴다.</summary>
+        public void SetWaterRatio(float value)
+        {
+            if (_waterSlider == null) return;
+            _waterSlider.SetValueWithoutNotify(value);
+            _waterValueText.text = Percent(value);
+        }
+
+        /// <summary>바이옴 드롭다운: 0번은 "자동", 그 뒤로 바이옴 이름들.</summary>
+        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, int selected)
+        {
+            var options = new List<string> { "자동 (전체 / 종족 바이옴)" };
+            options.AddRange(biomeNames);
+            SetOptions(_biomeDropdown, options, selected);
+        }
+
+        /// <summary>종족 드롭다운 두 개: 0번은 "종족 없음", 그 뒤로 종족 이름들. selected는 종족 Index(-1 = 없음).</summary>
+        public void SetTribeOptions(IReadOnlyList<string> tribeNames, int playerSelected, int enemySelected)
+        {
+            var options = new List<string> { "종족 없음 (기본 규칙)" };
+            options.AddRange(tribeNames);
+            SetOptions(_playerTribeDropdown, options, playerSelected + 1);
+            SetOptions(_enemyTribeDropdown, options, enemySelected + 1);
+        }
+
+        public void SetTribeInfo(string text)
+        {
+            if (_tribeInfoText != null) _tribeInfoText.text = text;
+        }
+
+        /// <summary>기술트리 버튼은 나중에 추가돼, 옛 프리팹(UIPrefabSetup.GenerateAll을 다시 돌리기 전)에는 없을 수 있다 —
+        /// 없으면 경고만 남기고 나머지 HUD는 그대로 동작하게 한다.</summary>
+        private static void WireOptionalButton(Transform panel, string name, UnityEngine.Events.UnityAction onClick)
+        {
+            var t = panel.Find(name);
+            if (t == null) { Debug.LogWarning($"[SandboxHud] {name}이(가) 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            t.GetComponent<Button>().onClick.AddListener(onClick);
+        }
+
+        /// <summary>OS 파일 탐색기로 불러올 기술트리 CSV(TechTree.csv 형식)를 고른다. 취소하면 아무 일도 없다.</summary>
+        private void HandleLoadTechClicked()
+        {
+            var path = StandaloneFileDialog.OpenFilePanel("불러올 기술트리 CSV 선택", "", "csv");
+            if (string.IsNullOrEmpty(path)) return;
+            OnLoadTechClicked?.Invoke(path);
+        }
+
+        /// <summary>지금 쓰는 기술트리(기본 TechTree.csv 또는 불러온 파일)를 CSV로 내보낸다 — 편집용 템플릿.</summary>
+        private void HandleExportTechClicked()
+        {
+            var path = StandaloneFileDialog.SaveFilePanel("기술트리 CSV로 내보내기", "", TechTreeDefinition.SandboxFileName, "csv");
+            if (string.IsNullOrEmpty(path)) return;
+            OnExportTechClicked?.Invoke(path);
+        }
 
         /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
         /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>

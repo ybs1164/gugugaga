@@ -822,7 +822,50 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 개선: 타일 윗면 두께 변경 후 파묻힌 발(`GridView.TileTopHeight` 공개), 뗏목 통나무 기준점, 수면 아래 선체, 탈것 비율.
 - 검증: `GameDataCsvVerification`(유닛/배 모델 존재 추가)/`UIVerification`/`UnitCsvVerification`/`BuildingFeatureVerification`/`EconomyVerification` ALL PASS.
 
+## 배열형 테이블 · 종족 · 습도 탭 (2단계 지형 생성)
+
+새 게임 데이터 표는 **배열형**(행 = 배열 칸, `Index` 컬럼 = 위치, 다른 표 참조는 문자열 Id 대신 Index, 여러 값은 번호 붙은 반복 컬럼)으로
+`Assets/Resources/Tables`에 둔다. 기존 표는 그대로다. 형식/컬럼 명세/샌드박스 사용법은 [`docs/ArrayTables.md`](docs/ArrayTables.md).
+
+| 표 | 내용 | 코드 |
+| --- | --- | --- |
+| `TechUnlocks.csv` | 기술 연구 시 해금되는 내역 50개(`Category` + `Target` → 해금 키 `Build.Farm` 등) | |
+| `Techs.csv` | 기술 25개(`TechTree.csv`와 같은 트리, 선행 기술/해금을 Index로) | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
+| `TechGroups.csv` | 종족별 기술 묶음 — 그룹 밖 기술은 트리에 안 보이고 연구 불가(`TechTreeData.Allowed`) | `TechSystem.IsAvailable` |
+| `Tribes.csv` | 위키 일반 부족 12개: 이름/설명, 바이옴 Index, 기술 그룹 Index, 시작 기술, 시작 골드, 시작 유닛, 시작 조건 | [`TribeSystem`](Assets/Scripts/TacticsECS/Systems/TribeSystem.cs) |
+| `StartConditions.csv` + `StartConditionRules.csv` | 수도 주변 스타팅 자원/지형 규칙(바이옴 표와 분리) — "수도 거리 a~b 안에 X가 최소 N개" | [`StartConditionSystem`](Assets/Scripts/TacticsECS/Systems/StartConditionSystem.cs) |
+| `Biomes.csv` | 바이옴 CSV를 불러오지 않았을 때 쓰는 기본 바이옴 표(`docs/sample_biomes.csv`와 같은 내용) | |
+
+- 행 타입은 [`Data/Tables/ArrayTableRows.cs`](Assets/Scripts/TacticsECS/Data/Tables/ArrayTableRows.cs)(값만), 저장소는
+  [`GameTables`](Assets/Scripts/TacticsECS/Data/Tables/GameTables.cs), 파서/작성기는
+  [`ArrayTableCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/ArrayTableCsvSerializer.cs)(Index = 행 순서 검사), 표 사이 참조 검사는
+  [`ArrayTableValidationSystem`](Assets/Scripts/TacticsECS/Systems/ArrayTableValidationSystem.cs). `GameDataLoader.LoadAll`이 함께 읽는다.
+- **습도 탭**(Sandbox 툴바 "습도 탭" 버튼, `SandboxHud` `GenerationTab`): 맵 타입 드롭다운 + 물 비율 슬라이더 → **1차 지형 생성**
+  (`TerrainGenerationSystem.PlanOutline`/`ApplyOutline` — 수도 → 사전 마을 → 랜드마스 마스크 순서만 먼저 돌려 육지/물 아웃라인을 만든다),
+  **바이옴 드롭다운**(자동 / 불러온 바이옴 CSV 중 하나만), **종족 드롭다운**(아군/적). "지형 생성"은 설정이 같으면 그 아웃라인 위에 바이옴만
+  채운다(`GenerateFromOutline`) — 같은 땅 모양에서 바이옴을 바꿔 가며 규칙을 확인할 수 있다.
+- 종족을 고르면 영역이 팀마다 하나(종족 바이옴)가 되고, 생성 뒤 그 수도에 종족 시작 조건을 적용하며, 전투 시작 때(`InitEconomy`) 그 자리가 그
+  팀 수도가 되고 시작 골드/기술/기술 그룹/시작 유닛이 적용된다(기술트리는 `Techs.csv`로 만든다).
+- 원문과 다른 점: Drylands도 아웃라인에서는 노이즈 마스크(목표 물 비율 순위 컷)를 쓴다(슬라이더로 비율을 맞추기 위함). Luxidoor "레벨 3 수도로
+  시작"은 아직 없다. 종족 고유 지형 배수는 기본 바이옴 3개로 근사한다.
+
 ## 작업 로그
+
+- 2026-09-30: **배열형 테이블 + 종족/기술 그룹/시작 조건 + 습도 탭 2단계 지형 생성 + 바이옴 선택** (위 절 참고).
+  - 새 배열형 표 7개(`Assets/Resources/Tables`), 형식 문서 [`docs/ArrayTables.md`](docs/ArrayTables.md). 기존 표는 그대로.
+  - 기술: `TechUnlocks`(해금 내역) → `Techs`(TechTree.csv를 Index 참조로 옮김) → `TechGroups`(종족별 묶음). `TechTreeData.Allowed` +
+    `TechSystem.IsAvailable`이 그룹 밖 기술을 막고, 기술트리 패널은 아군 그룹만 보여 준다.
+  - 종족 12개(위키 Tribes 시작 기술/유닛/골드). `EconomyWorld.StartUnitIds` → `CitySystem.StartingUnitRequests`가 종족 시작 유닛(여러 개 가능)을 스폰.
+  - 시작 조건: `StartConditionSystem`(수도 거리 고리 안 최소 개수 보장, 맵 타입 필터). 예: Drylands의 Kickoo/Luxidoor 수도 옆 물 2칸 + 물고기.
+  - 지형: `TerrainGenerationSystem.PlanOutline`/`ApplyOutline`/`GenerateFromOutline`(`Core/TerrainOutlineData`). 한 번에 생성하는 기존 `Generate`는 그대로.
+  - UI: `UIPrefabSetup.BuildGenerationTab`(uGUI 표준 Dropdown/Slider — 캡션 영역이 폰트보다 작아 글자가 잘리던 것은 `VerticalWrapMode.Overflow`로 해결),
+    `SandboxHud` 탭 연결, `BattleController` 핸들러. 툴바 "습도" 버튼은 이제 탭을 연다(탭 없는 옛 프리팹이면 예전처럼 순환).
+  - 같은 커밋에 들어간 이전 미커밋 작업: 샌드박스 **기술트리 불러오기/내보내기**(`TechTreeValidationSystem` — 없는 선행 기술/순환/모르는 해금 키 경고,
+    `TechTreeHud.SetNodes`)와 `BattleController` 클릭 포커스 코드 정리.
+  - 검증: 신규 `ArrayTableVerification`(표 모양·위키 대조, 왕복, Techs↔TechTree.csv 일치, Index/참조 오류 보고, 종족 적용·그룹 제한, 시작 유닛,
+    시작 조건(개수/고리/맵 타입 필터/재적용 0), 6개 맵 타입 × 물 비율 4개 아웃라인 정확도·결정론, 아웃라인 모양 유지·단일 바이옴 채우기, 프리팹 구성)을
+    `VerificationSuite`에 추가 — 전체 8개 스위트 ALL PASS. Sandbox 씬 Edit Mode 렌더로 아웃라인/종족 영역/단일 바이옴 화면과, 종족 전투 시작
+    (키쿠 골드 5·낚시, 우마지 골드 6·기마·기병, 수도 = 종족 영역 수도)을 확인(임시 스크립트는 삭제).
 
 - 2026-09-30: **클릭 포커스 자동 전환 + 겹친 대상 순환**.
   - `BattleController.HandleClick`: 유닛 선택 중에도 공격 대상/이동 가능 칸이 아니면 선택 해제 없이 클릭한 칸으로 포커스를 옮긴다(예전에는 아무 반응 없음).

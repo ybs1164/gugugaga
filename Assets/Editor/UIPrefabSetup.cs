@@ -843,6 +843,9 @@ namespace TacticsECS.EditorTools
         private const float TechTreeCenterY = 40f; // Detail 패널 공간을 아래에 남기기 위해 위로.
         private const float TechDetailWidth = 420f;
         private const float TechDetailHeight = 130f;
+        /// <summary>전체 화면을 덮는 모달이라 다른 HUD 캔버스(모두 0, ActionMenuHud 5)보다 위에 그린다 —
+        /// 같은 0이면 BattleHud의 행동 로그(우상단)가 닫기 버튼을 가린다.</summary>
+        private const int TechCanvasSortingOrder = 10;
 
         /// <summary>CityResourceBar와 마찬가지로 BattleHud와 독립된 별도 프리팹으로 만든다 — 도시 자원
         /// 화면이 있는 곳이라면 어디든 그대로 갖다 놓을 수 있게 하기 위함이다. 노드는 굽지 않는다(CSV 기반이라
@@ -854,6 +857,7 @@ namespace TacticsECS.EditorTools
 
             var canvasRoot = CreateCanvas(root.transform);
             canvasRoot.GetComponent<CanvasScaler>().referenceResolution = TechCanvasReferenceResolution;
+            canvasRoot.GetComponent<Canvas>().sortingOrder = TechCanvasSortingOrder;
             BuildTechTreeToggleButton(font, canvasRoot);
             var panel = BuildTechTreeContent(font, canvasRoot);
             panel.gameObject.SetActive(false);

@@ -1927,3 +1927,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
     등록된 `TileId`(`TileView.TileTypeColors`) 6종/`StructureId`(`BattleController.BuildStructurePrefabsById`)
     6종 목록(등록 안 된 값은 에러 없이 조용히 폴백/미표시된다는 점 명시), `docs/sample_biomes.csv`의
     `Grassland` 행을 필드별로 풀어 쓴 예시를 포함.
+- 2026-09-30: 기술트리 닫기(X) 버튼이 행동 로그에 가려지는 문제 수정.
+  - **원인**: 모든 HUD 캔버스(BattleHud/SandboxHud/CityResourceBar/TechTreePanel)가 `sortingOrder 0`이라
+    그리는 순서가 정해지지 않았고, 우상단의 BattleHud 행동 로그가 같은 위치의 기술트리 닫기 버튼 위에 그려졌다.
+  - **수정**: 기술트리 캔버스는 전체 화면 모달이므로 `sortingOrder 10`(ActionMenuHud 5보다 위)으로 올렸다
+    (`UIPrefabSetup.TechCanvasSortingOrder` + `TechTreePanel.prefab` 직접 반영).

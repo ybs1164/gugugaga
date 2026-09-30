@@ -549,14 +549,7 @@ namespace TacticsECS
 
         private void HandleSandboxStartBattle()
         {
-            // 두 팀 모두 유닛이 있어야 수도가 정해지고 승패가 성립한다(없으면 첫 턴에 바로 끝난다).
-            foreach (var team in CitySystem.Teams)
-            {
-                if (UnitQueries.AnyAlive(_world, team)) continue;
-                _sandboxHud.SetStatus($"{(team == Team.Player ? "아군" : "적")} 유닛을 하나 이상 배치해야 전투를 시작할 수 있습니다.");
-                return;
-            }
-
+            // 유닛을 배치하지 않은 팀도 시작할 수 있다 — InitEconomy가 그 팀의 수도를 정하고 시작 유닛을 하나 스폰한다.
             _unitRows = new List<UnitCsvRow>(_placementController.Rows);
             _placementActive = false;
             Destroy(_sandboxHud.gameObject);
@@ -1006,7 +999,7 @@ namespace TacticsECS
         // ---------- Economy (도시/영토/기술/건설) ----------
 
         /// <summary>전투 시작 시 경제 상태를 만든다: 두 팀 시작 자원/빈 기술, 훈련 가능한 유닛 목록(배치 단계에서
-        /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals).</summary>
+        /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals), 유닛 없이 시작한 팀의 시작 유닛(CitySystem.StartingUnitRequests).</summary>
         private void InitEconomy()
         {
             _econ = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
@@ -1022,7 +1015,9 @@ namespace TacticsECS
             TaskSystem.Init(_econ);
             // 시야(구름)는 경제가 켜진 전투에서만 쓴다: 수도 주변 5x5 + 유닛 주변 + 영토만 보인 채로 시작한다.
             _grid.FogEnabled = true;
-            CitySystem.InitializeCapitals(_grid, _world, _econ);
+            CitySystem.InitializeCapitals(_grid, _world, _econ, includeUnitlessTeams: true);
+            // 유닛 없이 시작한 팀은 수도에 기본 유닛(기술 없이 훈련 가능한 가장 싼 육지 유닛) 하나를 받는다.
+            ProcessEconomyLog(CitySystem.StartingUnitRequests(_world, _econ));
             RefreshEconomyViews(false);
         }
 
@@ -1134,6 +1129,7 @@ namespace TacticsECS
                 case EconomyLogKind.Discover: return $"{who} {e.Subject}";
                 case EconomyLogKind.Task: return $"{who} 과업 달성: {e.Subject}";
                 case EconomyLogKind.Upgrade: return $"{who} 배 업그레이드: {e.Subject}";
+                case EconomyLogKind.StartUnit: return $"{who} 수도에서 시작 유닛: {e.Subject}";
                 default: return $"{who} {e.Subject}";
             }
         }

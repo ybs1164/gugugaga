@@ -822,6 +822,18 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-09-30: **유닛 없이 시작하면 수도에 시작 유닛 자동 생성**(위키 City/Units: 부족은 수도에 Warrior 하나를 두고 시작).
+  - 점검: 건물(도시)에서 유닛 생산은 이미 된다 — 우리 도시 칸을 클릭하면 칸 메뉴(`ShowTileMenu`)에 "X 훈련 (골드 N)" 버튼이 뜨고,
+    `CitySystem.CanTrain`(골드/기술/수용량/도시 칸 비어 있음) → `PayForTraining` → 스폰 순으로 처리된다. 그래서 UI 추가 없이 시작 유닛만 구현.
+  - `CitySystem.InitializeCapitals(..., includeUnitlessTeams)`: 유닛이 없는 팀도 기본 자리(아군 (0,0), 적 반대쪽 모서리)에서 가장 가까운
+    수도 구조물(없으면 빈 육지)을 수도로 정한다. 전투(`BattleController.InitEconomy`)만 켜고, 기존 검증은 예전 동작 그대로.
+  - `CitySystem.StartingUnitId`(기술 없이 훈련 가능한 가장 싼 육지 유닛 — SandboxUnits.csv면 보병) + `StartingUnitRequests`(유닛이 하나도 없는
+    팀의 수도에 스폰 요청, `EconomyLogKind.StartUnit`) → `ProcessEconomyLog`가 훈련과 같은 경로로 스폰, 수도 소속, 첫 턴에 바로 움직일 수 있다.
+  - 샌드박스 "전투 시작"에서 "두 팀 모두 유닛을 하나 이상 배치해야 한다" 제한을 없앴다(비워 두면 시작 유닛을 받는다).
+  - 원문과 다른 점: 위키는 부족마다 시작 유닛이 정해져 있지만(대부분 Warrior) 여기는 부족이 없어서 CSV에서 가장 싼 기본 유닛을 고르고,
+    이미 유닛을 배치한 팀에는 주지 않는다(배치한 유닛이 곧 시작 유닛).
+  - 검증: `EconomyVerification.VerifyStartingUnits` 추가, `unity run . -- -nographics -executeMethod TacticsECS.EditorTools.EconomyVerification.Run` → ALL PASS.
+
 - 2026-09-29: **구현 계획 4단계(진행 중) — Cloak/Dagger 시스템 부분**(위키 Cloak/Dagger/Pirate/Unit Skills).
   - 완료: `StealthSystem`(Hide — 이동 후 숨음, 공격/점령/유적 탐험/적이 그 칸에 들어가려 할 때 드러남, 숨은 적은 목표·ZoC·경로 차단에서 빠짐),
     `HideAction`(옛 Stealth, ZoC 무시·적 유닛 통과 — 옛 "잠입"의 효과), `CreepAction`(숲 정지·도로 보너스 없음), `InfiltrationSystem`

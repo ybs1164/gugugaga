@@ -193,8 +193,9 @@ namespace TacticsECS
         /// <summary>수도가 없는 팀에 수도를 정해준다(전투 시작 시 1회). 팀 유닛 무게중심에서 가장 가까운 아직
         /// 주인 없는 "Capital" 구조물을 쓰고, 지형 생성을 안 해서 수도 구조물이 없으면 무게중심에서 가장 가까운
         /// 빈 육지 칸에 수도 구조물을 새로 놓는다. 주인이 정해지지 않은 나머지 수도 구조물은 마을처럼
-        /// 점령 가능한 중립 정착지로 남는다.</summary>
-        public static void InitializeCapitals(GridWorld grid, EntityWorld world, EconomyWorld econ)
+        /// 점령 가능한 중립 정착지로 남는다. includeUnitlessTeams면 유닛이 하나도 없는 팀도 기본 자리(아군은 (0,0),
+        /// 적은 반대쪽 모서리 — 데모 편성과 같은 배치)를 무게중심 삼아 수도를 정한다(시작 유닛은 StartingUnitRequests).</summary>
+        public static void InitializeCapitals(GridWorld grid, EntityWorld world, EconomyWorld econ, bool includeUnitlessTeams = false)
         {
             foreach (var team in Teams)
             {
@@ -208,8 +209,8 @@ namespace TacticsECS
                     sum += (Vector2)world.Get<GridPosition>(i).Value;
                     n++;
                 }
-                if (n == 0) continue;
-                var centroid = sum / n;
+                if (n == 0 && !includeUnitlessTeams) continue;
+                var centroid = n > 0 ? sum / n : (team == Team.Player ? Vector2.zero : new Vector2(grid.Width - 1, grid.Height - 1));
 
                 Vector2Int? best = null;
                 float bestDist = float.MaxValue;
@@ -391,6 +392,40 @@ namespace TacticsECS
 
         /// <summary>도시에서 훈련할 수 있는 유닛 행인지 — CSV Trainable 칸, 그리고 슈퍼 유닛은 항상 불가(Trainable 칸이 없던 옛 CSV).</summary>
         public static bool IsTrainable(UnitCsvRow row) => row != null && row.Trainable && !IsSuperUnit(row.Id);
+
+        /// <summary>시작 유닛 CSV Id — 기술 없이 훈련할 수 있는 육지 유닛 중 가장 싼 것(같으면 CSV 앞쪽).
+        /// 위키: 대부분의 부족은 수도에 Warrior(보병, 2골드) 하나를 두고 시작한다. 없으면 빈 문자열.</summary>
+        public static string StartingUnitId(EconomyWorld econ, Team team)
+        {
+            UnitCsvRow best = null;
+            foreach (var row in econ.UnitRows)
+            {
+                if (!IsTrainable(row) || row.Domain != TerrainType.Land) continue;
+                if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) continue;
+                if (best == null || row.Cost < best.Cost) best = row;
+            }
+            return best?.Id ?? string.Empty;
+        }
+
+        /// <summary>전투 시작 시 유닛이 하나도 없는 팀의 수도에 시작 유닛(StartingUnitId) 하나를 스폰하라는 기록.
+        /// 스폰 자체는 View가 필요해서 호출자가 SpawnUnitId를 보고 처리한다(훈련 기록과 같은 경로).</summary>
+        public static List<EconomyLogEntry> StartingUnitRequests(EntityWorld world, EconomyWorld econ)
+        {
+            var log = new List<EconomyLogEntry>();
+            foreach (var team in Teams)
+            {
+                if (UnitQueries.AnyAlive(world, team)) continue;
+                int capital = FindCapital(econ, team);
+                string unitId = StartingUnitId(econ, team);
+                if (capital < 0 || string.IsNullOrEmpty(unitId)) continue;
+                log.Add(new EconomyLogEntry
+                {
+                    Team = team, Kind = EconomyLogKind.StartUnit, Subject = FindUnitRow(econ, unitId).Name, SpawnUnitId = unitId,
+                    Position = econ.Cities[capital].Position, CityIndex = capital
+                });
+            }
+            return log;
+        }
 
         // ---------- 수입 ----------
 

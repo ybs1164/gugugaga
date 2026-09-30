@@ -27,6 +27,7 @@ namespace TacticsECS.EditorTools
             VerifyStarfishAndDestroy();
             VerifyHomeCities();
             VerifyVeterans();
+            VerifyStartingUnits();
             Debug.Log(_ok ? "[EconomyVerification] ALL PASS" : "[EconomyVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -364,6 +365,29 @@ namespace TacticsECS.EditorTools
 
         /// <summary>위키 Units "Veteran Units": 공격/반격 처치 3회면 승급 가능(최대 체력 +5, 완전 회복, 한 번), 배/슈퍼 유닛/고정 스킬은
         /// 불가. 유적 "New Friends"는 베테랑으로, 물 위 유적은 베테랑 충각선(전사 탑승)으로 나온다.</summary>
+        /// <summary>유닛 없이 시작한 팀: 수도가 정해지고, 시작 유닛(기술 없이 훈련 가능한 가장 싼 육지 유닛)이 수도에 스폰 요청된다.
+        /// 유닛이 있는 팀은 요청이 없다.</summary>
+        private static void VerifyStartingUnits()
+        {
+            var grid = new GridWorld(10, 10);
+            for (int y = 0; y < 10; y++) for (int x = 0; x < 10; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            var world = new EntityWorld();
+            var econ = NewEconomy();
+            MakeUnit(world, grid, Team.Player, new Vector2Int(2, 2));
+            CitySystem.InitializeCapitals(grid, world, econ, includeUnitlessTeams: true);
+            int foeCap = CitySystem.FindCapital(econ, Team.Enemy);
+            Check(foeCap >= 0 && econ.Cities[foeCap].Position == new Vector2Int(9, 9), "unitless enemy gets a capital at the far corner");
+            Check(CitySystem.StartingUnitId(econ, Team.Enemy) == "infantry", "starting unit is the cheapest trainable land unit");
+
+            var log = CitySystem.StartingUnitRequests(world, econ);
+            Check(log.Count == 1 && log[0].Team == Team.Enemy && log[0].SpawnUnitId == "infantry" && log[0].CityIndex == foeCap,
+                "only the unitless team gets a starting unit request at its capital");
+            int id = UnitFactorySystem.SpawnEconomyUnit(grid, world, econ, Team.Enemy, log[0].SpawnUnitId, log[0].Position, log[0].CityIndex);
+            Check(id >= 0 && world.Get<GridPosition>(id).Value == econ.Cities[foeCap].Position && CitySystem.HomeOf(world, id) == foeCap,
+                "starting unit spawns on its capital and belongs to it");
+            Check(CitySystem.StartingUnitRequests(world, econ).Count == 0, "no more requests once every team has a unit");
+        }
+
         private static void VerifyVeterans()
         {
             var grid = new GridWorld(8, 3);

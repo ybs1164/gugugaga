@@ -810,6 +810,8 @@ namespace TacticsECS
         /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
+            // 보상을 고르기 전에는 턴을 넘길 수 없다(Polytopia) — 모달이 떠 있지 않으면 다시 띄운다.
+            if (EnsureRewardChoice()) return;
             var hpBefore = SnapshotHp();
             var waitedIds = AbilitySystem.ApplyTurnEndWait(_grid, _world, _turnState.ActiveTeam);
             foreach (var id in waitedIds)
@@ -972,6 +974,7 @@ namespace TacticsECS
                 RefreshEconomyViews(false);
             }
 
+            if (team == Team.Player) EnsureRewardChoice();
             if (team == Team.Enemy && !_battleOver)
                 StartCoroutine(RunEnemyTurnRoutine());
         }
@@ -1201,6 +1204,9 @@ namespace TacticsECS
 
             if (_battleOver) return;
             if (_turnState.ActiveTeam != Team.Player) return;
+
+            // 보상 카드 모달이 떠 있으면 지도 입력을 받지 않는다(모달 배경이 이미 막지만 한 번 더 확실히).
+            if (_rewardHud != null && _rewardHud.IsVisible) return;
 
             if (tapped)
                 HandleClick(pos);
@@ -1513,16 +1519,14 @@ namespace TacticsECS
         /// 스폰한다(Systems는 View를 몰라 스폰을 못 하므로 여기서 마무리).</summary>
         private void ProcessEconomyLog(List<EconomyLogEntry> log)
         {
-            int levelUpCity = -1;
             foreach (var entry in log)
             {
                 if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex, entry.SpawnVeteran, entry.SpawnBoatId);
                 _hud.AddLogEntry(FormatEconomyEntry(entry));
-                if (entry.Kind == EconomyLogKind.LevelUp && entry.Team == Team.Player && entry.CityIndex >= 0) levelUpCity = entry.CityIndex;
             }
             if (log.Count > 0) RefreshRoster();
-            // Polytopia처럼 우리 도시가 레벨업하면 곧바로 보상 카드 모달을 띄운다(닫으면 도시 메뉴의 보상 버튼으로 다시 연다).
-            if (levelUpCity >= 0 && _rewardHud != null && !_rewardHud.IsVisible) ShowRewardModal(levelUpCity);
+            // Polytopia처럼 우리 도시가 레벨업하면 곧바로 보상 카드 모달을 띄운다(고르기 전까지 다른 행동은 막힌다).
+            EnsureRewardChoice();
         }
 
         /// <summary>경제 기록 한 줄: [팀 색 점][종류 아이콘][대상 이름][숫자]. "아군 건설: 농장" 같은 문장 대신 아이콘으로 종류를 보여준다.</summary>
@@ -1644,15 +1648,6 @@ namespace TacticsECS
 
                 if (mine)
                 {
-                    if (city.PendingRewards > 0)
-                    {
-                        int ci = cityIndex;
-                        options.Add(new ActionMenuOption
-                        {
-                            Label = "보상", Icon = "reward", Enabled = true, Badge = city.PendingRewards, Color = new Color(0.75f, 0.55f, 0.15f),
-                            Detail = $"Lv{CitySystem.PendingRewardLevel(city)} 보상 고르기", OnClick = () => ShowRewardModal(ci),
-                        });
-                    }
                     foreach (var row in _econ.UnitRows)
                     {
                         if (!CitySystem.IsTrainable(row) || !TechSystem.CanTrainUnitType(_econ.TechNodes, _econ.Tech[Team.Player], row.Id)) continue;
@@ -1840,7 +1835,23 @@ namespace TacticsECS
             _actionMenu.Show(header, options);
         }
 
-        /// <summary>도시 레벨업 보상 카드 모달(Polytopia처럼 그림 카드 두 장 중 하나). 고르면 적용하고, 받을 보상이 더 남았으면 다시 연다.</summary>
+        /// <summary>우리 턴에 보상을 고르지 않은 도시가 있으면 보상 모달을 띄우고 true(= 다른 행동을 막아야 함). Polytopia처럼 레벨업 보상은
+        /// 고르기 전까지 다른 행동을 할 수 없다 — 모달이 화면 전체 입력을 막고, 턴 종료(EndTurn)도 여기서 막는다.</summary>
+        private bool EnsureRewardChoice()
+        {
+            if (_econ == null || _rewardHud == null || _battleOver || _turnState.ActiveTeam != Team.Player) return false;
+            for (int i = 0; i < _econ.Cities.Count; i++)
+            {
+                var city = _econ.Cities[i];
+                if (city.Owner != Team.Player || city.PendingRewards <= 0) continue;
+                if (!_rewardHud.IsVisible) ShowRewardModal(i);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>도시 레벨업 보상 카드 모달(Polytopia처럼 그림 카드 두 장 중 하나). 고르면 적용하고, 받을 보상이 더 남았으면(같은 도시든
+        /// 다른 도시든) EnsureRewardChoice가 다시 연다. 닫기 버튼은 없다.</summary>
         private void ShowRewardModal(int cityIndex)
         {
             if (_rewardHud == null || !CanUseEconomyMenu || cityIndex < 0 || cityIndex >= _econ.Cities.Count) return;
@@ -1860,10 +1871,11 @@ namespace TacticsECS
                     Detail = CitySystem.RewardDescription(reward),
                 });
             }
+            _actionMenu.Hide();
             _rewardHud.Show(city.Name, level, BattleHud.PlayerAccent, cards, i =>
             {
                 HandleReward(cityIndex, rewards[i]);
-                if (_econ != null && _econ.Cities[cityIndex].PendingRewards > 0) ShowRewardModal(cityIndex);
+                EnsureRewardChoice();
             });
         }
 

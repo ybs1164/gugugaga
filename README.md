@@ -622,7 +622,7 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
    항구/풍차/대장간/제재소/시장/신전 4종/도로)·타일 행동(벌목/화전/숲 조성/파괴)이 골드 비용과 함께 뜬다. 인구가
    그 칸의 주인 도시에 쌓인다.
 4. **도시 성장** — 레벨 L에서 인구 L+1이 차면 레벨업(남는 인구 이월), 레벨마다 2지선다 보상(Lv2 공방/탐험가,
-   Lv3 성벽/골드 5, Lv4 인구 +3/국경 확장, Lv5+ 공원/슈퍼 유닛). 도시를 클릭하면 보상 버튼이 뜬다.
+   Lv3 성벽/골드 5, Lv4 인구 +3/국경 확장, Lv5+ 공원/슈퍼 유닛). 레벨업하는 순간 보상 카드 모달이 뜨고, 고르기 전까지 다른 행동(지도·HUD·턴 종료)은 막힌다.
 5. **훈련** — 우리 도시(빈 칸)를 클릭하면 유닛 CSV의 유닛을 골드로 훈련한다(`Unit.<Id>` 기술 필요한 유닛은 해금 후).
    도시마다 (레벨 + 1)개까지 유닛을 지원하고(위키 City "Unit Capacity"), 유닛은 소속 도시(`HomeCity`)를 가진다 — 훈련한 도시,
    점령한 유닛은 점령한 도시, 전향된 유닛은 전향시킨 유닛의 도시(상한 초과 허용), 독립(`Independent`) 유닛은 소속 없음.
@@ -865,7 +865,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   비활성 이유는 [`BlockReason`](Assets/Scripts/TacticsECS/Core/BlockReason.cs) enum, 과업 진행은 [`TaskProgress`](Assets/Scripts/TacticsECS/Core/TaskProgress.cs).
 - **상황별 메뉴**([`ActionMenuHud`](Assets/Scripts/TacticsECS/View/ActionMenuHud.cs)): 머리(아이콘 + 이름 + 레벨 배지 + 인구 게이지 + 상태 칩) + 원형 아이콘 버튼 격자 + 아래 정보 줄.
   도시 메뉴 칩: 유닛 수용량, 골드 수입, 수도 연결/공방/성벽/공원, (수도) 과업 진행. 유닛 메뉴: 소속 도시 칩 + 베테랑까지 처치 수 게이지.
-- **레벨업 보상**([`RewardCardHud`](Assets/Scripts/TacticsECS/View/RewardCardHud.cs)): 우리 도시가 레벨업하면 그림 카드 2장 모달이 바로 뜬다. X로 닫으면 도시 메뉴의 보상 버튼(대기 수 배지)으로 다시 연다.
+- **레벨업 보상**([`RewardCardHud`](Assets/Scripts/TacticsECS/View/RewardCardHud.cs)): 우리 도시가 레벨업하면 그림 카드 2장 모달이 바로 뜬다. Polytopia와 같이 닫기 버튼이 없고, 고르기 전까지 지도/HUD/기술트리/턴 종료가 전부 막힌다
+  (`BattleController.EnsureRewardChoice` — 턴 시작·경제 기록 처리·턴 종료 때 고르지 않은 보상이 있으면 모달을 다시 띄운다).
 - **기술트리**: 노드 이름 대신 `[전구 비용]` 배지 + 완료/잠김 아이콘, 상세 패널은 효과 문장 대신 해금 아이콘 줄(누르면 이름/설명).
 - **지도 위**: 도시 배너([`CityBannerHud`](Assets/Scripts/TacticsECS/View/CityBannerHud.cs) — 이름/수도 왕관/레벨/인구 게이지/보상 대기), 이동 칸 점·공격 칸 조준 괄호,
   행동을 모두 마친 아군 유닛은 어둡게.
@@ -876,6 +877,12 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   `VerificationSuite`에 추가. `UIVerification`/`EconomyVerification`은 새 구조(SafeArea 경로, 아이콘 로그, BlockReason)에 맞게 고쳤다.
 
 ## 작업 로그
+
+- 2026-09-30: **레벨업 보상을 고르기 전까지 다른 행동 차단** (Polytopia 원문대로).
+  - `RewardCardHud`의 닫기(X) 버튼 제거, 캔버스 정렬 순서 8 → 20(기술트리 10보다 위) — 화면 전체 어두운 배경이 모든 입력을 막는다.
+  - `BattleController.EnsureRewardChoice`: 우리 턴에 보상 대기 도시가 있으면 모달을 띄우고 true. 경제 기록 처리 후/우리 턴 시작/턴 종료 시 호출 —
+    턴 종료 버튼도 보상을 고르기 전에는 동작하지 않는다. 지도 탭도 모달이 떠 있으면 무시. 도시 메뉴의 "보상" 버튼은 필요 없어져 뺐다.
+  - 검증: 런타임 스크립트 Roslyn 컴파일 오류 0(이 환경엔 Unity 없음).
 
 - 2026-09-30: **UX 개선 계획 이행 — 설명문 아이콘화 + 모바일 레이아웃** (위 [아이콘 UI · 모바일 레이아웃](#아이콘-ui--모바일-레이아웃), 계획 문서 9·10절).
   - 아이콘 55종(game-icons.net SVG → 256px PNG), CSV `Icon` 열 5개 표, `BlockReason`/`TaskProgress`로 Systems의 한글 문장 제거.

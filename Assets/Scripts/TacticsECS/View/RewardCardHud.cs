@@ -20,7 +20,9 @@ namespace TacticsECS
     /// <summary>
     /// 도시 레벨업 보상 선택 모달 — Polytopia처럼 "그림 카드 두 장 중 하나"를 고른다(docs/UxIconizationPlan.md 2.2). 예전에는 도시
     /// 메뉴 안에 "Lv2 보상: 공방 / 골드 수입 +1/턴" 텍스트 행으로 나열됐다. 카드마다 큰 아이콘 + 한 단어 이름 + 효과 칩([+1 ⭐/턴])만
-    /// 보이고, 설명 문장은 카드를 누르고 있을 때(마우스는 올렸을 때) 아래 한 줄에 나온다. X로 닫으면 나중에 도시 메뉴의 보상 버튼으로 다시 연다.
+    /// 보이고, 설명 문장은 카드를 누르고 있을 때(마우스는 올렸을 때) 아래 한 줄에 나온다.
+    /// Polytopia와 같이 닫기 버튼이 없다 — 카드를 고르기 전까지 화면 전체를 덮는 어두운 배경이 지도/HUD/기술트리 입력을 모두 막는다
+    /// (BattleController.EnsureRewardChoice가 턴 종료도 막는다).
     /// 값은 판단하지 않고 BattleController가 넘긴 카드를 그리기만 한다. 프리팹 없이 코드로 만든다(카드 수가 가변).
     /// </summary>
     public class RewardCardHud : MonoBehaviour
@@ -51,7 +53,7 @@ namespace TacticsECS
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 8; // 상황별 메뉴(5) 위, 기술트리(10) 아래.
+            canvas.sortingOrder = 20; // 다른 모든 HUD(기술트리 10 포함) 위 — 보상을 고르기 전에는 아무것도 누를 수 없다.
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280f, 720f);
@@ -74,15 +76,6 @@ namespace TacticsECS
             _cards = UiKit.Rect("Cards", box);
             _detail = UiKit.Label(box, _font, string.Empty, 14, UiKit.MutedColor, TextAnchor.UpperCenter);
             _detail.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            var close = UiKit.Image(box, "Close", RuntimeSprite.CreateCircle(), new Color(1f, 1f, 1f, 0.15f), raycast: true);
-            close.rectTransform.anchorMin = close.rectTransform.anchorMax = close.rectTransform.pivot = new Vector2(1f, 1f);
-            close.rectTransform.sizeDelta = new Vector2(36f, 36f);
-            var closeIcon = UiKit.Image(close.transform, "Icon", IconLibrary.Get("deselect"), Color.white);
-            UiKit.Stretch(closeIcon.rectTransform, 8f);
-            var closeButton = close.gameObject.AddComponent<Button>();
-            closeButton.targetGraphic = close;
-            closeButton.onClick.AddListener(Hide);
 
             _root.SetActive(false);
             _responsive.LayoutChanged += _ => { if (IsVisible) Rebuild(); };

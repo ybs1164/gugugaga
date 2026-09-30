@@ -10,7 +10,7 @@ namespace TacticsECS.EditorTools
     ///  1. CSV Icon 칸(건물/타일 행동/보상/과업/해금 내역)과 MenuIcons가 돌려주는 아이콘이 전부 Resources/Icons에 실제로 있는지.
     ///  2. ResponsiveCanvas.Attach가 캔버스 자식을 순서 그대로 SafeArea 아래로 옮기는지.
     ///  3. ActionMenuHud가 옵션 수만큼 원형 버튼을 만들고, 막힌 옵션은 누를 수 없고, X가 Closed를 알리는지.
-    ///  4. RewardCardHud가 카드를 만들고, 카드를 누르면 onPick(index)을 부르고 스스로 닫히는지.
+    ///  4. RewardCardHud가 카드를 만들고(닫기 버튼 없음), 카드를 누르면 onPick(index)을 부르고 스스로 닫히는지.
     /// 사용법: unity run . -- -executeMethod TacticsECS.EditorTools.MobileUiVerification.Run
     /// </summary>
     public static class MobileUiVerification
@@ -162,6 +162,8 @@ namespace TacticsECS.EditorTools
                 foreach (var b in go.GetComponentsInChildren<Button>(true))
                     if (b.name == "Card") { cardButtons++; if (cardButtons == 2) second = b; }
                 Check(cardButtons == cards.Count, $"one button per card (got {cardButtons})");
+                // Polytopia처럼 보상을 고르기 전에는 닫을 수 없다 — 카드 말고 다른 버튼(닫기)이 없어야 한다.
+                Check(go.GetComponentsInChildren<Button>(true).Length == cards.Count, "reward modal has no close button");
                 second?.onClick.Invoke();
                 Check(picked == 1 && !hud.IsVisible, "picking a card reports its index and closes the modal");
             }

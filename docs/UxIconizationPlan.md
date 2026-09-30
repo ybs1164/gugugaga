@@ -166,12 +166,11 @@ Polytopia는 같은 정보를 **아이콘+숫자**, **칸이 나뉜 게이지**,
 | --- | --- | --- |
 | 1. 기반 | 완료 | 아이콘 55종 추가(`Assets/Art/GameIcons/Resources/Icons`, 출처 LICENSE.txt), 공용 부품 [`UiKit`](../Assets/Scripts/TacticsECS/View/Ui/UiKit.cs)(칩/⭐비용 배지/칸 게이지/숫자 배지/원형 아이콘 버튼/Flow 배치), 값→아이콘 매핑 [`MenuIcons`](../Assets/Scripts/TacticsECS/View/Ui/MenuIcons.cs), [`BlockReason`](../Assets/Scripts/TacticsECS/Core/BlockReason.cs) enum — `CitySystem.CanTrain`/`EmbarkSystem.CanUpgrade`/`TileImprovementSystem.GetOptions`가 더 이상 한글 이유 문장을 만들지 않는다. `TaskSystem.ProgressText`(문장) → `TaskSystem.Progress`([`TaskProgress`](../Assets/Scripts/TacticsECS/Core/TaskProgress.cs) 숫자). 자원 바 전용 아이콘(research/population/star), 수입은 괄호 대신 작은 초록 `+n`, 점수는 트로피 아이콘 + 숫자 |
 | 2. 메뉴 아이콘화 | 완료 | [`ActionMenuHud`](../Assets/Scripts/TacticsECS/View/ActionMenuHud.cs) 전면 교체: 머리(대상 아이콘 + 이름 + 레벨 배지 + 인구 칸 게이지 + 상태 칩), 원형 아이콘 버튼 격자(한 단어 이름 + ⭐비용 배지(부족하면 빨강) + 막힌 이유 아이콘 + 대기 보상 수 배지), 설명·결과 칩(`[+2 인구]`)·막힌 이유는 버튼을 누르고 있거나 마우스를 올렸을 때 아래 정보 줄에만. CSV `Icon` 열(건물/타일 행동/보상/과업/해금 내역) |
-| 3. 보상 카드 & 기술 트리 | 완료 | [`RewardCardHud`](../Assets/Scripts/TacticsECS/View/RewardCardHud.cs) — 우리 도시가 레벨업하면 카드 모달이 바로 뜬다(닫으면 도시 메뉴의 보상 버튼). 기술트리: 노드 이름 라벨 → `[전구 비용]` 배지 + 완료 ✓/잠김 🔒 아이콘, 상세 패널 효과 문장 → 해금 아이콘 줄(`TechUnlocks.csv` Icon), 상태 문장 → 아이콘 + 선행 기술 이름/부족 수치, 해금 버튼 → `[전구 n]` |
+| 3. 보상 카드 & 기술 트리 | 완료 | [`RewardCardHud`](../Assets/Scripts/TacticsECS/View/RewardCardHud.cs) — 우리 도시가 레벨업하면 카드 모달이 바로 뜨고, 고르기 전까지 다른 행동(지도/HUD/기술트리/턴 종료)이 막힌다(닫기 버튼 없음, `BattleController.EnsureRewardChoice`). 기술트리: 노드 이름 라벨 → `[전구 비용]` 배지 + 완료 ✓/잠김 🔒 아이콘, 상세 패널 효과 문장 → 해금 아이콘 줄(`TechUnlocks.csv` Icon), 상태 문장 → 아이콘 + 선행 기술 이름/부족 수치, 해금 버튼 → `[전구 n]` |
 | 4. 맵 위 표시 | 대부분 | [`CityBannerHud`](../Assets/Scripts/TacticsECS/View/CityBannerHud.cs)(도시 칸 위 이름 + 수도 왕관 + 레벨 배지 + 인구 칸 게이지 + 보상 대기 아이콘), 이동 칸 = 가운데 점 / 공격 칸 = 네 모서리 조준 괄호(`GridView` — 색과 모양 둘 다), 이번 턴 이동·행동을 모두 마친 아군 유닛은 옷 색을 어둡게(`UnitView`). **남음**: HP 방패 배지(HpDisplay 프리팹 교체가 필요 — Unity CLI 필요), 수확 가능 칸 표시 |
 | 5. 로그 & 마감 | 대부분 | 행동 로그 한 줄 = `[팀 색 점][행위자][행동 아이콘][대상][-3]`(`BattleHud.AddLogEntry(LogLine)`), 경제 로그도 종류 아이콘(건설은 건물 아이콘), 구조물 패널 = 아이콘 + 이름(분위기 문장 제거), 승/패 화면 = 큰 아이콘만. **남음**: 예상 피해 숫자(P8), 유닛 초상 |
 
-원문과 다른 점(이번 구현에서 추가): Polytopia는 레벨업 보상을 고르기 전에는 다른 행동을 막지만, 이 프로젝트는 모달을 X로 닫고 나중에 고를 수 있다
-(도시 메뉴 보상 버튼 + 배너 보상 아이콘) — 샌드박스 테스트 중 흐름을 끊지 않기 위해서다.
+레벨업 보상은 Polytopia 원문대로 고르기 전까지 다른 행동을 막는다(처음 구현에서는 X로 닫고 나중에 고를 수 있게 했다가 원문대로 되돌렸다).
 
 ## 10. 모바일 레이아웃
 

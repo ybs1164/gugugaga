@@ -182,6 +182,11 @@ namespace TacticsECS
         private HashSet<Vector2Int> _reachableTiles;
         private List<int> _attackableTargets;
 
+
+        // 마지막으로 클릭해 포커스한 칸과 그 칸에서 포커스한 대상 — 같은 칸을 다시 누르면 다음 대상으로 넘긴다.
+        private enum FocusLayer { Unit, Tile }
+        private Vector2Int? _focusPos;
+        private FocusLayer _focusLayer;
         private bool _battleOver;
 
         private void Awake()
@@ -921,7 +926,7 @@ namespace TacticsECS
 
         /// <summary>전투 시작 전(배치 단계)에는 클릭이 이미 유닛 배치에 쓰여서 구조물 정보를 클릭으로
         /// 보여줄 자리가 없다 — 대신 마우스가 가리키는 칸을 매 프레임 검사해(호버) SandboxHud에 정보
-        /// 패널을 띄운다. 전투 중(OnTileClicked)의 클릭 방식과 트리거만 다를 뿐 조회 로직은 같다.</summary>
+        /// 패널을 띄운다. 전투 중(FocusTile)의 클릭 방식과 트리거만 다를 뿐 조회 로직은 같다.</summary>
         private void UpdateStructureHover()
         {
             if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos))
@@ -943,57 +948,75 @@ namespace TacticsECS
             if (!VisionSystem.IsExplored(_grid, Team.Player, gridPos)) { ClearSelection(); return; } // 구름 칸
 
             int occupantId = _grid.GetOccupant(gridPos);
-            if (occupantId != TileData.NoOccupant)
+            // 숨은 적(위키 Cloak)은 없는 것처럼 취급한다 — 그 칸으로 이동을 시도하면 MoveAction이 드러낸다.
+            bool hasUnit = occupantId != TileData.NoOccupant && UnitQueries.IsAlive(_world, occupantId) &&
+                           !StealthSystem.IsHiddenFrom(_world, occupantId, Team.Player);
+
+            if (_state == SelectState.UnitSelected)
             {
-                OnUnitClicked(occupantId);
-                return;
+                if (hasUnit && _attackableTargets != null && _attackableTargets.Contains(occupantId))
+                {
+                    TryAttack(_selectedUnitId, occupantId);
+                    return;
+                }
+                if (!hasUnit && _reachableTiles != null && _reachableTiles.Contains(gridPos))
+                {
+                    MoveSelectedUnit(gridPos);
+                    return;
+                }
             }
 
-            OnTileClicked(gridPos);
+            // 이 칸에서 포커스할 수 있는 것들: 유닛(있으면), 칸(유닛이 없거나 칸에 보여줄 것이 있으면).
+            var layers = new List<FocusLayer>();
+            if (hasUnit) layers.Add(FocusLayer.Unit);
+            if (!hasUnit || HasTileContent(gridPos)) layers.Add(FocusLayer.Tile);
+
+            int next = 0;
+            if (_focusPos == gridPos)
+            {
+                int current = layers.IndexOf(_focusLayer);
+                if (current >= 0) next = (current + 1) % layers.Count;
+            }
+
+            if (layers[next] == FocusLayer.Unit) FocusUnit(occupantId);
+            else FocusTile(gridPos);
         }
 
-        private void OnUnitClicked(int unitId)
+        /// <summary>유닛에 포커스: 이번 턴 움직일 수 있는 아군이면 선택(이동/공격 하이라이트 + 유닛 메뉴), 그 밖의
+        /// 유닛(적, 행동을 마친 아군)은 정보 패널만 보여준다.</summary>
+        private void FocusUnit(int unitId)
         {
-            if (_state == SelectState.UnitSelected && _attackableTargets != null && _attackableTargets.Contains(unitId))
+            var pos = _world.Get<GridPosition>(unitId).Value;
+            bool own = _world.Get<Team>(unitId) == Team.Player;
+            if (own && !(_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
             {
-                TryAttack(_selectedUnitId, unitId);
-                return;
+                SelectUnit(unitId);
+                ShowUnitMenu(unitId);
             }
-
-            if (_world.Get<Team>(unitId) != Team.Player || !UnitQueries.IsAlive(_world, unitId) ||
-                (_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
+            else
             {
                 ClearSelection();
                 // 뗏목 업그레이드는 행동을 쓰지 않아 승선한 그 턴에도 할 수 있다(위키 Raft).
-                if (UnitQueries.IsAlive(_world, unitId) && _world.Get<Team>(unitId) == Team.Player &&
-                    EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId) { ShowUnitMenu(unitId); return; }
-                // 행동을 마친 유닛이 서 있는 칸도 도시/건설 메뉴는 열 수 있어야 한다(훈련/보상 선택).
-                if (UnitQueries.IsAlive(_world, unitId)) ShowTileMenu(_world.Get<GridPosition>(unitId).Value);
-                return;
+                if (own && EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId) ShowUnitMenu(unitId);
             }
-
-            SelectUnit(unitId);
-            ShowUnitMenu(unitId);
+            _focusPos = pos;
+            _focusLayer = FocusLayer.Unit;
         }
 
-        private void OnTileClicked(Vector2Int pos)
+        /// <summary>칸에 포커스: 유닛 선택을 풀고 구조물 정보 패널(아직 기술이 없어 숨겨진 자원은 없는 것처럼
+        /// 취급)과, 경제가 켜져 있으면 그 칸의 도시/건설 메뉴를 띄운다.</summary>
+        private void FocusTile(Vector2Int pos)
         {
-            if (_state == SelectState.UnitSelected)
-            {
-                if (_reachableTiles != null && _reachableTiles.Contains(pos))
-                    MoveSelectedUnit(pos);
-                return;
-            }
-
-            // 유닛이 선택되지 않은 상태에서 빈 칸을 클릭하면(구조물이든 아니든) 구조물 정보 패널을
-            // 켜거나 끈다. 아직 기술이 없어 숨겨진 자원은 없는 것처럼 취급한다. 경제가 켜져 있으면 오른쪽에
-            // 그 칸의 도시/건설 메뉴도 띄운다.
+            ClearSelection();
             string structureId = VisibleStructure(pos);
             if (!string.IsNullOrEmpty(structureId))
                 _hud.ShowStructurePanel(structureId);
-            else
-                _hud.HideStructurePanel();
             ShowTileMenu(pos);
+        /// <summary>
+        /// 그리드 클릭. 유닛이 선택된 상태에서 공격 대상/이동 가능 칸을 누르면 그 행동을 하고, 그 밖의 클릭은
+        /// 선택 취소 없이 곧바로 클릭한 칸으로 포커스를 옮긴다. 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면
+        /// 같은 칸을 다시 누를 때마다 유닛 → 칸(도시/건물) → 유닛 … 순서로 포커스가 하나씩 넘어간다.
+        /// </summary>
         }
 
         // ---------- Economy (도시/영토/기술/건설) ----------
@@ -1021,6 +1044,7 @@ namespace TacticsECS
             RefreshEconomyViews(false);
         }
 
+                _hud.ShowUnitPanel(_world, unitId);
         private static List<UnitCsvRow> LoadFallbackUnitRows()
         {
             try
@@ -1051,6 +1075,19 @@ namespace TacticsECS
             RefreshProduction();
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
+            _focusPos = pos;
+            _focusLayer = FocusLayer.Tile;
+        }
+
+        /// <summary>유닛과 겹쳐 있을 때 따로 포커스할 만한 것이 칸에 있는지 — 보이는 구조물, 도시, 건물, 도로,
+        /// 또는 그 칸의 채집/건설 선택지.</summary>
+        private bool HasTileContent(Vector2Int pos)
+        {
+            if (!string.IsNullOrEmpty(VisibleStructure(pos))) return true;
+            if (_econ == null) return false;
+            var tile = _grid.GetTile(pos);
+            if (CitySystem.FindCityAt(_econ, pos) >= 0 || !string.IsNullOrEmpty(tile.BuildingId) || tile.HasRoad) return true;
+            return TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos).Count > 0;
             _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
             _gridView.RefreshFog(_grid, Team.Player);
@@ -1315,7 +1352,7 @@ namespace TacticsECS
 
             int city = CitySystem.FindCityAt(_econ, pos);
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
-                options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => { ClearSelection(); ShowTileMenu(pos); } });
+                options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => FocusTile(pos) });
 
             // 소속 도시(위키 City "Units will show which city they belong to").
             int home = CitySystem.HomeOf(_world, unitId);
@@ -1550,6 +1587,8 @@ namespace TacticsECS
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)
                 _viewsById[id].Refresh(_world, id);
+            _focusPos = pos;
+            _focusLayer = FocusLayer.Unit;
             RefreshRoster();
 
             ClearSelection();
@@ -1627,3 +1666,4 @@ namespace TacticsECS
         }
     }
 }
+            _focusPos = null;

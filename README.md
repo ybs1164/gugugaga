@@ -851,6 +851,12 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-09-30: **UX 개선 계획 — 설명문을 아이콘/그림으로 대체** ([`docs/UxIconizationPlan.md`](docs/UxIconizationPlan.md), 계획만, 코드 변경 없음).
+  - 전 HUD(`ActionMenuHud`/`CityResourceHud`/`TechTreeHud`/`BattleHud`/`SandboxHud`)의 문장형 텍스트를 조사해 Polytopia UI 원칙
+    (아이콘+숫자 칩, 칸 게이지, ⭐비용 배지, 회색+자물쇠, 보상 카드, 기술 해금 아이콘 줄, 도시 배너)에 맞춘 대체안 표로 정리.
+  - 공통 위젯(`IconValueChip`/`CostBadge`/`SegmentGauge`/`IconActionButton`/`StatRow`/`ChoiceCardModal`/`CityBanner`),
+    Systems의 한글 `reason` 문자열 → `BlockReason` enum, CSV `Icon` 열, 신규 아이콘 목록, 5단계 로드맵을 포함.
+
 - 2026-09-30: **배열형 테이블 + 종족/기술 그룹/시작 조건 + 습도 탭 2단계 지형 생성 + 바이옴 선택** (위 절 참고).
   - 새 배열형 표 7개(`Assets/Resources/Tables`), 형식 문서 [`docs/ArrayTables.md`](docs/ArrayTables.md). 기존 표는 그대로.
   - 기술: `TechUnlocks`(해금 내역) → `Techs`(TechTree.csv를 Index 참조로 옮김) → `TechGroups`(종족별 묶음). `TechTreeData.Allowed` +

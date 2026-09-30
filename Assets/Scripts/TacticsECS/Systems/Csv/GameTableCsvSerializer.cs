@@ -30,7 +30,7 @@ namespace TacticsECS
 
         private static readonly string[] BuildingRequired = { "Id", "Terrain" };
         private static readonly string[] BuildingOptional =
-            { "Name", "Unlock", "Cost", "Population", "RequiredStructure", "AdjacentBuilding", "PopulationPerAdjacent", "Flag", "Task", "Description", "Wiki", "Note",
+            { "Name", "Icon", "Unlock", "Cost", "Population", "RequiredStructure", "AdjacentBuilding", "PopulationPerAdjacent", "Flag", "Task", "Description", "Wiki", "Note",
               "RequiredStructures", "AdjacentBuildings", "Flags" };
         private static readonly string[] BuildingLists = { "Terrain", "RequiredStructure", "AdjacentBuilding", "Flag" };
 
@@ -48,6 +48,7 @@ namespace TacticsECS
                 {
                     Id = id,
                     Name = CsvTableReader.Get(t, r, "Name", id),
+                    Icon = CsvTableReader.Get(t, r, "Icon"),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
@@ -80,7 +81,7 @@ namespace TacticsECS
 
         private static readonly string[] TileActionRequired = { "Id", "Kind", "Terrain" };
         private static readonly string[] TileActionOptional =
-            { "Name", "Unlock", "Cost", "RequiredStructure", "Population", "GoldGain", "Description", "Wiki", "Note", "RequiredStructures" };
+            { "Name", "Icon", "Unlock", "Cost", "RequiredStructure", "Population", "GoldGain", "Description", "Wiki", "Note", "RequiredStructures" };
         private static readonly string[] TileActionLists = { "Terrain", "RequiredStructure" };
 
         public static TileActionInfo[] ParseTileActions(string csvText, List<string> errors, string name = "TileActions.csv")
@@ -96,6 +97,7 @@ namespace TacticsECS
                 {
                     Id = id,
                     Name = CsvTableReader.Get(t, r, "Name", id),
+                    Icon = CsvTableReader.Get(t, r, "Icon"),
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TileActionKind.Harvest, errors),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
@@ -114,7 +116,7 @@ namespace TacticsECS
         public static CityRewardInfo[] ParseCityRewards(string csvText, List<string> errors, string name = "CityRewards.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, new[] { "Level", "Reward" }, new[] { "Name", "Amount", "Description", "Wiki", "Note" }, errors);
+            CsvTableReader.CheckColumns(t, new[] { "Level", "Reward" }, new[] { "Name", "Icon", "Amount", "Description", "Wiki", "Note" }, errors);
             var list = new List<CityRewardInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
             {
@@ -124,6 +126,7 @@ namespace TacticsECS
                     Level = CsvTableReader.GetInt(t, r, "Level", 2, errors),
                     Type = type,
                     Name = CsvTableReader.Get(t, r, "Name", type.ToString()),
+                    Icon = CsvTableReader.Get(t, r, "Icon"),
                     Amount = CsvTableReader.GetInt(t, r, "Amount", 0, errors),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 });
@@ -161,7 +164,7 @@ namespace TacticsECS
         public static TaskInfo[] ParseTasks(string csvText, List<string> errors, string name = "Tasks.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, new[] { "Id", "Kind" }, new[] { "Name", "Threshold", "Unlock", "Description", "Wiki", "Note" }, errors);
+            CsvTableReader.CheckColumns(t, new[] { "Id", "Kind" }, new[] { "Name", "Icon", "Threshold", "Unlock", "Description", "Wiki", "Note" }, errors);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var list = new List<TaskInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
@@ -171,6 +174,7 @@ namespace TacticsECS
                 {
                     Id = id,
                     Name = CsvTableReader.Get(t, r, "Name", id),
+                    Icon = CsvTableReader.Get(t, r, "Icon"),
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TaskKind.Kills, errors),
                     Threshold = CsvTableReader.GetInt(t, r, "Threshold", 0, errors),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),

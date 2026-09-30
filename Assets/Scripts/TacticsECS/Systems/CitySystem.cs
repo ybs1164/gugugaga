@@ -556,18 +556,18 @@ namespace TacticsECS
 
         // ---------- 유닛 훈련 ----------
 
-        /// <summary>이 도시에서 row 유닛을 훈련할 수 있는지와, 못 한다면 그 이유.</summary>
-        public static bool CanTrain(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int cityIndex, UnitCsvRow row, out string reason)
+        /// <summary>이 도시에서 row 유닛을 훈련할 수 있는지와, 못 한다면 그 이유(표시 문장/아이콘은 View가 정한다).</summary>
+        public static bool CanTrain(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int cityIndex, UnitCsvRow row, out BlockReason reason)
         {
-            reason = string.Empty;
+            reason = BlockReason.None;
             var city = econ.Cities[cityIndex];
-            if (city.Owner != team) { reason = "우리 도시가 아님"; return false; }
-            if (!IsTrainable(row)) { reason = "훈련 불가(보상/침투 전용)"; return false; }
-            if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = "기술 필요"; return false; }
-            if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
+            if (city.Owner != team) { reason = BlockReason.NotOwnCity; return false; }
+            if (!IsTrainable(row)) { reason = BlockReason.NotTrainable; return false; }
+            if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = BlockReason.NeedTech; return false; }
+            if (grid.IsOccupied(city.Position)) { reason = BlockReason.TileOccupied; return false; }
             int supported = SupportedUnits(world, cityIndex), capacity = CityCapacity(city);
-            if (supported >= capacity) { reason = $"유닛 수용량 ({supported}/{capacity})"; return false; }
-            if (econ.Resources[team].Gold < row.Cost) { reason = $"골드 부족 ({econ.Resources[team].Gold}/{row.Cost})"; return false; }
+            if (supported >= capacity) { reason = BlockReason.CityFull; return false; }
+            if (econ.Resources[team].Gold < row.Cost) { reason = BlockReason.NotEnoughGold; return false; }
             return true;
         }
 

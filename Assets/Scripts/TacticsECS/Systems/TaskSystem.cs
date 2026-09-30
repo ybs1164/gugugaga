@@ -125,32 +125,35 @@ namespace TacticsECS
             return taskId;
         }
 
-        /// <summary>HUD용 진행 문자열(예: "살육자 3/10").</summary>
-        public static string ProgressText(GridWorld grid, EconomyWorld econ, Team team, TaskInfo task)
+        /// <summary>HUD용 진행 값(예: 살육자 3/10). 문장이 아니라 숫자로 돌려주고, 진행 링/칸 게이지로 그리는 것은 View가 한다.</summary>
+        public static TaskProgress Progress(GridWorld grid, EconomyWorld econ, Team team, TaskInfo task)
         {
             var p = econ.Tasks[team];
-            if (p.Completed.Contains(task.Id)) return p.MonumentsBuilt.Contains(task.Id) ? "완료(건설함)" : "달성";
+            var result = new TaskProgress { Target = task.Threshold };
             switch (task.Kind)
             {
-                case TaskKind.TurnsWithoutAttack: return $"{p.TurnsWithoutAttack}/{task.Threshold}턴";
-                case TaskKind.GoldHeld: return $"{econ.Resources[team].Gold}/{task.Threshold}";
-                case TaskKind.Kills: return $"{p.Kills}/{task.Threshold}";
-                case TaskKind.AllLighthouses: return $"{p.LighthousesFound.Count}/{VisionSystem.LighthousePositions(grid).Count}";
+                case TaskKind.TurnsWithoutAttack: result.Current = p.TurnsWithoutAttack; break;
+                case TaskKind.GoldHeld: result.Current = econ.Resources[team].Gold; break;
+                case TaskKind.Kills: result.Current = p.Kills; break;
+                case TaskKind.AllLighthouses:
+                    result.Current = p.LighthousesFound.Count;
+                    result.Target = VisionSystem.LighthousePositions(grid).Count;
+                    break;
                 case TaskKind.ConnectedCities:
-                {
-                    int n = 0;
-                    foreach (var c in econ.Cities) if (c.Owner == team && c.ConnectedToCapital) n++;
-                    return $"{n}/{task.Threshold}";
-                }
+                    foreach (var c in econ.Cities) if (c.Owner == team && c.ConnectedToCapital) result.Current++;
+                    break;
                 case TaskKind.CityLevel:
-                {
-                    int best = 0;
-                    foreach (var c in econ.Cities) if (c.Owner == team) best = Mathf.Max(best, c.Level);
-                    return $"Lv {best}/{task.Threshold}";
-                }
-                case TaskKind.AllTech: return $"{econ.Tech[team].Unlocked.Count}/{econ.TechNodes.Count}";
+                    foreach (var c in econ.Cities) if (c.Owner == team) result.Current = Mathf.Max(result.Current, c.Level);
+                    break;
+                case TaskKind.AllTech:
+                    result.Current = econ.Tech[team].Unlocked.Count;
+                    result.Target = econ.TechNodes.Count;
+                    break;
             }
-            return string.Empty;
+            result.Done = p.Completed.Contains(task.Id);
+            result.MonumentBuilt = result.Done && p.MonumentsBuilt.Contains(task.Id);
+            if (result.Done) result.Current = Mathf.Max(result.Current, result.Target);
+            return result;
         }
     }
 }

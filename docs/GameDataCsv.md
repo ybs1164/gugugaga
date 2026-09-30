@@ -86,6 +86,7 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 |---|---|---|
 | `Id` | O | `TileData.BuildingId`에 저장되는 키. 코드가 특별 취급하는 Id(`Port`/`Road`/`Bridge`/`Market`...)는 바꾸지 말 것 |
 | `Name` | | 표시 이름 |
+| `Icon` | | 메뉴 버튼 아이콘 이름(`Assets/Art/GameIcons/Resources/Icons/<Icon>.png`) — [UX 아이콘화](UxIconizationPlan.md) |
 | `Unlock` | | 필요한 해금 키(TechTree.csv `Unlocks`와 같은 문자열). 비우면 기술 불필요 |
 | `Cost` | | 골드 |
 | `Population` | | 지을 때 도시에 더해지는 고정 인구 |
@@ -103,7 +104,10 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 |---|---|---|
 | `Id` | O | 행동 키 |
 | `Kind` | O | `Harvest`/`ClearForest`/`BurnForest`/`GrowForest`/`Destroy` — 효과 종류(코드) |
-| `Unlock`, `Cost`, `Terrain`, `RequiredStructures`, `Population`, `GoldGain`, `Name`, `Description` | | 건물 표와 같은 의미 |
+| `Unlock`, `Cost`, `Terrain`, `RequiredStructures`, `Population`, `GoldGain`, `Name`, `Icon`, `Description` | | 건물 표와 같은 의미 |
+
+`CityRewards.csv`(레벨업 보상 카드)와 `Tasks.csv`(과업 칩)에도 같은 뜻의 `Icon` 칸이 있다. 네 표 모두 선택 칸이라 비워도 읽히지만,
+비우면 메뉴에 기본 아이콘이 나온다(검증: `MobileUiVerification`이 모든 Icon이 실제 PNG로 있는지 확인).
 
 ### 1-4. 검증과 개선점
 

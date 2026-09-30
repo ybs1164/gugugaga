@@ -1,6 +1,6 @@
 # UX 개선 계획: 설명문을 아이콘/그림으로 대체 (Polytopia UI 레퍼런스)
 
-작성일 2026-09-30. 이번 문서는 계획만 담고 있으며, 코드는 아직 바꾸지 않았다.
+작성일 2026-09-30. 같은 날 1~5단계 대부분과 모바일 레이아웃을 구현했다 — 구현 상태는 맨 아래 [9. 구현 상태](#9-구현-상태-2026-09-30)와 [10. 모바일 레이아웃](#10-모바일-레이아웃).
 
 ## 0. 문제 요약
 
@@ -159,3 +159,31 @@ Polytopia는 같은 정보를 **아이콘+숫자**, **칸이 나뉜 게이지**,
 - Polytopia는 모바일 게임이라 길게 누르기나 ⓘ 버튼으로 설명을 연다. 이 프로젝트는 PC(마우스)가 기준이라 **마우스를 올리면 뜨는 툴팁**(`TooltipTrigger`)을 쓴다.
 - 이 프로젝트의 "발전도(Development)" 자원은 위키에 없는 자원이다(기술 연구 비용). 그래서 별(⭐=골드)과 별도로 `research` 아이콘을 둔다.
 - 아이콘 아트는 Polytopia 원본이 아니라 CC BY 3.0 세트를 쓴다(§1 저작권 주의).
+
+## 9. 구현 상태 (2026-09-30)
+
+| 단계 | 상태 | 구현 |
+| --- | --- | --- |
+| 1. 기반 | 완료 | 아이콘 55종 추가(`Assets/Art/GameIcons/Resources/Icons`, 출처 LICENSE.txt), 공용 부품 [`UiKit`](../Assets/Scripts/TacticsECS/View/Ui/UiKit.cs)(칩/⭐비용 배지/칸 게이지/숫자 배지/원형 아이콘 버튼/Flow 배치), 값→아이콘 매핑 [`MenuIcons`](../Assets/Scripts/TacticsECS/View/Ui/MenuIcons.cs), [`BlockReason`](../Assets/Scripts/TacticsECS/Core/BlockReason.cs) enum — `CitySystem.CanTrain`/`EmbarkSystem.CanUpgrade`/`TileImprovementSystem.GetOptions`가 더 이상 한글 이유 문장을 만들지 않는다. `TaskSystem.ProgressText`(문장) → `TaskSystem.Progress`([`TaskProgress`](../Assets/Scripts/TacticsECS/Core/TaskProgress.cs) 숫자). 자원 바 전용 아이콘(research/population/star), 수입은 괄호 대신 작은 초록 `+n`, 점수는 트로피 아이콘 + 숫자 |
+| 2. 메뉴 아이콘화 | 완료 | [`ActionMenuHud`](../Assets/Scripts/TacticsECS/View/ActionMenuHud.cs) 전면 교체: 머리(대상 아이콘 + 이름 + 레벨 배지 + 인구 칸 게이지 + 상태 칩), 원형 아이콘 버튼 격자(한 단어 이름 + ⭐비용 배지(부족하면 빨강) + 막힌 이유 아이콘 + 대기 보상 수 배지), 설명·결과 칩(`[+2 인구]`)·막힌 이유는 버튼을 누르고 있거나 마우스를 올렸을 때 아래 정보 줄에만. CSV `Icon` 열(건물/타일 행동/보상/과업/해금 내역) |
+| 3. 보상 카드 & 기술 트리 | 완료 | [`RewardCardHud`](../Assets/Scripts/TacticsECS/View/RewardCardHud.cs) — 우리 도시가 레벨업하면 카드 모달이 바로 뜬다(닫으면 도시 메뉴의 보상 버튼). 기술트리: 노드 이름 라벨 → `[전구 비용]` 배지 + 완료 ✓/잠김 🔒 아이콘, 상세 패널 효과 문장 → 해금 아이콘 줄(`TechUnlocks.csv` Icon), 상태 문장 → 아이콘 + 선행 기술 이름/부족 수치, 해금 버튼 → `[전구 n]` |
+| 4. 맵 위 표시 | 대부분 | [`CityBannerHud`](../Assets/Scripts/TacticsECS/View/CityBannerHud.cs)(도시 칸 위 이름 + 수도 왕관 + 레벨 배지 + 인구 칸 게이지 + 보상 대기 아이콘), 이동 칸 = 가운데 점 / 공격 칸 = 네 모서리 조준 괄호(`GridView` — 색과 모양 둘 다), 이번 턴 이동·행동을 모두 마친 아군 유닛은 옷 색을 어둡게(`UnitView`). **남음**: HP 방패 배지(HpDisplay 프리팹 교체가 필요 — Unity CLI 필요), 수확 가능 칸 표시 |
+| 5. 로그 & 마감 | 대부분 | 행동 로그 한 줄 = `[팀 색 점][행위자][행동 아이콘][대상][-3]`(`BattleHud.AddLogEntry(LogLine)`), 경제 로그도 종류 아이콘(건설은 건물 아이콘), 구조물 패널 = 아이콘 + 이름(분위기 문장 제거), 승/패 화면 = 큰 아이콘만. **남음**: 예상 피해 숫자(P8), 유닛 초상 |
+
+원문과 다른 점(이번 구현에서 추가): Polytopia는 레벨업 보상을 고르기 전에는 다른 행동을 막지만, 이 프로젝트는 모달을 X로 닫고 나중에 고를 수 있다
+(도시 메뉴 보상 버튼 + 배너 보상 아이콘) — 샌드박스 테스트 중 흐름을 끊지 않기 위해서다.
+
+## 10. 모바일 레이아웃
+
+| 항목 | 구현 |
+| --- | --- |
+| 세이프 에어리어 | [`ResponsiveCanvas`](../Assets/Scripts/TacticsECS/View/Ui/ResponsiveCanvas.cs)가 각 HUD 캔버스 자식을 런타임에 `SafeArea` 아래로 옮기고 `Screen.safeArea`에 맞춘다(노치/홈 인디케이터). 프리팹은 그대로라 다시 생성할 필요 없음 |
+| 화면 방향 | 세로 화면이면 CanvasScaler 기준 해상도를 1280x720 → 720x1280으로 바꾸고 폭 기준으로 맞춘다. HUD는 `LayoutChanged(portrait)`로 배치를 바꾼다 — 행동 로그는 자원 바 아래로 내려가 5줄로, 상황별 메뉴는 오른쪽 패널 → 유닛 패널 위 전체 폭 하단 시트(길면 스크롤), 기술트리는 폭에 맞게 축소 |
+| 휴대폰 크기 | 짧은 변 물리 길이 4.2인치 미만(`Screen.dpi`, 모르면 `Application.isMobilePlatform`)이면 기준 해상도 x0.75 → UI 약 1.33배. 52px 행동 버튼이 1080p 휴대폰에서 약 9mm(권장 터치 크기) |
+| 터치 입력 | `BattleController.Update`: 탭 = 손가락을 뗄 때 거의 안 움직였으면(160dpi 기준 10px), 한 손가락 끌기 = 카메라 이동(손가락 아래 지면이 따라옴), 두 손가락 = 핀치 줌. 마우스도 같은 규칙(왼쪽 버튼 끌기 = 이동). UI 위에서 시작한 누름은 지도로 새지 않는다(좌표로 직접 UI 레이캐스트 — `ScreenLayout.IsOverUi`) |
+| 툴팁 | 터치에는 호버가 없어서, 누르고 있는 동안 보이고 뗀 뒤 2.5초 남는다(`BattleHud`/`ActionMenuHud`/기술트리). 상황별 메뉴는 오른쪽 위 X로 닫는다 |
+| 방향 설정 | `ProjectSettings` 자동 회전(세로/가로 모두 허용)은 이미 켜져 있었다 |
+
+검증: 이 작업 환경에는 Unity 에디터가 없어 Unity 배치모드를 돌리지 못했다. 대신 Unity 2021.3 참조 어셈블리(NuGet `UnityEngine.Modules`) + uGUI 소스 + Input System 최소 스텁으로
+런타임 스크립트 전체를 Roslyn으로 컴파일해 오류 0개를 확인했고, 에디터 스크립트도 UnityEditor API를 뺀 나머지 바인딩 오류가 없음을 확인했다.
+Unity에서 `unity run . -- -nographics -executeMethod TacticsECS.EditorTools.VerificationSuite.Run`(새 `MobileUiVerification` 포함)을 한 번 돌려야 한다.

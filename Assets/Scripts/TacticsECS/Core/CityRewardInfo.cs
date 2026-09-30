@@ -10,6 +10,8 @@ namespace TacticsECS
         public int Level;
         public CityRewardType Type;
         public string Name;
+        /// <summary>IconLibrary.Get에 넘기는 아이콘 이름(Assets/Art/GameIcons/Resources/Icons, CSV Icon 칸). 메뉴 버튼/기술 해금 줄에 쓴다.</summary>
+        public string Icon;
 
         /// <summary>보상 크기 — 종류마다 뜻이 다르다(공방/공원 = 골드/턴, 자원 = 골드, 인구 성장 = 인구, 국경 확장 = 새 반경).
         /// 탐험가/성벽/슈퍼 유닛은 쓰지 않는다(각각 GameRules.Vision/Combat, 유닛 CSV가 정한다).</summary>

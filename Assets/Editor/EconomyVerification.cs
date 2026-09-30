@@ -234,7 +234,7 @@ namespace TacticsECS.EditorTools
             // 훈련.
             Give(econ, p, 10, 0);
             Check(!CitySystem.CanTrain(grid, world, econ, p, 0, econ.UnitRows[0], out _), "can't train on occupied city tile");
-            Check(CitySystem.CanTrain(grid, world, econ, p, 1, econ.UnitRows[0], out var why0) || why0 == "도시 칸이 비어있지 않음", "train infantry in village (or blocked by capturer)");
+            Check(CitySystem.CanTrain(grid, world, econ, p, 1, econ.UnitRows[0], out var why0) || why0 == BlockReason.TileOccupied, "train infantry in village (or blocked by capturer)");
             Check(!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[p], "shield"), "shield locked without Shields");
         }
 
@@ -330,7 +330,7 @@ namespace TacticsECS.EditorTools
             int occ = grid.GetOccupant(capPos);
             if (occ != TileData.NoOccupant) { grid.RemoveOccupant(capPos); world.Set(occ, new GridPosition { Value = new Vector2Int(0, 9) }); grid.PlaceOccupant(new Vector2Int(0, 9), occ); }
             Give(econ, p, 20, 0);
-            Check(!CitySystem.CanTrain(grid, world, econ, p, cap, econ.UnitRows[0], out var why) && why.StartsWith("유닛 수용량"), $"full capital cannot train (reason '{why}')");
+            Check(!CitySystem.CanTrain(grid, world, econ, p, cap, econ.UnitRows[0], out var why) && why == BlockReason.CityFull, $"full capital cannot train (reason '{why}')");
 
             // 마을 점령: 점령한 유닛은 새 도시 소속 -> 수도 자리가 하나 빈다.
             var village = new Vector2Int(5, 2);
@@ -500,7 +500,7 @@ namespace TacticsECS.EditorTools
             Build(forge, "Forge"); Check(Pop() == pop + 2, "forge +2 per mine"); pop = Pop();
             // 위키 Sawmill/Windmill/Forge: 도시당 1개. 두 번째 제재소는 인접 벌목장이 있어도 막힌다.
             var saw2 = new Vector2Int(0, 2);
-            Check(TileImprovementSystem.GetOptions(grid, econ, p, saw2).Exists(o => o.Id == "Sawmill" && !o.Enabled && o.Detail == "도시당 1개"),
+            Check(TileImprovementSystem.GetOptions(grid, econ, p, saw2).Exists(o => o.Id == "Sawmill" && !o.Enabled && o.Block == BlockReason.OnePerCity),
                 "second sawmill in the same city is disabled (one per city)");
             Check(TileImprovementSystem.GetOptions(grid, econ, p, saw2).Exists(o => o.Id == "Market"), "market has no per-city limit (option still listed)");
             Build(market, "Market"); Check(Pop() == pop, "market gives no population");

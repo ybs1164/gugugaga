@@ -113,21 +113,21 @@ namespace TacticsECS
         }
 
         /// <summary>뗏목을 이 배로 업그레이드할 수 있는지(뗏목 상태, 자기 영토, 기술, 골드)와 못 하면 그 이유.</summary>
-        public static bool CanUpgrade(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, string navalUnitId, out string reason)
+        public static bool CanUpgrade(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, string navalUnitId, out BlockReason reason)
         {
-            reason = string.Empty;
-            if (econ == null || !UnitQueries.IsAlive(world, unitId)) { reason = "유닛 없음"; return false; }
-            if (NavalUnitId(world, unitId) != NavalUnitDefinition.RaftId) { reason = "뗏목만 업그레이드"; return false; }
+            reason = BlockReason.None;
+            if (econ == null || !UnitQueries.IsAlive(world, unitId)) { reason = BlockReason.InvalidTarget; return false; }
+            if (NavalUnitId(world, unitId) != NavalUnitDefinition.RaftId) { reason = BlockReason.InvalidTarget; return false; }
             var team = world.Get<Team>(unitId);
             foreach (var u in NavalUnitDefinition.Upgrades)
             {
                 if (u.Row.Id != navalUnitId) continue;
-                if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], u.UnlockKey)) { reason = "기술 필요"; return false; }
-                if (!CitySystem.IsOwnTerritory(grid, team, world.Get<GridPosition>(unitId).Value)) { reason = "자기 영토 안에서만"; return false; }
-                if (econ.Resources[team].Gold < u.Row.Cost) { reason = $"골드 부족 ({econ.Resources[team].Gold}/{u.Row.Cost})"; return false; }
+                if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], u.UnlockKey)) { reason = BlockReason.NeedTech; return false; }
+                if (!CitySystem.IsOwnTerritory(grid, team, world.Get<GridPosition>(unitId).Value)) { reason = BlockReason.OutsideTerritory; return false; }
+                if (econ.Resources[team].Gold < u.Row.Cost) { reason = BlockReason.NotEnoughGold; return false; }
                 return true;
             }
-            reason = "알 수 없는 배";
+            reason = BlockReason.InvalidTarget;
             return false;
         }
 

@@ -20,7 +20,7 @@ namespace TacticsECS
 
         public static TechUnlockRow[] ParseTechUnlocks(string text, List<string> errors = null)
         {
-            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Category" }, new[] { "Target", "Name", "Description", "Note" }, null, errors);
+            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Category" }, new[] { "Target", "Name", "Icon", "Description", "Note" }, null, errors);
             var rows = new TechUnlockRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
                 rows[r] = new TechUnlockRow
@@ -29,6 +29,7 @@ namespace TacticsECS
                     Category = CsvTableReader.Get(t, r, "Category"),
                     Target = CsvTableReader.Get(t, r, "Target"),
                     Name = CsvTableReader.Get(t, r, "Name"),
+                    Icon = CsvTableReader.Get(t, r, "Icon"),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 };
             return rows;
@@ -177,8 +178,8 @@ namespace TacticsECS
         // ---------- 쓰기(왕복/템플릿 내보내기용) ----------
 
         public static string WriteTechUnlocks(IReadOnlyList<TechUnlockRow> rows) =>
-            Write(new[] { "Index", "Category", "Target", "Name", "Description" }, rows, null,
-                r => new[] { I(r.Index), r.Category, r.Target, r.Name, r.Description }, null, null);
+            Write(new[] { "Index", "Category", "Target", "Name", "Icon", "Description" }, rows, null,
+                r => new[] { I(r.Index), r.Category, r.Target, r.Name, r.Icon, r.Description }, null, null);
 
         public static string WriteTechs(IReadOnlyList<TechRow> rows) =>
             Write(new[] { "Index", "Id", "Name", "ParentIndex", "Tier", "Slot", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",

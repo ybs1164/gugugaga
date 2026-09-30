@@ -229,18 +229,22 @@ Melee/Ranged/Guard 3종에는 영향 없고, [`ExtraCharacterPrefabSetup`](Asset
 - **유닛 선택 / 포커스**: 자기 팀(플레이어) 유닛을 좌클릭하면 선택된다. 선택 해제 없이 다른 유닛/건물/타일을 누르면 포커스가 바로 그쪽으로 넘어간다
   (아군 유닛 → 선택, 적이나 행동을 마친 유닛 → 정보 패널, 빈 칸/도시/건물 → 칸 정보·메뉴). 선택 중에 공격 대상이나 이동 가능 칸을 누르면 공격/이동이 우선이다.
 - **겹친 대상 순환**: 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면 같은 칸을 다시 누를 때마다 유닛 → 칸 → 유닛 … 순으로 포커스가 하나씩 넘어간다.
-- **이동**: 유닛 선택 시 파란색으로 하이라이트된 타일이 이동 가능 범위. 그 타일을 클릭하면 이동한다 (턴당 1회). 기본적으로 이번 턴 이미 공격한 유닛은 이동할 수 없다 — 대피(Retreat) 패시브가 있으면 예외.
-- **공격**: 하이라이트된 빨간 타일 위의 적 유닛을 클릭하면 공격한다 (턴당 1회). 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다 — 돌격(Charge) 패시브가 있으면 예외.
+- **모바일(터치)**: 탭 = 클릭(손가락을 뗄 때 거의 움직이지 않았을 때), 한 손가락 끌기 = 카메라 이동, 두 손가락 벌리기/오므리기 = 줌.
+  마우스도 같은 규칙이라 왼쪽 버튼으로 지도를 끌면 카메라가 움직이고, 클릭은 버튼을 뗄 때 적용된다. 세로/가로 화면, 노치(세이프 에어리어)에
+  맞춰 HUD가 다시 배치된다 — 자세한 내용은 아래 [아이콘 UI · 모바일 레이아웃](#아이콘-ui--모바일-레이아웃).
+- **이동**: 유닛 선택 시 파란색으로 하이라이트된 타일(가운데 흰 점)이 이동 가능 범위. 그 타일을 클릭하면 이동한다 (턴당 1회). 기본적으로 이번 턴 이미 공격한 유닛은 이동할 수 없다 — 대피(Retreat) 패시브가 있으면 예외.
+- **공격**: 하이라이트된 빨간 타일(네 모서리 노란 조준 괄호) 위의 적 유닛을 클릭하면 공격한다 (턴당 1회). 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다 — 돌격(Charge) 패시브가 있으면 예외.
 - **행동 버튼**(화면 우하단): 선택한 유닛의 `AvailableActions`에 있는 행동만, 아직 행동하지 않았을 때만 나타난다 — 방어 태세(Guard), 치유(Ranged), 자폭(Melee)은 모두 대상 선택 없이 버튼 클릭 한 번으로 즉시 적용된다.
 - **행동 설명 툴팁**: 행동 버튼(방어/치유/자폭/선택 해제/턴 종료) 위에 마우스를 올리면, 버튼 줄 바로 위 한 구역에 그 행동에 대한 설명이 뜬다.
 - **유닛 로스터**(화면 좌상단, 턴 배지 바로 아래): 살아있는 모든 유닛(양 팀)을 체력 아이콘 + 현재 HP 숫자 한 줄씩으로 보여준다. 수가 많으면(스트레스 테스트) 스크롤된다.
-- **행동 로그**(화면 우상단): 이동/공격/반격/방어/치유/자폭/대기/쓰러짐 등 모든 유닛의 행동을 팀 색으로 구분해 한 줄 요약으로 보여준다. 최근 9줄만 유지되며 오래된 줄은 자동으로 사라진다.
+- **행동 로그**(화면 우상단): 이동/공격/반격/방어/치유/자폭/대기/쓰러짐 등 모든 유닛의 행동을 `[팀 색 점][행위자][행동 아이콘][대상][-3]`처럼
+  아이콘으로 한 줄씩 보여준다. 최근 9줄(세로 화면 5줄)만 유지되며 오래된 줄은 자동으로 사라진다.
 - **피해 팝업**: 유닛이 공격/반격/자폭으로 피해를 입으면 그 위에 "-숫자"가 잠깐 떠올랐다 사라진다.
 - **선택 해제** 버튼: 현재 선택을 취소한다.
 - **턴 종료** 버튼: 플레이어 턴을 마치고 적 턴으로 넘긴다. 적 턴은 [`EnemyAI`](Assets/Scripts/TacticsECS/Systems/EnemyAI.cs)가 자동으로 진행하며 별도 입력이 필요 없다.
-- 한쪽 팀 유닛이 전멸하면 자동으로 전투가 종료되고 좌상단에 "승리!"/"패배..." 메시지가 표시된다.
+- 한쪽 팀 유닛이 전멸하면 자동으로 전투가 종료되고 화면 가운데 큰 트로피(승리)/해골(패배) 아이콘이 팀 색으로 표시된다.
 - **카메라 이동**: `W`/`A`/`S`/`D` 또는 방향키로 화면을 팬(pan)한다. isometric 시점 기준 화면상의 상/하/좌/우로 움직인다.
-- **카메라 줌**: 마우스 휠로 확대/축소한다. 턴/전투 상태와 무관하게 항상 조작 가능.
+- **카메라 줌**: 마우스 휠(터치는 핀치)로 확대/축소한다. 턴/전투 상태와 무관하게 항상 조작 가능.
 
 ## 카메라
 
@@ -720,8 +724,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   `CitySystem.RefreshConnections`가 도로/도시/항구를 8방향으로 탐색해 기록한 값을 돌려준다).
 - 영토 회복: [`WaitAction.IsInOwnTerritory`](Assets/Scripts/TacticsECS/Actions/WaitAction.cs)가 서 있는 칸의 `TileData.OwnerTeam`을 봐서
   자기 영토면 4 회복(아니면 2).
-- [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`: 발전도/골드는
-  "보유량 (+턴당 생산량)"으로 보여준다. 시작값은 `BattleController` 인스펙터의 `startingGold`/`startingDevelopment`(기본 5/5,
+- [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`: 발전도(전구)/인구(사람)/골드(별)
+  아이콘 + "보유량 +턴당 생산량"(생산량은 작은 초록 숫자)으로 보여준다. 점수는 트로피 아이콘 + 내 점수 · 적 점수(적 색). 시작값은 `BattleController` 인스펙터의 `startingGold`/`startingDevelopment`(기본 5/5,
   폴리토피아 시작 별 5 — 지금은 `GameRules.csv` `Economy.*`).
 
 ## 기술트리 (CSV)
@@ -849,7 +853,38 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 원문과 다른 점: Drylands도 아웃라인에서는 노이즈 마스크(목표 물 비율 순위 컷)를 쓴다(슬라이더로 비율을 맞추기 위함). Luxidoor "레벨 3 수도로
   시작"은 아직 없다. 종족 고유 지형 배수는 기본 바이옴 3개로 근사한다.
 
+## 아이콘 UI · 모바일 레이아웃
+
+계획: [`docs/UxIconizationPlan.md`](docs/UxIconizationPlan.md) (Polytopia UI 레퍼런스 — 설명문을 아이콘/그림으로). 9·10절에 구현 상태.
+
+- **원칙**: 자원/능력치는 `[아이콘][숫자]` 칩(라벨 단어 없음), 구매는 ⭐비용 배지(모자라면 빨강), 인구는 칸 게이지, 못 쓰는 버튼은 회색 + 이유 아이콘(🔒 기술, ⭐ 골드, …).
+  설명 문장은 버튼을 누르고 있거나(터치) 마우스를 올렸을 때만 정보 줄/툴팁에 나온다.
+- **공용 부품**: [`UiKit`](Assets/Scripts/TacticsECS/View/Ui/UiKit.cs)(칩/비용 배지/칸 게이지/숫자 배지/원형 아이콘 버튼), 값→아이콘 매핑
+  [`MenuIcons`](Assets/Scripts/TacticsECS/View/Ui/MenuIcons.cs). 아이콘 55종 추가(game-icons.net CC BY 3.0, `Assets/Art/GameIcons/LICENSE.txt`).
+- **데이터**: `Buildings.csv`/`TileActions.csv`/`CityRewards.csv`/`Tasks.csv`/`Tables/TechUnlocks.csv`에 `Icon` 열. Systems는 표시 문장 대신 값만 돌려준다 —
+  비활성 이유는 [`BlockReason`](Assets/Scripts/TacticsECS/Core/BlockReason.cs) enum, 과업 진행은 [`TaskProgress`](Assets/Scripts/TacticsECS/Core/TaskProgress.cs).
+- **상황별 메뉴**([`ActionMenuHud`](Assets/Scripts/TacticsECS/View/ActionMenuHud.cs)): 머리(아이콘 + 이름 + 레벨 배지 + 인구 게이지 + 상태 칩) + 원형 아이콘 버튼 격자 + 아래 정보 줄.
+  도시 메뉴 칩: 유닛 수용량, 골드 수입, 수도 연결/공방/성벽/공원, (수도) 과업 진행. 유닛 메뉴: 소속 도시 칩 + 베테랑까지 처치 수 게이지.
+- **레벨업 보상**([`RewardCardHud`](Assets/Scripts/TacticsECS/View/RewardCardHud.cs)): 우리 도시가 레벨업하면 그림 카드 2장 모달이 바로 뜬다. X로 닫으면 도시 메뉴의 보상 버튼(대기 수 배지)으로 다시 연다.
+- **기술트리**: 노드 이름 대신 `[전구 비용]` 배지 + 완료/잠김 아이콘, 상세 패널은 효과 문장 대신 해금 아이콘 줄(누르면 이름/설명).
+- **지도 위**: 도시 배너([`CityBannerHud`](Assets/Scripts/TacticsECS/View/CityBannerHud.cs) — 이름/수도 왕관/레벨/인구 게이지/보상 대기), 이동 칸 점·공격 칸 조준 괄호,
+  행동을 모두 마친 아군 유닛은 어둡게.
+- **모바일**: [`ResponsiveCanvas`](Assets/Scripts/TacticsECS/View/Ui/ResponsiveCanvas.cs)가 모든 HUD 캔버스를 세이프 에어리어로 감싸고, 세로 화면이면 기준 해상도를
+  720x1280으로 돌리고, 휴대폰(짧은 변 4.2인치 미만)이면 UI를 약 1.33배 키운다. 세로 화면: 행동 로그는 자원 바 아래 5줄, 상황별 메뉴는 하단 시트, 기술트리는 축소.
+  입력은 탭/끌기(카메라 이동)/핀치 줌([`ScreenLayout`](Assets/Scripts/TacticsECS/View/Ui/ScreenLayout.cs) + `BattleController.Update`).
+- **검증**: 새 [`MobileUiVerification`](Assets/Editor/MobileUiVerification.cs)(CSV·MenuIcons 아이콘 존재, SafeArea 감싸기, 메뉴 버튼/닫기, 보상 카드 선택)을
+  `VerificationSuite`에 추가. `UIVerification`/`EconomyVerification`은 새 구조(SafeArea 경로, 아이콘 로그, BlockReason)에 맞게 고쳤다.
+
 ## 작업 로그
+
+- 2026-09-30: **UX 개선 계획 이행 — 설명문 아이콘화 + 모바일 레이아웃** (위 [아이콘 UI · 모바일 레이아웃](#아이콘-ui--모바일-레이아웃), 계획 문서 9·10절).
+  - 아이콘 55종(game-icons.net SVG → 256px PNG), CSV `Icon` 열 5개 표, `BlockReason`/`TaskProgress`로 Systems의 한글 문장 제거.
+  - `ActionMenuHud` 아이콘 버튼 격자로 교체, `RewardCardHud`(보상 카드 모달), `CityBannerHud`(도시 배너), 기술트리/자원 바/점수/로그/구조물 패널/승패 화면 아이콘화,
+    이동·공격 칸 모양 표시, 행동 마친 유닛 어둡게.
+  - 모바일: `ResponsiveCanvas`(세이프 에어리어·세로 화면·휴대폰 크기), 터치 입력(탭/끌기 이동/핀치 줌), 터치 툴팁 유지, 메뉴 X 닫기.
+  - 검증: 이 환경엔 Unity가 없어 배치모드는 못 돌렸다. Unity 2021.3 참조 어셈블리 + uGUI 소스 + Input System 스텁으로 런타임 스크립트 전체를 Roslyn 컴파일 —
+    오류 0. CSV/코드가 참조하는 아이콘 이름이 전부 PNG로 있는지 스크립트로 확인. **Unity에서 `VerificationSuite.Run`을 한 번 돌려 확인 필요.**
+  - 남은 것: HP 방패 배지(프리팹 교체), 수확 가능 칸 표시, 공격 예상 피해 숫자, 유닛 초상.
 
 - 2026-09-30: **UX 개선 계획 — 설명문을 아이콘/그림으로 대체** ([`docs/UxIconizationPlan.md`](docs/UxIconizationPlan.md), 계획만, 코드 변경 없음).
   - 전 HUD(`ActionMenuHud`/`CityResourceHud`/`TechTreeHud`/`BattleHud`/`SandboxHud`)의 문장형 텍스트를 조사해 Polytopia UI 원칙

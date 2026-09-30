@@ -56,7 +56,66 @@ Icons used (Assets/Art/GameIcons/Resources/Icons):
   spiritualism.png(강신술 - 불꽃), fishing.png(낚시 - 물고기), ramming.png(충파 - 충각),
   sailing.png(배 타기 - 범선), aquatics.png(수생학 - 파도), navigation.png(항해 - 나침반)
 
-Attribution: Icons by Lorc, Delapouite, Sbed and Skoll, available on
+  UX 아이콘화(docs/UxIconizationPlan.md) 아이콘 55종 - game-icons.net SVG(github.com/game-icons/icons)를
+  검은 배경 사각형만 지우고 흰색 실루엣/투명 배경 256x256 PNG로 변환(cairosvg). 원본 그대로, CC BY 3.0:
+
+  star.png           "Round star" by Delapouite    https://game-icons.net/1x1/delapouite/round-star.html
+  population.png     "Person" by Delapouite    https://game-icons.net/1x1/delapouite/person.html
+  research.png       "Light bulb" by Lorc          https://game-icons.net/1x1/lorc/light-bulb.html
+  crown.png          "Crown" by Lorc          https://game-icons.net/1x1/lorc/crown.html
+  lock.png           "Padlock" by Lorc          https://game-icons.net/1x1/lorc/padlock.html
+  check.png          "Check mark" by Delapouite    https://game-icons.net/1x1/delapouite/check-mark.html
+  warning.png        "Hazard sign" by Lorc          https://game-icons.net/1x1/lorc/hazard-sign.html
+  city.png           "Castle" by Lorc          https://game-icons.net/1x1/lorc/castle.html
+  village.png        "Village" by Delapouite    https://game-icons.net/1x1/delapouite/village.html
+  ruin.png           "Ancient ruins" by Delapouite    https://game-icons.net/1x1/delapouite/ancient-ruins.html
+  wall.png           "Stone wall" by Delapouite    https://game-icons.net/1x1/delapouite/stone-wall.html
+  workshop.png       "Hammer nails" by Lorc          https://game-icons.net/1x1/lorc/hammer-nails.html
+  park.png           "Oak" by Lorc          https://game-icons.net/1x1/lorc/oak.html
+  explorer.png       "Compass" by Lorc          https://game-icons.net/1x1/lorc/compass.html
+  border.png         "Expand" by Delapouite    https://game-icons.net/1x1/delapouite/expand.html
+  road.png           "Road" by Delapouite    https://game-icons.net/1x1/delapouite/road.html
+  bridge.png         "Stone bridge" by Delapouite    https://game-icons.net/1x1/delapouite/stone-bridge.html
+  unit.png           "Crossed swords" by Lorc          https://game-icons.net/1x1/lorc/crossed-swords.html
+  lumber_hut.png     "Wood cabin" by Delapouite    https://game-icons.net/1x1/delapouite/wood-cabin.html
+  farm.png           "Barn" by Delapouite    https://game-icons.net/1x1/delapouite/barn.html
+  mine.png           "Mining" by Lorc          https://game-icons.net/1x1/lorc/mining.html
+  port.png           "Harbor dock" by Delapouite    https://game-icons.net/1x1/delapouite/harbor-dock.html
+  sawmill.png        "Hand saw" by Delapouite    https://game-icons.net/1x1/delapouite/hand-saw.html
+  windmill.png       "Windmill" by Delapouite    https://game-icons.net/1x1/delapouite/windmill.html
+  forge.png          "Anvil impact" by Lorc          https://game-icons.net/1x1/lorc/anvil-impact.html
+  market.png         "Shop" by Delapouite    https://game-icons.net/1x1/delapouite/shop.html
+  temple.png         "Greek temple" by Delapouite    https://game-icons.net/1x1/delapouite/greek-temple.html
+  monument.png       "Obelisk" by Delapouite    https://game-icons.net/1x1/delapouite/obelisk.html
+  clear_forest.png   "Axe in stump" by Lorc          https://game-icons.net/1x1/lorc/axe-in-stump.html
+  burn_forest.png    "Burning forest" by Delapouite    https://game-icons.net/1x1/delapouite/burning-forest.html
+  grow_forest.png    "Tree growth" by Delapouite    https://game-icons.net/1x1/delapouite/tree-growth.html
+  destroy.png        "Wrecking ball" by Lorc          https://game-icons.net/1x1/lorc/wrecking-ball.html
+  fruit.png          "Shiny apple" by Lorc          https://game-icons.net/1x1/lorc/shiny-apple.html
+  crop.png           "Wheat" by Lorc          https://game-icons.net/1x1/lorc/wheat.html
+  animal.png         "Deer" by Caro Asercion https://game-icons.net/1x1/caro-asercion/deer.html
+  metal.png          "Crystal cluster" by Lorc          https://game-icons.net/1x1/lorc/crystal-cluster.html
+  fish.png           "Angler fish" by Lorc          https://game-icons.net/1x1/lorc/angler-fish.html
+  starfish.png       "Sea star" by Delapouite    https://game-icons.net/1x1/delapouite/sea-star.html
+  lighthouse.png     "Stone tower" by Lorc          https://game-icons.net/1x1/lorc/stone-tower.html
+  field.png          "Field" by Lorc          https://game-icons.net/1x1/lorc/field.html
+  forest.png         "Pine tree" by Lorc          https://game-icons.net/1x1/lorc/pine-tree.html
+  mountain.png       "Mountains" by Lorc          https://game-icons.net/1x1/lorc/mountains.html
+  shallow_water.png  "Wave crest" by Lorc          https://game-icons.net/1x1/lorc/wave-crest.html
+  ocean.png          "Big wave" by Lorc          https://game-icons.net/1x1/lorc/big-wave.html
+  capture.png        "Flag objective" by Delapouite    https://game-icons.net/1x1/delapouite/flag-objective.html
+  promote.png        "Star medal" by Delapouite    https://game-icons.net/1x1/delapouite/star-medal.html
+  disband.png        "Recycle" by Lorc          https://game-icons.net/1x1/lorc/recycle.html
+  ship.png           "Sailboat" by Delapouite    https://game-icons.net/1x1/delapouite/sailboat.html
+  explore.png        "Treasure map" by Lorc          https://game-icons.net/1x1/lorc/treasure-map.html
+  task.png           "Scroll unfurled" by Lorc          https://game-icons.net/1x1/lorc/scroll-unfurled.html
+  reward.png         "Open treasure chest" by Skoll         https://game-icons.net/1x1/skoll/open-treasure-chest.html
+  build.png          "Gear hammer" by Lorc          https://game-icons.net/1x1/lorc/gear-hammer.html
+  levelup.png        "Upgrade" by Delapouite    https://game-icons.net/1x1/delapouite/upgrade.html
+  growth.png         "Sprout" by Lorc          https://game-icons.net/1x1/lorc/sprout.html
+  info.png           "Info" by Delapouite    https://game-icons.net/1x1/delapouite/info.html
+
+Attribution: Icons by Lorc, Delapouite, Sbed, Skoll and Caro Asercion, available on
 https://game-icons.net, under CC BY 3.0. (counter.png/charge.png/retreat.png/ambush.png/
 infiltrate.png/herd.png/convert.png/combo.png/scout.png/splash.png/stiff.png/freeze.png/
 기술트리 아이콘 26종 제외 — 전부 자체 제작)

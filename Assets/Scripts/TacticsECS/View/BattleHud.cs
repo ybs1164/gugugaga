@@ -18,6 +18,19 @@ namespace TacticsECS
     /// 붙어 인스턴스화된다 — Init()은 그 안에서 필요한 자식을 이름으로 찾아(Wire*) 참조를 캐싱하고,
     /// 아이콘 스프라이트 지정/버튼 클릭 이벤트 연결처럼 "코드로만 가능한" 부분만 마저 채운다.
     /// </summary>
+    /// <summary>행동 로그 한 줄(순수 값): [팀 색 점][행위자][행동 아이콘][대상][숫자]. 동사 문장("공격 →") 대신 아이콘을 쓴다.</summary>
+    public struct LogLine
+    {
+        public Color ActorColor;
+        public string Actor;
+        public string Icon;
+        public Color IconTint;
+        public Color TargetColor;
+        public string Target;
+        public string Amount;
+        public Color AmountColor;
+    }
+
     public class BattleHud : MonoBehaviour
     {
         public event Action OnEndTurnClicked;
@@ -141,6 +154,34 @@ namespace TacticsECS
             HideStructurePanel();
             SetUnitActions(ActionType.None, hasActed: true);
             SetDeselectVisible(false);
+
+            // 모바일: 세이프 에어리어 + 세로 화면 배치(ResponsiveCanvas). 자식을 이름으로 찾는 Wire*가 끝난 뒤에 감싼다.
+            _responsive = ResponsiveCanvas.Attach(canvas);
+            _responsive.LayoutChanged += ApplyLayout;
+            ApplyLayout(_responsive.Portrait);
+        }
+
+        private ResponsiveCanvas _responsive;
+
+        /// <summary>세로 화면이면 우상단 행동 로그를 자원 바/기술 버튼 아래로 내리고 폭/줄 수를 줄인다(상단 가운데 자원 바와
+        /// 겹치지 않게). 좌하단 유닛 패널, 우하단 행동 버튼, 좌상단 턴 배지/로스터는 세로 화면에서도 그대로 들어간다.</summary>
+        private void ApplyLayout(bool portrait)
+        {
+            if (_logPanel == null) return;
+            if (portrait)
+            {
+                float width = Mathf.Min(_logLandscapeSize.x, _responsive.Size.x * 0.42f);
+                _logPanel.sizeDelta = new Vector2(width, PortraitLogLines * LogLineHeight + 12f);
+                _logPanel.anchoredPosition = new Vector2(_logLandscapePos.x, PortraitLogTop);
+                _visibleLogLines = PortraitLogLines;
+            }
+            else
+            {
+                _logPanel.sizeDelta = _logLandscapeSize;
+                _logPanel.anchoredPosition = _logLandscapePos;
+                _visibleLogLines = MaxLogLines;
+            }
+            LayoutLogLines();
         }
 
         /// <summary>새 Input System 기준(activeInputHandler=Input System Package)이라 uGUI 클릭을
@@ -272,49 +313,80 @@ namespace TacticsECS
         private const int MaxLogLines = 9;
         private const float LogLineHeight = 19f;
 
+        /// <summary>세로 화면: 자원 바(40) + 점수 줄 + 기술트리 버튼(y -64 ~ -94) 아래.</summary>
+        private const float PortraitLogTop = -104f;
+        private const int PortraitLogLines = 5;
+
         private RectTransform _logContent;
-        private readonly List<Text> _logLines = new List<Text>();
+        private RectTransform _logPanel;
+        private Vector2 _logLandscapeSize;
+        private Vector2 _logLandscapePos;
+        private int _visibleLogLines = MaxLogLines;
+        private readonly List<RectTransform> _logLines = new List<RectTransform>();
 
         private void WireActionLog(Transform canvas)
         {
             var panel = canvas.Find("ActionLog");
+            _logPanel = (RectTransform)panel;
+            _logLandscapeSize = _logPanel.sizeDelta;
+            _logLandscapePos = _logPanel.anchoredPosition;
             _logContent = (RectTransform)panel.Find("Content");
         }
 
         /// <summary>행동 한 줄을 로그 맨 위에 추가한다. 스크롤 없이, 슈팅 게임 킬피드처럼 오래된 줄이
         /// 아래로 밀려나다가 MaxLogLines를 넘으면 사라지는 방식 — 최근 행동만 항상 한눈에 보이면 충분하고
-        /// (자세한 기록을 남기는 목적이 아니다), 목록이 계속 늘어나 무거워지지도 않는다. richText 색
-        /// 태그(BattleController.FormatLogEntry)로 팀을 구분해서 보여준다.</summary>
-        public void AddLogEntry(string richText)
+        /// (자세한 기록을 남기는 목적이 아니다), 목록이 계속 늘어나 무거워지지도 않는다.
+        /// 한 줄은 [팀 색 점][행위자][행동 아이콘][대상][숫자] — 동사 문장 대신 아이콘(docs/UxIconizationPlan.md 2.5).</summary>
+        public void AddLogEntry(LogLine line)
         {
-            var lineGo = new GameObject("Line", typeof(RectTransform));
-            lineGo.transform.SetParent(_logContent, false);
-            var rect = (RectTransform)lineGo.transform;
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = new Vector2(0f, LogLineHeight);
+            var row = UiKit.Rect("Line", _logContent);
+            row.anchorMin = new Vector2(0f, 1f);
+            row.anchorMax = new Vector2(1f, 1f);
+            row.pivot = new Vector2(0f, 1f);
+            row.sizeDelta = new Vector2(0f, LogLineHeight);
 
-            var text = lineGo.AddComponent<Text>();
-            text.font = uiFont;
-            text.fontSize = 14;
-            text.color = Color.white;
-            text.alignment = TextAnchor.MiddleLeft;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Truncate;
-            text.supportRichText = true;
-            text.text = richText;
+            float x = 0f;
+            var dot = UiKit.Image(row, "Dot", RuntimeSprite.CreateCircle(), line.ActorColor);
+            UiKit.TopLeft(dot.rectTransform, new Vector2(8f, 8f)).anchoredPosition = new Vector2(x, -(LogLineHeight - 8f) * 0.5f);
+            x += 12f;
+            x = AddLogText(row, line.Actor, line.ActorColor, x);
+            if (!string.IsNullOrEmpty(line.Icon))
+            {
+                var icon = UiKit.Icon(row, line.Icon, line.IconTint.a > 0f ? line.IconTint : Color.white, LogLineHeight - 4f);
+                icon.rectTransform.anchoredPosition = new Vector2(x, -2f);
+                x += LogLineHeight;
+            }
+            x = AddLogText(row, line.Target, line.TargetColor, x);
+            AddLogText(row, line.Amount, line.AmountColor.a > 0f ? line.AmountColor : Color.white, x);
 
-            _logLines.Insert(0, text);
+            _logLines.Insert(0, row);
             if (_logLines.Count > MaxLogLines)
             {
                 var oldest = _logLines[_logLines.Count - 1];
                 _logLines.RemoveAt(_logLines.Count - 1);
                 Destroy(oldest.gameObject);
             }
+            LayoutLogLines();
+        }
 
+        private float AddLogText(RectTransform row, string text, Color color, float x)
+        {
+            if (string.IsNullOrEmpty(text)) return x;
+            var t = UiKit.Label(row, uiFont, text, 14, color.a > 0f ? color : Color.white);
+            UiKit.TopLeft(t.rectTransform, new Vector2(0f, LogLineHeight));
+            float w = UiKit.TextWidth(t);
+            t.rectTransform.sizeDelta = new Vector2(w, LogLineHeight);
+            t.rectTransform.anchoredPosition = new Vector2(x, 0f);
+            return x + w + 4f;
+        }
+
+        private void LayoutLogLines()
+        {
             for (int i = 0; i < _logLines.Count; i++)
-                ((RectTransform)_logLines[i].transform).anchoredPosition = new Vector2(0f, -i * LogLineHeight);
+            {
+                _logLines[i].anchoredPosition = new Vector2(0f, -i * LogLineHeight);
+                _logLines[i].gameObject.SetActive(i < _visibleLogLines);
+            }
         }
 
         // ---------- 선택 유닛 능력치 패널 (좌하단) ----------
@@ -434,7 +506,25 @@ namespace TacticsECS
             _structurePanelAccent = panel.Find("Accent").GetComponent<Image>();
             _structureNameText = panel.Find("NameText").GetComponent<Text>();
             _structureDescriptionText = panel.Find("DescriptionText").GetComponent<Text>();
+
+            // 분위기 설명 문장("이 지역을 다스리는 도시의 중심입니다.") 대신 구조물 아이콘 + 이름만(계획 2.5). 패널도 그만큼 줄인다.
+            _structureDescriptionText.gameObject.SetActive(false);
+            var rect = (RectTransform)panel;
+            rect.sizeDelta = new Vector2(Mathf.Min(rect.sizeDelta.x, 220f), 52f);
+            _structureIcon = UiKit.Image(panel, "Icon", null, Color.white);
+            _structureIcon.rectTransform.anchorMin = _structureIcon.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            _structureIcon.rectTransform.pivot = new Vector2(0f, 0.5f);
+            _structureIcon.rectTransform.sizeDelta = new Vector2(34f, 34f);
+            _structureIcon.rectTransform.anchoredPosition = new Vector2(14f, 0f);
+            var nameRect = _structureNameText.rectTransform;
+            nameRect.anchorMin = new Vector2(0f, 0.5f);
+            nameRect.anchorMax = new Vector2(1f, 0.5f);
+            nameRect.pivot = new Vector2(0f, 0.5f);
+            nameRect.offsetMin = new Vector2(56f, -14f);
+            nameRect.offsetMax = new Vector2(-8f, 14f);
         }
+
+        private Image _structureIcon;
 
         /// <summary>StructureDefinition.All을 structureId로 선형 탐색해(TechTreeHud가 TechTreeDefinition.Nodes를
         /// 찾는 것과 같은 방식 — 6개뿐이라 별도 인덱스/딕셔너리가 필요 없다) 이름/설명을 그대로 보여준다.
@@ -449,6 +539,8 @@ namespace TacticsECS
                 _structurePanelAccent.color = StructureAccentColors.TryGetValue(structureId, out var color) ? color : Color.white;
                 _structureNameText.text = info.Name;
                 _structureDescriptionText.text = info.Description;
+                _structureIcon.sprite = IconLibrary.Get(MenuIcons.ForStructure(structureId));
+                _structureIcon.color = _structurePanelAccent.color;
                 return;
             }
 
@@ -584,13 +676,30 @@ namespace TacticsECS
             _tooltipPanel.SetActive(false);
         }
 
+        private float _tooltipHideAt = -1f;
+
         private void ShowTooltip(string text)
         {
+            _tooltipHideAt = -1f;
             _tooltipText.text = text;
             _tooltipPanel.SetActive(true);
         }
 
-        private void HideTooltip() => _tooltipPanel.SetActive(false);
+        /// <summary>터치는 손가락을 떼는 순간 Exit가 오므로(누르고 있는 동안만 Enter 상태), 뗀 뒤에도 잠깐 남겨 읽을 수 있게 한다.</summary>
+        private void HideTooltip()
+        {
+            if (ScreenLayout.IsTouch) _tooltipHideAt = Time.unscaledTime + 2.5f;
+            else _tooltipPanel.SetActive(false);
+        }
+
+        private void Update()
+        {
+            if (_tooltipHideAt > 0f && Time.unscaledTime >= _tooltipHideAt)
+            {
+                _tooltipHideAt = -1f;
+                _tooltipPanel.SetActive(false);
+            }
+        }
 
         // ---------- 승/패 오버레이 ----------
 
@@ -611,7 +720,9 @@ namespace TacticsECS
             _battleEndPanel.SetActive(true);
             _battleEndIcon.sprite = IconLibrary.Get(playerWon ? "victory" : "defeat");
             _battleEndIcon.color = playerWon ? PlayerAccent : EnemyAccent;
-            _battleEndText.text = playerWon ? "승리!" : "패배...";
+            // 문장 대신 큰 트로피/해골 아이콘 + 팀 색으로 결과를 보여준다(계획 2.5).
+            _battleEndText.text = string.Empty;
+            _battleEndIcon.rectTransform.localScale = Vector3.one * 1.4f;
         }
     }
 }

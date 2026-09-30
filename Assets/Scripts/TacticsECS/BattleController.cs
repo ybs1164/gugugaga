@@ -178,6 +178,8 @@ namespace TacticsECS
         private CityResourceHud _cityResourceHud;
         private TechTreeHud _techTreeHud;
         private ActionMenuHud _actionMenu;
+        private RewardCardHud _rewardHud;
+        private CityBannerHud _cityBanners;
 
         /// <summary>경제(도시/영토/자원/기술) 상태. cityResourceHudPrefab이 배정된 화면(Sandbox)에서 전투가 시작될
         /// 때(BeginBattle) 만들어지고, 그 전(배치 단계)이나 경제 없는 씬(SampleScene)에서는 null이다 — null이면
@@ -279,6 +281,17 @@ namespace TacticsECS
                 menuGo.transform.SetParent(transform, false);
                 _actionMenu = menuGo.AddComponent<ActionMenuHud>();
                 _actionMenu.Init(_hud.UiFont);
+                _actionMenu.Closed += () => _menuTile = null;
+
+                var rewardGo = new GameObject("RewardCardHud");
+                rewardGo.transform.SetParent(transform, false);
+                _rewardHud = rewardGo.AddComponent<RewardCardHud>();
+                _rewardHud.Init(_hud.UiFont);
+
+                var bannerGo = new GameObject("CityBannerHud");
+                bannerGo.transform.SetParent(transform, false);
+                _cityBanners = bannerGo.AddComponent<CityBannerHud>();
+                _cityBanners.Init(_hud.UiFont);
             }
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
@@ -339,6 +352,8 @@ namespace TacticsECS
             _cityResourceHud = null;
             _techTreeHud = null;
             _actionMenu = null;
+            _rewardHud = null;
+            _cityBanners = null;
             _econ = null;
             _unitRows = null;
             _menuTile = null;
@@ -945,6 +960,8 @@ namespace TacticsECS
             _hud.SetTurn(team, turnNumber);
             _hud.SetEndTurnVisible(team == Team.Player && !_battleOver);
             ClearSelection();
+            // 새 턴: 지난 턴에 행동을 마쳐 어둡게 칠했던 유닛 색을 되돌린다(UnitView.Refresh).
+            if (team == Team.Player) RefreshAllViews();
 
             if (_econ != null)
             {
@@ -967,9 +984,9 @@ namespace TacticsECS
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
             var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, false);
             _cityResourceHud.SetResources(resources, populationUsed);
-            _cityResourceHud.SetScoreLine(_econ != null
-                ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
-                : string.Empty);
+            _cityResourceHud.SetScore(_econ != null,
+                _econ != null ? ScoreSystem.Compute(_grid, _world, _econ, Team.Player) : 0,
+                _econ != null ? ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy) : 0);
         }
 
         private void RefreshTechTree()
@@ -1061,32 +1078,47 @@ namespace TacticsECS
             return snapshot;
         }
 
-        /// <summary>BattleLogEntry 값 하나를 우측 상단 행동 로그에 쓸 한 줄짜리 한글 문구로 바꾼다.
-        /// 유닛 이름(UnitView.Label)과 소속 팀 강조색(BattleHud.PlayerAccent/EnemyAccent)은 View 쪽
-        /// 값이라 여기(오케스트레이터)에서 조합한다 — SandboxHud 상태 문구(HandleSandboxLoad 등)와
-        /// 같은 방식이다.</summary>
-        private string FormatLogEntry(BattleLogEntry entry)
+        /// <summary>BattleLogEntry 값 하나를 우측 상단 행동 로그 한 줄(LogLine)로 바꾼다 — [팀 색 점][행위자][행동 아이콘][대상][숫자].
+        /// 동사 문장("공격 →", "방어 태세") 대신 행동 아이콘(MenuIcons.ForVerb)을 쓴다. 유닛 이름(UnitView.Label)과 소속 팀 강조색
+        /// (BattleHud.PlayerAccent/EnemyAccent)은 View 쪽 값이라 여기(오케스트레이터)에서 조합한다.</summary>
+        private LogLine FormatLogEntry(BattleLogEntry entry)
         {
             string Name(int id) => _viewsById.TryGetValue(id, out var view) ? view.Label : $"#{id}";
-            string Colored(int id)
-            {
-                var accent = _world.Get<Team>(id) == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
-                return $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{Name(id)}</color>";
-            }
+            Color TeamColor(int id) => _world.Get<Team>(id) == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
 
+            var line = new LogLine
+            {
+                ActorColor = TeamColor(entry.ActorId),
+                Actor = Name(entry.ActorId),
+                Icon = MenuIcons.ForVerb(entry.Verb),
+            };
+            if (entry.TargetId != BattleLogEntry.NoTarget)
+            {
+                line.Target = Name(entry.TargetId);
+                line.TargetColor = TeamColor(entry.TargetId);
+            }
             switch (entry.Verb)
             {
-                case BattleLogVerb.Move: return $"{Colored(entry.ActorId)} 이동";
-                case BattleLogVerb.Attack: return $"{Colored(entry.ActorId)} 공격 → {Colored(entry.TargetId)} ({entry.Amount})";
-                case BattleLogVerb.Counter: return $"{Colored(entry.ActorId)} 반격 → {Colored(entry.TargetId)} ({entry.Amount})";
-                case BattleLogVerb.Defend: return $"{Colored(entry.ActorId)} 방어 태세";
-                case BattleLogVerb.Heal: return $"{Colored(entry.ActorId)} 치유 ({entry.Amount}명)";
-                case BattleLogVerb.SelfDestruct: return $"{Colored(entry.ActorId)} 자폭";
-                case BattleLogVerb.Wait: return entry.Amount > 0 ? $"{Colored(entry.ActorId)} 대기 (+{entry.Amount})" : $"{Colored(entry.ActorId)} 대기";
-                case BattleLogVerb.Defeated: return $"{Colored(entry.ActorId)} 쓰러짐";
-                case BattleLogVerb.Promote: return $"{Colored(entry.ActorId)} 베테랑 승급";
-                default: return Colored(entry.ActorId);
+                case BattleLogVerb.Attack:
+                case BattleLogVerb.Counter:
+                    line.Amount = $"-{entry.Amount}";
+                    line.AmountColor = UiKit.WarnColor;
+                    break;
+                case BattleLogVerb.Heal:
+                    line.Amount = $"x{entry.Amount}";
+                    line.AmountColor = UiKit.GainColor;
+                    break;
+                case BattleLogVerb.Wait:
+                    if (entry.Amount > 0) { line.Amount = $"+{entry.Amount}"; line.AmountColor = UiKit.GainColor; }
+                    break;
+                case BattleLogVerb.Defeated:
+                    line.IconTint = UiKit.WarnColor;
+                    break;
+                case BattleLogVerb.Promote:
+                    line.IconTint = UiKit.GoldColor;
+                    break;
             }
+            return line;
         }
 
         private void CheckBattleEnd()
@@ -1104,27 +1136,118 @@ namespace TacticsECS
 
         // ---------- Input ----------
 
+        // 포인터(마우스/터치 공통) 상태 — 탭과 드래그(카메라 이동)를 구분하기 위해 누른 순간부터 뗄 때까지 추적한다.
+        private bool _pointerDown;
+        private bool _pointerStartedOnUi;
+        private bool _pointerDragging;
+        private bool _pointerMultiTouch;
+        private Vector2 _pointerPressPos;
+        private Vector2 _pointerLastPos;
+        private float _lastPinchDistance = -1f;
+
+        /// <summary>
+        /// 입력 처리(모바일 대응). 예전에는 마우스 왼쪽 버튼을 "누른 순간"을 클릭으로 봤지만, 터치에서는 같은 손가락으로 지도를 끌어
+        /// 카메라를 옮기기도 하므로 "떼는 순간, 거의 움직이지 않았을 때"만 탭(클릭)으로 본다(ScreenLayout.DragThresholdPixels).
+        /// 끌면 카메라 이동, 두 손가락이면 핀치 줌. 마우스도 같은 규칙(왼쪽 버튼으로 끌면 이동)을 따른다.
+        /// UI(uGUI) 위에서 시작한 누름은 지도로 새지 않는다.
+        /// </summary>
         private void Update()
         {
             HandleCameraControl();
 
-            if (Mouse.current == null) return;
-            // HUD 버튼(BattleHud/SandboxHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+            var pointer = Pointer.current;
+            if (pointer == null) return;
+            var pos = pointer.position.ReadValue();
+
+            if (ActiveTouchCount() >= 2)
+            {
+                _pointerMultiTouch = true;
+                HandlePinch();
+                return;
+            }
+            _lastPinchDistance = -1f;
+
+            if (pointer.press.wasPressedThisFrame)
+            {
+                _pointerDown = true;
+                _pointerStartedOnUi = ScreenLayout.IsOverUi(pos);
+                _pointerDragging = false;
+                _pointerMultiTouch = false;
+                _pointerPressPos = _pointerLastPos = pos;
+            }
+
+            if (_pointerDown && pointer.press.isPressed && !_pointerStartedOnUi && !_pointerMultiTouch)
+            {
+                if (!_pointerDragging && (pos - _pointerPressPos).magnitude > ScreenLayout.DragThresholdPixels) _pointerDragging = true;
+                if (_pointerDragging) PanByScreenDrag(_pointerLastPos, pos);
+                _pointerLastPos = pos;
+            }
+
+            bool tapped = false;
+            if (_pointerDown && pointer.press.wasReleasedThisFrame)
+            {
+                tapped = !_pointerDragging && !_pointerStartedOnUi && !_pointerMultiTouch;
+                _pointerDown = false;
+            }
 
             if (_placementActive)
             {
-                if (Mouse.current.leftButton.wasPressedThisFrame && TryScreenToGridPos(Mouse.current.position.ReadValue(), out var placePos))
+                if (tapped && TryScreenToGridPos(pos, out var placePos))
                     _placementController.HandleGridClick(_grid, placePos);
-                UpdateStructureHover();
+                // 마우스는 가리키는 칸(호버), 터치는 방금 누른 칸의 구조물 정보를 보여준다.
+                if (tapped || (!ScreenLayout.IsTouch && !ScreenLayout.IsOverUi(pos))) UpdateStructureHover(pos);
                 return;
             }
 
             if (_battleOver) return;
             if (_turnState.ActiveTeam != Team.Player) return;
 
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-                HandleClick();
+            if (tapped)
+                HandleClick(pos);
+        }
+
+        private static int ActiveTouchCount()
+        {
+            var touchscreen = Touchscreen.current;
+            if (touchscreen == null) return 0;
+            int count = 0;
+            var touches = touchscreen.touches;
+            for (int i = 0; i < touches.Count; i++)
+                if (touches[i].press.isPressed) count++;
+            return count;
+        }
+
+        /// <summary>두 손가락 사이 거리 비율만큼 orthographicSize를 바꾼다(벌리면 확대).</summary>
+        private void HandlePinch()
+        {
+            var touches = Touchscreen.current.touches;
+            Vector2 a = default, b = default;
+            int found = 0;
+            for (int i = 0; i < touches.Count && found < 2; i++)
+            {
+                if (!touches[i].press.isPressed) continue;
+                if (found == 0) a = touches[i].position.ReadValue(); else b = touches[i].position.ReadValue();
+                found++;
+            }
+            if (found < 2) return;
+            float distance = Vector2.Distance(a, b);
+            if (_lastPinchDistance > 0f && distance > 1f)
+                _cam.orthographicSize = Mathf.Clamp(_cam.orthographicSize * _lastPinchDistance / distance, minOrthoSize, maxOrthoSize);
+            _lastPinchDistance = distance;
+        }
+
+        /// <summary>손가락(마우스) 아래의 지면 점이 그대로 따라오도록 카메라 초점을 옮긴다.</summary>
+        private void PanByScreenDrag(Vector2 from, Vector2 to)
+        {
+            var ground = new Plane(Vector3.up, _grid.Origin);
+            var rayFrom = _cam.ScreenPointToRay(from);
+            var rayTo = _cam.ScreenPointToRay(to);
+            if (!ground.Raycast(rayFrom, out float ef) || !ground.Raycast(rayTo, out float et)) return;
+            var delta = rayFrom.GetPoint(ef) - rayTo.GetPoint(et);
+            delta.y = 0f;
+            _cameraFocus += delta;
+            ClampCameraFocus();
+            ApplyCameraTransform();
         }
 
         /// <summary>
@@ -1154,9 +1277,9 @@ namespace TacticsECS
         /// <summary>전투 시작 전(배치 단계)에는 클릭이 이미 유닛 배치에 쓰여서 구조물 정보를 클릭으로
         /// 보여줄 자리가 없다 — 대신 마우스가 가리키는 칸을 매 프레임 검사해(호버) SandboxHud에 정보
         /// 패널을 띄운다. 전투 중(FocusTile)의 클릭 방식과 트리거만 다를 뿐 조회 로직은 같다.</summary>
-        private void UpdateStructureHover()
+        private void UpdateStructureHover(Vector2 screenPos)
         {
-            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos))
+            if (!TryScreenToGridPos(screenPos, out var pos))
             {
                 _sandboxHud.HideStructurePanel();
                 return;
@@ -1174,9 +1297,9 @@ namespace TacticsECS
         /// 선택 취소 없이 곧바로 클릭한 칸으로 포커스를 옮긴다. 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면
         /// 같은 칸을 다시 누를 때마다 유닛 → 칸(도시/건물) → 유닛 … 순서로 포커스가 하나씩 넘어간다.
         /// </summary>
-        private void HandleClick()
+        private void HandleClick(Vector2 screenPos)
         {
-            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var gridPos)) return;
+            if (!TryScreenToGridPos(screenPos, out var gridPos)) return;
             if (!VisionSystem.IsExplored(_grid, Team.Player, gridPos)) { ClearSelection(); return; } // 구름 칸
 
             int occupantId = _grid.GetOccupant(gridPos);
@@ -1341,6 +1464,7 @@ namespace TacticsECS
             _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
             _gridView.RefreshFog(_grid, Team.Player);
+            if (_cityBanners != null) _cityBanners.SetCities(_grid, _econ.Cities, _cam);
             RefreshUnitVisibility();
             RefreshCityResources();
             RefreshTechTree();
@@ -1389,36 +1513,46 @@ namespace TacticsECS
         /// 스폰한다(Systems는 View를 몰라 스폰을 못 하므로 여기서 마무리).</summary>
         private void ProcessEconomyLog(List<EconomyLogEntry> log)
         {
+            int levelUpCity = -1;
             foreach (var entry in log)
             {
                 if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex, entry.SpawnVeteran, entry.SpawnBoatId);
                 _hud.AddLogEntry(FormatEconomyEntry(entry));
+                if (entry.Kind == EconomyLogKind.LevelUp && entry.Team == Team.Player && entry.CityIndex >= 0) levelUpCity = entry.CityIndex;
             }
             if (log.Count > 0) RefreshRoster();
+            // Polytopia처럼 우리 도시가 레벨업하면 곧바로 보상 카드 모달을 띄운다(닫으면 도시 메뉴의 보상 버튼으로 다시 연다).
+            if (levelUpCity >= 0 && _rewardHud != null && !_rewardHud.IsVisible) ShowRewardModal(levelUpCity);
         }
 
-        private string FormatEconomyEntry(EconomyLogEntry e)
+        /// <summary>경제 기록 한 줄: [팀 색 점][종류 아이콘][대상 이름][숫자]. "아군 건설: 농장" 같은 문장 대신 아이콘으로 종류를 보여준다.</summary>
+        private LogLine FormatEconomyEntry(EconomyLogEntry e)
         {
-            var accent = e.Team == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
-            string who = $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{(e.Team == Team.Player ? "아군" : "적")}</color>";
-            switch (e.Kind)
+            var line = new LogLine
             {
-                case EconomyLogKind.Capture: return $"{who} {e.Subject} 점령";
-                case EconomyLogKind.Research: return $"{who} 연구: {e.Subject}";
-                case EconomyLogKind.Build: return $"{who} 건설: {e.Subject}";
-                case EconomyLogKind.Action: return $"{who} {e.Subject}";
-                case EconomyLogKind.Train: return $"{who} 훈련: {e.Subject}";
-                case EconomyLogKind.LevelUp:
-                    return e.CityIndex >= 0 ? $"{who} {e.Subject} 레벨 업 (Lv {_econ.Cities[e.CityIndex].Level})" : $"{who} {e.Subject} 레벨 업";
-                case EconomyLogKind.Reward: return $"{who} 보상: {e.Subject}";
-                case EconomyLogKind.Explore: return $"{who} 유적 탐험: {e.Subject}";
-                case EconomyLogKind.Disband: return $"{who} 유닛 해산 ({e.Subject})";
-                case EconomyLogKind.Discover: return $"{who} {e.Subject}";
-                case EconomyLogKind.Task: return $"{who} 과업 달성: {e.Subject}";
-                case EconomyLogKind.Upgrade: return $"{who} 배 업그레이드: {e.Subject}";
-                case EconomyLogKind.StartUnit: return $"{who} 수도에서 시작 유닛: {e.Subject}";
-                default: return $"{who} {e.Subject}";
+                ActorColor = e.Team == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent,
+                Icon = MenuIcons.ForEconomy(e.Kind),
+                Target = e.Subject,
+                TargetColor = Color.white,
+            };
+            if (e.Kind == EconomyLogKind.LevelUp && e.CityIndex >= 0)
+            {
+                line.Amount = $"Lv{_econ.Cities[e.CityIndex].Level}";
+                line.AmountColor = UiKit.GoldColor;
             }
+            else if (e.Kind == EconomyLogKind.Build)
+            {
+                var b = FindBuildingByName(e.Subject);
+                if (b != null && !string.IsNullOrEmpty(b.Value.Icon)) line.Icon = b.Value.Icon;
+            }
+            return line;
+        }
+
+        private static BuildingInfo? FindBuildingByName(string name)
+        {
+            foreach (var b in BuildingDefinition.All)
+                if (b.Name == name) return b;
+            return null;
         }
 
         /// <summary>유닛 CSV Id로 near 칸(차 있으면 가장 가까운 빈 칸, 반경 3)에 유닛을 스폰한다. 폴리토피아처럼
@@ -1452,48 +1586,72 @@ namespace TacticsECS
             else if (_menuTile.HasValue) ShowTileMenu(_menuTile.Value);
         }
 
-        /// <summary>칸 메뉴: 우리 도시면 레벨업 보상 선택 + 유닛 훈련, 그리고 그 칸에서 할 수 있는 채집/건설 목록
-        /// (TileImprovementSystem.GetOptions). 보여줄 것이 없으면 메뉴를 닫는다.</summary>
+        /// <summary>칸 메뉴: 우리 도시면 레벨업 보상 + 유닛 훈련, 그리고 그 칸에서 할 수 있는 채집/건설 목록
+        /// (TileImprovementSystem.GetOptions). 보여줄 것이 없으면 메뉴를 닫는다.
+        /// 문장 대신 그림으로(docs/UxIconizationPlan.md 2.1): 도시 정보는 레벨 배지 + 인구 칸 게이지 + [아이콘][숫자] 칩, 선택지는
+        /// 원형 아이콘 버튼 + ⭐비용 배지 + 막힌 이유 아이콘. 설명 문장은 버튼을 누르고 있거나 마우스를 올렸을 때만 정보 줄에 나온다.</summary>
         private void ShowTileMenu(Vector2Int pos)
         {
             if (!CanUseEconomyMenu) return;
             if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) { _actionMenu.Hide(); return; }
             _menuTile = pos;
             var options = new List<ActionMenuOption>();
-            string title;
-            var body = new System.Text.StringBuilder();
             var tile = _grid.GetTile(pos);
+            int gold = _econ.Resources[Team.Player].Gold;
+            ActionMenuHeader header;
 
             int cityIndex = CitySystem.FindCityAt(_econ, pos);
             if (cityIndex >= 0)
             {
                 var city = _econ.Cities[cityIndex];
-                title = $"{city.Name} (Lv {city.Level})";
-                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 유닛 {CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
-                body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
-
-                if (city.Owner == Team.Player && city.IsCapital)
+                bool mine = city.Owner == Team.Player;
+                header = new ActionMenuHeader
                 {
-                    body.Append("\n과업: ");
-                    body.Append(string.Join(" · ", TaskDefinition.All
-                        .Where(t => TaskSystem.IsUnlocked(_econ, Team.Player, t))
-                        .Select(t => $"{t.Name} {TaskSystem.ProgressText(_grid, _econ, Team.Player, t)}")));
-                }
+                    Icon = city.IsCapital ? "crown" : "city",
+                    Title = city.Name,
+                    Level = city.Level,
+                    Accent = mine ? BattleHud.PlayerAccent : BattleHud.EnemyAccent,
+                    GaugeFilled = city.Population,
+                    GaugeTotal = city.Level + 1,
+                    GaugeColor = UiKit.PopulationColor,
+                    GaugeIcon = "population",
+                    Chips = new List<ActionMenuChip>
+                    {
+                        new ActionMenuChip { Icon = "unit", Text = $"{CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)}", Tooltip = "유닛 수용량" },
+                        new ActionMenuChip { Icon = "star", Text = $"+{CitySystem.CityGoldIncome(_grid, _world, city)}", Tint = UiKit.GoldColor, Tooltip = "골드 수입/턴" },
+                    },
+                };
+                if (city.ConnectedToCapital && !city.IsCapital) header.Chips.Add(new ActionMenuChip { Icon = "road", Tooltip = "수도 연결" });
+                if (city.HasWorkshop) header.Chips.Add(new ActionMenuChip { Icon = "workshop", Tooltip = "공방" });
+                if (city.HasWall) header.Chips.Add(new ActionMenuChip { Icon = "wall", Tooltip = "성벽" });
+                if (city.ParkCount > 0) header.Chips.Add(new ActionMenuChip { Icon = "park", Text = city.ParkCount > 1 ? $"x{city.ParkCount}" : null, Tooltip = "공원" });
 
-                if (city.Owner == Team.Player)
+                // 수도에서는 과업 진행을 [과업 아이콘][3/5] 칩으로(달성하면 체크 색).
+                if (mine && city.IsCapital)
+                    foreach (var t in TaskDefinition.All)
+                    {
+                        if (!TaskSystem.IsUnlocked(_econ, Team.Player, t)) continue;
+                        var progress = TaskSystem.Progress(_grid, _econ, Team.Player, t);
+                        header.Chips.Add(new ActionMenuChip
+                        {
+                            // 달성한 과업은 과업 아이콘 대신 체크(글꼴에 ✓ 글리프가 없을 수 있어 아이콘으로).
+                            Icon = progress.Done ? "check" : string.IsNullOrEmpty(t.Icon) ? "task" : t.Icon,
+                            Text = progress.Done ? null : $"{progress.Current}/{progress.Target}",
+                            Tint = progress.Done ? UiKit.GainColor : UiKit.MutedColor,
+                            Tooltip = $"<b>{t.Name}</b> {t.Description}",
+                        });
+                    }
+
+                if (mine)
                 {
                     if (city.PendingRewards > 0)
                     {
-                        int rewardLevel = CitySystem.PendingRewardLevel(city);
-                        foreach (var reward in CitySystem.RewardOptions(rewardLevel))
+                        int ci = cityIndex;
+                        options.Add(new ActionMenuOption
                         {
-                            var r = reward;
-                            options.Add(new ActionMenuOption
-                            {
-                                Label = $"Lv{rewardLevel} 보상: {CitySystem.RewardName(r)}", Detail = CitySystem.RewardDescription(r), Enabled = true,
-                                OnClick = () => HandleReward(cityIndex, r)
-                            });
-                        }
+                            Label = "보상", Icon = "reward", Enabled = true, Badge = city.PendingRewards, Color = new Color(0.75f, 0.55f, 0.15f),
+                            Detail = $"Lv{CitySystem.PendingRewardLevel(city)} 보상 고르기", OnClick = () => ShowRewardModal(ci),
+                        });
                     }
                     foreach (var row in _econ.UnitRows)
                     {
@@ -1502,8 +1660,9 @@ namespace TacticsECS
                         var r = row;
                         options.Add(new ActionMenuOption
                         {
-                            Label = $"{row.Name} 훈련 (골드 {row.Cost})", Detail = can ? $"체력 {row.MaxHp} · 공격 {row.AttackAttack} · 이동 {row.MoveRange}" : reason,
-                            Enabled = can, OnClick = () => HandleTrain(cityIndex, r)
+                            Label = row.Name, Icon = MenuIcons.ForUnit(row), Cost = row.Cost, Affordable = gold >= row.Cost,
+                            Enabled = can, Block = reason, Yields = UnitStatChips(row.MaxHp, row.AttackAttack, row.Defense, row.MoveRange, row.AttackRange),
+                            OnClick = () => HandleTrain(cityIndex, r)
                         });
                     }
                 }
@@ -1511,28 +1670,41 @@ namespace TacticsECS
             else
             {
                 var cls = TileImprovementSystem.Classify(_grid, pos);
-                string owner = tile.OwnerTeam == (int)Team.Player ? "아군 영토" : tile.OwnerTeam == (int)Team.Enemy ? "적 영토" : "중립";
-                title = $"{TileClassName(cls)} ({pos.x}, {pos.y})";
-                body.Append(owner);
+                var ownerColor = tile.OwnerTeam == (int)Team.Player ? BattleHud.PlayerAccent : tile.OwnerTeam == (int)Team.Enemy ? BattleHud.EnemyAccent : UiKit.MutedColor;
+                header = new ActionMenuHeader
+                {
+                    Icon = MenuIcons.ForTileClass(cls),
+                    Title = TileClassName(cls),
+                    Accent = ownerColor,
+                    Chips = new List<ActionMenuChip>(),
+                };
                 var building = TileImprovementSystem.FindBuilding(tile.BuildingId);
                 if (building != null)
                 {
-                    body.Append($" · {building.Value.Name} (인구 {TileImprovementSystem.BuildingPopulation(_grid, pos)})");
+                    header.Chips.Add(new ActionMenuChip
+                    {
+                        Icon = MenuIcons.ForBuilding(tile.BuildingId), Text = $"+{TileImprovementSystem.BuildingPopulation(_grid, pos)}",
+                        Tint = UiKit.PopulationColor, Tooltip = building.Value.Name,
+                    });
                     if (building.Value.IsTemple)
                     {
                         int level = ScoreSystem.TempleLevel(_econ.Turn, tile.BuildingTurn);
-                        body.Append($" · Lv {level} ({ScoreSystem.TemplePoints(level)}점)");
+                        header.Chips.Add(new ActionMenuChip { Icon = "victory", Text = $"Lv{level} {ScoreSystem.TemplePoints(level)}", Tint = UiKit.GoldColor, Tooltip = "신전 점수" });
                     }
                 }
-                if (tile.HasRoad) body.Append(" · 도로");
+                if (tile.HasRoad) header.Chips.Add(new ActionMenuChip { Icon = "road", Tooltip = "도로" });
             }
 
             foreach (var option in TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos))
             {
                 var o = option;
+                var yields = new List<ActionMenuChip>();
+                if (o.PopulationGain != 0) yields.Add(new ActionMenuChip { Icon = "population", Text = $"+{o.PopulationGain}", Tint = UiKit.PopulationColor });
+                if (o.GoldGain != 0) yields.Add(new ActionMenuChip { Icon = "star", Text = $"+{o.GoldGain}", Tint = UiKit.GoldColor });
                 options.Add(new ActionMenuOption
                 {
-                    Label = o.Cost > 0 ? $"{o.Name} (골드 {o.Cost})" : o.Name, Detail = o.Detail, Enabled = o.Enabled,
+                    Label = o.Name, Icon = o.Icon, Cost = o.Cost, Affordable = gold >= o.Cost, Enabled = o.Enabled, Block = o.Block,
+                    Detail = o.Block == BlockReason.NeedAdjacent ? $"{o.Detail} ({AdjacentNames(o.Id)})" : o.Detail, Yields = yields,
                     OnClick = () => HandleTileOption(pos, o.Id)
                 });
             }
@@ -1542,7 +1714,27 @@ namespace TacticsECS
                 _actionMenu.Hide();
                 return;
             }
-            _actionMenu.Show(title, body.ToString(), options);
+            _actionMenu.Show(header, options);
+        }
+
+        /// <summary>인접 조건 건물 이름(정보 줄 설명용). 건물 표에서 AdjacentBuildings Id를 이름으로 바꾼다.</summary>
+        private static string AdjacentNames(string buildingId)
+        {
+            var b = TileImprovementSystem.FindBuilding(buildingId);
+            if (b == null || b.Value.AdjacentBuildings == null) return string.Empty;
+            return string.Join("/", b.Value.AdjacentBuildings.Select(id => TileImprovementSystem.FindBuilding(id)?.Name ?? id));
+        }
+
+        /// <summary>유닛 능력치 칩 줄(훈련/배 업그레이드 버튼의 정보 줄) — BattleHud 유닛 패널과 같은 아이콘을 쓴다.</summary>
+        private static List<ActionMenuChip> UnitStatChips(int maxHp, float attack, float defense, int move, int range)
+        {
+            var chips = new List<ActionMenuChip>();
+            if (maxHp > 0) chips.Add(new ActionMenuChip { Icon = "hp", Text = maxHp.ToString(), Tint = new Color(1f, 0.55f, 0.55f) });
+            chips.Add(new ActionMenuChip { Icon = "attack", Text = attack.ToString("0.#") });
+            chips.Add(new ActionMenuChip { Icon = "defense", Text = defense.ToString("0.#") });
+            chips.Add(new ActionMenuChip { Icon = "move", Text = move.ToString() });
+            if (range > 1) chips.Add(new ActionMenuChip { Icon = "range", Text = range.ToString() });
+            return chips;
         }
 
         private bool IsOwnCity(Vector2Int pos)
@@ -1563,24 +1755,36 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>유닛 메뉴: 점령/유적 탐험/해산, 그리고 우리 도시 위라면 그 도시 메뉴로 가는 버튼.</summary>
+        /// <summary>유닛 메뉴: 점령/승급/유적 탐험/불가사리/배 업그레이드/해산, 그리고 우리 도시 위라면 그 도시 메뉴로 가는 버튼.
+        /// 머리에는 소속 도시 칩과 베테랑까지의 처치 수 칸 게이지(베테랑이면 별 칩)를 보여준다.</summary>
         private void ShowUnitMenu(int unitId)
         {
             if (!CanUseEconomyMenu) return;
             var options = new List<ActionMenuOption>();
             var pos = _world.Get<GridPosition>(unitId).Value;
+            int gold = _econ.Resources[Team.Player].Gold;
 
             if (CitySystem.CanCapture(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 정착지를 우리 도시로 만든다(턴 종료).", Enabled = true, OnClick = () => HandleCapture(unitId) });
+                options.Add(new ActionMenuOption { Label = "점령", Icon = "capture", Detail = "이 정착지를 우리 도시로 만든다(턴 종료).", Enabled = true, OnClick = () => HandleCapture(unitId) });
             else if (CitySystem.IsSettlementTile(_grid, pos) && !IsOwnCity(pos))
-                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 칸에서 턴을 시작해야 점령할 수 있다.", Enabled = false });
+                options.Add(new ActionMenuOption { Label = "점령", Icon = "capture", Enabled = false, Block = BlockReason.NeedTurnStart });
 
             if (VeteranSystem.CanPromote(_world, unitId))
-                options.Add(new ActionMenuOption { Label = $"승급 (최대 체력 +{GameRules.Veteran.MaxHpBonus}, 완전 회복)", Detail = "베테랑이 된다(행동을 쓰지 않음).", Enabled = true, OnClick = () => HandlePromote(unitId) });
+                options.Add(new ActionMenuOption
+                {
+                    Label = "승급", Icon = "promote", Detail = "베테랑이 되고 체력을 모두 회복한다(행동을 쓰지 않음).", Enabled = true, Color = new Color(0.75f, 0.55f, 0.15f),
+                    Yields = new List<ActionMenuChip> { new ActionMenuChip { Icon = "hp", Text = $"+{GameRules.Veteran.MaxHpBonus}", Tint = UiKit.GainColor } },
+                    OnClick = () => HandlePromote(unitId)
+                });
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+                options.Add(new ActionMenuOption { Label = "탐험", Icon = "explore", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"불가사리 인양 (골드 +{GameRules.Starfish.Gold})", Detail = "이 유닛의 턴을 쓴다.", Enabled = true, OnClick = () => HandleStarfish(unitId) });
+                options.Add(new ActionMenuOption
+                {
+                    Label = "인양", Icon = "starfish", Detail = "불가사리 인양 — 이 유닛의 턴을 쓴다.", Enabled = true,
+                    Yields = new List<ActionMenuChip> { new ActionMenuChip { Icon = "star", Text = $"+{GameRules.Starfish.Gold}", Tint = UiKit.GoldColor } },
+                    OnClick = () => HandleStarfish(unitId)
+                });
             if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
             {
                 foreach (var u in NavalUnitDefinition.Upgrades)
@@ -1590,27 +1794,77 @@ namespace TacticsECS
                     string navalId = u.Row.Id;
                     options.Add(new ActionMenuOption
                     {
-                        Label = $"{u.Row.Name}(으)로 업그레이드 (골드 {u.Row.Cost})",
-                        Detail = can ? $"공격 {u.Row.AttackAttack} · 방어 {u.Row.Defense} · 이동 {u.Row.MoveRange} · 사거리 {u.Row.AttackRange}" : reason,
-                        Enabled = can, OnClick = () => HandleNavalUpgrade(unitId, navalId)
+                        Label = u.Row.Name, Icon = MenuIcons.ForUnlock(u.UnlockKey).Icon, Cost = u.Row.Cost, Affordable = gold >= u.Row.Cost,
+                        Enabled = can, Block = reason, Detail = "뗏목 업그레이드",
+                        Yields = UnitStatChips(0, u.Row.AttackAttack, u.Row.Defense, u.Row.MoveRange, u.Row.AttackRange),
+                        OnClick = () => HandleNavalUpgrade(unitId, navalId)
                     });
                 }
             }
 
             if (RuinSystem.CanDisband(_world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"해산 (골드 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
+                options.Add(new ActionMenuOption
+                {
+                    Label = "해산", Icon = "disband", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, Color = new Color(0.45f, 0.25f, 0.25f),
+                    Yields = new List<ActionMenuChip> { new ActionMenuChip { Icon = "star", Text = $"+{RuinSystem.DisbandRefund(_world, _econ, unitId)}", Tint = UiKit.GoldColor } },
+                    OnClick = () => HandleDisband(unitId)
+                });
 
             int city = CitySystem.FindCityAt(_econ, pos);
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
-                options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => FocusTile(pos) });
+                options.Add(new ActionMenuOption { Label = _econ.Cities[city].Name, Icon = "city", Detail = "도시 관리", Enabled = true, OnClick = () => FocusTile(pos) });
 
-            // 소속 도시(위키 City "Units will show which city they belong to").
+            // 소속 도시(위키 City "Units will show which city they belong to") + 베테랑 진행(위키 Veteran).
             int home = CitySystem.HomeOf(_world, unitId);
-            string homeText = home >= 0 && home < _econ.Cities.Count ? $"소속: {_econ.Cities[home].Name}" : "소속 도시 없음";
-            homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · 베테랑"
-                : VeteranSystem.CannotBePromoted(_world, unitId) ? string.Empty
-                : $" · 처치 {_world.GetOrDefault<Kills>(unitId).Value}/{GameRules.Veteran.KillsRequired}";
-            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", homeText, options);
+            var header = new ActionMenuHeader
+            {
+                Icon = "unit",
+                Title = _viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛",
+                Accent = BattleHud.PlayerAccent,
+                Chips = new List<ActionMenuChip>
+                {
+                    home >= 0 && home < _econ.Cities.Count
+                        ? new ActionMenuChip { Icon = "city", Text = _econ.Cities[home].Name, Tooltip = "소속 도시" }
+                        : new ActionMenuChip { Icon = "city", Text = "-", Tint = UiKit.MutedColor, Tooltip = "소속 도시 없음" },
+                },
+            };
+            if (VeteranSystem.IsVeteran(_world, unitId))
+                header.Chips.Add(new ActionMenuChip { Icon = "promote", Tint = UiKit.GoldColor, Tooltip = "베테랑" });
+            else if (!VeteranSystem.CannotBePromoted(_world, unitId))
+            {
+                header.GaugeFilled = Mathf.Min(_world.GetOrDefault<Kills>(unitId).Value, GameRules.Veteran.KillsRequired);
+                header.GaugeTotal = GameRules.Veteran.KillsRequired;
+                header.GaugeColor = UiKit.GoldColor;
+                header.GaugeIcon = "promote";
+            }
+            _actionMenu.Show(header, options);
+        }
+
+        /// <summary>도시 레벨업 보상 카드 모달(Polytopia처럼 그림 카드 두 장 중 하나). 고르면 적용하고, 받을 보상이 더 남았으면 다시 연다.</summary>
+        private void ShowRewardModal(int cityIndex)
+        {
+            if (_rewardHud == null || !CanUseEconomyMenu || cityIndex < 0 || cityIndex >= _econ.Cities.Count) return;
+            var city = _econ.Cities[cityIndex];
+            if (city.Owner != Team.Player || city.PendingRewards <= 0) return;
+
+            int level = CitySystem.PendingRewardLevel(city);
+            var rewards = CitySystem.RewardOptions(level);
+            var cards = new List<RewardCard>();
+            foreach (var reward in rewards)
+            {
+                var effect = MenuIcons.RewardEffect(reward);
+                cards.Add(new RewardCard
+                {
+                    Icon = MenuIcons.ForReward(reward), Name = CitySystem.RewardName(reward),
+                    EffectIcon = effect.Icon, EffectText = effect.Text, EffectTint = effect.Tint,
+                    Detail = CitySystem.RewardDescription(reward),
+                });
+            }
+            _rewardHud.Show(city.Name, level, BattleHud.PlayerAccent, cards, i =>
+            {
+                HandleReward(cityIndex, rewards[i]);
+                if (_econ != null && _econ.Cities[cityIndex].PendingRewards > 0) ShowRewardModal(cityIndex);
+            });
         }
 
         private void HandleNavalUpgrade(int unitId, string navalUnitId)

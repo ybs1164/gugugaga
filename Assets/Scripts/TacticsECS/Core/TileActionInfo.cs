@@ -22,6 +22,8 @@ namespace TacticsECS
     {
         public string Id;
         public string Name;
+        /// <summary>IconLibrary.Get에 넘기는 아이콘 이름(Assets/Art/GameIcons/Resources/Icons, CSV Icon 칸). 메뉴 버튼/기술 해금 줄에 쓴다.</summary>
+        public string Icon;
         public TileActionKind Kind;
         public string UnlockKey;
         public int Cost;

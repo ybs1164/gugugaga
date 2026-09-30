@@ -184,16 +184,20 @@ namespace TacticsECS
                     if (needsResource ? !Contains(b.RequiredStructures, structure) : !string.IsNullOrEmpty(structure)) continue;
                 }
 
-                string reason = null;
+                var block = BlockReason.None;
                 if (b.OnePerCity && CityHasBuilding(grid, tile.OwnerCity, b.Id))
-                    reason = "도시당 1개";
+                    block = BlockReason.OnePerCity;
                 else if (b.AdjacentBuildings != null && b.AdjacentBuildings.Length > 0 &&
                     CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings) == 0)
-                    reason = "인접 조건: " + string.Join("/", NamesOf(b.AdjacentBuildings));
+                    block = BlockReason.NeedAdjacent;
                 else if (gold < b.Cost)
-                    reason = $"골드 부족 ({gold}/{b.Cost})";
+                    block = BlockReason.NotEnoughGold;
 
-                options.Add(new TileOption { Id = b.Id, IsBuilding = true, Name = b.Name, Cost = b.Cost, Enabled = reason == null, Detail = reason ?? b.Description });
+                options.Add(new TileOption
+                {
+                    Id = b.Id, IsBuilding = true, Name = b.Name, Icon = b.Icon, Cost = b.Cost, Enabled = block == BlockReason.None, Block = block,
+                    PopulationGain = b.IsRoad ? 0 : b.Population + ProcessorPopulation(grid, pos, b, team), Detail = b.Description
+                });
             }
 
             foreach (var a in TileActionDefinition.All)
@@ -219,8 +223,12 @@ namespace TacticsECS
                         break;
                 }
 
-                string reason = gold < a.Cost ? $"골드 부족 ({gold}/{a.Cost})" : null;
-                options.Add(new TileOption { Id = a.Id, IsBuilding = false, Name = a.Name, Cost = a.Cost, Enabled = reason == null, Detail = reason ?? a.Description });
+                var block = gold < a.Cost ? BlockReason.NotEnoughGold : BlockReason.None;
+                options.Add(new TileOption
+                {
+                    Id = a.Id, IsBuilding = false, Name = a.Name, Icon = a.Icon, Cost = a.Cost, Enabled = block == BlockReason.None, Block = block,
+                    PopulationGain = a.Population, GoldGain = a.GoldGain, Detail = a.Description
+                });
             }
             return options;
         }
@@ -236,15 +244,6 @@ namespace TacticsECS
                 if (t.OwnerCity == cityIndex && t.BuildingId == buildingId) return true;
             }
             return false;
-        }
-
-        private static IEnumerable<string> NamesOf(string[] buildingIds)
-        {
-            foreach (var id in buildingIds)
-            {
-                var info = FindBuilding(id);
-                yield return info?.Name ?? id;
-            }
         }
 
         // ---------- 실행 ----------

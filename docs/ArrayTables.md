@@ -36,6 +36,7 @@ StartConditionRules ◄── StartConditions.Rule*
 | `Category` | 해금 종류: `Build`(건물) `Unit`(유닛 훈련/배 업그레이드) `Move` `Defense` `Reveal`(숨은 자원) `Harvest` `Ability` `Task`(과업) `Vision` `Connect` `Literacy` |
 | `Target` | 대상(건물 Id, 유닛 CSV Id, 구조물 Id …). 비우면 `Category` 자체가 키 |
 | `Name`, `Description` | 표시용 |
+| `Icon` | 기술트리 상세 패널의 "해금되는 것" 아이콘 줄에 쓰는 아이콘 이름(`Resources/Icons`). 효과 문장 대신 이 아이콘을 보여 준다 |
 
 게임 코드가 조회하는 해금 키는 `Category.Target`(예: `Build` + `Farm` → `Build.Farm`, `Literacy`는 그대로). 키 의미는 [TechTreeCsv.md](TechTreeCsv.md).
 

@@ -1,9 +1,9 @@
-﻿Level,Reward,Name,Amount,Description,Note
-2,Workshop,공방,1,골드 수입 +1/턴,Amount = 골드/턴
-2,Explorer,탐험가,0,도시에서 출발해 12번 움직이며 가장 가까운 구름을 걷어낸다,걸음 수는 GameRules.csv Vision.ExplorerMoves
-3,CityWall,성벽,0,도시 안 요새화 유닛 방어 강화,방어 수치는 GameRules.csv Combat.WallDefenseBonus
-3,Resources,자원,5,골드 +5,Amount = 골드
-4,PopulationGrowth,인구 성장,3,인구 +3,Amount = 인구
-4,BorderGrowth,국경 확장,2,영토 반경 1 -> 2,Amount = 새 영토 반경
-5,Park,공원,1,골드 수입 +1/턴,Amount = 골드/턴. 가장 높은 Level 행이 그 이상 레벨에서도 반복된다(위키 Lv5+)
-5,SuperUnit,슈퍼 유닛,0,최대 체력이 가장 높은 유닛을 무료 소환,
+﻿Level,Reward,Name,Icon,Amount,Description,Note
+2,Workshop,공방,workshop,1,골드 수입 +1/턴,Amount = 골드/턴
+2,Explorer,탐험가,explorer,0,도시에서 출발해 12번 움직이며 가장 가까운 구름을 걷어낸다,걸음 수는 GameRules.csv Vision.ExplorerMoves
+3,CityWall,성벽,wall,0,도시 안 요새화 유닛 방어 강화,방어 수치는 GameRules.csv Combat.WallDefenseBonus
+3,Resources,자원,star,5,골드 +5,Amount = 골드
+4,PopulationGrowth,인구 성장,growth,3,인구 +3,Amount = 인구
+4,BorderGrowth,국경 확장,border,2,영토 반경 1 -> 2,Amount = 새 영토 반경
+5,Park,공원,park,1,골드 수입 +1/턴,Amount = 골드/턴. 가장 높은 Level 행이 그 이상 레벨에서도 반복된다(위키 Lv5+)
+5,SuperUnit,슈퍼 유닛,unit,0,최대 체력이 가장 높은 유닛을 무료 소환,

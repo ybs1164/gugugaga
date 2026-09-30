@@ -22,16 +22,14 @@ namespace TacticsECS
         private Text _goldText;
         private Text _scoreText;
 
-        // 발전도/인구/골드 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 3종이
-        // 없음), 기존 IconLibrary 세트 중 의미가 가장 비슷한 아이콘을 대신 가져다 쓴다 — combo(상승하는
-        // 화살표 3개 = 성장/발전), herd(겹친 원 3개 = 무리/보유 수), victory(트로피 = 재화/보상).
-        // 각 자원 색으로 틴트(Image.color)해서 서로 구분한다. 전용 아이콘이 추가되면 이 표만 교체하면 된다.
+        // 발전도/인구/골드 전용 아이콘(research = 전구, population = 사람, star = 별 — Polytopia 상단 바의 별처럼 골드는 별로
+        // 표시한다, docs/UxIconizationPlan.md 2.3). 각 자원 색으로 틴트해서 서로 구분한다.
         // (신앙은 쓰는 곳이 없는 프로젝트 고유 자원이라 2026-09-29에 뺐다 — 위키에도 없음.)
         private static readonly (string Icon, Color Tint)[] SlotDefs =
         {
-            ("combo", new Color(0.75f, 0.75f, 0.80f)),
-            ("herd", new Color(0.30f, 0.55f, 0.95f)),
-            ("victory", new Color(0.95f, 0.80f, 0.25f)),
+            ("research", UiKit.ResearchColor),
+            ("population", UiKit.PopulationColor),
+            ("star", UiKit.GoldColor),
         };
 
         public void Init()
@@ -48,6 +46,7 @@ namespace TacticsECS
             _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
             _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
             _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
+            ResponsiveCanvas.Attach(canvas);
         }
 
         /// <summary>자원 바 바로 아래 한 줄짜리 점수 표시(위키 Score). 줄 하나라 프리팹에 굽지 않고 코드로 만든다(BattleHud의
@@ -61,23 +60,35 @@ namespace TacticsECS
             rt.pivot = new Vector2(0.5f, 1f);
             rt.anchoredPosition = new Vector2(0f, bar.anchoredPosition.y - bar.sizeDelta.y - 4f);
             rt.sizeDelta = new Vector2(bar.sizeDelta.x, 26f);
-            var text = go.AddComponent<Text>();
+
+            // "점수" 단어 대신 트로피 아이콘(Polytopia 상단 바의 점수 표시).
+            var trophy = UiKit.Image(go.transform, "Icon", IconLibrary.Get("victory"), UiKit.GoldColor);
+            trophy.rectTransform.anchorMin = trophy.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            trophy.rectTransform.pivot = new Vector2(0f, 0.5f);
+            trophy.rectTransform.sizeDelta = new Vector2(20f, 20f);
+            trophy.rectTransform.anchoredPosition = new Vector2(bar.sizeDelta.x * 0.5f - 90f, 0f);
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(go.transform, false);
+            UiKit.Stretch((RectTransform)textGo.transform);
+            var text = textGo.AddComponent<Text>();
             text.font = uiFont;
             text.fontSize = 18;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
-            var outline = go.AddComponent<Outline>();
+            text.supportRichText = true;
+            var outline = textGo.AddComponent<Outline>();
             outline.effectColor = new Color(0f, 0f, 0f, 0.75f);
             return text;
         }
 
-        /// <summary>점수 줄(예: "점수 1234 · 적 1180"). 빈 문자열이면 숨긴다.</summary>
-        public void SetScoreLine(string line)
+        /// <summary>점수 줄: [트로피] 내 점수 · 적 점수(적 색). hasScore가 false면 숨긴다.</summary>
+        public void SetScore(bool hasScore, int mine, int enemy)
         {
             if (_scoreText == null) return;
-            _scoreText.text = line ?? string.Empty;
-            _scoreText.gameObject.SetActive(!string.IsNullOrEmpty(line));
+            _scoreText.text = hasScore ? $"{mine}  <size=14><color=#{ColorUtility.ToHtmlStringRGB(BattleHud.EnemyAccent)}>{enemy}</color></size>" : string.Empty;
+            _scoreText.transform.parent.gameObject.SetActive(hasScore);
         }
 
         private static Text WireSlot(Transform slot, (string Icon, Color Tint) def)
@@ -95,9 +106,14 @@ namespace TacticsECS
         {
             // 발전도/골드는 "보유량 (+턴당 생산량)" — 생산량은 도시 목록으로 매번 다시 계산되는 값이라
             // (CityResourceSystem.RefreshProduction) 옆에 같이 보여줘야 건설/점령 효과가 바로 읽힌다.
-            _developmentText.text = city.DevelopmentProduction > 0 ? $"{city.Development} (+{city.DevelopmentProduction})" : city.Development.ToString();
+            _developmentText.supportRichText = _goldText.supportRichText = true;
+            _developmentText.text = WithIncome(city.Development, city.DevelopmentProduction);
             _populationText.text = $"{populationUsed}/{city.PopulationCap}";
-            _goldText.text = city.GoldProduction > 0 ? $"{city.Gold} (+{city.GoldProduction})" : city.Gold.ToString();
+            _goldText.text = WithIncome(city.Gold, city.GoldProduction);
         }
+
+        /// <summary>"12 +3" — 턴당 수입은 괄호 대신 작은 초록 숫자(Polytopia 상단 별 옆 "+5").</summary>
+        private static string WithIncome(int value, int income) =>
+            income > 0 ? $"{value} <size=13><color=#{ColorUtility.ToHtmlStringRGB(UiKit.GainColor)}>+{income}</color></size>" : value.ToString();
     }
 }

@@ -341,18 +341,101 @@ namespace TacticsECS
         {
             foreach (var t in _tileViews)
                 t.SetHighlight(TileView.TileHighlight.None);
+            if (_highlightMarkers != null)
+                foreach (var m in _highlightMarkers)
+                    if (m != null) m.SetActive(false);
         }
 
         public void HighlightMove(IEnumerable<Vector2Int> tiles)
         {
             foreach (var p in tiles)
+            {
                 _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Move);
+                ShowMarker(p, TileView.TileHighlight.Move);
+            }
         }
 
         public void HighlightAttack(IEnumerable<Vector2Int> tiles)
         {
             foreach (var p in tiles)
+            {
                 _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Attack);
+                ShowMarker(p, TileView.TileHighlight.Attack);
+            }
         }
+
+        // ---------- 하이라이트 모양 표시 ----------
+        // 이동/공격 칸을 색(파랑/빨강)만으로 구분하면 색각 이상이 있거나 햇빛 아래 휴대폰 화면에서 헷갈린다. Polytopia처럼
+        // 이동 칸에는 가운데 점, 공격 칸에는 네 모서리 괄호(조준 표시)를 얹어 모양으로도 구분한다(docs/UxIconizationPlan.md 2.6).
+        // 칸마다 한 번만 만들고 켜고 끄기만 한다.
+
+        private GameObject[] _highlightMarkers;
+        private TileView.TileHighlight[] _markerKinds;
+        private static readonly Color MoveMarkerColor = new Color(0.9f, 0.97f, 1f);
+        private static readonly Color AttackMarkerColor = new Color(1f, 0.92f, 0.3f);
+
+        private void ShowMarker(Vector2Int p, TileView.TileHighlight kind)
+        {
+            int index = _grid.Index(p);
+            if (_highlightMarkers == null || _highlightMarkers.Length != _tileViews.Length)
+            {
+                _highlightMarkers = new GameObject[_tileViews.Length];
+                _markerKinds = new TileView.TileHighlight[_tileViews.Length];
+            }
+            var marker = _highlightMarkers[index];
+            if (marker != null && _markerKinds[index] != kind)
+            {
+                Destroy(marker);
+                marker = null;
+            }
+            if (marker == null)
+            {
+                marker = kind == TileView.TileHighlight.Move ? CreateMoveMarker() : CreateAttackMarker();
+                marker.transform.SetParent(_tileViews[index].transform, false);
+                marker.transform.localPosition = new Vector3(0f, _tileTopLocalY[index] + 0.02f, 0f);
+                _highlightMarkers[index] = marker;
+                _markerKinds[index] = kind;
+            }
+            marker.SetActive(true);
+        }
+
+        private static GameObject CreateMoveMarker()
+        {
+            var root = new GameObject("MoveMarker");
+            MarkerPiece(root.transform, Vector3.zero, new Vector3(0.2f, 0.02f, 0.2f), 45f, MoveMarkerColor);
+            return root;
+        }
+
+        private static GameObject CreateAttackMarker()
+        {
+            var root = new GameObject("AttackMarker");
+            const float e = 0.36f, len = 0.18f, w = 0.05f;
+            for (int sx = -1; sx <= 1; sx += 2)
+            for (int sz = -1; sz <= 1; sz += 2)
+            {
+                MarkerPiece(root.transform, new Vector3(sx * (e - len * 0.5f), 0f, sz * e), new Vector3(len, 0.02f, w), 0f, AttackMarkerColor);
+                MarkerPiece(root.transform, new Vector3(sx * e, 0f, sz * (e - len * 0.5f)), new Vector3(w, 0.02f, len), 0f, AttackMarkerColor);
+            }
+            return root;
+        }
+
+        private static void MarkerPiece(Transform parent, Vector3 pos, Vector3 size, float yaw, Color color)
+        {
+            var go = new GameObject("Piece");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = pos;
+            go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            go.transform.localScale = size;
+            go.AddComponent<MeshFilter>().sharedMesh = LowPolyMeshes.Get(ModelShape.Box);
+            if (!MarkerMaterials.TryGetValue(color, out var mat) || mat == null)
+            {
+                mat = RuntimeMaterial.CreateColored(color);
+                MarkerMaterials[color] = mat;
+            }
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+        }
+
+        /// <summary>표시 전용 머티리얼 캐시(색 2개뿐) — 칸마다 새 머티리얼을 만들지 않게.</summary>
+        private static readonly Dictionary<Color, Material> MarkerMaterials = new Dictionary<Color, Material>();
     }
 }

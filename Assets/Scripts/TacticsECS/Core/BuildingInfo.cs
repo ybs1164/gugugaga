@@ -10,6 +10,9 @@ namespace TacticsECS
         public string Id;
         public string Name;
 
+        /// <summary>IconLibrary.Get에 넘기는 아이콘 이름(Assets/Art/GameIcons/Resources/Icons, CSV Icon 칸). 메뉴 버튼/기술 해금 줄에 쓴다.</summary>
+        public string Icon;
+
         /// <summary>이 건물을 지으려면 팀이 가져야 하는 기술 해금 키(TechNodeData.Unlocks).</summary>
         public string UnlockKey;
 

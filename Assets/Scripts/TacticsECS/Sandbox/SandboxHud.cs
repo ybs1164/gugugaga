@@ -115,6 +115,8 @@ namespace TacticsECS
             WireStartButton(canvas);
 
             HideStructurePanel();
+            // 모바일: 세이프 에어리어 + 휴대폰 크기 보정(ResponsiveCanvas). 자식을 이름으로 찾는 Wire*가 끝난 뒤에 감싼다.
+            ResponsiveCanvas.Attach(canvas);
         }
 
         // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------

@@ -64,16 +64,17 @@ namespace TacticsECS.EditorTools
                 world.Set(id, new Hp { Value = 7 });
 
                 instance.SetRoster(world);
-                var rosterContent = instance.transform.Find("Canvas/UnitRoster/Viewport/Content");
+                // Init이 캔버스 자식을 ResponsiveCanvas의 SafeArea 아래로 옮긴다(모바일 세이프 에어리어).
+                var rosterContent = instance.transform.Find("Canvas/SafeArea/UnitRoster/Viewport/Content");
                 if (rosterContent == null || rosterContent.childCount != 1)
                 {
                     Debug.LogError($"[UIVerification] roster row count mismatch: expected 1, got {(rosterContent == null ? -1 : rosterContent.childCount)}");
                     ok = false;
                 }
 
-                instance.AddLogEntry("테스트 로그 줄");
-                instance.AddLogEntry("테스트 로그 줄 2");
-                var logContent = instance.transform.Find("Canvas/ActionLog/Content");
+                instance.AddLogEntry(new LogLine { Actor = "전사", ActorColor = BattleHud.PlayerAccent, Icon = "attack", Target = "궁수", Amount = "-3" });
+                instance.AddLogEntry(new LogLine { Actor = "궁수", ActorColor = BattleHud.EnemyAccent, Icon = "defeat" });
+                var logContent = instance.transform.Find("Canvas/SafeArea/ActionLog/Content");
                 if (logContent == null || logContent.childCount != 2)
                 {
                     Debug.LogError($"[UIVerification] log line count mismatch: expected 2, got {(logContent == null ? -1 : logContent.childCount)}");
@@ -150,20 +151,22 @@ namespace TacticsECS.EditorTools
                 city.Gold = 5;
                 instance.SetResources(city, populationUsed: 3);
 
-                var bar = instance.transform.Find("Canvas/Bar");
+                var bar = instance.transform.Find("Canvas/SafeArea/Bar");
                 void CheckSlot(string slotName, string expected)
                 {
                     var text = bar.Find(slotName + "/Number")?.GetComponent<Text>();
-                    if (text == null || text.text != expected)
+                    string plain = text == null ? null : System.Text.RegularExpressions.Regex.Replace(text.text, "<[^>]+>", string.Empty);
+                    if (text == null || plain != expected)
                     {
                         Debug.LogError($"[UIVerification] CityResourceBar {slotName} mismatch: expected '{expected}', got '{(text == null ? "<missing>" : text.text)}'");
                         ok = false;
                     }
                 }
 
-                CheckSlot("Development", "2 (+1)");
+                // 턴당 수입은 괄호 문장 대신 작은 초록 숫자(리치 텍스트) — 태그를 뺀 글자만 비교한다.
+                CheckSlot("Development", "2 +1");
                 CheckSlot("Population", "3/10");
-                CheckSlot("Gold", "5 (+1)");
+                CheckSlot("Gold", "5 +1");
                 if (bar.Find("Faith") != null) { Debug.LogError("[UIVerification] CityResourceBar still has the removed Faith slot"); ok = false; }
             }
             finally
@@ -195,8 +198,8 @@ namespace TacticsECS.EditorTools
                 city.Development = 10;
                 instance.SetState(tech, city, cityCount: 1);
 
-                var tree = instance.transform.Find("Canvas/Panel/Tree");
-                var detail = instance.transform.Find("Canvas/Panel/Detail");
+                var tree = instance.transform.Find("Canvas/SafeArea/Panel/Tree");
+                var detail = instance.transform.Find("Canvas/SafeArea/Panel/Detail");
                 var nameText = detail.Find("Name").GetComponent<Text>();
                 var statusText = detail.Find("Status").GetComponent<Text>();
                 var unlockButton = detail.Find("UnlockButton").GetComponent<Button>();
@@ -209,9 +212,11 @@ namespace TacticsECS.EditorTools
                     ok = false;
                 }
 
-                // 선행 기술(명상)이 아직 해금되지 않은 3티어 노드 -> 해금 불가여야 한다.
+                // 선행 기술(명상)이 아직 해금되지 않은 3티어 노드 -> 해금 불가여야 한다. 상태 줄은 문장 대신
+                // [자물쇠 아이콘] + 선행 기술 이름.
                 tree.Find("Philosophy").GetComponent<Button>().onClick.Invoke();
-                if (unlockButton.interactable || !statusText.text.Contains("선행 기술"))
+                var statusIcon = detail.Find("StatusIcon")?.GetComponent<Image>();
+                if (unlockButton.interactable || !statusText.text.Contains("명상") || statusIcon == null || statusIcon.sprite != IconLibrary.Get("lock"))
                 {
                     Debug.LogError($"[UIVerification] TechTreePanel: expected Philosophy to require a prerequisite, interactable={unlockButton.interactable}, status='{statusText.text}'");
                     ok = false;
@@ -250,8 +255,8 @@ namespace TacticsECS.EditorTools
             {
                 instance.Init();
 
-                var panel = instance.transform.Find("Canvas/StructurePanel");
-                if (panel == null) { Debug.LogError("[UIVerification] StructurePanel not found under BattleHud/Canvas"); return false; }
+                var panel = instance.transform.Find("Canvas/SafeArea/StructurePanel");
+                if (panel == null) { Debug.LogError("[UIVerification] StructurePanel not found under BattleHud/Canvas/SafeArea"); return false; }
                 if (panel.gameObject.activeSelf)
                 {
                     Debug.LogError("[UIVerification] StructurePanel should start hidden");
@@ -304,8 +309,8 @@ namespace TacticsECS.EditorTools
             {
                 instance.Init();
 
-                var panel = instance.transform.Find("Canvas/StructurePanel");
-                if (panel == null) { Debug.LogError("[UIVerification] SandboxHud StructurePanel not found under Canvas"); return false; }
+                var panel = instance.transform.Find("Canvas/SafeArea/StructurePanel");
+                if (panel == null) { Debug.LogError("[UIVerification] SandboxHud StructurePanel not found under Canvas/SafeArea"); return false; }
                 if (panel.gameObject.activeSelf)
                 {
                     Debug.LogError("[UIVerification] SandboxHud StructurePanel should start hidden");

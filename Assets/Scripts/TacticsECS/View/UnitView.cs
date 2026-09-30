@@ -174,6 +174,10 @@ namespace TacticsECS
             RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
 
             var bodyColor = world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id));
+            // 이번 턴 이동과 행동을 모두 마친 유닛은 옷 색을 어둡게 — 아직 움직일 수 있는 유닛이 한눈에 보이게(Polytopia처럼
+            // 문장 없이 모양/색으로 상태를 보여준다, docs/UxIconizationPlan.md 2.6).
+            if (world.Get<Team>(id) == Team.Player && world.Get<HasMoved>(id).Value && world.Get<HasActed>(id).Value)
+                bodyColor = Color.Lerp(bodyColor, new Color(0.25f, 0.25f, 0.28f), 0.55f);
             RuntimeMaterial.SetColor(_material, bodyColor);
 
             var embarked = world.GetOrDefault<Embarked>(id);

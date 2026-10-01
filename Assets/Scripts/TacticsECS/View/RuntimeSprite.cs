@@ -19,9 +19,10 @@ namespace TacticsECS
         /// 여러 군데서 공유해서 쓴다.</summary>
         public static Sprite CreateCircle(int resolution = 64)
         {
+            resolution = 16;
             if (CircleCache.TryGetValue(resolution, out var cached)) return cached;
 
-            var tex = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false) { name = "CircleSprite" };
+            var tex = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false) { name = "PixelBadge", filterMode = FilterMode.Point };
             var center = new Vector2((resolution - 1) * 0.5f, (resolution - 1) * 0.5f);
             float radius = resolution * 0.5f;
             var pixels = new Color32[resolution * resolution];
@@ -30,7 +31,7 @@ namespace TacticsECS
                 for (int x = 0; x < resolution; x++)
                 {
                     float dist = Vector2.Distance(new Vector2(x, y), center);
-                    float alpha = Mathf.Clamp01(radius - dist + 0.5f);
+                    float alpha = dist <= radius - 1f ? 1f : 0f;
                     pixels[y * resolution + x] = new Color(1f, 1f, 1f, alpha);
                 }
             }

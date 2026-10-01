@@ -103,13 +103,7 @@ namespace TacticsECS
             "에서만 초기화된다(도시 발전도가 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
         [SerializeField] private TechTreeHud techTreeHudPrefab;
 
-        [Header("Camera (Isometric)")]
-        [Tooltip("Y축(수평) 회전. 45도면 그리드 대각선 방향에서 바라보는 전형적인 isometric 구도.")]
-        [SerializeField] private float isoYawDegrees = 45f;
-        [Tooltip("X축(피치) 회전. 35.264도가 수학적으로 정확한 isometric 각도(atan(1/sqrt(2))).")]
-        [SerializeField] private float isoPitchDegrees = 35.264f;
-        [Tooltip("그리드를 화면에 얼마나 꽉 채울지. 값이 작을수록 확대된다.")]
-        [SerializeField] private float isoZoom = 0.62f;
+        [Header("Camera (Pixel 2D)")]
 
         [Header("Camera Control")]
         [Tooltip("WASD/방향키로 카메라를 이동하는 속도 (월드 단위/초).")]
@@ -128,6 +122,7 @@ namespace TacticsECS
         private UnitSpawner _spawner;
         private BattleHud _hud;
         private Camera _cam;
+        private PixelCamera _pixelCamera;
 
         private SandboxHud _sandboxHud;
         private UnitPlacementController _placementController;
@@ -863,30 +858,42 @@ namespace TacticsECS
         }
 
         /// <summary>
-        /// 카메라를 정통 isometric 구도(대각선 45도 + 피치 35.264도)로 배치한다.
-        /// 원근 대신 orthographic을 사용해 거리에 따른 크기 왜곡이 없도록 한다.
+        /// 논리 XZ 그리드를 XY로 투영한 고정 직교 카메라. 정수 픽셀 배율은 PixelCamera가 맞춘다.
         /// </summary>
         private void PositionCamera()
         {
-            var center = _grid.GridToWorld(new Vector2Int(gridWidth / 2, gridHeight / 2));
-            float span = Mathf.Max(gridWidth, gridHeight) * tileSize;
+            var center = PixelCoordinates.FromLogical(_grid.Origin) + new Vector3((gridWidth - 1) * tileSize * .5f, (gridHeight - 1) * tileSize * .5f, 0);
 
-            _cameraRotation = Quaternion.Euler(isoPitchDegrees, isoYawDegrees, 0f);
-            _cameraDistance = span * 1.5f;
+            _cameraRotation = Quaternion.identity;
+            _cameraDistance = 20f;
             _cameraFocus = center;
             // 카메라가 바라보는 평면(그리드 바닥) 기준 좌/우, 앞/뒤 방향. 팬 입력을 여기에 투영한다.
-            _cameraRight = Vector3.ProjectOnPlane(_cameraRotation * Vector3.right, Vector3.up).normalized;
-            _cameraForwardFlat = Vector3.ProjectOnPlane(_cameraRotation * Vector3.forward, Vector3.up).normalized;
+            _cameraRight = Vector3.right;
+            _cameraForwardFlat = Vector3.up;
 
             _cam.orthographic = true;
-            _cam.orthographicSize = Mathf.Clamp(span * isoZoom, minOrthoSize, maxOrthoSize);
+            if (_pixelCamera == null) _pixelCamera = _cam.GetComponent<PixelCamera>();
+            if (_pixelCamera == null) _pixelCamera = _cam.gameObject.AddComponent<PixelCamera>();
+            _pixelCamera.RequestedSize = Mathf.Clamp(Mathf.Max(gridHeight * tileSize * .6f, gridWidth * tileSize * .6f / _cam.aspect), minOrthoSize, maxOrthoSize);
+            _cam.clearFlags = CameraClearFlags.SolidColor;
+            _cam.backgroundColor = new Color(.12f, .17f, .23f);
+            _cam.allowHDR = false;
+            _cam.allowMSAA = false;
+            _cam.transparencySortMode = TransparencySortMode.CustomAxis;
+            _cam.transparencySortAxis = Vector3.up;
+            var cameraData = _cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            if (cameraData != null) cameraData.renderPostProcessing = false;
             ApplyCameraTransform();
         }
 
         private void ApplyCameraTransform()
         {
             _cam.transform.rotation = _cameraRotation;
-            _cam.transform.position = _cameraFocus - _cameraRotation * Vector3.forward * _cameraDistance;
+            if (_pixelCamera == null) _pixelCamera = _cam.GetComponent<PixelCamera>();
+            if (_pixelCamera == null) _pixelCamera = _cam.gameObject.AddComponent<PixelCamera>();
+            _pixelCamera.WorldCellSize = tileSize;
+            _pixelCamera.RequestedPosition = _cameraFocus - Vector3.forward * _cameraDistance;
+            _pixelCamera.Apply();
         }
 
         /// <summary>
@@ -900,7 +907,7 @@ namespace TacticsECS
             float minZ = _grid.Origin.z - margin;
             float maxZ = _grid.Origin.z + (gridHeight - 1) * tileSize + margin;
             _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, minX, maxX);
-            _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, minZ, maxZ);
+            _cameraFocus.y = Mathf.Clamp(_cameraFocus.y, minZ, maxZ);
         }
 
         /// <summary>
@@ -931,9 +938,10 @@ namespace TacticsECS
                 float scroll = Mouse.current.scroll.ReadValue().y;
                 if (!Mathf.Approximately(scroll, 0f))
                 {
-                    _cam.orthographicSize = Mathf.Clamp(
-                        _cam.orthographicSize - scroll * zoomSensitivity,
+                    _pixelCamera.RequestedSize = Mathf.Clamp(
+                        _pixelCamera.RequestedSize - scroll * zoomSensitivity,
                         minOrthoSize, maxOrthoSize);
+                    _pixelCamera.Apply();
                 }
             }
         }
@@ -1013,7 +1021,7 @@ namespace TacticsECS
             foreach (var entry in entries)
             {
                 if (entry.Verb == BattleLogVerb.Attack)
-                    _viewsById[entry.ActorId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(entry.TargetId).Value));
+                    _viewsById[entry.ActorId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(entry.TargetId).Value));
                 if ((entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) && entry.Amount > 0)
                     _viewsById[entry.TargetId].ShowDamagePopup(entry.Amount);
                 _hud.AddLogEntry(FormatLogEntry(entry));
@@ -1127,28 +1135,10 @@ namespace TacticsECS
                 HandleClick();
         }
 
-        /// <summary>
-        /// 화면 좌표를 그리드 좌표로 변환한다. 3D 콜라이더 레이캐스트 대신 그리드 바닥 평면과의 교차점으로
-        /// 계산하는 이유: 유닛(Capsule)은 타일 위로 솟아 있어서, isometric 각도에서 콜라이더 레이캐스트를
-        /// 쓰면 카메라에 더 가까운(앞쪽) 칸의 유닛이 그 뒤 칸으로 가는 레이를 가로막아 클릭이 씹히는 문제가
-        /// 있었다. 평면 교차 -> 그리드 좌표 역산 -> GridWorld 조회 방식은 화면에 보이는 칸과 항상 일치하고
-        /// 유닛 높이에 의한 가림 문제가 애초에 발생하지 않는다. 배치 단계(TryScreenToGridPos)와 전투 단계
-        /// (HandleClick) 둘 다 이 변환을 그대로 재사용한다.
-        /// </summary>
+        /// <summary>Intersect the XY view plane and use one cell-boundary policy for placement, battle and hover.</summary>
         private bool TryScreenToGridPos(Vector2 screenPos, out Vector2Int gridPos)
         {
-            gridPos = default;
-            var ray = _cam.ScreenPointToRay(screenPos);
-
-            var groundPlane = new Plane(Vector3.up, _grid.Origin);
-            if (!groundPlane.Raycast(ray, out float enter)) return false;
-
-            var worldPoint = ray.GetPoint(enter);
-            gridPos = new Vector2Int(
-                Mathf.RoundToInt((worldPoint.x - _grid.Origin.x) / tileSize),
-                Mathf.RoundToInt((worldPoint.z - _grid.Origin.z) / tileSize));
-
-            return _grid.InBounds(gridPos);
+            return PixelCoordinates.TryScreenToGrid(_cam, _grid, screenPos, out gridPos);
         }
 
         /// <summary>전투 시작 전(배치 단계)에는 클릭이 이미 유닛 배치에 쓰여서 구조물 정보를 클릭으로
@@ -1809,7 +1799,7 @@ namespace TacticsECS
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
-            _viewsById[attackerId].FaceTowards(_grid.GridToWorld(_world.Get<GridPosition>(targetId).Value));
+            _viewsById[attackerId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(targetId).Value));
             RefreshRoster();
             RefreshEconomyViews(false);
 

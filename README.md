@@ -2,6 +2,8 @@
 
 Unity 6000.3.20f1 기반 턴제 전술 전투 프로토타입.
 
+현재 화면은 무료 CC0 픽셀 에셋 기반 탑다운 2D다. 지형·시야는 Tilemap, 유닛·함선·건물·자원·아이콘은 `Assets/Resources/Pixel2D/SpriteCatalog.csv`로 표시한다. 게임 규칙과 기존 CSV 스탯은 유지했다. [전환 계획](docs/Pixel2DMigrationPlan.md), [구현·검증 기록과 화면](docs/Pixel2DImplementation.md)을 참고한다.
+
 ## 구조 (야매 ECS)
 
 - `Assets/Scripts/TacticsECS/Core`, `Data`: 순수 데이터 (struct/필드만). 로직 없음. [`EntityWorld`](Assets/Scripts/TacticsECS/Data/EntityWorld.cs)가 범용 엔티티-컴포넌트 저장소, [`UnitComponents.cs`](Assets/Scripts/TacticsECS/Core/UnitComponents.cs)가 그 안에 저장되는 컴포넌트 타입들(아래 참고).

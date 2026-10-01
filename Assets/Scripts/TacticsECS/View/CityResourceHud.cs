@@ -48,6 +48,7 @@ namespace TacticsECS
             _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
             _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
             _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
+            PixelUISkin.Apply(gameObject);
         }
 
         /// <summary>자원 바 바로 아래 한 줄짜리 점수 표시(위키 Score). 줄 하나라 프리팹에 굽지 않고 코드로 만든다(BattleHud의

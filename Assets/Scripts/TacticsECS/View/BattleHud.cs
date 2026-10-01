@@ -141,6 +141,7 @@ namespace TacticsECS
             HideStructurePanel();
             SetUnitActions(ActionType.None, hasActed: true);
             SetDeselectVisible(false);
+            PixelUISkin.Apply(gameObject);
         }
 
         /// <summary>새 Input System 기준(activeInputHandler=Input System Package)이라 uGUI 클릭을

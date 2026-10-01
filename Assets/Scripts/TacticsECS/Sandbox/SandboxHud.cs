@@ -115,6 +115,7 @@ namespace TacticsECS
             WireStartButton(canvas);
 
             HideStructurePanel();
+            PixelUISkin.Apply(gameObject);
         }
 
         // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------

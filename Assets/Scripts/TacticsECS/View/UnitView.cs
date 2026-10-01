@@ -1,330 +1,168 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
-
+using UnityEngine.Rendering;
 namespace TacticsECS
 {
-    /// <summary>
-    /// 유닛 하나의 화면 표시 전용 컴포넌트.
-    /// 값을 스스로 들고 있지 않고, Init/Refresh(EntityWorld, id)로 받을 때마다 그 엔티티의 컴포넌트를
-    /// 그때그때 조회해서 겉모습만 갱신한다 (전투 로직 없음).
-    /// 외형(모델/스케일)은 프리팹 자체에, 텍스처/MaxHp는 같은 GameObject의 UnitDefinition
-    /// 컴포넌트에 있으므로 타입별 분기(switch) 없이 GetComponent로 읽어오기만 한다. 색은 유닛 타입과
-    /// 무관하게 팀(Team 컴포넌트)만으로 정해지므로 PlayerColor/EnemyColor 상수를 그대로 쓴다.
-    /// 유닛 모델(자식의 KayKit 캐릭터)은 몸통/팔/다리/무기 등 여러 개의 Renderer로 나뉘어 있어,
-    /// 색 틴트는 그 전부에 같은 런타임 머티리얼 하나를 공유시켜 적용한다.
-    /// 머리 위 체력 표시는 숫자(현재 HP만, 최댓값은 선택 시 BattleHud 패널에서 보여준다) +
-    /// 색이 상태를 말해주는 막대(HpColorScale)로 구성해, 값을 굳이 읽지 않아도 색과 길이만으로
-    /// 상태가 보이게 한다.
-    /// 중요: Update()가 없다. 이동할 때만 짧게 코루틴을 돌리므로,
-    /// 대기 중인 유닛 100~300개는 프레임당 비용이 사실상 0이다.
-    /// </summary>
+    /// <summary>2D presentation of an entity; simulation, actions and stats remain in Systems/Data.</summary>
     public class UnitView : MonoBehaviour
     {
         public int UnitId { get; private set; }
-
-        /// <summary>행동 로그(BattleHud.AddLogEntry)에 표시할 이 유닛의 이름표. 데모 편성은 "근접 전사"
-        /// 같은 고정 한글 이름(BattleController.SpawnUnit), 샌드박스 CSV 유닛은 CSV의 Name 컬럼 값이다
-        /// (UnitSpawner.FinishSpawn이 label 그대로 전달).</summary>
         public string Label { get; private set; }
-
         [SerializeField] private float moveSpeed = 6f;
-        [SerializeField] private float turnSpeedDegrees = 720f;
-
-        [Tooltip("머리 위 체력 표시(배경/채우기 막대 + 숫자) 프리팹. Assets/Prefabs/UI/HpDisplay.prefab " +
-            "(UIPrefabSetup.GenerateHpDisplay 참고) — 이 프리팹을 자식으로 인스턴스화해서 쓴다.")]
         [SerializeField] private Transform hpDisplayPrefab;
-
-        [Tooltip("피해를 입었을 때 잠깐 떠오르는 숫자 라벨 프리팹. Assets/Prefabs/UI/DamagePopup.prefab " +
-            "(UIPrefabSetup.GenerateDamagePopup 참고) — HpDisplay와 달리 이 유닛의 자식으로 두지 않고 " +
-            "매번 독립된 오브젝트로 인스턴스화한다(ShowDamagePopup 참고).")]
         [SerializeField] private Transform damagePopupPrefab;
-
-        private static readonly Color DamageColor = new Color(0.95f, 0.25f, 0.2f);
-
-        private Renderer[] _renderers;
-        private Material _material;
+        public static readonly Vector2 HpBarSize = new Vector2(.6f,.0625f);
+        public const float HpBarLocalY = .4375f;
+        public const float HpNumberLocalY = .58f;
         private UnitDefinition _definition;
-        private Transform _hpGroup;
-        private TextMesh _hpText;
-        private Color _hpTextBaseColor = Color.white;
-        private static readonly Color VeteranHpTextColor = new Color(1f, 0.82f, 0.25f);
-        private Transform _hpBarFill;
-        private Material _hpFillMaterial;
         private GridWorld _grid;
-        private Coroutine _moveRoutine;
-
-        /// <summary>승선 중 발밑에 붙는 배 모델(EmbarkSystem — 뗏목/정찰선/충각선/폭격선마다 색이 다르다). 처음 필요할 때 만든다.</summary>
-        private GameObject _boat;
-
-        /// <summary>위키식 블록 유닛 모델(UnitModels.csv) — 없으면 KayKit 모델을 그대로 쓴다.</summary>
-        private GameObject _model;
-        private Color _modelColor = Color.clear;
-
-        /// <summary>배에 탄 유닛이 서는 갑판 높이(UnitModels.csv의 Boat.* 갑판 윗면).</summary>
-        private const float BoatDeckHeight = 0.14f;
-
-        /// <summary>블록 모델을 타일 윗면에 세우는 높이: 타일 윗면(GridView.TileTopHeight) − 유닛 루트 높이(GroundOffset). KayKit 모델은
-        /// 프리팹이 자체 보정을 갖고 있어 루트 그대로 둔다. 물 칸은 윗면이 GridView.WaterDrop만큼 낮다.</summary>
-        private static float LandLift => GridView.TileTopHeight - GroundOffset;
-        private static float WaterLift => GridView.TileTopHeight - GridView.WaterDrop - GroundOffset;
+        private GameObject _model, _boat;
         private string _boatId;
+        private Transform _hpGroup, _hpBarFill;
+        private TextMesh _hpText;
+        private SpriteRenderer _hpFill, _teamBadge, _guardBadge, _statusBadge;
+        private SortingGroup _sorting;
+        private Coroutine _moveRoutine;
+        private Coroutine _attackRoutine, _hitRoutine;
         private bool _visible = true;
-
-        private static readonly System.Collections.Generic.Dictionary<string, Color> BoatColors = new System.Collections.Generic.Dictionary<string, Color>
-        {
-            [NavalUnitDefinition.RaftId] = new Color(0.60f, 0.45f, 0.28f),
-            ["scout"] = new Color(0.85f, 0.85f, 0.80f),
-            ["rammer"] = new Color(0.35f, 0.35f, 0.40f),
-            ["bomber"] = new Color(0.25f, 0.25f, 0.28f),
-        };
-
-        private static readonly Color GuardingColor = Color.yellow;
-
-        /// <summary>팀별 고정 표시 색. 유닛 타입과 무관하게 같은 팀이면 전부 같은 색으로 표시된다
-        /// (CSV/UnitDefinition에는 색 데이터가 없다 — 여기 하드코딩된 값이 유일한 기준점).</summary>
-        private static readonly Color PlayerColor = new Color(0.2f, 0.5f, 1f);
-        private static readonly Color EnemyColor = new Color(1f, 0.3f, 0.3f);
-
-        private static Color ColorForTeam(Team team) => team == Team.Player ? PlayerColor : EnemyColor;
-
-        /// <summary>UIPrefabSetup(에디터 전용 HpDisplay 프리팹 생성 도구, Assets/Editor)이 런타임과 같은
-        /// 크기/높이 값을 쓰도록 public으로 공개한 값들. 값이 여기와 프리팹 생성 스크립트 두 곳에 따로
-        /// 적히지 않게 한다. Editor 폴더는 별도 어셈블리(Assembly-CSharp-Editor)라 internal로는 보이지
-        /// 않아 public이 필요하다.</summary>
-        public static readonly Vector2 HpBarSize = new Vector2(0.6f, 0.08f);
-        // 캐릭터 머리(약 Y 1.5 부근) 위로 확실히 뜨도록 여유를 둔 높이. 너무 낮추면 헬멧 등
-        // 모델 자체 지오메트리에 가려 안 보인다(실측: 스크린샷 검증에서 1.35는 가려짐 확인).
-        public const float HpBarLocalY = 1.7f;
-        public const float HpNumberLocalY = 1.9f;
-
-        /// <summary>모델 원점(발밑)이 타일 바닥면 위에 오도록 하는 높이 보정.</summary>
-        private const float GroundOffset = 0.05f;
-
-        /// <summary>
-        /// KayKit 모델의 정면은 로컬 -Z를 향한다(UnitPrefabSetup이 자식을 180도 돌려 붙인 것과 같은 보정).
-        /// 그래서 "이 방향을 바라보게" 회전시킬 때는 LookRotation 뒤에 이 보정을 한 번 더 곱해야 한다.
-        /// </summary>
-        private static readonly Quaternion ModelFacingCorrection = Quaternion.Euler(0f, 180f, 0f);
-
+        private Vector3 _bodyOrigin;
+        private static readonly Color PlayerColor = new Color(.3f,.6f,1f);
+        private static readonly Color EnemyColor = new Color(1f,.36f,.29f);
         public void Init(EntityWorld world, int id, GridWorld grid, string label)
         {
-            UnitId = id;
-            Label = label;
-            _grid = grid;
-            _renderers = GetComponentsInChildren<Renderer>();
-            _definition = GetComponent<UnitDefinition>();
-
-            _material = RuntimeMaterial.CreateColored(ColorForTeam(world.Get<Team>(id)), _definition.BodyTexture);
-            foreach (var r in _renderers) r.sharedMaterial = _material;
-
-            // 위키식 블록 유닛(UnitModels.csv)이 있으면 KayKit 모델을 끄고 그것을 그린다 — 팀 색은 옷 조각에만 칠해진다.
-            // (KayKit 오브젝트는 SetVisible이 렌더러를 다시 켜도 보이지 않게 GameObject째 끈다.)
-            if (ModelBuilder.Has(_definition.ModelId))
-            {
-                foreach (var r in _renderers) r.gameObject.SetActive(false);
-                _renderers = new Renderer[0];
-            }
-
+            UnitId = id; Label = label; _grid = grid; _definition = GetComponent<UnitDefinition>();
+            // Legacy models are disabled defensively; the migration CLI removes them from source prefabs.
+            foreach (var renderer in GetComponentsInChildren<Renderer>()) renderer.gameObject.SetActive(false);
+            transform.rotation = Quaternion.identity;
+            transform.localScale = new Vector3(grid.TileSize,grid.TileSize,1);
+            _sorting = GetComponent<SortingGroup>();
+            if (_sorting == null) _sorting = gameObject.AddComponent<SortingGroup>();
+            _model = PixelSpriteCatalog.Build(_definition.ModelId,transform,order:1);
+            PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.27f),new Vector2(.6f,.15f),new Color(.1f,.14f,.2f,.3f),-1);
+            _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.34f),new Vector2(.5f,.0625f),Color.white,3);
+            _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteCatalog.Get("Icon.guard"),new Vector2(.31f,.28f),Vector2.one*.25f,Color.white,4);
+            _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteCatalog.Get("Icon.freeze"),new Vector2(-.31f,.28f),Vector2.one*.25f,Color.white,4);
             BuildHpDisplay();
-
-            transform.position = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
-            Refresh(world, id);
+            transform.position = PixelCoordinates.GridToWorld(grid,world.Get<GridPosition>(id).Value);
+            Refresh(world,id);
         }
-
-        /// <summary>머리 위 체력 표시(숫자 + 색깔 막대)를 만든다. 구조(배경 쿼드/채우기 쿼드/숫자)는
-        /// Assets/Prefabs/UI/HpDisplay.prefab에 이미 만들어져 있다(UIPrefabSetup.GenerateHpDisplay) — 여기서는
-        /// 그 프리팹을 인스턴스화하고, 채우기 쿼드는 유닛마다 색이 달라져야 하므로 전용 런타임 머티리얼만
-        /// 새로 만들어 씌운다(배경은 모든 유닛이 같은 색이라 프리팹의 공유 머티리얼을 그대로 쓴다).</summary>
         private void BuildHpDisplay()
         {
-            if (hpDisplayPrefab == null)
-            {
-                Debug.LogError($"[UnitView] {name}: hpDisplayPrefab이 비어있습니다. Assets/Prefabs/UI/HpDisplay.prefab을 연결하세요.");
-                return;
-            }
-
-            _hpGroup = Instantiate(hpDisplayPrefab, transform);
-            _hpGroup.name = "HpDisplay";
-            _hpGroup.rotation = HpBillboardRotation();
-
-            _hpBarFill = _hpGroup.Find("Bar_Fill");
-            _hpFillMaterial = RuntimeMaterial.CreateColored(HpColorScale.ForFraction(1f));
-            RuntimeMaterial.SetDoubleSided(_hpFillMaterial);
-            _hpBarFill.GetComponent<Renderer>().sharedMaterial = _hpFillMaterial;
-
+            if (hpDisplayPrefab == null) throw new System.InvalidOperationException("UnitView needs HpDisplay prefab");
+            _hpGroup = Instantiate(hpDisplayPrefab,transform); _hpGroup.name = "HpDisplay";
+            _hpGroup.localRotation = Quaternion.identity;
+            _hpBarFill = _hpGroup.Find("Bar_Fill"); _hpFill = _hpBarFill.GetComponent<SpriteRenderer>();
             _hpText = _hpGroup.GetComponentInChildren<TextMesh>();
-            _hpTextBaseColor = _hpText.color;
+            _hpGroup.Find("Bar_Bg").GetComponent<Renderer>().sortingOrder = 20;
+            _hpBarFill.GetComponent<Renderer>().sortingOrder = 21;
+            _hpText.GetComponent<Renderer>().sortingOrder = 22;
         }
-
         public void Refresh(EntityWorld world, int id)
         {
-            if (!UnitQueries.IsAlive(world, id))
-            {
-                gameObject.SetActive(false);
-                return;
-            }
-
+            if (!UnitQueries.IsAlive(world,id)) { gameObject.SetActive(false); return; }
             int hp = world.Get<Hp>(id).Value;
-            int maxHp = world.GetOrDefault<MaxHp>(id).Value; // 베테랑은 최대 체력이 늘어난다(정의값이 아니라 world 값)
+            int maxHp = world.GetOrDefault<MaxHp>(id).Value;
             if (maxHp <= 0) maxHp = _definition.MaxHp;
-            float hpFraction = maxHp > 0 ? (float)hp / maxHp : 0f;
             _hpText.text = hp.ToString();
-            _hpText.color = world.GetOrDefault<Veteran>(id).Value ? VeteranHpTextColor : _hpTextBaseColor; // 베테랑은 금색 체력 숫자
-            SetHpBarFraction(hpFraction);
-            RuntimeMaterial.SetColor(_hpFillMaterial, HpColorScale.ForFraction(hpFraction));
-
-            var bodyColor = world.Get<IsGuarding>(id).Value ? GuardingColor : ColorForTeam(world.Get<Team>(id));
-            RuntimeMaterial.SetColor(_material, bodyColor);
-
+            _hpText.color = world.GetOrDefault<Veteran>(id).Value ? new Color(1f,.82f,.25f) : Color.white;
+            float fraction = maxHp > 0 ? Mathf.Clamp01((float)hp/maxHp) : 0;
+            float width = HpBarSize.x*fraction;
+            _hpBarFill.localScale = new Vector3(width,HpBarSize.y,1);
+            _hpBarFill.localPosition = new Vector3((width-HpBarSize.x)/2,HpBarLocalY,0);
+            if (_hpFill != null) _hpFill.color = HpColorScale.ForFraction(fraction);
+            _teamBadge.color = world.Get<Team>(id) == Team.Player ? PlayerColor : EnemyColor;
+            _teamBadge.transform.localScale = world.Get<Team>(id) == Team.Player ? new Vector3(.5f,.0625f,1) : new Vector3(.375f,.125f,1);
+            _guardBadge.gameObject.SetActive(world.Get<IsGuarding>(id).Value);
+            bool frozen = world.GetOrDefault<Frozen>(id).Value;
+            bool hidden = world.GetOrDefault<Hidden>(id).Value;
+            _statusBadge.gameObject.SetActive(frozen || hidden);
+            _statusBadge.sprite = PixelSpriteCatalog.Get(frozen ? "Icon.freeze" : "Icon.infiltrate");
             var embarked = world.GetOrDefault<Embarked>(id);
-            SetBlockModel(bodyColor, embarked.Value);
             SetBoat(embarked.Value ? embarked.NavalUnitId : null);
-
-            var targetWorldPos = _grid.GridToWorld(world.Get<GridPosition>(id).Value) + Vector3.up * GroundOffset;
-            if ((targetWorldPos - transform.position).sqrMagnitude > 0.0001f)
+            _bodyOrigin = new Vector3(0,embarked.Value ? .16f : 0,0);
+            _model.transform.localPosition = _bodyOrigin;
+            float scale = embarked.Value ? .7f : 1f;
+            _model.transform.localScale = new Vector3(_model.transform.localScale.x < 0 ? -scale : scale,scale,scale);
+            var target = PixelCoordinates.GridToWorld(_grid,world.Get<GridPosition>(id).Value);
+            if ((target-transform.position).sqrMagnitude > .0001f)
             {
                 if (_moveRoutine != null) StopCoroutine(_moveRoutine);
-                _moveRoutine = StartCoroutine(MoveRoutine(targetWorldPos));
+                if (Application.isPlaying) _moveRoutine = StartCoroutine(MoveRoutine(target));
+                else transform.position = target;
             }
+            UpdateSort();
+            ApplyVisibility();
         }
-
-        /// <summary>구름(적 시야 밖)에 있는 유닛을 숨기거나 다시 보이게 한다 — gameObject는 켜둔 채 렌더러만 끈다(이동
-        /// 코루틴이 끊기지 않게).</summary>
-        public void SetVisible(bool visible)
-        {
-            if (_visible == visible) return;
-            _visible = visible;
-            foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = visible;
-        }
-
-        /// <summary>블록 유닛 모델(UnitDefinition.ModelId)을 옷 색 bodyColor로 만든다. 색(팀/방어 태세)이 바뀔 때만 다시 조립하고,
-        /// 배에 탄 동안은 갑판 높이만큼 올린다.</summary>
-        private void SetBlockModel(Color bodyColor, bool embarked)
-        {
-            if (!ModelBuilder.Has(_definition.ModelId)) return;
-            if (_model == null || _modelColor != bodyColor)
-            {
-                if (_model != null) { if (Application.isPlaying) Destroy(_model); else DestroyImmediate(_model); }
-                _model = ModelBuilder.Build(_definition.ModelId, transform, Vector3.zero, 1, bodyColor);
-                _modelColor = bodyColor;
-                if (_model != null) _model.GetComponent<Renderer>().enabled = _visible;
-            }
-            if (_model != null) _model.transform.localPosition = new Vector3(0f, embarked ? WaterLift + BoatDeckHeight : LandLift, 0f);
-        }
-
-        /// <summary>배 모델을 navalUnitId에 맞게 붙이거나(null이면) 뗀다. 모델 파츠 CSV의 "Boat.&lt;배 Id&gt;"가 있으면 그것(팀 색 깃발 포함),
-        /// 없으면 예전 색 상자 조합.</summary>
         private void SetBoat(string navalUnitId)
         {
             if (_boatId == navalUnitId) return;
             _boatId = navalUnitId;
-            if (_boat != null)
-            {
-                if (Application.isPlaying) Destroy(_boat); else DestroyImmediate(_boat);
-                _boat = null;
-            }
-            if (string.IsNullOrEmpty(navalUnitId)) return;
-
-            _boat = ModelBuilder.Build("Boat." + navalUnitId, transform, new Vector3(0f, WaterLift, 0f), 1, _modelColor);
-            if (_boat != null)
-            {
-                _boat.GetComponent<Renderer>().enabled = _visible;
-                return;
-            }
-
-            if (!BoatColors.TryGetValue(navalUnitId, out var color)) color = BoatColors[NavalUnitDefinition.RaftId];
-            _boat = new GameObject("Boat_" + navalUnitId);
-            _boat.transform.SetParent(transform, false);
-            var mat = RuntimeMaterial.CreateColored(color);
-            void Piece(Vector3 pos, Vector3 size)
-            {
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                var col = go.GetComponent<Collider>();
-                if (Application.isPlaying) Destroy(col); else DestroyImmediate(col);
-                go.transform.SetParent(_boat.transform, false);
-                go.transform.localPosition = pos;
-                go.transform.localScale = size;
-                var r = go.GetComponent<Renderer>();
-                r.sharedMaterial = mat;
-                r.enabled = _visible;
-            }
-            Piece(new Vector3(0f, 0.04f, 0f), new Vector3(0.75f, 0.08f, 0.5f));
-            Piece(new Vector3(0f, 0.12f, 0.24f), new Vector3(0.75f, 0.1f, 0.05f));
-            Piece(new Vector3(0f, 0.12f, -0.24f), new Vector3(0.75f, 0.1f, 0.05f));
-            if (navalUnitId != NavalUnitDefinition.RaftId)
-                Piece(new Vector3(0f, 0.08f, 0.38f), new Vector3(0.2f, 0.06f, 0.25f)); // 뱃머리
+            if (_boat != null) { _boat.SetActive(false); if (Application.isPlaying) Destroy(_boat); else DestroyImmediate(_boat); }
+            _boat = string.IsNullOrEmpty(navalUnitId) ? null : PixelSpriteCatalog.Build("Boat."+navalUnitId,transform,order:0);
         }
-
-        /// <summary>피해를 입었을 때 머리 위에서 잠깐 떠올랐다 사라지는 숫자 라벨을 띄운다(DamagePopup 참고).
-        /// HpDisplay와 달리 이 유닛의 자식으로 만들지 않는다 — 이 공격으로 죽어 gameObject가 비활성화돼도
-        /// (Refresh) 라벨은 끊기지 않고 끝까지 애니메이션을 마쳐야 하기 때문이다.</summary>
+        public void SetVisible(bool visible) { _visible = visible; ApplyVisibility(); }
+        private void ApplyVisibility() { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = _visible; }
+        public void FaceTowards(Vector3 worldPosition)
+        {
+            float dx = worldPosition.x-transform.position.x;
+            if (Mathf.Abs(dx) < .001f) return;
+            var scale = _model.transform.localScale; scale.x = Mathf.Abs(scale.x)*(dx < 0 ? -1 : 1); _model.transform.localScale = scale;
+        }
+        public void PlayAttackTowards(Vector3 worldPosition)
+        {
+            FaceTowards(worldPosition);
+            if (!Application.isPlaying || !gameObject.activeInHierarchy) return;
+            if (_attackRoutine != null) StopCoroutine(_attackRoutine);
+            _attackRoutine = StartCoroutine(AttackPulse(worldPosition - transform.position));
+        }
+        private IEnumerator AttackPulse(Vector3 direction)
+        {
+            var origin = _bodyOrigin;
+            var offset = direction.normalized * .125f;
+            float elapsed = 0;
+            while (elapsed < .18f)
+            {
+                elapsed += Time.deltaTime;
+                var position = origin + offset * Mathf.Sin(Mathf.Clamp01(elapsed / .18f) * Mathf.PI);
+                position.x = Mathf.Round(position.x * 16) / 16;
+                position.y = Mathf.Round(position.y * 16) / 16;
+                _model.transform.localPosition = position;
+                yield return null;
+            }
+            _model.transform.localPosition = _bodyOrigin;
+            _attackRoutine = null;
+        }
+        private void UpdateSort() => _sorting.sortingOrder = PixelSpriteCatalog.SortOrder(transform.position.y,true);
+        private IEnumerator MoveRoutine(Vector3 worldPos)
+        {
+            FaceTowards(worldPos);
+            var smoothPosition = transform.position;
+            float ppu = PixelSpriteCatalog.PixelsPerUnit / _grid.TileSize;
+            while ((smoothPosition-worldPos).sqrMagnitude > .0001f)
+            {
+                smoothPosition = Vector3.MoveTowards(smoothPosition,worldPos,moveSpeed*Time.deltaTime);
+                transform.position = new Vector3(Mathf.Round(smoothPosition.x * ppu) / ppu, Mathf.Round(smoothPosition.y * ppu) / ppu, 0);
+                UpdateSort(); yield return null;
+            }
+            transform.position = worldPos; UpdateSort(); _moveRoutine = null;
+        }
         public void ShowDamagePopup(int amount)
         {
             if (damagePopupPrefab == null) return;
-
-            var spawnPos = transform.position + Vector3.up * HpNumberLocalY;
-            var instance = Instantiate(damagePopupPrefab, spawnPos, HpBillboardRotation());
-            instance.GetComponent<DamagePopup>().Play("-" + amount, DamageColor);
+            var instance = Instantiate(damagePopupPrefab,transform.position+Vector3.up*HpNumberLocalY*_grid.TileSize,Quaternion.identity);
+            instance.GetComponent<Renderer>().sortingOrder = PixelSpriteCatalog.OverlayOrder+10;
+            instance.GetComponent<DamagePopup>().Play("-"+amount,new Color(.95f,.25f,.2f));
+            if (Application.isPlaying && gameObject.activeInHierarchy && _hitRoutine == null)
+                _hitRoutine = StartCoroutine(HitPulse());
         }
-
-        /// <summary>채우기 쿼드는 중심 기준으로 커지므로, 왼쪽 끝이 항상 배경 왼쪽 끝에 붙어있도록
-        /// 줄어든 만큼 중심을 왼쪽으로 같이 옮겨준다.</summary>
-        private void SetHpBarFraction(float fraction)
+        private IEnumerator HitPulse()
         {
-            float width = HpBarSize.x * Mathf.Clamp01(fraction);
-            _hpBarFill.localScale = new Vector3(width, HpBarSize.y, 1f);
-            _hpBarFill.localPosition = new Vector3(-HpBarSize.x / 2f + width / 2f, HpBarLocalY, -0.001f);
-        }
-
-        /// <summary>공격처럼 자리는 그대로인 채 특정 지점 쪽을 바로 바라보게 한다.</summary>
-        public void FaceTowards(Vector3 worldPosition)
-        {
-            var rot = FacingRotation(worldPosition - transform.position);
-            if (rot.HasValue) transform.rotation = rot.Value;
-            _hpGroup.rotation = HpBillboardRotation(); // 몸이 도는 것과 별개로 체력 표시는 항상 카메라를 본다.
-        }
-
-        /// <summary>수평(XZ) 방향을 바라보는 회전. 방향이 거의 0이면(제자리) null.</summary>
-        private static Quaternion? FacingRotation(Vector3 direction)
-        {
-            direction.y = 0f;
-            if (direction.sqrMagnitude < 0.0001f) return null;
-            return Quaternion.LookRotation(direction.normalized) * ModelFacingCorrection;
-        }
-
-        /// <summary>
-        /// 체력 표시(HpDisplay)가 항상 카메라를 향하게 하는 회전. 몸통(transform)은 이동/공격 방향으로
-        /// 계속 도는데, 체력 막대는 평평한 Quad라서 몸과 같이 돌면 카메라가 옆/뒤에서 보게 되는 순간
-        /// 실처럼 가늘어져 안 보이게 된다(스크린샷 검증으로 실제 확인). 값을 캐싱하지 않고 매번
-        /// Camera.main에서 새로 구한다 — 이동 애니메이션 중 몇 프레임, 공격 시 1회처럼 호출이 드물어
-        /// (유닛이 가만히 있을 땐 전혀 호출되지 않음) 비용은 무시할 만하고, 스폰 시점이 카메라
-        /// 배치보다 먼저여도(BattleController.SetupBattle 순서) 값이 굳어버리는 일이 없다.
-        /// </summary>
-        private static Quaternion HpBillboardRotation()
-        {
-            var cam = Camera.main;
-            // 부호 주의: TextMesh는 로컬 -Z에서 바라볼 때 정방향으로 읽힌다. 카메라의 forward 방향을
-            // (부호 반전 없이) 그대로 쓰면 카메라가 그 -Z 쪽에 오게 되어 숫자가 뒤집히지 않는다
-            // (스크린샷 검증에서 부호를 반대로 했을 때 숫자가 좌우 반전되는 것을 확인).
-            return cam == null ? Quaternion.identity : Quaternion.LookRotation(cam.transform.forward, Vector3.up);
-        }
-
-        private IEnumerator MoveRoutine(Vector3 worldPos)
-        {
-            // 이동 방향을 목적 회전으로 미리 구해두고, 이동하는 동안 위치와 함께 부드럽게 돌아간다.
-            var targetRot = FacingRotation(worldPos - transform.position) ?? transform.rotation;
-
-            while ((transform.position - worldPos).sqrMagnitude > 0.0001f)
-            {
-                transform.position = Vector3.MoveTowards(transform.position, worldPos, moveSpeed * Time.deltaTime);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeedDegrees * Time.deltaTime);
-                _hpGroup.rotation = HpBillboardRotation();
-                yield return null;
-            }
-            transform.position = worldPos;
-            transform.rotation = targetRot;
-            _hpGroup.rotation = HpBillboardRotation();
-            _moveRoutine = null;
+            var renderers = _model.GetComponentsInChildren<SpriteRenderer>();
+            var colors = new Color[renderers.Length];
+            for (int i=0;i<renderers.Length;i++) { colors[i]=renderers[i].color; renderers[i].color=new Color(1,.45f,.4f); }
+            yield return new WaitForSeconds(.12f);
+            for (int i=0;i<renderers.Length;i++) if (renderers[i] != null) renderers[i].color=colors[i];
+            _hitRoutine = null;
         }
     }
 }

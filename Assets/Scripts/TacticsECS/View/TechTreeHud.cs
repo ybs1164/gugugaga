@@ -89,6 +89,7 @@ namespace TacticsECS
 
             RefreshNodeColors();
             RefreshDetail();
+            PixelUISkin.Apply(gameObject);
         }
 
         /// <summary>노드 목록만 바꿔 트리를 다시 그린다(샌드박스 "기술 불러오기" — 버튼 연결은 Init에서 한 번만). 선택은 풀린다.</summary>

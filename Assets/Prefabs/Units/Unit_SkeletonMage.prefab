@@ -30,8 +30,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3925936157039962834}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7618103252866758234
@@ -47,7 +46,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitView
   moveSpeed: 6
-  turnSpeedDegrees: 720
   hpDisplayPrefab: {fileID: 8538403207368219818, guid: e70f3bf3996da75498569986440695ca, type: 3}
   damagePopupPrefab: {fileID: 2982738932613230953, guid: 633bb18da84b0034294705ef8a50b5a9, type: 3}
 --- !u!114 &448601774093435292
@@ -62,14 +60,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbd155d3b21ae8d49a7136402ee079ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
-  modelId: Unit.cleric
   maxHp: 8
   defense: 0
   actions:
   - rid: 836785803124015116
   - rid: 836785803124015117
   domain: 0
-  bodyTexture: {fileID: 2800000, guid: 7ebed1ee02e89d8469051879bb03abc5, type: 3}
+  bodyTexture: {fileID: 0}
+  modelId: Unit.cleric
   references:
     version: 2
     RefIds:
@@ -82,77 +80,3 @@ MonoBehaviour:
       data:
         attack: 2
         attackRange: 2
---- !u!1001 &3598661284297952569
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 7589919530333891431}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.00000004371139
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-      propertyPath: m_Name
-      value: Skeleton_Mage
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
---- !u!4 &3925936157039962834 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 2fb1d2373ee76894b941db58d9d51c46, type: 3}
-  m_PrefabInstance: {fileID: 3598661284297952569}
-  m_PrefabAsset: {fileID: 0}

@@ -137,26 +137,31 @@ namespace TacticsECS.EditorTools
         {
             var root = new GameObject("HpDisplay");
 
-            var bg = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var bg = new GameObject("Bar_Bg", typeof(SpriteRenderer));
             bg.name = "Bar_Bg";
-            Object.DestroyImmediate(bg.GetComponent<Collider>());
             bg.transform.SetParent(root.transform, false);
             bg.transform.localPosition = new Vector3(0f, UnitView.HpBarLocalY, 0f);
             bg.transform.localScale = new Vector3(UnitView.HpBarSize.x, UnitView.HpBarSize.y, 1f);
-            bg.GetComponent<Renderer>().sharedMaterial = barBackgroundMaterial;
+            var solid = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Pixel2D/Generated/Pattern_Solid_0_0_16_16.asset");
+            bg.GetComponent<SpriteRenderer>().sprite = solid;
+            bg.GetComponent<SpriteRenderer>().color = new Color(.12f,.17f,.23f);
+            bg.GetComponent<Renderer>().sharedMaterial = PixelSpriteCatalog.Material;
+            bg.GetComponent<Renderer>().sortingOrder = 20;
 
-            var fill = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var fill = new GameObject("Bar_Fill", typeof(SpriteRenderer));
             fill.name = "Bar_Fill";
-            Object.DestroyImmediate(fill.GetComponent<Collider>());
             fill.transform.SetParent(root.transform, false);
             fill.transform.localPosition = new Vector3(0f, UnitView.HpBarLocalY, -0.001f);
             fill.transform.localScale = new Vector3(UnitView.HpBarSize.x, UnitView.HpBarSize.y, 1f);
+            fill.GetComponent<SpriteRenderer>().sprite = solid;
+            fill.GetComponent<Renderer>().sharedMaterial = PixelSpriteCatalog.Material;
+            fill.GetComponent<Renderer>().sortingOrder = 21;
 
             var textGo = new GameObject("Number");
             textGo.transform.SetParent(root.transform, false);
             textGo.transform.localPosition = new Vector3(0f, UnitView.HpNumberLocalY, 0f);
             // 0.3f였던 기존 크기의 절반(사용자 요청: 인게임 체력 라벨을 2배 줄여달라).
-            textGo.transform.localScale = Vector3.one * 0.15f;
+            textGo.transform.localScale = Vector3.one * 0.11f;
             var textMesh = textGo.AddComponent<TextMesh>();
             ApplyUiFont(textMesh, font);
             textMesh.alignment = TextAlignment.Center;

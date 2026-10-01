@@ -51,8 +51,8 @@ namespace TacticsECS
             "Team 값으로 정한다 — 유닛 타입마다 다른 색을 가질 수 없다.")]
         [SerializeField] private Texture2D bodyTexture;
 
-        [Tooltip("모델 파츠 CSV(Assets/Resources/Models/UnitModels.csv)의 모델 Id(예: Unit.infantry). 있으면 UnitView가 KayKit 모델 대신 " +
-            "위키식 블록 유닛을 그린다(3차 모델링 — docs/ModelingPlan.md). CSV 유닛은 스폰 시 \"Unit.<CSV Id>\"로 덮어쓴다.")]
+        [Tooltip("Pixel2D/SpriteCatalog.csv의 표시 키(예: Unit.infantry). 등록된 CSV ID는 전용 픽셀 스프라이트를 사용하고, " +
+            "사용자 정의 ID는 선택한 BaseVisual 프리팹의 픽셀 외형을 사용한다.")]
         [SerializeField] private string modelId;
 
         public int MaxHp => maxHp;
@@ -104,7 +104,7 @@ namespace TacticsECS
             if (!actions.Any(a => a is WaitAction))
                 actions.Add(new WaitAction());
             domain = row.Domain;
-            modelId = "Unit." + row.Id;
+            if (PixelSpriteCatalog.Has("Unit." + row.Id)) modelId = "Unit." + row.Id;
         }
     }
 }

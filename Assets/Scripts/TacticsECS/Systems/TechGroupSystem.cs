@@ -13,12 +13,23 @@ namespace TacticsECS
         public static string Key(TechUnlockRow unlock) =>
             string.IsNullOrEmpty(unlock.Target) ? unlock.Category : unlock.Category + "." + unlock.Target;
 
-        /// <summary>Techs 전체를 TechNodeData 목록으로. Branch는 루트까지 부모를 따라 올라간 1티어 기술 Id.</summary>
-        public static List<TechNodeData> BuildTechNodes(TechRow[] techs, TechUnlockRow[] unlocks)
+        /// <summary>고정 슬롯 순서로 기술을 배치한다. 선행 기술은 선행 슬롯에 현재 배치된 기술로 결정한다.
+        /// 잘못된 배치를 부분적으로 적용하면 선행 조건이 사라질 수 있으므로 빈 트리를 반환한다.</summary>
+        public static List<TechNodeData> BuildTechNodes(TechRow[] techs, TechUnlockRow[] unlocks,
+            TechSlotRow[] slots, TechTreeLayoutRow[] layout, List<string> errors = null)
         {
-            var nodes = new List<TechNodeData>(techs.Length);
-            foreach (var t in techs)
+            var nodes = new List<TechNodeData>(slots.Length);
+            var warnings = ArrayTableValidationSystem.ValidateTechLayout(techs, slots, layout);
+            if (warnings.Count > 0)
             {
+                errors?.AddRange(warnings);
+                return nodes;
+            }
+            var techBySlot = new int[slots.Length];
+            foreach (var placement in layout) techBySlot[placement.SlotIndex] = placement.TechIndex;
+            foreach (var slot in slots)
+            {
+                var t = techs[techBySlot[slot.Index]];
                 var keys = new List<string>();
                 foreach (var u in t.Unlocks ?? new int[0])
                     if (u >= 0 && u < unlocks.Length) keys.Add(Key(unlocks[u]));
@@ -26,10 +37,10 @@ namespace TacticsECS
                 {
                     Id = t.Id,
                     Name = t.Name,
-                    Branch = RootId(techs, t),
-                    ParentId = t.ParentIndex >= 0 && t.ParentIndex < techs.Length ? techs[t.ParentIndex].Id : string.Empty,
-                    Tier = t.Tier,
-                    Slot = t.Slot,
+                    Branch = techs[techBySlot[RootIndex(slots, slot.Index)]].Id,
+                    ParentId = slot.ParentIndex >= 0 ? techs[techBySlot[slot.ParentIndex]].Id : string.Empty,
+                    Tier = slot.Tier,
+                    Slot = slot.Slot,
                     Icon = t.Icon,
                     CostBase = t.CostBase,
                     CostPerCity = t.CostPerCity,
@@ -40,7 +51,8 @@ namespace TacticsECS
             return nodes;
         }
 
-        public static List<TechNodeData> BuildTechNodes() => BuildTechNodes(GameTables.Techs, GameTables.TechUnlocks);
+        public static List<TechNodeData> BuildTechNodes() =>
+            BuildTechNodes(GameTables.Techs, GameTables.TechUnlocks, GameTables.TechSlots, GameTables.TechTreeLayout);
 
         /// <summary>기술 그룹에 든 기술 Id 집합(범위 밖 Index는 무시).</summary>
         public static HashSet<string> GroupTechIds(TechGroupRow group, TechRow[] techs)
@@ -60,12 +72,10 @@ namespace TacticsECS
             return result;
         }
 
-        private static string RootId(TechRow[] techs, TechRow t)
+        private static int RootIndex(TechSlotRow[] slots, int index)
         {
-            var cur = t;
-            for (int guard = 0; guard < techs.Length && cur.ParentIndex >= 0 && cur.ParentIndex < techs.Length && cur.ParentIndex != cur.Index; guard++)
-                cur = techs[cur.ParentIndex];
-            return cur.Id;
+            while (slots[index].ParentIndex >= 0) index = slots[index].ParentIndex;
+            return index;
         }
     }
 }

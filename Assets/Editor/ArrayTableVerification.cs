@@ -23,7 +23,9 @@ namespace TacticsECS.EditorTools
             Check(errors.Count == 0, "all tables load without errors/reference warnings: " + string.Join(" | ", errors));
             VerifyTableShapes();
             VerifyRoundTrips();
-            VerifyTechsMirrorTechTree();
+            VerifyTechLayout();
+            VerifyTechReplacementAndBalance();
+            VerifyInvalidTechLayout();
             VerifyArrayRulesReported();
             VerifyTribeApply();
             VerifyStartingUnits();
@@ -73,6 +75,10 @@ namespace TacticsECS.EditorTools
                   == ArrayTableCsvSerializer.WriteTechUnlocks(GameTables.TechUnlocks), "TechUnlocks round-trip");
             Check(ArrayTableCsvSerializer.WriteTechs(ArrayTableCsvSerializer.ParseTechs(ArrayTableCsvSerializer.WriteTechs(GameTables.Techs)))
                   == ArrayTableCsvSerializer.WriteTechs(GameTables.Techs), "Techs round-trip");
+            Check(ArrayTableCsvSerializer.WriteTechSlots(ArrayTableCsvSerializer.ParseTechSlots(ArrayTableCsvSerializer.WriteTechSlots(GameTables.TechSlots)))
+                  == ArrayTableCsvSerializer.WriteTechSlots(GameTables.TechSlots), "TechSlots round-trip");
+            Check(ArrayTableCsvSerializer.WriteTechTreeLayout(ArrayTableCsvSerializer.ParseTechTreeLayout(ArrayTableCsvSerializer.WriteTechTreeLayout(GameTables.TechTreeLayout)))
+                  == ArrayTableCsvSerializer.WriteTechTreeLayout(GameTables.TechTreeLayout), "TechTreeLayout round-trip");
             Check(ArrayTableCsvSerializer.WriteTechGroups(ArrayTableCsvSerializer.ParseTechGroups(ArrayTableCsvSerializer.WriteTechGroups(GameTables.TechGroups)))
                   == ArrayTableCsvSerializer.WriteTechGroups(GameTables.TechGroups), "TechGroups round-trip");
             Check(ArrayTableCsvSerializer.WriteTribes(ArrayTableCsvSerializer.ParseTribes(ArrayTableCsvSerializer.WriteTribes(GameTables.Tribes)))
@@ -83,20 +89,85 @@ namespace TacticsECS.EditorTools
                   == ArrayTableCsvSerializer.WriteStartConditionRules(GameTables.StartConditionRules), "StartConditionRules round-trip");
         }
 
-        /// <summary>Techs.csv(배열형)를 TechNodeData로 바꾸면 기존 TechTree.csv와 똑같은 트리여야 한다.</summary>
-        private static void VerifyTechsMirrorTechTree()
+        /// <summary>기존 트리의 고정 구조는 유지한다. 기술 내용/비용은 이 비교에 넣지 않아 밸런스 변경을 허용한다.</summary>
+        private static void VerifyTechLayout()
         {
-            var legacy = GameDataLoader.LoadTechNodes();
+            var legacy = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
             var built = TechGroupSystem.BuildTechNodes();
-            Check(legacy.Count == built.Count, $"tech count {built.Count} == TechTree.csv {legacy.Count}");
+            Check(GameTables.TechSlots.Length == 25 && built.Count == 25, "fixed tree has 25 occupied slots");
             for (int i = 0; i < Mathf.Min(legacy.Count, built.Count); i++)
             {
                 var a = legacy[i];
                 var b = built[i];
-                Check(a.Id == b.Id && a.ParentId == b.ParentId && a.Branch == b.Branch && a.Tier == b.Tier && a.Slot == b.Slot &&
-                      a.CostBase == b.CostBase && a.CostPerCity == b.CostPerCity && a.Icon == b.Icon && a.Unlocks.SequenceEqual(b.Unlocks),
-                      $"Techs[{i}] {b.Id} mirrors TechTree.csv");
+                int oldParent = legacy.FindIndex(n => n.Id == a.ParentId);
+                Check(GameTables.TechSlots[i].ParentIndex == oldParent && a.Tier == b.Tier && a.Slot == b.Slot,
+                      $"slot {i} retains original position and prerequisite slot");
             }
+            var loaded = GameDataLoader.LoadTechNodes();
+            Check(TechCsvSerializer.Write(loaded) == TechCsvSerializer.Write(built), "default loader and tribe tree use the same separated tables");
+        }
+
+        private static void VerifyTechReplacementAndBalance()
+        {
+            var techs = GameTables.Techs.Concat(new[] { new TechRow
+            {
+                Index = GameTables.Techs.Length, Id = "Replacement", Name = "교체 기술", Icon = "mining",
+                CostBase = 9, CostPerCity = 7, Unlocks = new[] { 13 }, Description = "교체 설명",
+            } }).ToArray();
+            var layout = (TechTreeLayoutRow[])GameTables.TechTreeLayout.Clone();
+            int root = System.Array.FindIndex(GameTables.TechSlots, s => s.ParentIndex == -1);
+            int placement = System.Array.FindIndex(layout, p => p.SlotIndex == root);
+            string oldId = techs[layout[placement].TechIndex].Id;
+            var p = layout[placement]; p.TechIndex = techs.Length - 1; layout[placement] = p;
+            // CSV 행 순서와 슬롯 순서는 별개다.
+            System.Array.Reverse(layout);
+            var nodes = TechGroupSystem.BuildTechNodes(techs, GameTables.TechUnlocks, GameTables.TechSlots, layout);
+            var tech = TechTreeData.CreateEmpty();
+            var replacement = TechSystem.Find(nodes, "Replacement");
+            Check(nodes.Count == 25 && replacement != null && TechSystem.Find(nodes, oldId) == null, "replacing root keeps slot count and removes old technology");
+            if (replacement == null) return;
+            Check(replacement.Value.Name == "교체 기술" && replacement.Value.Effect == "교체 설명" && replacement.Value.Icon == "mining", "replacement brings its own display data");
+            var child = nodes[System.Array.FindIndex(GameTables.TechSlots, s => s.ParentIndex == root)];
+            Check(child.ParentId == "Replacement" && !TechSystem.IsAvailable(nodes, tech, child.Id), "child requires technology currently in parent slot");
+            Check(TechSystem.IsAvailable(nodes, tech, "Replacement") && !TechSystem.IsAvailable(nodes, tech, oldId), "replacement root is researchable; removed technology is not");
+            Check(TechSystem.Cost(nodes, tech, replacement.Value, 2) == 23, "replacement uses its own cost independently of slot tier");
+            var resources = new CityResourceData { Development = 23 };
+            Check(TechSystem.Unlock(nodes, tech, ref resources, 2, "Replacement") && resources.Development == 0, "research consumes replacement cost");
+            Check(TechSystem.IsAvailable(nodes, tech, child.Id) && TechSystem.HasUnlock(nodes, tech, "Unit.shield"), "replacement research opens child and its own unlocks");
+            var changed = techs[techs.Length - 1]; changed.CostBase = 3; changed.CostPerCity = 2; techs[techs.Length - 1] = changed;
+            var balanced = TechGroupSystem.BuildTechNodes(techs, GameTables.TechUnlocks, GameTables.TechSlots, layout);
+            Check(TechSystem.Cost(balanced, TechTreeData.CreateEmpty(), TechSystem.Find(balanced, "Replacement").Value, 2) == 7,
+                "editing only technology costs changes research cost");
+            Check(nodes.Zip(balanced, (a, b) => a.Id == b.Id && a.ParentId == b.ParentId && a.Tier == b.Tier && a.Slot == b.Slot).All(x => x), "balance edit preserves positions and prerequisites");
+            var kinds = new HashSet<TechUnlockKind>(GameTables.TechUnlocks.Select(u => u.Kind));
+            Check(kinds.SetEquals((TechUnlockKind[])System.Enum.GetValues(typeof(TechUnlockKind))), "unlock table covers passive, active, unit, building and quest kinds");
+        }
+
+        private static void VerifyInvalidTechLayout()
+        {
+            var slots = GameTables.TechSlots;
+            var layout = GameTables.TechTreeLayout;
+            void Rejected(TechSlotRow[] testSlots, TechTreeLayoutRow[] testLayout, string reason)
+            {
+                var errors = new List<string>();
+                var nodes = TechGroupSystem.BuildTechNodes(GameTables.Techs, GameTables.TechUnlocks, testSlots, testLayout, errors);
+                Check(errors.Count > 0 && nodes.Count == 0, "invalid layout rejected: " + reason);
+            }
+            Rejected(slots, layout.Skip(1).ToArray(), "missing slot");
+            Rejected(slots, layout.Concat(new[] { layout[0] }).ToArray(), "duplicate slot");
+            var bad = (TechTreeLayoutRow[])layout.Clone();
+            var p = bad[1]; p.TechIndex = bad[0].TechIndex; bad[1] = p;
+            Rejected(slots, bad, "same technology in two slots");
+            p.TechIndex = GameTables.Techs.Length; bad[1] = p;
+            Rejected(slots, bad, "out-of-range technology");
+            p = bad[1]; p.SlotIndex = slots.Length; bad[1] = p;
+            Rejected(slots, bad, "out-of-range slot");
+            var cycle = (TechSlotRow[])slots.Clone();
+            var s = cycle[0]; s.ParentIndex = 1; cycle[0] = s;
+            Rejected(cycle, layout, "cyclic prerequisites");
+            var overlap = (TechSlotRow[])slots.Clone();
+            s = overlap[2]; s.Slot = overlap[1].Slot; overlap[2] = s;
+            Rejected(overlap, layout, "overlapping sibling positions");
         }
 
         private static void VerifyArrayRulesReported()

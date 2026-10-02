@@ -20,12 +20,13 @@ namespace TacticsECS
 
         public static TechUnlockRow[] ParseTechUnlocks(string text, List<string> errors = null)
         {
-            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Category" }, new[] { "Target", "Name", "Description", "Note" }, null, errors);
+            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Kind", "Category" }, new[] { "Target", "Name", "Description", "Note" }, null, errors);
             var rows = new TechUnlockRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
                 rows[r] = new TechUnlockRow
                 {
                     Index = r,
+                    Kind = CsvTableReader.GetEnum(t, r, "Kind", TechUnlockKind.Passive, errors),
                     Category = CsvTableReader.Get(t, r, "Category"),
                     Target = CsvTableReader.Get(t, r, "Target"),
                     Name = CsvTableReader.Get(t, r, "Name"),
@@ -36,28 +37,54 @@ namespace TacticsECS
 
         public static TechRow[] ParseTechs(string text, List<string> errors = null)
         {
-            var t = Begin("Techs.csv", text, new[] { "Index", "Id" },
-                new[] { "Name", "ParentIndex", "Tier", "Slot", "Icon", "CostBase", "CostPerCity", "Description", "Note" }, new[] { "Unlock" }, errors);
+            var t = Begin("Techs.csv", text, new[] { "Index", "Id", "CostBase", "CostPerCity" },
+                new[] { "Name", "Icon", "Description", "Note" }, new[] { "Unlock" }, errors);
             var rows = new TechRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
                 string id = CsvTableReader.Get(t, r, "Id");
-                int tier = CsvTableReader.GetInt(t, r, "Tier", 1, errors);
                 rows[r] = new TechRow
                 {
                     Index = r,
                     Id = id,
                     Name = CsvTableReader.Get(t, r, "Name", id),
-                    ParentIndex = CsvTableReader.GetInt(t, r, "ParentIndex", -1, errors),
-                    Tier = tier,
-                    Slot = CsvTableReader.GetInt(t, r, "Slot", 0, errors),
                     Icon = CsvTableReader.Get(t, r, "Icon"),
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
-                    CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", tier, errors),
+                    CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", 0, errors),
                     Unlocks = GetIndexList(t, r, "Unlock", errors),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 };
             }
+            return rows;
+        }
+
+        public static TechSlotRow[] ParseTechSlots(string text, List<string> errors = null)
+        {
+            var t = Begin("TechSlots.csv", text, new[] { "Index", "Id", "ParentIndex", "Tier", "Slot" }, new[] { "Note" }, null, errors);
+            var rows = new TechSlotRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+                rows[r] = new TechSlotRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    ParentIndex = CsvTableReader.GetInt(t, r, "ParentIndex", -1, errors),
+                    Tier = CsvTableReader.GetInt(t, r, "Tier", 1, errors),
+                    Slot = CsvTableReader.GetInt(t, r, "Slot", 0, errors),
+                };
+            return rows;
+        }
+
+        public static TechTreeLayoutRow[] ParseTechTreeLayout(string text, List<string> errors = null)
+        {
+            var t = Begin("TechTreeLayout.csv", text, new[] { "Index", "SlotIndex", "TechIndex" }, new[] { "Note" }, null, errors);
+            var rows = new TechTreeLayoutRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+                rows[r] = new TechTreeLayoutRow
+                {
+                    Index = r,
+                    SlotIndex = CsvTableReader.GetInt(t, r, "SlotIndex", -1, errors),
+                    TechIndex = CsvTableReader.GetInt(t, r, "TechIndex", -1, errors),
+                };
             return rows;
         }
 
@@ -177,13 +204,21 @@ namespace TacticsECS
         // ---------- 쓰기(왕복/템플릿 내보내기용) ----------
 
         public static string WriteTechUnlocks(IReadOnlyList<TechUnlockRow> rows) =>
-            Write(new[] { "Index", "Category", "Target", "Name", "Description" }, rows, null,
-                r => new[] { I(r.Index), r.Category, r.Target, r.Name, r.Description }, null, null);
+            Write(new[] { "Index", "Kind", "Category", "Target", "Name", "Description" }, rows, null,
+                r => new[] { I(r.Index), r.Kind.ToString(), r.Category, r.Target, r.Name, r.Description }, null, null);
 
         public static string WriteTechs(IReadOnlyList<TechRow> rows) =>
-            Write(new[] { "Index", "Id", "Name", "ParentIndex", "Tier", "Slot", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",
-                r => new[] { I(r.Index), r.Id, r.Name, I(r.ParentIndex), I(r.Tier), I(r.Slot), r.Icon, I(r.CostBase), I(r.CostPerCity) },
+            Write(new[] { "Index", "Id", "Name", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",
+                r => new[] { I(r.Index), r.Id, r.Name, r.Icon, I(r.CostBase), I(r.CostPerCity) },
                 r => Ints(r.Unlocks), r => new[] { r.Description }, "Description");
+
+        public static string WriteTechSlots(IReadOnlyList<TechSlotRow> rows) =>
+            Write(new[] { "Index", "Id", "ParentIndex", "Tier", "Slot" }, rows, null,
+                r => new[] { I(r.Index), r.Id, I(r.ParentIndex), I(r.Tier), I(r.Slot) }, null, null);
+
+        public static string WriteTechTreeLayout(IReadOnlyList<TechTreeLayoutRow> rows) =>
+            Write(new[] { "Index", "SlotIndex", "TechIndex" }, rows, null,
+                r => new[] { I(r.Index), I(r.SlotIndex), I(r.TechIndex) }, null, null);
 
         public static string WriteTechGroups(IReadOnlyList<TechGroupRow> rows) =>
             Write(new[] { "Index", "Id", "Name", "Description" }, rows, "Tech",

@@ -1,6 +1,6 @@
 # 배열형 테이블 (Assets/Resources/Tables)
 
-2026-09-30부터 새로 만드는 게임 데이터 표는 **배열형**으로 만든다. 기존 표(`Buildings.csv`/`TechTree.csv`/바이옴 CSV 등)는 그대로 둔다.
+2026-09-30부터 새로 만드는 게임 데이터 표는 **배열형**으로 만든다. 기존 건물/바이옴 표는 유지한다. 기본 기술트리는 2026-10-02부터 슬롯·배치·기술·해금 표로 분리하며 `TechTree.csv`는 단일 파일 호환 예제다.
 
 ## 공통 규칙
 
@@ -19,7 +19,9 @@
 
 ```
 TechUnlocks ◄── Techs.Unlock*            (기술 → 해금 내역)
-Techs       ◄── Techs.ParentIndex        (선행 기술)
+TechSlots   ◄── TechSlots.ParentIndex   (선행 슬롯)
+            ◄── TechTreeLayout.SlotIndex (배치할 슬롯)
+Techs       ◄── TechTreeLayout.TechIndex (슬롯에 넣을 기술)
             ◄── TechGroups.Tech*         (종족별 기술 묶음)
             ◄── Tribes.StartTech*
 TechGroups  ◄── Tribes.TechGroupIndex
@@ -33,17 +35,41 @@ StartConditionRules ◄── StartConditions.Rule*
 
 | 컬럼 | 뜻 |
 | --- | --- |
-| `Category` | 해금 종류: `Build`(건물) `Unit`(유닛 훈련/배 업그레이드) `Move` `Defense` `Reveal`(숨은 자원) `Harvest` `Ability` `Task`(과업) `Vision` `Connect` `Literacy` |
+| `Kind` | `Passive`(패시브), `Active`(액티브), `UnitProduction`(유닛 생산), `BuildingConstruction`(건물 건설), `Quest`(퀘스트) |
+| `Category` | 효과 키 분류: `Build`(건물) `Unit`(유닛 훈련/배 업그레이드) `Move` `Defense` `Reveal`(숨은 자원) `Harvest` `Ability` `Task`(과업) `Vision` `Connect` `Literacy` |
 | `Target` | 대상(건물 Id, 유닛 CSV Id, 구조물 Id …). 비우면 `Category` 자체가 키 |
 | `Name`, `Description` | 표시용 |
 
 게임 코드가 조회하는 해금 키는 `Category.Target`(예: `Build` + `Farm` → `Build.Farm`, `Literacy`는 그대로). 키 의미는 [TechTreeCsv.md](TechTreeCsv.md).
 
-### Techs.csv — 기술
+### TechSlots.csv — 고정 슬롯 구조
 
-`Id, Name, ParentIndex(-1 = 1티어 루트), Tier, Slot, Icon, CostBase, CostPerCity, Unlock1..N(TechUnlocks Index), Description`.
-기존 `TechTree.csv` 25개 기술을 그대로 옮겼다(검증: `ArrayTableVerification.VerifyTechsMirrorTechTree`). 종족을 고른 전투는 이 표로 기술트리를
-만들고(`TechGroupSystem.BuildTechNodes`), 종족이 없으면 예전처럼 `TechTree.csv`(또는 샌드박스 "기술 불러오기" 파일)를 쓴다.
+`Index, Id, ParentIndex, Tier, Slot`. `ParentIndex`는 기술이 아닌 **TechSlots Index**를 가리킨다(`-1` = 루트).
+`Tier`는 1~3, `Slot`은 갈래 안 좌우 위치(0/1)다. 기본 구조는 5갈래 × 5슬롯 = 25슬롯이고, 기술 교체나 비용 조정 시 이 표는 수정하지 않는다.
+슬롯 ID(`Slot00` 등)는 기술명과 독립적이다. 슬롯 순서가 UI의 갈래 순서를 결정한다.
+
+### TechTreeLayout.csv — 슬롯별 기술 배치
+
+`Index, SlotIndex, TechIndex`. 각 슬롯에는 서로 다른 기술 하나를 배치한다. `SlotIndex`는 TechSlots, `TechIndex`는 Techs Index다.
+CSV 행 순서와 관계없이 SlotIndex로 배치하며 실행용 노드는 TechSlots 순서로 만든다. 선행 조건은 선행 슬롯에 현재 배치된 기술로 자동 연결된다.
+슬롯 누락/중복, 기술 중복, 범위 밖 참조, 순환 선행 관계, 겹치는 위치는 경고한다. 잘못된 배치는 빈 트리를 반환하여 선행 조건이 사라지는 부분 적용을 막는다.
+
+### Techs.csv — 교체 가능한 기술
+
+`Index, Id, Name, Icon, CostBase, CostPerCity, Unlock1..N(TechUnlocks Index), Description`.
+위치/선행 관계는 포함하지 않는다. 기본 비용은 `CostBase + CostPerCity × 도시 수`이며, 기존 문해력 할인은 이후 적용한다.
+비용 컬럼은 명시적으로 입력하고 슬롯 티어와 독립적으로 조정한다. 기술은 슬롯 개수보다 많이 정의해도 되며 트리에는 배치된 기술만 나타난다.
+기존 25개 기술과 50개 해금 내용/비용은 유지했다. 일반/종족 전투 모두 분리된 표를 조합한다(`GameDataLoader.LoadTechNodes`, `TechGroupSystem.BuildTechNodes`).
+샌드박스에서 직접 불러온 단일 기술 CSV는 기존 `TechCsvSerializer` 형식을 유지한다.
+
+#### 편집 예시
+
+- **기술 교체:** `TechTreeLayout.csv`에서 원하는 슬롯 행의 `TechIndex`만 변경한다. 이미 배치된 기술로 교체하려면 두 행의 TechIndex를 맞바꾼다.
+- **새 기술:** `Techs.csv` 끝에 다음 Index로 기술을 추가하고 해금 Index들을 `Unlock1..N`에 입력한 뒤 원하는 슬롯에 배치한다.
+- **밸런스:** `Techs.csv`의 `CostBase`, `CostPerCity`만 고친다. 고정 비용만 필요하면 CostPerCity는 0으로 둔다.
+- **종족:** 새 기술이 필요한 기술 그룹의 `Tech1..N`에도 해당 Techs Index를 추가한다. 교체로 빠진 시작 기술은 `Tribes.StartTech1..N`도 갱신한다.
+
+저장 후 다시 전투를 시작하면 반영된다. 이미 진행 중인 전투의 연구 상태를 자동 이관하지는 않는다.
 
 ### TechGroups.csv — 종족별 기술 그룹
 

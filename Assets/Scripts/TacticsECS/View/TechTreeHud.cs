@@ -12,9 +12,8 @@ namespace TacticsECS
     ///
     /// 고정 뼈대(토글 버튼/반투명 패널/닫기 버튼/빈 "Tree" 컨테이너/하단 Detail 패널)는 프리팹
     /// (Assets/Prefabs/UI/TechTreePanel.prefab, UIPrefabSetup.GenerateTechTreePanel)에 있다. 노드는 더 이상
-    /// 프리팹에 굽지 않는다 — 기술 목록이 CSV(Assets/Resources/TechTree.csv)로 바뀌어 기획자가 행을 더하거나
-    /// 빼면 노드 수가 달라지므로, BattleHud의 유닛 로스터처럼 "개수가 바뀌는 목록은 코드로 만든다"는 예외에
-    /// 해당한다. Init(nodes)가 중앙 허브 + 갈래별 방사형(갈래 수만큼 각도를 등분, 1티어 → 2티어(Slot으로 좌우) →
+    /// 프리팹에 굽지 않는다 — 고정 슬롯(TechSlots.csv)에 배치된 기술(TechTreeLayout.csv)의 이름/아이콘을 실행 중에
+    /// 반영한다. Init(nodes)가 중앙 허브 + 갈래별 방사형(갈래 수만큼 각도를 등분, 1티어 → 2티어(Slot으로 좌우) →
     /// 3티어(부모와 같은 각도, 더 바깥)) 배치로 노드/연결선을 만든다. 예전 프리팹에 구워져 있던 노드가 남아
     /// 있어도 Init이 Tree 아래를 비우고 다시 만든다.
     /// </summary>

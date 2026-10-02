@@ -728,11 +728,18 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 기술트리 (CSV)
 
-폴리토피아 기반 5갈래(등반/조직/기마/사냥/낚시 — 2026-09-27 현재 위키 이름으로 Id 변경) x 1+2+2티어 = 25개 노드. **정의는 전부
-[`Assets/Resources/TechTree.csv`](Assets/Resources/TechTree.csv)** 에 있고, 기획자가 스프레드시트로 고쳐 저장하면 코드/프리팹
-수정 없이 반영된다 — 컬럼과 해금 키 목록은 [`docs/TechTreeCsv.md`](docs/TechTreeCsv.md).
+기술트리의 25개 고정 슬롯과 교체 가능한 기술 데이터를 분리했다(2026-10-02).
 
-- 기술 Id는 enum(`TechId`, 삭제됨)이 아니라 문자열이다. 기술이 여는 효과는 기술 이름이 아니라 CSV `Unlocks` 칸의 **해금 키**
+- [`TechSlots.csv`](Assets/Resources/Tables/TechSlots.csv): 슬롯 ID, 선행 슬롯, 티어, 좌우 위치. 기술을 교체할 때 수정하지 않는다.
+- [`TechTreeLayout.csv`](Assets/Resources/Tables/TechTreeLayout.csv): 슬롯별 기술 배치(`SlotIndex`, `TechIndex`). 기술 교체는 이 표에서 한다.
+- [`Techs.csv`](Assets/Resources/Tables/Techs.csv): 기술명, 설명, 아이콘, 기본 비용/도시당 추가 비용, 해금 내역 참조. 비용은 슬롯 티어와 독립적으로 조정한다.
+- [`TechUnlocks.csv`](Assets/Resources/Tables/TechUnlocks.csv): 패시브·액티브·유닛 생산·건물 건설·퀘스트 구분(`Kind`)과 기존 효과 키(`Category`, `Target`).
+
+일반/종족 전투 모두 분리된 표를 사용한다. 선행 조건은 선행 슬롯에 현재 배치된 기술로 결정된다. 슬롯 누락·중복, 같은 기술의 중복 배치,
+잘못된 참조·순환·겹치는 위치는 검증하고, 잘못된 배치는 부분 적용하지 않는다. 기존 단일 `TechTree.csv`는 샌드박스 가져오기/내보내기 호환 예제로 유지한다.
+편집 예시는 [`docs/ArrayTables.md`](docs/ArrayTables.md), 단일 파일 호환 형식과 효과 키는 [`docs/TechTreeCsv.md`](docs/TechTreeCsv.md)를 참고한다.
+
+- 기술 Id는 enum(`TechId`, 삭제됨)이 아니라 문자열이다. 기술이 여는 효과는 기술 이름이 아니라 `TechUnlocks`의 **해금 키**
   (`Build.Farm`, `Harvest.Fruit`, `Unit.shield`, `Move.Mountain`, `Defense.Forest`, `Reveal.Resource_Metal`, `Literacy` 등)로만
   연결되고, 각 시스템은 `TechSystem.HasUnlock(키)`만 조회한다 — CSV에 행을 추가해도 코드에 기술 이름이 필요 없다.
 - 25개 노드의 효과가 전부 실제로 동작한다: 등반(산 진입/산 방어/광물 공개), 명상(산악 신전, 평화주의 과업), 채광(광산),
@@ -832,7 +839,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 | 표 | 내용 | 코드 |
 | --- | --- | --- |
 | `TechUnlocks.csv` | 기술 연구 시 해금되는 내역 50개(`Category` + `Target` → 해금 키 `Build.Farm` 등) | |
-| `Techs.csv` | 기술 25개(`TechTree.csv`와 같은 트리, 선행 기술/해금을 Index로) | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
+| `TechSlots.csv` / `TechTreeLayout.csv` | 고정 슬롯 구조 / 슬롯별 기술 배치 | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
+| `Techs.csv` | 기술명·설명·비용·해금 참조(위치/선행 관계는 슬롯 표) | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
 | `TechGroups.csv` | 종족별 기술 묶음 — 그룹 밖 기술은 트리에 안 보이고 연구 불가(`TechTreeData.Allowed`) | `TechSystem.IsAvailable` |
 | `Tribes.csv` | 위키 일반 부족 12개: 이름/설명, 바이옴 Index, 기술 그룹 Index, 시작 기술, 시작 골드, 시작 유닛, 시작 조건 | [`TribeSystem`](Assets/Scripts/TacticsECS/Systems/TribeSystem.cs) |
 | `StartConditions.csv` + `StartConditionRules.csv` | 수도 주변 스타팅 자원/지형 규칙(바이옴 표와 분리) — "수도 거리 a~b 안에 X가 최소 N개" | [`StartConditionSystem`](Assets/Scripts/TacticsECS/Systems/StartConditionSystem.cs) |
@@ -847,11 +855,15 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   **바이옴 드롭다운**(자동 / 불러온 바이옴 CSV 중 하나만), **종족 드롭다운**(아군/적). "지형 생성"은 설정이 같으면 그 아웃라인 위에 바이옴만
   채운다(`GenerateFromOutline`) — 같은 땅 모양에서 바이옴을 바꿔 가며 규칙을 확인할 수 있다.
 - 종족을 고르면 영역이 팀마다 하나(종족 바이옴)가 되고, 생성 뒤 그 수도에 종족 시작 조건을 적용하며, 전투 시작 때(`InitEconomy`) 그 자리가 그
-  팀 수도가 되고 시작 골드/기술/기술 그룹/시작 유닛이 적용된다(기술트리는 `Techs.csv`로 만든다).
+  팀 수도가 되고 시작 골드/기술/기술 그룹/시작 유닛이 적용된다(기술트리는 슬롯/배치/기술/해금 표를 조합한다).
 - 원문과 다른 점: Drylands도 아웃라인에서는 노이즈 마스크(목표 물 비율 순위 컷)를 쓴다(슬라이더로 비율을 맞추기 위함). Luxidoor "레벨 3 수도로
   시작"은 아직 없다. 종족 고유 지형 배수는 기본 바이옴 3개로 근사한다.
 
 ## 작업 로그
+
+- 2026-10-02: 기술트리를 고정 슬롯과 기술 배치로 분리. 기술 교체 시 선행 조건 자동 연결, 기술별 비용 독립 조정, 해금 종류 5종 분류.
+  `ArrayTableVerification`에 슬롯 교체 후 연구/효과/비용 검증과 잘못된 배치 거부 검증을 추가.
+  Unity CLI `VerificationSuite.Run` 검증 8종 ALL PASS(로그: `Logs/tech_slot_verification.log`).
 
 - 2026-09-30: **배열형 테이블 + 종족/기술 그룹/시작 조건 + 습도 탭 2단계 지형 생성 + 바이옴 선택** (위 절 참고).
   - 새 배열형 표 7개(`Assets/Resources/Tables`), 형식 문서 [`docs/ArrayTables.md`](docs/ArrayTables.md). 기존 표는 그대로.

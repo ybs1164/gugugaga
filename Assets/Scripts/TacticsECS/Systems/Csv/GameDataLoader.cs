@@ -38,6 +38,8 @@ namespace TacticsECS
         {
             GameTables.TechUnlocks = ArrayTableCsvSerializer.ParseTechUnlocks(Read(GameTables.TechUnlocksPath, errors), errors);
             GameTables.Techs = ArrayTableCsvSerializer.ParseTechs(Read(GameTables.TechsPath, errors), errors);
+            GameTables.TechSlots = ArrayTableCsvSerializer.ParseTechSlots(Read(GameTables.TechSlotsPath, errors), errors);
+            GameTables.TechTreeLayout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors), errors);
             GameTables.TechGroups = ArrayTableCsvSerializer.ParseTechGroups(Read(GameTables.TechGroupsPath, errors), errors);
             GameTables.Tribes = ArrayTableCsvSerializer.ParseTribes(Read(GameTables.TribesPath, errors), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors), errors);
@@ -69,11 +71,15 @@ namespace TacticsECS
             ModelDefinition.Version++;
         }
 
-        /// <summary>Assets/Resources/TechTree.csv를 읽어 기술 정의 목록으로 만든다. 파일이 없으면 빈 목록(트리 없음).</summary>
+        /// <summary>슬롯 구조 + 기술 배치 + 기술/해금 표를 조합한다. 매번 CSV를 다시 읽으므로 비용 수정도 반영된다.</summary>
         public static List<TechNodeData> LoadTechNodes()
         {
             var errors = new List<string>();
-            var nodes = TechCsvSerializer.Parse(Read(TechTreeDefinition.CsvResourcePath, errors));
+            var techs = ArrayTableCsvSerializer.ParseTechs(Read(GameTables.TechsPath, errors), errors);
+            var unlocks = ArrayTableCsvSerializer.ParseTechUnlocks(Read(GameTables.TechUnlocksPath, errors), errors);
+            var slots = ArrayTableCsvSerializer.ParseTechSlots(Read(GameTables.TechSlotsPath, errors), errors);
+            var layout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors), errors);
+            var nodes = TechGroupSystem.BuildTechNodes(techs, unlocks, slots, layout, errors);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return nodes;
         }

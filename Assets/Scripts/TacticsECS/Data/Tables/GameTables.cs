@@ -10,6 +10,8 @@ namespace TacticsECS
         public const string Folder = "Tables/";
         public const string TechUnlocksPath = Folder + "TechUnlocks";
         public const string TechsPath = Folder + "Techs";
+        public const string TechSlotsPath = Folder + "TechSlots";
+        public const string TechTreeLayoutPath = Folder + "TechTreeLayout";
         public const string TechGroupsPath = Folder + "TechGroups";
         public const string TribesPath = Folder + "Tribes";
         public const string StartConditionsPath = Folder + "StartConditions";
@@ -21,6 +23,8 @@ namespace TacticsECS
 
         public static TechUnlockRow[] TechUnlocks = new TechUnlockRow[0];
         public static TechRow[] Techs = new TechRow[0];
+        public static TechSlotRow[] TechSlots = new TechSlotRow[0];
+        public static TechTreeLayoutRow[] TechTreeLayout = new TechTreeLayoutRow[0];
         public static TechGroupRow[] TechGroups = new TechGroupRow[0];
         public static TribeRow[] Tribes = new TribeRow[0];
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];

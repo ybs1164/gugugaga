@@ -9,26 +9,25 @@ namespace TacticsECS
 
     /// <summary>기술을 연구하면 열리는 "해금 내역" 하나(TechUnlocks.csv). Category + "." + Target이 게임 코드가 조회하는 해금 키다
     /// (예: Build + Farm → "Build.Farm"). Target이 비면 Category 자체가 키(예: "Literacy").</summary>
+    public enum TechUnlockKind { Passive, Active, UnitProduction, BuildingConstruction, Quest }
+
     public struct TechUnlockRow
     {
         public int Index;
+        public TechUnlockKind Kind;
         public string Category;
         public string Target;
         public string Name;
         public string Description;
     }
 
-    /// <summary>기술 하나(Techs.csv). 기존 TechTree.csv와 같은 내용을 배열형으로 옮긴 표 — 선행 기술/해금 내역을 Index로 가리킨다.</summary>
+    /// <summary>기술 하나(Techs.csv). 위치와 선행 관계는 별도 슬롯 표에 있고, 이 표에는 교체 가능한 기술 내용만 둔다.</summary>
     public struct TechRow
     {
         public int Index;
         public string Id;
         public string Name;
 
-        /// <summary>선행 기술의 Techs Index. -1 = 1티어 루트.</summary>
-        public int ParentIndex;
-        public int Tier;
-        public int Slot;
         public string Icon;
         public int CostBase;
         public int CostPerCity;
@@ -36,6 +35,24 @@ namespace TacticsECS
         /// <summary>TechUnlocks Index 목록.</summary>
         public int[] Unlocks;
         public string Description;
+    }
+
+    /// <summary>고정 트리 슬롯(TechSlots.csv). ParentIndex는 TechSlots Index이며 기술을 교체해도 변하지 않는다.</summary>
+    public struct TechSlotRow
+    {
+        public int Index;
+        public string Id;
+        public int ParentIndex;
+        public int Tier;
+        public int Slot;
+    }
+
+    /// <summary>슬롯별 기술 배치(TechTreeLayout.csv). 각 슬롯에 기술 하나를 배치한다.</summary>
+    public struct TechTreeLayoutRow
+    {
+        public int Index;
+        public int SlotIndex;
+        public int TechIndex;
     }
 
     /// <summary>종족 하나가 연구할 수 있는 기술 묶음(TechGroups.csv).</summary>

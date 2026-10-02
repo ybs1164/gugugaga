@@ -15,23 +15,15 @@ namespace TacticsECS
     /// </summary>
     public static class GameRulesCsvSerializer
     {
-        public struct RuleRow
-        {
-            public string Key;
-            public string Value;
-            public string Wiki;
-            public string Note;
-        }
-
-        public static List<RuleRow> ParseRows(string csvText, List<string> errors, string name = "GameRules.csv")
+        public static List<GameRuleCsvRow> ParseRows(string csvText, List<string> errors, string name = "GameRules.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
             CsvTableReader.CheckColumns(t, new[] { "Key", "Value" }, new[] { "Wiki", "Description", "Note" }, errors);
             CsvTableReader.CheckUniqueIds(t, "Key", errors);
-            var rows = new List<RuleRow>();
+            var rows = new List<GameRuleCsvRow>();
             for (int r = 0; r < t.Rows.Count; r++)
             {
-                var row = new RuleRow
+                var row = new GameRuleCsvRow
                 {
                     Key = CsvTableReader.Get(t, r, "Key"),
                     Value = CsvTableReader.Get(t, r, "Value"),

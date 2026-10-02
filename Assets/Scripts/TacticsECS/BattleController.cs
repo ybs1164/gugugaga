@@ -419,7 +419,7 @@ namespace TacticsECS
                 : "종족을 고르면 시작 별/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다(Assets/Resources/Tables).");
         }
 
-        /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 SandboxUnits.csv — 종족 StartUnit Index가 가리키는 표.</summary>
+        /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 기본 유닛 표(Tables/Units.csv) — 종족 시작 유닛을 Id로 찾는 표.</summary>
         private List<UnitCsvRow> CurrentUnitRows() =>
             _placementController != null && _placementController.Rows.Count > 0 ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
 
@@ -543,7 +543,7 @@ namespace TacticsECS
                 _sandboxHud.SetPalette(rows);
                 _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
                 _sandboxHud.SetStatus($"{rows.Count}개 유닛을 불러왔습니다. 팔레트에서 골라 빈 칸을 클릭하세요.");
-                RefreshTribeInfo(); // 종족 시작 유닛 Index가 이 표를 가리킨다
+                RefreshTribeInfo(); // 종족 시작 유닛을 이 표에서 Id로 찾는다
             }
             catch (System.Exception e)
             {
@@ -581,7 +581,7 @@ namespace TacticsECS
                     _sandboxHud.SetStatus("기술트리 불러오기 실패: 기술 행이 없습니다.");
                     return;
                 }
-                // 전투에 쓰일 유닛 목록과 같은 기준(InitEconomy): 불러온 유닛 CSV, 없으면 SandboxUnits.csv.
+                // 전투에 쓰일 유닛 목록과 같은 기준(InitEconomy): 불러온 유닛 CSV, 없으면 기본 유닛 표.
                 var unitRows = _placementController != null && _placementController.Rows.Count > 0
                     ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
                 var unitIds = unitRows.Count > 0 ? unitRows.Select(r => r.Id) : null;
@@ -1253,7 +1253,7 @@ namespace TacticsECS
         // ---------- Economy (도시/영토/기술/건설) ----------
 
         /// <summary>전투 시작 시 경제 상태를 만든다: 두 팀 시작 자원/빈 기술, 훈련 가능한 유닛 목록(배치 단계에서
-        /// 불러온 유닛 CSV, 없으면 프로젝트 루트의 SandboxUnits.csv), 각 팀 수도(CitySystem.InitializeCapitals), 유닛 없이 시작한 팀의 시작 유닛(CitySystem.StartingUnitRequests).</summary>
+        /// 불러온 유닛 CSV, 없으면 기본 유닛 표 Tables/Units.csv), 각 팀 수도(CitySystem.InitializeCapitals), 유닛 없이 시작한 팀의 시작 유닛(CitySystem.StartingUnitRequests).</summary>
         private void InitEconomy()
         {
             // 종족이 하나라도 정해졌으면 기술트리는 배열형 기술 표(Resources/Tables/Techs.csv — 기술 그룹 Index가 이 표를 가리킨다).
@@ -1297,19 +1297,7 @@ namespace TacticsECS
             }
         }
 
-        private static List<UnitCsvRow> LoadFallbackUnitRows()
-        {
-            try
-            {
-                var path = System.IO.Path.Combine(Application.dataPath, "..", "SandboxUnits.csv");
-                if (System.IO.File.Exists(path)) return UnitCsvSerializer.Parse(System.IO.File.ReadAllText(path));
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning($"[BattleController] SandboxUnits.csv 기본 유닛 목록을 읽지 못했습니다: {e.Message}");
-            }
-            return new List<UnitCsvRow>();
-        }
+        private static List<UnitCsvRow> LoadFallbackUnitRows() => new List<UnitCsvRow>(GameTables.Units);
 
         /// <summary>경제 상태가 바뀐 뒤 한 번에 다시 반영하는 곳: 생산량/유닛 수용량 재계산, 유닛 지형 제한/방어
         /// 보너스, 영토 색/건물/도시 원판, 숨겨진 자원, 자원 바/기술트리. terrainChanged면(벌목/숲 조성 등)

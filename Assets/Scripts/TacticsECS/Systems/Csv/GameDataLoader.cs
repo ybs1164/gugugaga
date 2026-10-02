@@ -17,15 +17,10 @@ namespace TacticsECS
         public static List<string> LoadAll()
         {
             var errors = new List<string>();
-            BuildingDefinition.All = GameTableCsvSerializer.ParseBuildings(Read(BuildingDefinition.CsvResourcePath, errors), errors);
             TileActionDefinition.All = GameTableCsvSerializer.ParseTileActions(Read(TileActionDefinition.CsvResourcePath, errors), errors);
             CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors), errors);
             TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors), errors);
             GameRulesCsvSerializer.Apply(Read(GameRulesCsvResourcePath, errors), errors);
-            GameTableCsvSerializer.ParseNavalUnits(Read(NavalUnitDefinition.CsvResourcePath, errors), errors, out var raft, out var upgrades, out var special);
-            if (raft != null) NavalUnitDefinition.Raft = raft;
-            NavalUnitDefinition.Upgrades = upgrades;
-            NavalUnitDefinition.Special = special;
             LoadModels(errors);
             LoadArrayTables(errors);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
@@ -33,10 +28,19 @@ namespace TacticsECS
         }
 
         /// <summary>배열형 테이블(Assets/Resources/Tables, docs/spec/csv-common.md) -&gt; GameTables. 표 사이 Index 참조도 여기서 한 번 검사한다
-        /// (바이옴 수는 기본 바이옴 표 기준, 유닛 수는 샌드박스에서 바뀌므로 여기서는 보지 않는다).</summary>
+        /// (바이옴 수는 기본 바이옴 표 기준). 배 → 유닛(BoatIndex) → 건물 → 해금 내역(Building/Unit/BoatIndex) 순서로 읽고 연결한다.</summary>
         private static void LoadArrayTables(List<string> errors)
         {
+            GameTables.Boats = ArrayTableCsvSerializer.ParseBoats(Read(GameTables.BoatsPath, errors), errors);
+            TableLinkSystem.SplitBoats(GameTables.Boats, out var raft, out var upgrades, out var special);
+            if (raft != null) NavalUnitDefinition.Raft = raft;
+            NavalUnitDefinition.Upgrades = upgrades;
+            NavalUnitDefinition.Special = special;
+            GameTables.Units = ArrayTableCsvSerializer.ParseUnits(Read(GameTables.UnitsPath, errors), GameTables.Boats, errors);
+            BuildingDefinition.All = ArrayTableCsvSerializer.ParseBuildings(Read(GameTables.BuildingsPath, errors), errors);
             GameTables.TechUnlocks = ArrayTableCsvSerializer.ParseTechUnlocks(Read(GameTables.TechUnlocksPath, errors), errors);
+            TableLinkSystem.ResolveUnlockTargets(GameTables.TechUnlocks, BuildingDefinition.All, GameTables.Units, GameTables.Boats);
+            TableLinkSystem.ApplyBuildingUnlocks(BuildingDefinition.All, GameTables.TechUnlocks);
             GameTables.Techs = ArrayTableCsvSerializer.ParseTechs(Read(GameTables.TechsPath, errors), errors);
             GameTables.TechSlots = ArrayTableCsvSerializer.ParseTechSlots(Read(GameTables.TechSlotsPath, errors), errors);
             GameTables.TechTreeLayout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors), errors);
@@ -71,12 +75,14 @@ namespace TacticsECS
             ModelDefinition.Version++;
         }
 
-        /// <summary>슬롯 구조 + 기술 배치 + 기술/해금 표를 조합한다. 매번 CSV를 다시 읽으므로 비용 수정도 반영된다.</summary>
+        /// <summary>슬롯 구조 + 기술 배치 + 기술/해금 표를 조합한다. 매번 CSV를 다시 읽으므로 비용 수정도 반영된다.
+        /// 해금 내역의 건물/유닛/배 Index는 LoadAll이 올린 표로 푼다.</summary>
         public static List<TechNodeData> LoadTechNodes()
         {
             var errors = new List<string>();
             var techs = ArrayTableCsvSerializer.ParseTechs(Read(GameTables.TechsPath, errors), errors);
             var unlocks = ArrayTableCsvSerializer.ParseTechUnlocks(Read(GameTables.TechUnlocksPath, errors), errors);
+            TableLinkSystem.ResolveUnlockTargets(unlocks, BuildingDefinition.All, GameTables.Units, GameTables.Boats);
             var slots = ArrayTableCsvSerializer.ParseTechSlots(Read(GameTables.TechSlotsPath, errors), errors);
             var layout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors), errors);
             var nodes = TechGroupSystem.BuildTechNodes(techs, unlocks, slots, layout, errors);

@@ -6,7 +6,8 @@ namespace TacticsECS
     /// 배열형 테이블 사이의 Index 참조가 범위 안인지 확인한다(파서는 칸 형식만 본다). 경고 목록만 돌려주고 불러오기는 막지 않는다.
     ///   - TechSlots 선행 슬롯, TechTreeLayout 슬롯별 기술, Techs.Unlock*, TechGroups.Tech*, 종족/시작 조건 참조
     ///   - 시작 기술이 그 종족 기술 그룹 안에 있는지(밖이면 트리에 안 보이는 기술이 해금된 채 시작한다)
-    ///   - biomeCount/unitCount를 주면 BiomeIndex/StartUnit*도(바이옴·유닛 표는 샌드박스에서 바뀔 수 있어 호출자가 넘긴다, 음수면 생략)
+    ///   - biomeCount/unitCount를 주면 BiomeIndex/StartUnit*도(바이옴 표는 샌드박스에서 바뀔 수 있어 호출자가 넘긴다, 음수면 생략)
+    ///   - 해금 내역의 BuildingIndex/UnitIndex/BoatIndex(ValidateLinks)
     ///   - 시작 조건 규칙의 거리/개수 값
     /// 자체 상태는 없다.
     /// </summary>
@@ -125,11 +126,51 @@ namespace TacticsECS
             return w;
         }
 
-        /// <summary>GameTables에 올라간 표 전부를 검사한다.</summary>
-        public static List<string> ValidateLoaded(int biomeCount = -1, int unitCount = -1)
+        /// <summary>해금 내역이 건물/유닛/배 표를 Index로 바르게 가리키는지: Category Build는 BuildingIndex, Unit은 UnitIndex나 BoatIndex 하나.
+        /// 배 표에는 Raft 행이 정확히 하나, Id는 NavalUnitDefinition.RaftId여야 한다.</summary>
+        public static List<string> ValidateLinks(TechUnlockRow[] unlocks, int buildingCount, int unitCount, BoatRow[] boats)
+        {
+            var w = new List<string>();
+            foreach (var u in unlocks)
+            {
+                string who = $"TechUnlocks[{u.Index}] {u.Category}";
+                int links = (u.BuildingIndex >= 0 ? 1 : 0) + (u.UnitIndex >= 0 ? 1 : 0) + (u.BoatIndex >= 0 ? 1 : 0);
+                if (links > 1) w.Add($"{who}: BuildingIndex/UnitIndex/BoatIndex 중 하나만 적는다");
+                if (links > 0 && !string.IsNullOrEmpty(u.Target) && u.Target != LinkedId(u)) w.Add($"{who}: Index로 가리키는 행은 Target을 비운다");
+                if (u.BuildingIndex >= 0 && !InRange(u.BuildingIndex, buildingCount)) w.Add($"{who}: BuildingIndex {u.BuildingIndex}이(가) Buildings 범위 밖");
+                if (u.UnitIndex >= 0 && !InRange(u.UnitIndex, unitCount)) w.Add($"{who}: UnitIndex {u.UnitIndex}이(가) Units 범위 밖");
+                if (u.BoatIndex >= 0 && !InRange(u.BoatIndex, boats.Length)) w.Add($"{who}: BoatIndex {u.BoatIndex}이(가) Boats 범위 밖");
+                if (u.Category == "Build" && u.BuildingIndex < 0) w.Add($"{who}: Build는 BuildingIndex로 건물을 가리킨다");
+                if (u.Category == "Unit" && u.UnitIndex < 0 && u.BoatIndex < 0) w.Add($"{who}: Unit은 UnitIndex나 BoatIndex로 가리킨다");
+                if (u.BuildingIndex >= 0 && u.Category != "Build") w.Add($"{who}: BuildingIndex는 Category Build에서만");
+                if ((u.UnitIndex >= 0 || u.BoatIndex >= 0) && u.Category != "Unit") w.Add($"{who}: UnitIndex/BoatIndex는 Category Unit에서만");
+            }
+            int rafts = 0;
+            foreach (var b in boats)
+                if (b.Kind == BoatKind.Raft)
+                {
+                    rafts++;
+                    if (b.Unit.Id != NavalUnitDefinition.RaftId) w.Add($"Boats[{b.Index}]: Raft 행의 Id는 '{NavalUnitDefinition.RaftId}'");
+                }
+            if (rafts != 1) w.Add($"Boats: Kind Raft 행이 {rafts}개 — 정확히 하나");
+            return w;
+        }
+
+        /// <summary>Index로 가리킨 행의 Id(로드 후 TableLinkSystem이 Target에 채운 값과 같다).</summary>
+        private static string LinkedId(TechUnlockRow u)
+        {
+            if (InRange(u.BuildingIndex, BuildingDefinition.All.Length)) return BuildingDefinition.All[u.BuildingIndex].Id;
+            if (InRange(u.UnitIndex, GameTables.Units.Length)) return GameTables.Units[u.UnitIndex].Id;
+            if (InRange(u.BoatIndex, GameTables.Boats.Length)) return GameTables.Boats[u.BoatIndex].Unit.Id;
+            return null;
+        }
+
+        /// <summary>GameTables에 올라간 표 전부를 검사한다. 종족 StartUnit은 기본 유닛 표(GameTables.Units) 기준.</summary>
+        public static List<string> ValidateLoaded(int biomeCount = -1)
         {
             var w = Validate(GameTables.TechUnlocks, GameTables.Techs, GameTables.TechGroups, GameTables.Tribes,
-                GameTables.StartConditions, GameTables.StartConditionRules, biomeCount, unitCount);
+                GameTables.StartConditions, GameTables.StartConditionRules, biomeCount, GameTables.Units.Length);
+            w.AddRange(ValidateLinks(GameTables.TechUnlocks, BuildingDefinition.All.Length, GameTables.Units.Length, GameTables.Boats));
             w.AddRange(ValidateTechLayout(GameTables.Techs, GameTables.TechSlots, GameTables.TechTreeLayout));
             var placed = new HashSet<int>();
             foreach (var p in GameTables.TechTreeLayout) placed.Add(p.TechIndex);

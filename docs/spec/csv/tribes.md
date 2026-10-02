@@ -20,7 +20,7 @@ StartConditions     ◄── Tribes.StartConditionIndex
 | `TechGroupIndex` | [TechGroups](tech.md#techgroupscsv--종족별-기술-묶음) Index | | -1 | 연구 가능한 기술 묶음 |
 | `StartTech{n}` | [Techs](tech.md#techscsv--기술) Index | | 없음 | 처음부터 해금된 기술 |
 | `StartStars` | 정수 | | `GameRules.csv` `Economy.StartingStars` | 시작 별 |
-| `StartUnit{n}` | 유닛 행 Index | | 없음 | 수도에 받는 시작 유닛 — [유닛 CSV](units.md#육지-유닛) 행 순서(0부터) |
+| `StartUnit{n}` | [Units](units.md#unitscsv--육지-유닛) Index | | 없음 | 수도에 받는 시작 유닛 |
 | `StartConditionIndex` | StartConditions Index | | -1 | 수도 주변 시작 조건. -1 = 없음 |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |
 

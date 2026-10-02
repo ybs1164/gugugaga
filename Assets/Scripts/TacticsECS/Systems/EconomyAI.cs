@@ -255,7 +255,8 @@ namespace TacticsECS
         /// </summary>
         private static void PlanConnections(GridWorld grid, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
         {
-            if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], "Build.Road")) return;
+            var road = System.Array.Find(BuildingDefinition.All, b => b.Id == BuildingDefinition.Road);
+            if (!string.IsNullOrEmpty(road.UnlockKey) && !TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], road.UnlockKey)) return;
             int capital = CitySystem.FindCapital(econ, team);
             if (capital < 0) return;
 

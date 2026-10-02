@@ -14,7 +14,7 @@ namespace TacticsECS.EditorTools
     public static class UnitCsvVerification
     {
         private const string SampleCsvRelativePath = "docs/sample_units.csv";
-        private const string SandboxCsvRelativePath = "SandboxUnits.csv";
+        private const string SandboxCsvRelativePath = "Assets/Resources/Tables/Units.csv";
 
         public static void Run()
         {

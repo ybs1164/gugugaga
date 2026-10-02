@@ -50,7 +50,8 @@ namespace TacticsECS.EditorTools
                 switch(_phase)
                 {
                     case 0:
-                        Call(controller,"HandleSandboxLoad",Path.GetFullPath("SandboxUnits.csv"));
+                        File.WriteAllText("Temp/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units));
+                        Call(controller,"HandleSandboxLoad",Path.GetFullPath("Temp/SandboxUnits.csv"));
                         Call(controller,"HandleGenerateTerrain");
                         _nextTime=EditorApplication.timeSinceStartup+.5; _phase++;
                         break;

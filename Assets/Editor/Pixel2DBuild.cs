@@ -21,7 +21,8 @@ namespace TacticsECS.EditorTools
             });
             if(report.summary.result!=BuildResult.Succeeded)
                 throw new InvalidOperationException("[Pixel2DBuild] " + report.summary.result);
-            File.Copy("SandboxUnits.csv","Builds/Pixel2D/SandboxUnits.csv",true);
+            GameDataLoader.LoadAll();
+            File.WriteAllText("Builds/Pixel2D/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units)); // 샌드박스 "불러오기"용 기본 유닛 사본
             Directory.CreateDirectory("Builds/Pixel2D/Licenses");
             foreach(string pack in new[]{"tiny-town","tiny-farm","tiny-dungeon","ui-pack-pixel-adventure"})
                 File.Copy("Assets/Art/Pixel2D/ThirdParty/Kenney/"+pack+"/License.txt","Builds/Pixel2D/Licenses/"+pack+".txt",true);

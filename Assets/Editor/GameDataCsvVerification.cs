@@ -43,21 +43,21 @@ namespace TacticsECS.EditorTools
         {
             // 컬럼 순서를 바꾸고 모르는 컬럼/주석 행을 넣어도 같은 값으로 읽혀야 한다.
             var errors = new List<string>();
-            var a = GameTableCsvSerializer.ParseBuildings("Id,Terrain,Cost,Population\nFarm,Field,5,2\n", errors);
-            var b = GameTableCsvSerializer.ParseBuildings("Population,Memo,Cost,Terrain,Id\n#주석,,,,\n2,메모,5,Field,Farm\n", errors);
+            var a = ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain,Cost,Population\n0,Farm,Field,5,2\n", errors);
+            var b = ArrayTableCsvSerializer.ParseBuildings("Population,Memo,Cost,Terrain,Id,Index\n#주석,,,,,\n2,메모,5,Field,Farm,0\n", errors);
             Check(a.Length == 1 && b.Length == 1 && a[0].Cost == b[0].Cost && a[0].Population == b[0].Population && a[0].Terrain == b[0].Terrain,
                 "header-based parse ignores column order and comment rows");
             Check(errors.Count == 1 && errors[0].Contains("Memo"), "unknown column reported once: " + string.Join(" | ", errors));
 
             errors.Clear();
-            var bad = GameTableCsvSerializer.ParseBuildings("Id,Terrain,Cost,Flags,AdjacentBuildings\nX,Feild,abc,Raod,Nope\n", errors);
+            var bad = ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain,Cost,Flag1,AdjacentBuildingIndex1\n0,X,Feild,abc,Raod,7\n", errors);
             Check(bad.Length == 1 && bad[0].Cost == 0, "bad number falls back to default");
-            Check(errors.Exists(e => e.Contains("Feild")) && errors.Exists(e => e.Contains("abc")) && errors.Exists(e => e.Contains("Raod")) && errors.Exists(e => e.Contains("Nope")),
+            Check(errors.Exists(e => e.Contains("Feild")) && errors.Exists(e => e.Contains("abc")) && errors.Exists(e => e.Contains("Raod")) && errors.Exists(e => e.Contains("AdjacentBuildingIndex")),
                 "bad terrain/number/flag/adjacent id are all reported: " + string.Join(" | ", errors));
             Check(errors.TrueForAll(e => e.StartsWith("Buildings.csv:2 ")), "errors carry file:line");
 
             errors.Clear();
-            GameTableCsvSerializer.ParseBuildings("Id,Terrain\nA,Field\nA,Forest\n", errors);
+            ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain\n0,A,Field\n1,A,Forest\n", errors);
             Check(errors.Exists(e => e.Contains("중복")), "duplicate id reported");
 
             var nodes = TechCsvSerializer.Parse("Unlocks,Id,Tier\nBuild.Farm,A,2\n");
@@ -66,7 +66,7 @@ namespace TacticsECS.EditorTools
 
             // CLAUDE.md 규칙 6: 여러 값은 번호 붙은 반복 컬럼(한 칸에 값 하나). 빈 칸은 건너뛰고 헤더 순서대로 모은다.
             errors.Clear();
-            var multi = GameTableCsvSerializer.ParseBuildings("Id,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,Flag1,Flag2\nW,Field,ShallowWater,Resource_Metal,,Neutral,Road\n", errors);
+            var multi = ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,Flag1,Flag2\n0,W,Field,ShallowWater,Resource_Metal,,Neutral,Road\n", errors);
             Check(multi.Length == 1 && multi[0].Terrain == (TileClass.Field | TileClass.ShallowWater) && multi[0].RequiredStructures.Length == 1 &&
                   multi[0].AllowNeutral && multi[0].IsRoad && errors.Count == 0, "numbered list columns are read one value per cell: " + string.Join(" | ", errors));
             var numberedTech = TechCsvSerializer.Parse("Id,Unlock1,Unlock2\nA,Build.Farm,Unit.shield\n");
@@ -81,7 +81,7 @@ namespace TacticsECS.EditorTools
             Check(errors.Exists(e => e.Contains("Atack")), "unknown action name is reported");
 
             // 배포되는 게임 데이터 CSV에는 한 칸에 여러 값(세미콜론 목록)이 없어야 한다(설명/메모 칸 제외).
-            foreach (var file in new[] { "Buildings", "TileActions", "TechTree", "NavalUnits", "CityRewards", "Tasks", "GameRules" })
+            foreach (var file in new[] { GameTables.BuildingsPath, "TileActions", "TechTree", GameTables.BoatsPath, GameTables.UnitsPath, "CityRewards", "Tasks", "GameRules" })
             {
                 var text = Resources.Load<TextAsset>(file)?.text ?? string.Empty;
                 var table = CsvTableReader.Parse(file + ".csv", text);
@@ -206,8 +206,7 @@ namespace TacticsECS.EditorTools
 
         // ---------- 3차: 유닛 CSV(위키 원값) + 위키 전투 공식 ----------
 
-        private static List<UnitCsvRow> LoadSandboxUnits() =>
-            UnitCsvSerializer.Parse(System.IO.File.ReadAllText(System.IO.Path.Combine(Application.dataPath, "..", "SandboxUnits.csv")));
+        private static List<UnitCsvRow> LoadSandboxUnits() => GameTables.Units.ToList();
 
         private static int Spawn(GridWorld grid, EntityWorld world, List<UnitCsvRow> rows, string id, Team team, Vector2Int pos) =>
             UnitFactorySystem.CreateFromCsv(grid, world, team, rows.First(r => r.Id == id), pos);

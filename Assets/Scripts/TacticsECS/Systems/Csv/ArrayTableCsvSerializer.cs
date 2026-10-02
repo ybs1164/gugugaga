@@ -20,7 +20,8 @@ namespace TacticsECS
 
         public static TechUnlockRow[] ParseTechUnlocks(string text, List<string> errors = null)
         {
-            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Kind", "Category" }, new[] { "Target", "Name", "Description", "Note" }, null, errors);
+            var t = Begin("TechUnlocks.csv", text, new[] { "Index", "Kind", "Category" },
+                new[] { "Target", "BuildingIndex", "UnitIndex", "BoatIndex", "Name", "Description", "Note" }, null, errors);
             var rows = new TechUnlockRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
                 rows[r] = new TechUnlockRow
@@ -29,11 +30,102 @@ namespace TacticsECS
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TechUnlockKind.Passive, errors),
                     Category = CsvTableReader.Get(t, r, "Category"),
                     Target = CsvTableReader.Get(t, r, "Target"),
+                    BuildingIndex = CsvTableReader.GetInt(t, r, "BuildingIndex", -1, errors),
+                    UnitIndex = CsvTableReader.GetInt(t, r, "UnitIndex", -1, errors),
+                    BoatIndex = CsvTableReader.GetInt(t, r, "BoatIndex", -1, errors),
                     Name = CsvTableReader.Get(t, r, "Name"),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 };
             return rows;
         }
+
+        /// <summary>건물 표(Buildings.csv). AdjacentBuildingIndex{n}은 같은 표의 Index — 여기서 Id로 바꿔 BuildingInfo.AdjacentBuildings에 담는다.
+        /// UnlockKey는 비워 두고 TableLinkSystem.ApplyBuildingUnlocks가 TechUnlocks의 BuildingIndex로 채운다.</summary>
+        public static BuildingInfo[] ParseBuildings(string text, List<string> errors = null, string name = "Buildings.csv")
+        {
+            var t = Begin(name, text, new[] { "Index", "Id", "Terrain" },
+                new[] { "Name", "Cost", "Population", "RequiredStructure", "AdjacentBuildingIndex", "PopulationPerAdjacent", "Flag", "Task", "Description", "Wiki", "Note" },
+                new[] { "Terrain", "RequiredStructure", "AdjacentBuildingIndex", "Flag" }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new BuildingInfo[t.Rows.Count];
+            var adjacent = new int[rows.Length][];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                string id = CsvTableReader.Get(t, r, "Id");
+                var flags = CsvTableReader.GetTags(t, r, "Flag", GameTableCsvSerializer.BuildingFlags, errors);
+                adjacent[r] = GetIndexList(t, r, "AdjacentBuildingIndex", errors);
+                rows[r] = new BuildingInfo
+                {
+                    Id = id,
+                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    UnlockKey = string.Empty,
+                    Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
+                    Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
+                    Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
+                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure"),
+                    PopulationPerAdjacent = CsvTableReader.GetInt(t, r, "PopulationPerAdjacent", 0, errors),
+                    IsRoad = flags.Contains(GameTableCsvSerializer.FlagRoad),
+                    AllowNeutral = flags.Contains(GameTableCsvSerializer.FlagNeutral),
+                    RequiresOppositeLand = flags.Contains(GameTableCsvSerializer.FlagOppositeLand),
+                    ActsAsRoad = flags.Contains(GameTableCsvSerializer.FlagActsAsRoad),
+                    IsTemple = flags.Contains(GameTableCsvSerializer.FlagTemple),
+                    ProducesStarsFromAdjacent = flags.Contains(GameTableCsvSerializer.FlagStarsFromAdjacent),
+                    OnePerCity = flags.Contains(GameTableCsvSerializer.FlagOnePerCity),
+                    TaskId = CsvTableReader.Get(t, r, "Task"),
+                    Description = CsvTableReader.Get(t, r, "Description"),
+                };
+                if (rows[r].Terrain == TileClass.None) CsvTableReader.Report(t, r, "Terrain", "지을 수 있는 지형이 없음", errors);
+            }
+            for (int r = 0; r < rows.Length; r++)
+            {
+                var ids = new List<string>();
+                foreach (int a in adjacent[r])
+                {
+                    if (a >= 0 && a < rows.Length) ids.Add(rows[a].Id);
+                    else CsvTableReader.Report(t, r, "AdjacentBuildingIndex", $"Index {a}이(가) Buildings 범위 밖", errors);
+                }
+                rows[r].AdjacentBuildings = ids.ToArray();
+            }
+            return rows;
+        }
+
+        /// <summary>배 표(Boats.csv). 스탯 컬럼은 유닛 표와 같다(UnitCsvSerializer가 읽는다). Domain은 Water로 강제.</summary>
+        public static BoatRow[] ParseBoats(string text, List<string> errors = null, string name = "Boats.csv")
+        {
+            var t = Begin(name, text, new[] { "Index", "Id", "Kind" }, UnitColumns.Concat(new[] { "Note" }).ToArray(),
+                new[] { UnitCsvSerializer.ActionColumn }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var units = UnitCsvSerializer.Parse(text, errors, name);
+            var rows = new BoatRow[Math.Min(t.Rows.Count, units.Count)];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                units[r].Domain = TerrainType.Water;
+                rows[r] = new BoatRow { Index = r, Kind = CsvTableReader.GetEnum(t, r, "Kind", BoatKind.Special, errors), Unit = units[r] };
+            }
+            return rows;
+        }
+
+        /// <summary>유닛 표(Units.csv). BoatIndex(Boats Index, -1 = 뗏목)를 그 배의 Id로 바꿔 UnitCsvRow.Boat에 담는다.</summary>
+        public static UnitCsvRow[] ParseUnits(string text, IReadOnlyList<BoatRow> boats, List<string> errors = null, string name = "Units.csv")
+        {
+            var t = Begin(name, text, new[] { "Index", "Id" }, UnitColumns.Concat(new[] { "BoatIndex", "Note" }).ToArray(),
+                new[] { UnitCsvSerializer.ActionColumn }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var units = UnitCsvSerializer.Parse(text, errors, name);
+            for (int r = 0; r < units.Count && r < t.Rows.Count; r++)
+            {
+                int boat = CsvTableReader.GetInt(t, r, "BoatIndex", -1, errors);
+                if (boat == -1) continue;
+                if (boats != null && boat >= 0 && boat < boats.Count) units[r].Boat = boats[boat].Unit.Id;
+                else CsvTableReader.Report(t, r, "BoatIndex", $"Index {boat}이(가) Boats 범위 밖", errors);
+            }
+            return units.ToArray();
+        }
+
+        /// <summary>유닛/배 표가 공통으로 갖는 컬럼(UnitCsvSerializer가 읽는 것).</summary>
+        private static readonly string[] UnitColumns =
+            { "Name", "MaxHp", "Defense", "BaseVisual", UnitCsvSerializer.ActionColumn, "Domain", "Move.Range", "Attack.Attack", "Attack.Range",
+              "Heal.Amount", "Heal.Range", "Cost", "Trainable" };
 
         public static TechRow[] ParseTechs(string text, List<string> errors = null)
         {
@@ -204,8 +296,9 @@ namespace TacticsECS
         // ---------- 쓰기(왕복/템플릿 내보내기용) ----------
 
         public static string WriteTechUnlocks(IReadOnlyList<TechUnlockRow> rows) =>
-            Write(new[] { "Index", "Kind", "Category", "Target", "Name", "Description" }, rows, null,
-                r => new[] { I(r.Index), r.Kind.ToString(), r.Category, r.Target, r.Name, r.Description }, null, null);
+            Write(new[] { "Index", "Kind", "Category", "Target", "BuildingIndex", "UnitIndex", "BoatIndex", "Name", "Description" }, rows, null,
+                r => new[] { I(r.Index), r.Kind.ToString(), r.Category, r.Target, Opt(r.BuildingIndex), Opt(r.UnitIndex), Opt(r.BoatIndex), r.Name, r.Description },
+                null, null);
 
         public static string WriteTechs(IReadOnlyList<TechRow> rows) =>
             Write(new[] { "Index", "Id", "Name", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",
@@ -274,6 +367,8 @@ namespace TacticsECS
         }
 
         private static string[] Ints(int[] values) => values == null ? new string[0] : values.Select(I).ToArray();
+        /// <summary>-1(없음)은 빈 칸으로.</summary>
+        private static string Opt(int v) => v < 0 ? string.Empty : I(v);
         private static string I(int v) => v.ToString(CultureInfo.InvariantCulture);
         private static string Q(string s) => CsvTableReader.Quote(s);
     }

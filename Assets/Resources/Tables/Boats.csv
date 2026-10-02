@@ -1,0 +1,7 @@
+Index,Id,Name,Kind,Defense,Action1,Action2,Action3,Action4,Action5,Action6,Action7,Action8,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Note
+0,raft,뗏목,Raft,1,Move,Stiff,,,,,,,2,0,0,0,0,0,항구에 들어간 육지 유닛이 변한다(비용 없음). 체력은 태운 유닛 것
+1,scout,정찰선,Upgrade,1,Move,Attack,Charge,Scout,Counter,,,,3,2,2,0,0,5,뗏목 업그레이드(자기 영토) — 배 타기
+2,rammer,충각선,Upgrade,3,Move,Attack,Charge,Counter,,,,,3,3,1,0,0,5,뗏목 업그레이드 — 충파
+3,bomber,폭격선,Upgrade,2,Move,Attack,Splash,Stiff,,,,,2,3,3,0,0,15,뗏목 업그레이드 — 항해
+4,dinghy,작은 배,Special,0.5,Move,Attack,Charge,Hide,Infiltrate,Scout,Stiff,Static,2,2,1,0,0,0,"Cloak이 항구에 들어가면 된다(위키 Dinghy — Cloak 스탯/스킬 유지, Creep 제외). 업그레이드 불가"
+5,pirate,해적선,Special,2,Move,Attack,Charge,Ambush,Independent,Static,Counter,,2,2,1,0,0,0,Dagger가 항구/물에서 된다(위키 Pirate — 이동 2). 업그레이드 불가

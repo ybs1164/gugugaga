@@ -17,6 +17,13 @@ namespace TacticsECS
         public const string StartConditionsPath = Folder + "StartConditions";
         public const string StartConditionRulesPath = Folder + "StartConditionRules";
 
+        /// <summary>건물 표. 행은 BuildingDefinition.All에 같은 순서로 담긴다(Buildings Index = 그 배열 위치).</summary>
+        public const string BuildingsPath = Folder + "Buildings";
+        public const string UnitsPath = Folder + "Units";
+
+        /// <summary>배 표. 행은 Boats에, 종류별로 나눈 것은 NavalUnitDefinition에 담긴다.</summary>
+        public const string BoatsPath = Folder + "Boats";
+
         /// <summary>샌드박스에서 바이옴 CSV를 따로 불러오지 않았을 때 쓰는 기본 바이옴 표.
         /// 종족의 BiomeIndex는 이 표(또는 불러온 표)의 Biome 행 순서를 가리킨다.</summary>
         public const string DefaultBiomesPath = Folder + "Biomes";
@@ -29,5 +36,9 @@ namespace TacticsECS
         public static TribeRow[] Tribes = new TribeRow[0];
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];
         public static StartConditionRuleRow[] StartConditionRules = new StartConditionRuleRow[0];
+
+        /// <summary>기본 유닛 표(샌드박스에서 유닛 CSV를 불러오지 않았을 때 전투에 쓰인다).</summary>
+        public static UnitCsvRow[] Units = new UnitCsvRow[0];
+        public static BoatRow[] Boats = new BoatRow[0];
     }
 }

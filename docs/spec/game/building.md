@@ -1,13 +1,13 @@
 # 건물·타일 행동
 
-값: [`Buildings.csv`](../csv/buildings.md), [`TileActions.csv`](../csv/tile-actions.md), [`GameRules.csv`](../csv/game-rules.md) `City.Market*`. 코드: `TileImprovementSystem`. 위키: [Buildings](https://polytopia.fandom.com/wiki/Buildings).
+값: [`Buildings.csv`](../csv/buildings.md), [`TechUnlocks.csv`](../csv/tech.md#techunlockscsv--해금-내역) `BuildingIndex`, [`TileActions.csv`](../csv/tile-actions.md), [`GameRules.csv`](../csv/game-rules.md) `City.Market*`. 코드: `TileImprovementSystem`. 위키: [Buildings](https://polytopia.fandom.com/wiki/Buildings).
 
 ## 공통 배치 조건
 - 자기 영토 안에서만. 예외: `Neutral` 태그(도로·다리)는 중립 땅·물도 가능. 적 영토는 불가.
 - 칸 하나에 건물 하나. 도로는 건물이 아니라 칸 개량이라 건물과 공존한다.
 - 도시·마을·유적·등대 칸에는 짓지 않는다. 자원 칸은 그 자원이 필요한 건물·행동만.
 - 구름 칸에서는 아무것도 못 한다.
-- 지형(`Terrain{n}`), 필요 구조물(`RequiredStructure{n}`, 지으면 소모), 해금 키(`Unlock`), 별(`Cost`)을 모두 만족해야 한다.
+- 지형(`Terrain{n}`), 필요 구조물(`RequiredStructure{n}`, 지으면 소모), 해금 키(TechUnlocks `BuildingIndex`가 가리키면 `Build.<Id>`), 별(`Cost`)을 모두 만족해야 한다.
 - 메뉴: 기술·지형·구조물이 안 맞는 항목은 숨기고, 별·인접 조건만 모자라면 비활성 + 이유를 보여준다.
 
 ## 효과

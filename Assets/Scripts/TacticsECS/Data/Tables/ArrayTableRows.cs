@@ -8,7 +8,8 @@ namespace TacticsECS
     // -1은 "없음". 값이 여러 개인 속성은 번호 붙은 반복 컬럼(Unlock1..N)을 읽어 int[]/string[]로 담는다.
 
     /// <summary>기술을 연구하면 열리는 "해금 내역" 하나(TechUnlocks.csv). Category + "." + Target이 게임 코드가 조회하는 해금 키다
-    /// (예: Build + Farm → "Build.Farm"). Target이 비면 Category 자체가 키(예: "Literacy").</summary>
+    /// (예: Build + Farm → "Build.Farm"). Target이 비면 Category 자체가 키(예: "Literacy"). 건물/유닛/배를 여는 행은 Target 대신
+    /// BuildingIndex/UnitIndex/BoatIndex로 그 표의 행을 가리키고, 로드 후 TableLinkSystem이 그 행의 Id를 Target에 채운다.</summary>
     public enum TechUnlockKind { Passive, Active, UnitProduction, BuildingConstruction, Quest }
 
     public struct TechUnlockRow
@@ -17,8 +18,29 @@ namespace TacticsECS
         public TechUnlockKind Kind;
         public string Category;
         public string Target;
+
+        /// <summary>Buildings Index(Category Build). -1 = 없음.</summary>
+        public int BuildingIndex;
+
+        /// <summary>Units Index(Category Unit — 육지 유닛 훈련). -1 = 없음.</summary>
+        public int UnitIndex;
+
+        /// <summary>Boats Index(Category Unit — 뗏목 업그레이드). -1 = 없음.</summary>
+        public int BoatIndex;
         public string Name;
         public string Description;
+    }
+
+    /// <summary>배 종류(Boats.csv Kind). Raft = 항구에 들어간 육지 유닛이 기본으로 바뀌는 배, Upgrade = 뗏목에서 업그레이드하는 배,
+    /// Special = 유닛 BoatIndex가 가리키는 전용 배(업그레이드 불가).</summary>
+    public enum BoatKind { Raft, Upgrade, Special }
+
+    /// <summary>배 하나(Boats.csv). 스탯 컬럼은 유닛 표와 같아 UnitCsvRow에 담는다(Domain은 Water로 강제).</summary>
+    public struct BoatRow
+    {
+        public int Index;
+        public BoatKind Kind;
+        public UnitCsvRow Unit;
     }
 
     /// <summary>기술 하나(Techs.csv). 위치와 선행 관계는 별도 슬롯 표에 있고, 이 표에는 교체 가능한 기술 내용만 둔다.</summary>
@@ -85,7 +107,7 @@ namespace TacticsECS
         public int[] StartTechs;
         public int StartStars;
 
-        /// <summary>수도에 받는 시작 유닛 — 유닛 CSV(불러온 파일, 없으면 SandboxUnits.csv) 행 순서의 Index 목록.</summary>
+        /// <summary>수도에 받는 시작 유닛 — Units Index 목록. 샌드박스에서 다른 유닛 CSV를 불러오면 그 표에서 같은 Id를 찾는다.</summary>
         public int[] StartUnits;
 
         /// <summary>StartConditions Index. -1 = 규칙 없음.</summary>

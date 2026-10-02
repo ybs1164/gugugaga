@@ -54,8 +54,8 @@
 해금 키 `Ability.Disband`. 이번 턴 이동도 행동도 하지 않은 자기 유닛을 없애고 훈련 비용 ÷ `Unit.DisbandRefundDivisor`(내림)를 돌려받는다. 배는 태운 육지 유닛의 비용 기준(업그레이드 비용은 환급 없음).
 
 ## 배
-값: [`NavalUnits.csv`](../csv/units.md#배). 위키: [Port](https://polytopia.fandom.com/wiki/Port), [Raft](https://polytopia.fandom.com/wiki/Raft).
-- 배는 훈련하지 않는다. 육지 유닛이 **자기 팀 항구** 칸에 들어가면 배가 되고 그 턴이 끝난다. 배 종류는 유닛의 `Boat`(비우면 뗏목).
+값: [`Boats.csv`](../csv/units.md#boatscsv--배). 위키: [Port](https://polytopia.fandom.com/wiki/Port), [Raft](https://polytopia.fandom.com/wiki/Raft).
+- 배는 훈련하지 않는다. 육지 유닛이 **자기 팀 항구** 칸에 들어가면 배가 되고 그 턴이 끝난다. 배 종류는 유닛의 `BoatIndex`(-1이면 뗏목).
 - 배의 체력은 태운 유닛 체력 그대로. 나머지 스탯·행동은 배 행의 값.
 - 배가 육지 칸에 들어가면 원래 유닛으로 돌아오고 그 턴이 끝난다. 업그레이드는 사라진다.
-- 뗏목은 자기 영토 안에서 별(`Cost`)과 해금 키(`Unlock`)로 업그레이드 배가 된다. 행동을 쓰지 않는다.
+- 뗏목은 자기 영토 안에서 별(`Cost`)과 해금 키(`Unit.<배 Id>` — TechUnlocks `BoatIndex`)로 업그레이드 배가 된다. 행동을 쓰지 않는다.

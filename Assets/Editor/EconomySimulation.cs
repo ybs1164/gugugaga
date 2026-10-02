@@ -20,7 +20,6 @@ namespace TacticsECS.EditorTools
     {
         private const int MaxTurns = 40;
         private const string BiomeCsv = "Assets/Resources/Tables/Biomes.csv";
-        private const string UnitCsv = "SandboxUnits.csv";
 
         private static bool _ok;
 
@@ -64,7 +63,7 @@ namespace TacticsECS.EditorTools
             GameDataLoader.LoadAll();
             _ok = true;
             var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", BiomeCsv)));
-            var units = UnitCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", UnitCsv)));
+            var units = new List<UnitCsvRow>(GameTables.Units);
             var techNodes = GameDataLoader.LoadTechNodes();
             var outDir = Path.Combine(Application.dataPath, "..", "Logs", "Simulation");
             Directory.CreateDirectory(outDir);

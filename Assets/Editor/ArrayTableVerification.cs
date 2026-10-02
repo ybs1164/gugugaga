@@ -43,16 +43,23 @@ namespace TacticsECS.EditorTools
             Debug.LogError("[ArrayTableVerification] FAIL: " + message);
         }
 
-        private static List<UnitCsvRow> SandboxUnits() =>
-            UnitCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "SandboxUnits.csv")));
+        private static List<UnitCsvRow> DefaultUnits() => GameTables.Units.ToList();
 
         private static void VerifyTableShapes()
         {
-            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 50, $"25 techs / 50 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
+            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 51, $"25 techs / 51 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
             Check(GameTables.Tribes.Length == 12 && GameTables.TechGroups.Length == 12, "12 regular tribes, one tech group each");
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
-            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count, SandboxUnits().Count);
-            Check(unitWarnings.Count == 0, "tribe start units are in range of SandboxUnits.csv: " + string.Join(" | ", unitWarnings));
+            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count);
+            Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
+            Check(GameTables.Units.Length == 11 && GameTables.Boats.Length == 6 && BuildingDefinition.All.Length == 21, "units 11 / boats 6 / buildings 21");
+            Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
+                  BuildingDefinition.All.First(b => b.Id == "Farm").UnlockKey == "Build.Farm" &&
+                  string.IsNullOrEmpty(BuildingDefinition.All.First(b => b.Id == "AltarOfPeace").UnlockKey), "building unlock keys come from TechUnlocks.BuildingIndex");
+            Check(GameTables.TechUnlocks.Any(u => TechGroupSystem.Key(u) == "Unit.cleric") && GameTables.TechUnlocks.Any(u => TechGroupSystem.Key(u) == "Unit.bomber"),
+                "unit/boat unlock keys come from TechUnlocks.UnitIndex/BoatIndex");
+            Check(BuildingDefinition.All.First(b => b.Id == "Market").AdjacentBuildings.SequenceEqual(new[] { "Sawmill", "Windmill", "Forge" }), "AdjacentBuildingIndex resolves to ids");
+            Check(GameTables.Units.First(u => u.Id == "spy").Boat == "dinghy" && GameTables.Units.First(u => u.Id == "infantry").Boat == "", "unit BoatIndex resolves to boat id");
 
             // 위키(Tribes) 시작 기술/별 대조.
             var expected = new Dictionary<string, (string Tech, int Stars)>
@@ -186,7 +193,7 @@ namespace TacticsECS.EditorTools
 
         private static EconomyWorld NewEconomy()
         {
-            var econ = new EconomyWorld { TechNodes = TechGroupSystem.BuildTechNodes(), UnitRows = SandboxUnits() };
+            var econ = new EconomyWorld { TechNodes = TechGroupSystem.BuildTechNodes(), UnitRows = DefaultUnits() };
             foreach (var team in CitySystem.Teams)
             {
                 econ.Resources[team] = CityResourceData.Create(0, 0, false);

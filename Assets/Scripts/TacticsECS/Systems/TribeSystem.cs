@@ -16,7 +16,7 @@ namespace TacticsECS
         public static bool IsValid(int tribeIndex) => tribeIndex >= 0 && tribeIndex < GameTables.Tribes.Length;
 
         /// <summary>econ.Tech[team]/Resources[team]이 이미 만들어진 뒤 부른다. econ.TechNodes는 배열형 기술 표(TechGroupSystem.BuildTechNodes)여야
-        /// Index가 맞는다. unitRows는 StartUnit Index가 가리키는 유닛 표(행 순서).</summary>
+        /// Index가 맞는다. unitRows는 이번 전투의 유닛 표 — StartUnit(Units Index)의 Id로 찾는다.</summary>
         public static void Apply(EconomyWorld econ, Team team, TribeRow tribe, IReadOnlyList<UnitCsvRow> unitRows)
         {
             var res = econ.Resources[team];
@@ -36,9 +36,22 @@ namespace TacticsECS
         public static string[] StartUnitIds(TribeRow tribe, IReadOnlyList<UnitCsvRow> unitRows)
         {
             var ids = new List<string>();
-            foreach (var u in tribe.StartUnits ?? new int[0])
-                if (unitRows != null && u >= 0 && u < unitRows.Count) ids.Add(unitRows[u].Id);
+            foreach (var row in StartUnitRows(tribe, unitRows)) ids.Add(row.Id);
             return ids.ToArray();
+        }
+
+        /// <summary>StartUnit{n}(Units Index)이 가리키는 유닛을 unitRows에서 Id로 찾는다 — 불러온 유닛 표에 그 Id가 없으면 빠진다.</summary>
+        public static List<UnitCsvRow> StartUnitRows(TribeRow tribe, IReadOnlyList<UnitCsvRow> unitRows)
+        {
+            var rows = new List<UnitCsvRow>();
+            foreach (var u in tribe.StartUnits ?? new int[0])
+            {
+                if (unitRows == null || u < 0 || u >= GameTables.Units.Length) continue;
+                string id = GameTables.Units[u].Id;
+                foreach (var row in unitRows)
+                    if (row.Id == id) { rows.Add(row); break; }
+            }
+            return rows;
         }
 
         /// <summary>종족의 바이옴(범위 밖이면 0번 바이옴).</summary>
@@ -61,8 +74,7 @@ namespace TacticsECS
                 if (t >= 0 && t < GameTables.Techs.Length) techs.Add(GameTables.Techs[t].Name);
             sb.Append(techs.Count > 0 ? string.Join(",", techs) : "기술 없음").Append(" / 별 ").Append(tribe.StartStars);
             var units = new List<string>();
-            foreach (var u in tribe.StartUnits ?? new int[0])
-                if (unitRows != null && u >= 0 && u < unitRows.Count) units.Add(unitRows[u].Name);
+            foreach (var row in StartUnitRows(tribe, unitRows)) units.Add(row.Name);
             if (units.Count > 0) sb.Append(" / ").Append(string.Join(",", units));
             var cond = StartCondition(tribe);
             if (cond != null && cond.Value.Rules != null && cond.Value.Rules.Length > 0) sb.Append(" / ").Append(cond.Value.Name);

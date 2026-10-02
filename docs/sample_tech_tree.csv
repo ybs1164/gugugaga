@@ -11,7 +11,7 @@ Diplomacy,외교,Organization,Strategy,3,0,diplomacy,4,3,Unit.spy,Vision.Capital
 Construction,건축,Organization,Farming,3,1,construction,4,3,Build.Windmill,Ability.BurnForest,,,풍차 건설 가능(인접 농장당 인구 +1). 자기 숲 화전 가능(별 3 / 숲 -> 작물 평지).
 Riding,기마,Riding,,1,0,riding,4,1,Unit.cavalry,,,,기마병 훈련 가능.
 FreeSpirit,자유 영혼,Riding,Riding,2,0,freespirit,4,2,Build.Temple,Ability.Disband,,,신전 건설 가능(별 20). 자기 유닛 해산 가능(비용 절반 환급).
-Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road,Task.Network,,,도로(별 3)/다리(별 5) 건설 가능 - 도로끼리 이동 0.5
+Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road,Task.Network,Build.Bridge,,도로(별 3)/다리(별 5) 건설 가능 - 도로끼리 이동 0.5
 Chivalry,기사도,Riding,FreeSpirit,3,0,chivalry,4,3,Unit.knight,Ability.Destroy,,,기사 훈련 가능. 자기 건물 파괴 가능.
 Trade,교역,Riding,Roads,3,1,trade,4,3,Build.Market,Task.Wealth,,,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 별/턴). 부 과업(별 100 보유 → 황제의 무덤) 개방.
 Hunting,사냥,Hunting,,1,0,hunting,4,1,Harvest.Animal,Reveal.Resource_Animal,,,동물 사냥 가능(별 2 / 인구 +1). 숨겨진 동물 발견.

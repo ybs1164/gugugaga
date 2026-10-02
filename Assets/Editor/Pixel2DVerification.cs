@@ -39,7 +39,7 @@ namespace TacticsECS.EditorTools
                 Check(PixelSpriteCatalog.SpriteFor(part) != null, "sprite exists: " + id);
             foreach (var structure in StructureDefinition.All) Check(PixelSpriteCatalog.Has("Structure." + structure.Id), "structure: " + structure.Id);
             foreach (var building in BuildingDefinition.All) Check(PixelSpriteCatalog.Has("Building." + building.Id), "building: " + building.Id);
-            foreach (var row in UnitCsvSerializer.Parse(File.ReadAllText("SandboxUnits.csv"))) Check(PixelSpriteCatalog.Has("Unit." + row.Id), "unit: " + row.Id);
+            foreach (var row in GameTables.Units) Check(PixelSpriteCatalog.Has("Unit." + row.Id), "unit: " + row.Id);
             foreach (string id in new[] { NavalUnitDefinition.Raft.Id }.Concat(NavalUnitDefinition.Upgrades.Select(n => n.Row.Id)).Concat(NavalUnitDefinition.Special.Select(n => n.Id)))
                 Check(PixelSpriteCatalog.Has("Boat." + id), "naval: " + id);
             foreach (var tech in GameDataLoader.LoadTechNodes()) Check(PixelSpriteCatalog.Has("Icon." + tech.Icon), "tech icon: " + tech.Icon);
@@ -103,7 +103,7 @@ namespace TacticsECS.EditorTools
         }
         private static void VerifyUnits()
         {
-            var rows=UnitCsvSerializer.Parse(File.ReadAllText("SandboxUnits.csv"));
+            var rows=GameTables.Units.ToList();
             var root=new GameObject("UnitIntegration"); var spawner=root.AddComponent<UnitSpawner>();
             var grid=new GridWorld(24,3); var world=new EntityWorld();
             var prefab=AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Melee.prefab");
@@ -183,7 +183,8 @@ namespace TacticsECS.EditorTools
                 CaptureCamera(Camera.main,"docs/images/pixel2d/"+name+".png",1920,1080,true);
                 if(name=="Sandbox")
                 {
-                    typeof(BattleController).GetMethod("HandleSandboxLoad",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{Path.GetFullPath("SandboxUnits.csv")});
+                    File.WriteAllText("Temp/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units));
+                    typeof(BattleController).GetMethod("HandleSandboxLoad",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{Path.GetFullPath("Temp/SandboxUnits.csv")});
                     Call(controller,"HandleGenerateTerrain");
                     CaptureCamera(Camera.main,"docs/images/pixel2d/SandboxGenerated.png",1920,1080,true);
                 }

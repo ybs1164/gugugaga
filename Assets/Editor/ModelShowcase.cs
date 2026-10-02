@@ -232,7 +232,7 @@ namespace TacticsECS.EditorTools
 
         private static void ShotUnits(string outDir, StringBuilder metrics)
         {
-            var rows = UnitCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "SandboxUnits.csv")));
+            var rows = GameTables.Units.ToList();
             string[] naval = { NavalUnitDefinition.RaftId, "scout", "rammer", "bomber" };
             int cols = Mathf.Max(rows.Count, naval.Length);
             var grid = new GridWorld(cols, 2, TileSize);

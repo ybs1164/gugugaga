@@ -46,10 +46,4 @@
 
 ## 검증
 
-CSV를 고친 뒤에는 Unity CLI로 검증을 돌린다(에디터가 닫혀 있어야 한다 — `CLAUDE.md` 규칙 1).
-
-```
-unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsECS.EditorTools.VerificationSuite.Run
-```
-
-게임 시작 시 CSV 경고는 콘솔에 `[GameData] 파일:줄 컬럼: 내용` 형식으로 나온다.
+CSV를 고친 뒤에는 전체 검증을 돌린다 — 명령은 [README](../../README.md#실행).

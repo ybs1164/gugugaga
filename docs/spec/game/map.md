@@ -43,6 +43,3 @@
 
 ## 원문과 다른 점
 원문 규칙별 구현 대응표(11절)와 이 프로젝트가 정한 보강 규칙(12절): [reference/PolytopiaMapGeneration](../../reference/PolytopiaMapGeneration.md). 여기에 다시 적지 않는다.
-
-## 샌드박스 2단계 생성
-습도 탭: 맵 타입·물 비율로 1차 지형(육지/물 + 수도·마을 자리)을 만든 뒤, 같은 모양에 바이옴만 바꿔 채울 수 있다. 조작은 [README](../../../README.md).

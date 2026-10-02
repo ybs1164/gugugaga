@@ -8,7 +8,7 @@ namespace TacticsECS
     /// <summary>
     /// GridWorld를 바이옴 CSV 규칙에 따라 절차적으로 채우는 상태 없는 정적 시스템(규칙 3) — 자체 필드를
     /// 갖지 않고, 매번 GridWorld/BiomeCsvRow와 시드를 인자로 받아 결과를 GridWorld에 직접 써넣는다.
-    /// docs/PolytopiaMapGeneration.md 기준 2차 재정비: 완전 랜덤 Voronoi 시드 대신 쿼드런트(구역) 기반
+    /// docs/reference/PolytopiaMapGeneration.md 기준 2차 재정비: 완전 랜덤 Voronoi 시드 대신 쿼드런트(구역) 기반
     /// 앵커 배치(Polytopia의 수도 배치), 앵커 기준 Inner/Outer 이중 확률, 일반화된 거리 제약(MinDistance/
     /// EdgeMargin) + 맵 크기 비례 개수(CountPerTiles)를 반영했다. 3차 재정비: 습도 배율 지원(2절) +
     /// 계산된 앵커를 StructureGenerationSystem이 재사용할 수 있도록 반환.
@@ -19,7 +19,7 @@ namespace TacticsECS
         /// <summary>이미 놓인 이웃 타입이 없을 때도 완전히 0이 되지 않도록 노이즈 가중치에 더하는 바닥값.</summary>
         private const float NoiseWeightFloor = 0.25f;
 
-        /// <summary>숲/산 레이어(docs/PolytopiaMapGeneration.md 12.1절)가 쓰는 TileTypeId. TerrainType은 Land 그대로다.</summary>
+        /// <summary>숲/산 레이어(docs/reference/PolytopiaMapGeneration.md 12.1절)가 쓰는 TileTypeId. TerrainType은 Land 그대로다.</summary>
         public const string ForestTileId = "Forest";
         public const string MountainTileId = "Mountain";
 
@@ -58,7 +58,7 @@ namespace TacticsECS
         /// <summary>Pangea/Continents 수도 선택 시도 횟수 — 가장 고르게 퍼진(최소 쌍 거리가 가장 큰) 조합을 쓴다.</summary>
         private const int CapitalSelectionTrials = 12;
 
-        /// <summary>docs/PolytopiaMapGeneration.md 2절의 6종 맵 타입 중, 개별 타일 확률(+MinDistance)에
+        /// <summary>docs/reference/PolytopiaMapGeneration.md 2절의 6종 맵 타입 중, 개별 타일 확률(+MinDistance)에
         /// 맡기지 않고 전용 "랜드마스 마스크"로 모양 자체를 만드는 타입들. Drylands는 원래도 물이 거의
         /// 없어(목표 0~10%) 기존 방식으로 충분해 여기 포함하지 않는다 — 마스크가 필요 없다.</summary>
         public enum MapShapeMode { Freeform, Pangea, Lakes, Continents, Archipelago, Waterworld }
@@ -71,7 +71,7 @@ namespace TacticsECS
             => Generate(grid, biomes, seed, wetnessMultiplier, shapeMode, targetWaterFraction, out _, out _);
 
         /// <summary>지형을 생성하고, 수도 앵커 + Suburb/사전 확정 마을 위치를 반환한다(7차 재정비 —
-        /// docs/PolytopiaMapGeneration.md 5절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
+        /// docs/reference/PolytopiaMapGeneration.md 5절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
         /// 뒤 지형을 채운다). 파이프라인:
         /// 1. 쿼드런트 맵이면 수도를 먼저 뽑는다(GenerateQuadrantAnchors).
         /// 2. Suburb/Pre-terrain 마을 위치를 지형 없이 먼저 정한다(PlanPreTerrainVillages) — 맵 타입별로
@@ -768,7 +768,7 @@ namespace TacticsECS
             return null;
         }
 
-        /// <summary>docs/PolytopiaMapGeneration.md 4.2~4.4절 — 지형이 생기기 전에 먼저 정해지는 마을
+        /// <summary>docs/reference/PolytopiaMapGeneration.md 4.2~4.4절 — 지형이 생기기 전에 먼저 정해지는 마을
         /// 두 종류(Suburb/Pre-terrain)를 계산한다. 7.1절 매트릭스대로 맵 타입마다 있을 수도/없을 수도
         /// 있다: Suburb는 Lakes/Archipelago 전용, Pre-terrain은 Lakes/Archipelago/Waterworld 전용,
         /// 나머지(Drylands/Pangea/Continents)는 둘 다 없음(빈 배열).</summary>

@@ -313,7 +313,7 @@ namespace TacticsECS.EditorTools
                   rammer.UnlockKey == "Unit.rammer" && NavalUnitDefinition.Upgrades.Length == 3, "naval units from CSV with wiki stats");
         }
 
-        // ---------- 모델 파츠 CSV (docs/ModelingPlan.md) ----------
+        // ---------- 모델 파츠 CSV (docs/history/ModelingPlan.md) ----------
 
         private static void VerifyModels()
         {

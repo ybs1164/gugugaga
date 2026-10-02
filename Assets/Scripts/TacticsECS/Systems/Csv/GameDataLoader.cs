@@ -32,7 +32,7 @@ namespace TacticsECS
             return errors;
         }
 
-        /// <summary>배열형 테이블(Assets/Resources/Tables, docs/ArrayTables.md) -&gt; GameTables. 표 사이 Index 참조도 여기서 한 번 검사한다
+        /// <summary>배열형 테이블(Assets/Resources/Tables, docs/spec/csv-common.md) -&gt; GameTables. 표 사이 Index 참조도 여기서 한 번 검사한다
         /// (바이옴 수는 기본 바이옴 표 기준, 유닛 수는 샌드박스에서 바뀌므로 여기서는 보지 않는다).</summary>
         private static void LoadArrayTables(List<string> errors)
         {

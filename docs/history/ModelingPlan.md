@@ -1,3 +1,5 @@
+> **이력 문서** — 작성 당시 기록이며 갱신하지 않는다. 현재 동작·형식은 [`docs/spec`](../spec/README.md).
+
 # 모델링 — 위키 대조 + 방식 비교분석 (3회 반복)
 
 작성: 2026-09-27. 기준: [The Battle of Polytopia Wiki](https://polytopia.fandom.com/wiki/The_Battle_of_Polytopia_Wiki)의 도판
@@ -12,7 +14,7 @@
 | 2차 | 타일(지형) — 블록/물/숲/산/구름/도로 | 타일 파츠 CSV(받침 모델 + 지형 장식 + 도로 조각), 평평한 상자 윗면 | ✅ |
 | 3차 | 유닛 10종 + 배 4종 | 파츠 CSV 블록 유닛(팀 색은 옷 조각에만), 탈것/기계/크기 | ✅ |
 
-**측정 도구** — [`ModelShowcase`](../Assets/Editor/ModelShowcase.cs)(`unity run . -- -executeMethod TacticsECS.EditorTools.ModelShowcase.Run [-showcaseOut 폴더]`,
+**측정 도구** — [`ModelShowcase`](../../Assets/Editor/ModelShowcase.cs)(`unity run . -- -executeMethod TacticsECS.EditorTools.ModelShowcase.Run [-showcaseOut 폴더]`,
 `-nographics` 없이): 건물/타일/유닛을 전투 화면과 같은 등각 구도(35.264°/45°)로 찍어 PNG로 저장하고, 모델별 렌더러 수·삼각형 수·
 **실루엣 겹침**(64×64로 따로 찍은 윤곽의 IoU — 다른 건물과 가장 많이 겹치는 값이 낮을수록 한눈에 구분된다)을 `metrics.csv`로 남긴다.
 
@@ -22,7 +24,7 @@
 
 ### 1-1. 위키 대조 (1차 전 인게임)
 
-![1차 전](images/modeling/r1_buildings_before.png)
+![1차 전](../images/modeling/r1_buildings_before.png)
 
 | 항목 | 위키 도판 | 인게임(1차 전) |
 |---|---|---|
@@ -44,7 +46,7 @@
 
 같은 세 건물을 세 방식으로 만들어 같은 구도로 찍었다(아래 그림 — 뒷줄 A, 가운데 B, 앞줄 C).
 
-![3안 비교](images/modeling/r1_options.png)
+![3안 비교](../images/modeling/r1_options.png)
 
 | 방식 | 위키 특징 재현(3건물 9개 항목) | 렌더러(합) | 삼각형(합) | 모양 하나 바꾸는 비용 | 에셋 |
 |---|---|---|---|---|---|
@@ -62,7 +64,7 @@
 
 **`Assets/Resources/Models/ModelPalette.csv`** — `Name,Color`(#RRGGBB). 색을 이름으로 쓰면 한 곳만 고쳐 모든 모델의 지붕색 등이 바뀐다.
 
-**`Assets/Resources/Models/BuildingModels.csv`** — 한 행 = 조각 하나([`ModelPartInfo`](../Assets/Scripts/TacticsECS/Core/ModelPartInfo.cs))
+**`Assets/Resources/Models/BuildingModels.csv`** — 한 행 = 조각 하나([`ModelPartInfo`](../../Assets/Scripts/TacticsECS/Core/ModelPartInfo.cs))
 
 | 컬럼 | 의미 |
 |---|---|
@@ -74,14 +76,14 @@
 | `Color` | 팔레트 이름, `#RRGGBB`, 또는 `Team`(주인 팀 색 — 깃발) |
 | `MinLevel`/`MaxLevel` | 이 레벨 범위에서만 보이는 조각(0/빈칸 = 제한 없음) |
 
-표시 레벨은 [`TileImprovementSystem.DisplayLevel`](../Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs): 신전 = 지은 뒤 지난 턴(1~5),
+표시 레벨은 [`TileImprovementSystem.DisplayLevel`](../../Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs): 신전 = 지은 뒤 지난 턴(1~5),
 제재소/풍차/대장간 = 인접 기반 건물 수(0이면 위키의 레벨 0), 시장 = 인접 가공 건물 인구 합(최대 8). 조립은
-[`ModelBuilder`](../Assets/Scripts/TacticsECS/View/ModelBuilder.cs)(색별 서브메시 병합, (모델, 레벨)마다 메시 캐시), 도형은
-[`LowPolyMeshes`](../Assets/Scripts/TacticsECS/View/LowPolyMeshes.cs)(면마다 정점 분리 → 각진 음영).
+[`ModelBuilder`](../../Assets/Scripts/TacticsECS/View/ModelBuilder.cs)(색별 서브메시 병합, (모델, 레벨)마다 메시 캐시), 도형은
+[`LowPolyMeshes`](../../Assets/Scripts/TacticsECS/View/LowPolyMeshes.cs)(면마다 정점 분리 → 각진 음영).
 
 ### 1-4. 결과와 개선
 
-![1차 후](images/modeling/r1_buildings_after.png)
+![1차 후](../images/modeling/r1_buildings_after.png)
 
 (위: 1~3줄 건물 20종, 4~5줄 레벨 변화 — 신전 Lv1~5, 대장간 Lv0/4, 제재소 Lv1/6, 시장 Lv1/8, 풍차 Lv1/4, 산악 신전 Lv5, 6줄 도시 Lv1 / Lv3+성벽 /
 Lv5 수도+공방+공원+성벽 / Lv8 수도)
@@ -122,9 +124,9 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 
 | 방식 | 그림 | 위키 항목(8) | 렌더러 | 삼각형 | 기존 코드 영향 |
 |---|---|---|---|---|---|
-| **A** 현행 — 타일 메시 1장 + 색 틴트, 장식은 코드 원뿔 | [A](images/modeling/r2_map_A_before.png) | 2 | 752 | 30,386 | — |
-| **B** 타일 파츠 CSV — 윗면(TileView가 칠함) + 받침 모델(흙/모래/짙은 바닥) + 숲·산·구름·도로 파츠 | [B](images/modeling/r2_map_B_after.png) | **8** | 851 | 50,246 | GridView만(타일마다 자식 모델 추가) |
-| **C** 맵 청크 메시 — 모든 타일을 정점색 메시 하나로(윗면 + 옆면) | [C](images/modeling/r2_map_C_chunk.png) | 3(땅 옆면·물 높이·모래) | **1**(타일만) | 864(타일만) | 큼 — 하이라이트/영토색을 정점색으로, 타일 자식(구조물/건물/유닛 위치) 구조 전부 교체 |
+| **A** 현행 — 타일 메시 1장 + 색 틴트, 장식은 코드 원뿔 | [A](../images/modeling/r2_map_A_before.png) | 2 | 752 | 30,386 | — |
+| **B** 타일 파츠 CSV — 윗면(TileView가 칠함) + 받침 모델(흙/모래/짙은 바닥) + 숲·산·구름·도로 파츠 | [B](../images/modeling/r2_map_B_after.png) | **8** | 851 | 50,246 | GridView만(타일마다 자식 모델 추가) |
+| **C** 맵 청크 메시 — 모든 타일을 정점색 메시 하나로(윗면 + 옆면) | [C](../images/modeling/r2_map_C_chunk.png) | 3(땅 옆면·물 높이·모래) | **1**(타일만) | 864(타일만) | 큼 — 하이라이트/영토색을 정점색으로, 타일 자식(구조물/건물/유닛 위치) 구조 전부 교체 |
 
 - C는 가장 가볍지만, 정점색을 쓰는 URP 셰이더(Particles/Simple Lit)라 색이 바래고 다른 모델(Lit)과 조명이 어긋났다. 타일 GameObject에
   기대는 하이라이트·구조물·건물·경계선 코드를 모두 바꿔야 한다. 12×12~16×16 맵에서 타일 렌더러 수는 병목이 아니다.
@@ -150,7 +152,7 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 - **3차로 넘긴 점**: 유닛이 모두 같은 크기의 사람형 + 전신 팀색 틴트라 위키(큐브형, 기병/기사는 탈것, 투석기는 기계, 거인은 큼)와 다르고,
   배는 발밑의 얇은 판이라 거의 안 보인다.
 
-![2차 후](images/modeling/r2_map_B_after.png)
+![2차 후](../images/modeling/r2_map_B_after.png)
 
 ---
 
@@ -158,7 +160,7 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 
 ### 3-1. 위키 대조 (List of Units 도판)
 
-![3차 전](images/modeling/r3_units_before.png)
+![3차 전](../images/modeling/r3_units_before.png)
 
 | 항목 | 위키 | 인게임(3차 전) |
 |---|---|---|
@@ -172,7 +174,7 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 
 ### 3-2. 방식 비교 — 위키 유닛 10종, 같은 구도
 
-![3안 비교](images/modeling/r3_options.png) (뒷줄 A, 가운데 B, 앞줄 C)
+![3안 비교](../images/modeling/r3_options.png) (뒷줄 A, 가운데 B, 앞줄 C)
 
 | 방식 | 렌더러(10종) | 삼각형 | 실루엣 최대 겹침 평균 / 최악 | 팀색 픽셀 비율 | 위키 특징 |
 |---|---|---|---|---|---|
@@ -189,9 +191,9 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 
 **`Assets/Resources/Models/UnitModels.csv`** — 1·2차와 같은 컬럼. 좌표는 유닛 발밑 원점·월드 단위(타일 한 변 1.2)·**정면 -Z**.
 `Unit.<유닛 CSV Id>`(보병/방패병/검투사/기병/기사/궁병/투석기/사제/스파이/거인), `Boat.<배 Id>`(raft/scout/rammer/bomber).
-`Team` 색 조각 = 옷. [`UnitDefinition.modelId`](../Assets/Scripts/TacticsECS/View/UnitDefinition.cs)가 모델을 고르며, CSV 유닛은 스폰 때
+`Team` 색 조각 = 옷. [`UnitDefinition.modelId`](../../Assets/Scripts/TacticsECS/View/UnitDefinition.cs)가 모델을 고르며, CSV 유닛은 스폰 때
 `Unit.<Id>`로 덮어쓰고 SampleScene 기본 프리팹 7종은 대응 위키 유닛(근접 = 보병, 원거리 = 궁병, 방어 = 방패병 ...)을 가리킨다.
-[`UnitView`](../Assets/Scripts/TacticsECS/View/UnitView.cs)는 모델이 있으면 KayKit 모델을 끄고 블록 모델을 타일 윗면 높이에 세운다. 방어 태세는
+[`UnitView`](../../Assets/Scripts/TacticsECS/View/UnitView.cs)는 모델이 있으면 KayKit 모델을 끄고 블록 모델을 타일 윗면 높이에 세운다. 방어 태세는
 옷 색을 노랗게 바꿔(모델 재조립) 표시하고, 배에 타면 `Boat.*` 모델 갑판 위로 올라선다.
 
 ### 3-4. 개선
@@ -202,7 +204,7 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 - **배 선체가 수면 아래**: 뒤집은 절두체 선체가 수면 밑이라 갑판 판만 보였다 → 선체를 갑판에서 아래로 좁아지며 수면 위로 드러나게.
 - **탈것 비율**: 말을 키우고 기수를 말 등 높이(0.46)로 올려 "파묻힌 기수"를 고쳤다.
 
-![3차 후](images/modeling/r3_units_after.png)
+![3차 후](../images/modeling/r3_units_after.png)
 
 ---
 
@@ -214,7 +216,7 @@ Lv5 수도+공방+공원+성벽 / Lv8 수도)
 | 대표 지표 | 건물 렌더러 66 → 20 | 위키 항목 2 → 8 (맵 렌더러 +13%) | 유닛 렌더러 91 → 10, 삼각형 51,639 → 2,038 |
 | 개선에서 잡은 것 | 실루엣 측정 버그, 신전 4종 구분, 도시 원판 | 반투명 물 격자, 경사 타일, 광석 색 + 머티리얼 갱신 버그 | 파묻힌 발, 뗏목 기준점, 수면 아래 선체, 탈것 비율 |
 
-![최종 맵](images/modeling/final_map.png)
+![최종 맵](../images/modeling/final_map.png)
 
 남은 과제: 부족(tribe)별 색·장식(위키는 부족마다 모자·집 모양이 다름) — 지금은 팀 색 하나. 유닛 애니메이션(이동 시 흔들림 등)은 없다.
 HP 표시 높이(1.7)는 KayKit 키에 맞춘 값이라 블록 유닛(키 약 1.0) 위로 조금 높게 뜬다(UI 프리팹 재생성이 필요해 그대로 둠).

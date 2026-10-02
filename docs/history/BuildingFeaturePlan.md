@@ -1,3 +1,5 @@
+> **이력 문서** — 작성 당시 기록이며 갱신하지 않는다. 현재 동작·형식은 [`docs/spec`](../spec/README.md).
+
 # 건물 기능 구현 계획 + 적 시뮬레이션
 
 작성: 2026-09-27. 기준: [Polytopia Wiki — Buildings](https://polytopia.fandom.com/wiki/Buildings),

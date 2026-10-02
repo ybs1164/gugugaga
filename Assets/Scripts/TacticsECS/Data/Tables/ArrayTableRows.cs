@@ -1,6 +1,6 @@
 namespace TacticsECS
 {
-    // "배열형 테이블"(docs/ArrayTables.md)의 행 타입들. 순수 값만 갖는다(CLAUDE.md 규칙 2) — 파싱/작성은
+    // "배열형 테이블"(docs/spec/csv-common.md)의 행 타입들. 순수 값만 갖는다(CLAUDE.md 규칙 2) — 파싱/작성은
     // Systems/Csv/ArrayTableCsvSerializer, 참조 검사는 Systems/ArrayTableValidationSystem, 사용은 TechGroupSystem/
     // TribeSystem/StartConditionSystem이 한다.
     //

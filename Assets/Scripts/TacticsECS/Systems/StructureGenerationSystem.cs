@@ -7,7 +7,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// GridWorld에 타일 위 구조물(수도/마을/자원/등대/유적/불가사리)을 배치하는 상태 없는 정적 시스템 —
-    /// TerrainGenerationSystem이 채운 지형/앵커 위에 얹는다. 9차 재정비: 원문(docs/PolytopiaMapGeneration.md
+    /// TerrainGenerationSystem이 채운 지형/앵커 위에 얹는다. 9차 재정비: 원문(docs/reference/PolytopiaMapGeneration.md
     /// 5절)의 순서를 단계별로 그대로 따른다 — 예전엔 마을/자원/유적/불가사리를 셔플된 한 번의 순회에서
     /// 가중치로 경쟁시켜서, 자원을 놓는 시점에 마을이 아직 없어 "모든 도시 2칸 이내" 규칙을 지킬 수 없었다.
     ///   1. 수도 + Suburb/사전 확정 마을(지형 단계에서 위치가 정해진 것)

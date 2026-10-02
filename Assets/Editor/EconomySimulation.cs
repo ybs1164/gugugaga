@@ -19,7 +19,7 @@ namespace TacticsECS.EditorTools
     public static class EconomySimulation
     {
         private const int MaxTurns = 40;
-        private const string BiomeCsv = "docs/sample_biomes.csv";
+        private const string BiomeCsv = "Assets/Resources/Tables/Biomes.csv";
         private const string UnitCsv = "SandboxUnits.csv";
 
         private static bool _ok;

@@ -12,7 +12,7 @@ namespace TacticsECS
     /// Unlocks 칸은 여러 키를 담아야 해서 세미콜론으로 구분한다(UnitCsvSerializer의 Actions와 같은 이유).
     /// Effect 같은 설명 칸에 쉼표를 쓰고 싶으면 스프레드시트가 자동으로 붙이는 큰따옴표 인용("...,...")을
     /// 그대로 읽는다 — 엑셀/구글 시트에서 저장한 파일을 손대지 않고 넣을 수 있게 하기 위함이다.
-    /// 컬럼 설명은 docs/TechTreeCsv.md.
+    /// 컬럼 설명은 docs/spec/csv/tech.md.
     /// </summary>
     public static class TechCsvSerializer
     {

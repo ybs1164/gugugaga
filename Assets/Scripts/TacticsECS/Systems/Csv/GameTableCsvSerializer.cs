@@ -4,9 +4,9 @@ namespace TacticsECS
 {
     /// <summary>
     /// 게임 규칙 표 CSV(Assets/Resources/*.csv) -&gt; Core 값 타입 배열 변환. 표마다 컬럼 이름 목록(스키마)과 변환 한
-    /// 함수만 있고, 칸 읽기/오류 보고는 CsvTableReader가 한다. 자체 상태는 없다. 컬럼 설명은 docs/GameDataCsv.md.
+    /// 함수만 있고, 칸 읽기/오류 보고는 CsvTableReader가 한다. 자체 상태는 없다. 컬럼 설명은 docs/spec/csv/buildings.md, tile-actions.md, city-rewards.md, tasks.md, units.md(배).
     ///
-    /// 표 형식(1차 비교분석 결과 — docs/GameDataCsv.md): "넓은 표 + Flags 목록" 하이브리드.
+    /// 표 형식(1차 비교분석 결과 — docs/history/GameDataCsv.md): "넓은 표 + Flags 목록" 하이브리드.
     ///   - 숫자/문자열 속성은 컬럼 하나씩(스프레드시트에서 정렬·필터·합계가 된다).
     ///   - 대부분의 행에 해당 없는 드문 불리언 속성은 태그로 나열한다(예: 다리 = Flag1 Neutral, Flag2 OppositeLand, Flag3 ActsAsRoad).
     ///     태그는 정해진 목록에서만 고를 수 있어 오타가 오류로 잡힌다.

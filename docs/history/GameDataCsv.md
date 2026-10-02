@@ -1,3 +1,5 @@
+> **이력 문서** — 작성 당시 기록이며 갱신하지 않는다. 현재 동작·형식은 [`docs/spec`](../spec/README.md).
+
 > 2026-10-02 갱신: 연구용 별도 자원과 생산 규칙 4개를 제거하고 연구·건설·훈련을 별(Stars)로 통합했습니다. 아래 단계별 비교 기록은 통합 이전의 설계 이력입니다.
 
 # 게임 규칙 CSV 설계 — 위키 대조 + 방식 비교분석 (3회 반복)
@@ -18,7 +20,7 @@
 
 ## 공통 — CSV 읽기 규칙 (1차에서 도입, 모든 표에 적용)
 
-[`CsvTableReader`](../Assets/Scripts/TacticsECS/Systems/Csv/CsvTableReader.cs)가 모든 표를 같은 규칙으로 읽는다.
+[`CsvTableReader`](../../Assets/Scripts/TacticsECS/Systems/Csv/CsvTableReader.cs)가 모든 표를 같은 규칙으로 읽는다.
 
 - **컬럼은 이름으로 찾는다** — 순서를 바꾸거나 메모 컬럼(`Note`, `Wiki`)을 끼워 넣어도 된다. 없는 선택 컬럼은 기본값.
 - 모르는 컬럼, 잘못된 숫자/지형/태그, 중복 Id, 표에 없는 건물을 가리키는 인접 조건은 **`파일:줄 컬럼: 내용`** 형식으로
@@ -27,7 +29,7 @@
   `RequiredStructure1`=`Resource_Metal`, `RequiredStructure2`=`Resource_Ore`. 필요한 만큼 컬럼을 늘리면 되고 빈 칸은 무시된다.
   옛 한 칸 목록(`RequiredStructures`=`a;b`)도 호환용으로 읽는다.
 - 첫 칸이 `#`으로 시작하는 행은 주석. 큰따옴표 인용(`"쉼표, 포함"`)은 스프레드시트 저장 형식 그대로.
-- 파일은 `Assets/Resources/`에 두고 [`GameDataLoader.LoadAll`](../Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이
+- 파일은 `Assets/Resources/`에 두고 [`GameDataLoader.LoadAll`](../../Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs)이
   전투 시작(`BattleController.Awake`)과 에디터 검증/시뮬레이션 시작 시 읽어 Data 표(`BuildingDefinition.All` 등)에 채운다.
   코드에는 기본 표를 두지 않는다 — **CSV가 유일한 원본**(코드 표와 CSV가 어긋나는 일을 막기 위함).
 
@@ -82,7 +84,7 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 
 ### 1-3. 스키마
 
-**`Assets/Resources/Buildings.csv`** — 한 행 = 건물 하나 ([`BuildingInfo`](../Assets/Scripts/TacticsECS/Core/BuildingInfo.cs))
+**`Assets/Resources/Buildings.csv`** — 한 행 = 건물 하나 ([`BuildingInfo`](../../Assets/Scripts/TacticsECS/Core/BuildingInfo.cs))
 
 | 컬럼 | 필수 | 의미 |
 |---|---|---|
@@ -99,7 +101,7 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 | `Task` | | 기념물이면 과업 Id(`Pacifist`/`Wealth`/`Explorer`/`Killer`/`Network`/`Metropolis`/`Genius`) — 과업 달성 시 팀당 1회 |
 | `Description` | | 메뉴 설명 |
 
-**`Assets/Resources/TileActions.csv`** — 한 행 = 타일 행동 하나 ([`TileActionInfo`](../Assets/Scripts/TacticsECS/Core/TileActionInfo.cs))
+**`Assets/Resources/TileActions.csv`** — 한 행 = 타일 행동 하나 ([`TileActionInfo`](../../Assets/Scripts/TacticsECS/Core/TileActionInfo.cs))
 
 | 컬럼 | 필수 | 의미 |
 |---|---|---|
@@ -109,7 +111,7 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 
 ### 1-4. 검증과 개선점
 
-- 신규 [`GameDataCsvVerification`](../Assets/Editor/GameDataCsvVerification.cs): 모든 CSV 무오류 로드, 컬럼 순서 무관/주석 행,
+- 신규 [`GameDataCsvVerification`](../../Assets/Editor/GameDataCsvVerification.cs): 모든 CSV 무오류 로드, 컬럼 순서 무관/주석 행,
   잘못된 지형·숫자·태그·인접 Id·중복 Id가 `파일:줄`과 함께 보고되는지, 위키 정합(기사도=파괴, 건축=화전, 전략→외교,
   도로=교역망, 외교=수도 시야, 화전 3), 수도 시야가 수도 칸만 밝히는지.
 - 기존 검증 5종(Economy/BuildingFeature/UI/UnitCsv) + 헤드리스 시뮬레이션 모두 ALL PASS.
@@ -167,7 +169,7 @@ A에는 덤으로 **원문 편차 자동 점검**을 붙였다: `Wiki` 칸이 �
 
 ### 2-3. 스키마
 
-**`Assets/Resources/GameRules.csv`** — 한 행 = 규칙 하나 ([`GameRules`](../Assets/Scripts/TacticsECS/Data/GameRules.cs))
+**`Assets/Resources/GameRules.csv`** — 한 행 = 규칙 하나 ([`GameRules`](../../Assets/Scripts/TacticsECS/Data/GameRules.cs))
 
 | 컬럼 | 필수 | 의미 |
 |---|---|---|
@@ -177,7 +179,7 @@ A에는 덤으로 **원문 편차 자동 점검**을 붙였다: `Wiki` 칸이 �
 | `Description` | | 설명 |
 | `Note` | △ | `Value`≠`Wiki`이거나 `Wiki`가 비었으면 **필수** — 원문과 다른 이유 |
 
-로더([`GameRulesCsvSerializer`](../Assets/Scripts/TacticsECS/Systems/Csv/GameRulesCsvSerializer.cs))는 리플렉션으로 필드를 찾으므로,
+로더([`GameRulesCsvSerializer`](../../Assets/Scripts/TacticsECS/Systems/Csv/GameRulesCsvSerializer.cs))는 리플렉션으로 필드를 찾으므로,
 규칙을 추가할 때 `GameRules`에 필드 하나 + CSV 행 하나면 끝(로더 수정 불필요). 모르는 키, 읽을 수 없는 값, CSV에 없는 필드는 경고.
 
 **`Assets/Resources/CityRewards.csv`** — `Level,Reward,Name,Amount,Description` (같은 `Level` 행들이 그 레벨의 선택지, 최고 레벨 행이

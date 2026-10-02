@@ -24,7 +24,7 @@ namespace TacticsECS
         public const string Road = "Road";
         public const string Bridge = "Bridge";
 
-        /// <summary>Resources.Load&lt;TextAsset&gt; 경로 — Assets/Resources/Buildings.csv(기획자가 스프레드시트로 편집, docs/GameDataCsv.md).</summary>
+        /// <summary>Resources.Load&lt;TextAsset&gt; 경로 — Assets/Resources/Buildings.csv(기획자가 스프레드시트로 편집, docs/spec/csv/buildings.md).</summary>
         public const string CsvResourcePath = "Buildings";
 
         /// <summary>건물 표 — Buildings.csv를 GameDataLoader.LoadAll이 파싱해 채운다(코드에 기본 표를 두지 않는다: CSV가 유일한 원본).

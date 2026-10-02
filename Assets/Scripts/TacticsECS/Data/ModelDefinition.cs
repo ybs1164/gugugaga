@@ -6,7 +6,7 @@ namespace TacticsECS
     /// <summary>
     /// 모델 파츠 표 — Assets/Resources/Models/의 CSV(건물/지형/유닛 소품)를 GameDataLoader.LoadAll이 파싱해 채운다.
     /// 모델 Id는 "종류.이름"(예: "Building.Farm", "Terrain.Forest", "Unit.cavalry"). 색은 팔레트 이름(ModelPalette.csv) 또는
-    /// #RRGGBB. 1차 모델링 비교분석(docs/ModelingPlan.md) 결과 "파츠 CSV + 저폴리 절차 메시"를 택했다. 순수 데이터.
+    /// #RRGGBB. 1차 모델링 비교분석(docs/history/ModelingPlan.md) 결과 "파츠 CSV + 저폴리 절차 메시"를 택했다. 순수 데이터.
     /// </summary>
     public static class ModelDefinition
     {

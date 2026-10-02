@@ -4,7 +4,7 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 모델 파츠 CSV(Assets/Resources/Models/*.csv) -&gt; ModelPartInfo. 자체 상태 없음. 형식은 docs/ModelingPlan.md.
+    /// 모델 파츠 CSV(Assets/Resources/Models/*.csv) -&gt; ModelPartInfo. 자체 상태 없음. 형식은 docs/history/ModelingPlan.md.
     ///   - 컬럼: Model, Shape, X, Y, Z, SX, SY, SZ, RX, RY, RZ, Color, MinLevel, MaxLevel, Note (헤더 이름 기반 — CsvTableReader).
     ///   - Model 칸을 비우면 윗 행과 같은 모델(한 모델의 조각을 이어 적기 편하게).
     ///   - SZ를 비우면 SX와 같다(원기둥/원뿔/구처럼 가로가 같은 도형).

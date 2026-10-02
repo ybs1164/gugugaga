@@ -10,7 +10,7 @@ namespace TacticsECS
     /// EffectiveDefense/CalculateDamage)를 제공한다 — 이 계산 함수들은 BattleHud(UI 표시)에서도
     /// 그대로 재사용한다.
     ///
-    /// 피해 공식은 위키 Combat 문서 그대로(3차 비교분석 — docs/GameDataCsv.md):
+    /// 피해 공식은 위키 Combat 문서 그대로(3차 비교분석 — docs/history/GameDataCsv.md):
     ///   attackForce  = 공격자.공격 x (공격자 체력 / 최대 체력)
     ///   defenseForce = 대상.방어 x (대상 체력 / 최대 체력) x 방어 보너스(없음 1 / 지형·도시 1.5 / 성벽 4)
     ///   공격 피해 = round(attackForce / (attackForce + defenseForce) x 공격자.공격 x 4.5)

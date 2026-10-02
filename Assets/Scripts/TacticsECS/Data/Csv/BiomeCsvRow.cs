@@ -29,7 +29,7 @@ namespace TacticsECS
         /// BiomeTileEntry.InnerWeight/OuterWeight에만 쓰인다 — 자원의 Inner/Outer는 항상 거리 1/2 고정.</summary>
         public int InnerRadius;
 
-        /// <summary>산 스폰 배수(Polytopia 종족 배수와 같은 의미, docs/PolytopiaMapGeneration.md 4/12.1절).
+        /// <summary>산 스폰 배수(Polytopia 종족 배수와 같은 의미, docs/reference/PolytopiaMapGeneration.md 4/12.1절).
         /// 1.0이면 기준값(육지의 14%가 산), 0이면(비워두면) 산 없음 — 기존 CSV와 호환되도록 0이 기본값이다.</summary>
         public float MountainRate;
 
@@ -40,7 +40,7 @@ namespace TacticsECS
         public List<BiomeTileEntry> Tiles = new List<BiomeTileEntry>();
 
         /// <summary>타일 자체가 아니라 타일 "위에" 얹히는 구조물(Post-terrain 마을/자원/유적/불가사리) 생성 규칙 —
-        /// docs/PolytopiaMapGeneration.md 3/7/9/10절. 수도(Capital)와 등대(Lighthouse)는 이 목록이 아니라
+        /// docs/reference/PolytopiaMapGeneration.md 3/7/9/10절. 수도(Capital)와 등대(Lighthouse)는 이 목록이 아니라
         /// 자동으로 배치된다(Systems/StructureGenerationSystem.cs 참고).</summary>
         public List<BiomeStructureEntry> Structures = new List<BiomeStructureEntry>();
     }
@@ -82,7 +82,7 @@ namespace TacticsECS
     /// <summary>타일 위에 얹히는 구조물(마을/자원/유적/불가사리) 하나의 생성 규칙. BiomeTileEntry와
     /// 같은 제약 어휘(Weight/MinCount/CountPerTiles/MinDistance/EdgeMargin)를 재사용하되, TerrainType
     /// 대신 "어떤 TileTypeId 위에만 놓일 수 있는가"(AllowedTileTypes)를 갖는다. 엔트리는 성격에 따라
-    /// StructureGenerationSystem의 서로 다른 단계에서 처리된다(docs/PolytopiaMapGeneration.md 5절 순서):
+    /// StructureGenerationSystem의 서로 다른 단계에서 처리된다(docs/reference/PolytopiaMapGeneration.md 5절 순서):
     /// (1) 도시(Village) + FillRemaining -> 마을 단계(포화 채우기), (2) InnerRate/OuterRate가 있는 엔트리 ->
     /// 자원 단계(모든 도시 2칸 이내, 비율 쿼터), (3) 나머지 -> 유적/불가사리 단계(맵 전체 목표 개수).</summary>
     public struct BiomeStructureEntry

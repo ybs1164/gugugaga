@@ -5,7 +5,7 @@ namespace TacticsECS
     /// (예: <c>City.MarketStarsCap</c> -&gt; <see cref="City.MarketStarsCap"/>). GameDataLoader.LoadAll이 CSV 값을 채우고,
     /// 필드 초기값은 CSV를 읽기 전/행이 빠졌을 때 쓰는 위키 기본값이다(행이 빠지면 경고). 순수 데이터(CLAUDE.md 규칙 2).
     ///
-    /// 2차 비교분석(docs/GameDataCsv.md) 결과 키-값 표를 택했다: 한 줄 = 규칙 하나 + 위키 값(Wiki) + 설명 + 원문과 다른 이유(Note).
+    /// 2차 비교분석(docs/history/GameDataCsv.md) 결과 키-값 표를 택했다: 한 줄 = 규칙 하나 + 위키 값(Wiki) + 설명 + 원문과 다른 이유(Note).
     /// 새 규칙은 여기 필드 하나와 CSV 행 하나를 추가하면 된다(로더는 리플렉션으로 필드를 찾으므로 로더 수정 불필요).
     /// </summary>
     public static class GameRules

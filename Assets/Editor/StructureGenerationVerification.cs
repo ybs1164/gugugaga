@@ -12,7 +12,7 @@ namespace TacticsECS.EditorTools
     /// </summary>
     public static class StructureGenerationVerification
     {
-        private const string SampleCsvRelativePath = "docs/sample_biomes.csv";
+        private const string SampleCsvRelativePath = "Assets/Resources/Tables/Biomes.csv";
 
         public static void Run()
         {

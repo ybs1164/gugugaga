@@ -10,7 +10,7 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// 건물/타일/유닛 모델을 전투 화면과 같은 등각 구도로 찍어 PNG로 저장하고, 모델별 비교 지표(렌더러 수, 삼각형 수,
-    /// 건물끼리 실루엣이 얼마나 겹치는지 — IoU)를 CSV로 남기는 에디터 도구. 모델링 개선(docs/ModelingPlan.md)의 전/후
+    /// 건물끼리 실루엣이 얼마나 겹치는지 — IoU)를 CSV로 남기는 에디터 도구. 모델링 개선(docs/history/ModelingPlan.md)의 전/후
     /// 비교와 위키 이미지 대조에 쓴다. Play 모드 없이 Edit 모드에서 임시 씬을 만들어 RenderTexture로 찍는다
     /// (-executeMethod는 Play 모드를 기다리지 못한다). -nographics 없이 실행해야 픽셀이 나온다.
     /// 사용법: unity run . -- -executeMethod TacticsECS.EditorTools.ModelShowcase.Run [-showcaseOut &lt;폴더&gt;]
@@ -196,7 +196,7 @@ namespace TacticsECS.EditorTools
         /// <summary>실제 지형 생성으로 만든 맵 한 장 — 구름(오른쪽 위 일부), 도시 2개와 도로 몇 칸 포함. 맵 전체의 렌더러/삼각형 수를 남긴다.</summary>
         private static void ShotMap(string outDir, StringBuilder metrics)
         {
-            var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "docs/sample_biomes.csv")));
+            var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "Assets/Resources/Tables/Biomes.csv")));
             var grid = new GridWorld(12, 12, TileSize);
             var anchors = TerrainGenerationSystem.Generate(grid, biomes, 1, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.5f, out var suburbs, out var planned);
             StructureGenerationSystem.Generate(grid, biomes, anchors, 1, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);

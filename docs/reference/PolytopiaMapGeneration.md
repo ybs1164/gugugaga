@@ -9,8 +9,8 @@
 - **11절**: 원문 규칙별로 이 프로젝트가 어떻게 구현했는지 대응표 — "지금 무엇이 원문과 같고 다른가"는 여기서 본다.
 - **12절**: 원문에 없거나 모호해서 이 프로젝트가 정한 해석/보강 규칙.
 
-CSV로 규칙을 조정하는 방법은 [`BiomeCsvSandbox.md`](BiomeCsvSandbox.md), 파이프라인 요약은
-[`TerrainGenerationSummary.md`](TerrainGenerationSummary.md)를 본다.
+현재 구현 규칙은 [`spec/game/map.md`](../spec/game/map.md), CSV 형식은
+[`spec/csv/biomes.md`](../spec/csv/biomes.md)를 본다.
 
 원문 도입부: 모든 게임은 무작위 생성된 정사각형 맵에서 진행되고, 맵은 6가지 크기 × 6가지 물 양 조합이다.
 지형은 종족(tribe)마다 다른 비율로 스폰되며, **초기 맵 생성 시 땅은 게임 내 모든 종족에게 대략 균등하게

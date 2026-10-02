@@ -26,12 +26,17 @@ Unity 에디터(GUI)를 직접 실행하지 않는다 — 배치모드 CLI 명�
   [Movement](https://polytopia.fandom.com/wiki/Movement), [Map Generation](https://polytopia.fandom.com/wiki/Map_Generation)
 - Fandom은 WebFetch에 402를 돌려주므로 MediaWiki API로 원문 위키텍스트를 받는다:
   `curl -s "https://polytopia.fandom.com/api.php?action=parse&page=<문서명>&prop=wikitext&format=json&formatversion=2&redirects=1"`
-- 위키와 다르게 구현하는 부분은 코드 주석/문서에 "원문과 다른 점"으로 이유를 남긴다.
+- 위키와 다르게 구현하는 부분은 "원문과 다른 점"으로 이유를 남긴다 — 자리는 규칙 7의 표를 따른다.
 
-## 5. 작업 완료 시 README.md 갱신 + git push
+## 5. 작업 완료 시 spec 갱신 + git push
 작업 단위가 끝날 때마다:
-1. `README.md`에 이번에 한 작업 내용을 업데이트한다.
-2. 변경 사항을 git에 커밋하고 push한다.
+1. 바뀐 동작·CSV 형식을 `docs/spec`에 반영한다(규칙 7). `README.md`는 실행·조작·문서 위치가 바뀔 때만 고친다.
+2. 작업 내용은 커밋 메시지에 남기고(README에 작업 로그를 쌓지 않는다) 커밋 후 push한다.
 
 ## 6. CSV는 한 칸에 한 값
 CSV에서 한 값에 여러 속성이 담기는 경우(예: `a;b;c`) 한 칸에 묶지 말고 여러 열/값으로 나열한다.
+
+## 7. 정보는 한 곳에만 (spec)
+작업 전에 [`docs/spec/README.md`](docs/spec/README.md)를 읽는다. 문서·주석을 쓸 때는 그 파일의 "단일 출처" 표에서 정보의 자리를 찾고,
+이미 다른 곳에 있는 정보는 다시 적지 않고 링크한다. 특히 수치는 CSV에만 두고 문서에는 키·컬럼 이름만 적는다.
+문서를 고친 뒤 `python scripts/check_spec.py`로 CSV 헤더·컬럼 표·링크가 맞는지 확인한다.

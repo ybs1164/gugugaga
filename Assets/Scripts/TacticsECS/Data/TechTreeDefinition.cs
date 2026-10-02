@@ -2,7 +2,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 기술트리 관련 고정 상수. 기본 트리는 Tables/TechSlots + TechTreeLayout + Techs + TechUnlocks를 조합한다.
-    /// TechTree.csv는 샌드박스 단일 파일 가져오기/내보내기 호환 형식의 예제다(docs/TechTreeCsv.md).
+    /// TechTree.csv는 샌드박스 단일 파일 가져오기/내보내기 호환 형식의 예제다(docs/spec/csv/tech.md).
     /// </summary>
     public static class TechTreeDefinition
     {

@@ -38,7 +38,7 @@ namespace TacticsECS
         public int CostPerCity;
 
         /// <summary>이 기술이 여는 해금 키 목록(CSV에서는 Unlock1..N 반복 컬럼). 키 목록과 의미는
-        /// docs/TechTreeCsv.md 참고.</summary>
+        /// docs/spec/csv/tech.md 참고.</summary>
         public string[] Unlocks;
 
         /// <summary>해금 시 열리는 효과 요약(표시용 텍스트).</summary>

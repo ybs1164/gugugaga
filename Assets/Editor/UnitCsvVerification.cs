@@ -8,7 +8,7 @@ namespace TacticsECS.EditorTools
     /// <summary>
     /// CSV 유닛 파이프라인(파싱/왕복, 스폰 연동)을 자동으로 검증하는 배치모드 전용 스크립트. Unity
     /// CLI(-executeMethod)로 실행하고 Console 로그의 PASS/FAIL만 확인하면 된다 — 클릭으로 배치하는 실제
-    /// 상호작용 UI는 여기서 다루지 않는다(에디터를 열고 Play로 직접 확인해야 함, docs/UnitCsvSandbox.md 참고).
+    /// 상호작용 UI는 여기서 다루지 않는다(에디터를 열고 Play로 직접 확인해야 함, docs/spec/csv/units.md 참고).
     /// 사용법: unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.UnitCsvVerification.Run -quit
     /// </summary>
     public static class UnitCsvVerification

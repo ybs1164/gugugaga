@@ -7,7 +7,7 @@ using System.Text;
 namespace TacticsECS
 {
     /// <summary>
-    /// 배열형 테이블(docs/ArrayTables.md) CSV 텍스트 &lt;-&gt; 행 배열 변환. 읽기는 CsvTableReader(헤더 이름 기준, # 주석 행 허용)를 그대로
+    /// 배열형 테이블(docs/spec/csv-common.md) CSV 텍스트 &lt;-&gt; 행 배열 변환. 읽기는 CsvTableReader(헤더 이름 기준, # 주석 행 허용)를 그대로
     /// 쓰고, 여기서는 배열형 공통 규칙만 더 확인한다:
     ///   - Index 컬럼이 0부터 1씩 늘어나는 행 순서와 같아야 한다(다르면 오류 — 다른 표가 이 번호로 가리키므로 빈 번호/중복은 곧 참조 오류).
     ///   - 참조 칸(…Index)은 정수, 비우면 -1(없음).

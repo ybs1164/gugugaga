@@ -8,12 +8,12 @@ namespace TacticsECS.EditorTools
     /// 바이옴 지형 생성 파이프라인(CSV 왕복, 노이즈/Inner-Outer 가중치/제약(인접배제·최소거리·가장자리
     /// 여백)/맵 크기 비례 개수/쿼드런트 공정 배치/시드 재현성)을 자동으로 검증하는 배치모드 전용
     /// 스크립트. UnitCsvVerification과 같은 패턴 — Play 모드 없이 Console 로그의 PASS/FAIL만 확인하면
-    /// 된다. docs/PolytopiaMapGeneration.md 기준 2차 재정비 반영.
+    /// 된다. docs/reference/PolytopiaMapGeneration.md 기준 2차 재정비 반영.
     /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.TerrainGenerationVerification.Run -quit
     /// </summary>
     public static class TerrainGenerationVerification
     {
-        private const string SampleCsvRelativePath = "docs/sample_biomes.csv";
+        private const string SampleCsvRelativePath = "Assets/Resources/Tables/Biomes.csv";
 
         /// <summary>옛 형식(한 행 = 한 바이옴, Tiles/Structures 칸에 ";" 묶음) 호환 확인용 — 규칙 6 전환 전 sample_biomes.csv의 Grassland 행.</summary>
         private const string LegacyGrasslandCsv = "Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles,Structures,MountainRate,ForestRate\nGrassland,평원,Perlin,0.15,3,101,1,Grass:Land:0.7:0.5:0:0:0:0:;Water:Water:0.2:0.15:0:25:2:1:,Village:Grass:1:0:0:3:2:0::1::0:0;Resource_Fruit:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Crop:Grass:0:0:0:0:0:0::0::0.375:0.125;Resource_Animal:Forest:0:0:0:0:0:0::0::0.5:0.158;Resource_Metal:Mountain:0:0:0:0:0:0::0::0.786:0.214;Resource_Fish:Water:0:0:0:0:0:0::0::0.5:0.5;Ruin:Grass|Forest|Mountain|Ocean:1:0:0:2:0:0:0.34:0:Capital|Village:0:0;Starfish:Water|Ocean:1:0:25:2:0:0::0:Capital|Village|Lighthouse:0:0,1,1\n";
@@ -259,7 +259,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>docs/sample_biomes.csv 3바이옴을 넓은 그리드에 실제로 생성해서 예외 없이 끝나고
+        /// <summary>Assets/Resources/Tables/Biomes.csv 3바이옴을 넓은 그리드에 실제로 생성해서 예외 없이 끝나고
         /// 모든 칸이 채워지는지 확인하는 통합 스모크 테스트(각 바이옴이 CountPerTiles로 개수를 정하므로
         /// 정확한 개수 하한 검증은 VerifySingleBiomeRules가 모호함 없이 다룬다).</summary>
         private static bool VerifyMultiBiomeSmoke()
@@ -385,7 +385,7 @@ namespace TacticsECS.EditorTools
             return count;
         }
 
-        /// <summary>판게아 모드(docs/PolytopiaMapGeneration.md 7.5절 "중앙 대륙 + 외곽 바다")가 실제로
+        /// <summary>판게아 모드(docs/reference/PolytopiaMapGeneration.md 7.5절 "중앙 대륙 + 외곽 바다")가 실제로
         /// 그 모양을 만드는지 확인한다 — (1) 목표 물 비율에 가깝게 맞는지, (2) 물 타일끼리 실제로 서로
         /// 인접할 수 있는지(기존 MinDistance 제약 때문에 판게아 이전엔 불가능했던 부분 — 이게 이번
         /// 수정의 핵심), (3) 중앙이 가장자리보다 육지 비율이 확실히 높은지(방사형 중앙 집중 확인),
@@ -611,7 +611,7 @@ namespace TacticsECS.EditorTools
             return total > 0 ? (float)land / total : 0f;
         }
 
-        /// <summary>7차 재정비 — docs/PolytopiaMapGeneration.md 7.1절 매트릭스대로, Suburb/Pre-terrain
+        /// <summary>7차 재정비 — docs/reference/PolytopiaMapGeneration.md 7.1절 매트릭스대로, Suburb/Pre-terrain
         /// 마을이 맵 타입마다 있을 수도/없을 수도 있는지 확인한다. Drylands(Freeform)/Pangea/Continents는
         /// 둘 다 없어야 하고, Lakes/Archipelago/Waterworld는 Pre-terrain이 있어야 하며(Suburb는
         /// Waterworld만 없음), 있는 경우 서로/수도로부터 최소 거리 2, 가장자리 여백 1을 지켜야 한다.</summary>
@@ -775,7 +775,7 @@ namespace TacticsECS.EditorTools
             return result;
         }
 
-        /// <summary>8차 재정비(docs/PolytopiaMapGeneration.md 12절 보강 1~3) — 모든 맵 타입/크기/바이옴 수에서
+        /// <summary>8차 재정비(docs/reference/PolytopiaMapGeneration.md 12절 보강 1~3) — 모든 맵 타입/크기/바이옴 수에서
         /// (1) 수도가 가장자리로부터 2칸 이상, (2) 수도가 9칸 이상 육지 덩어리 위(쿼드런트 맵은 3x3 전체가 육지),
         /// (3) 수도끼리 충분히 떨어져 있는지(쿼드런트 맵: 구역 한 변의 절반 이상, Pangea/Continents: 육지 면적/수도 수의 제곱근 x 0.9 이상).</summary>
         private static bool VerifyCapitalPlacementRules()

@@ -39,12 +39,18 @@ namespace TacticsECS
             return rows;
         }
 
+        // 번역 키 앞부분(docs/spec/csv/strings.md): 이 표들의 이름/설명은 Strings.csv의 "<앞부분>.<Id>.Name/Desc"에만 있다.
+        public const string BuildingStringTable = "Building";
+        public const string TechStringTable = "Tech";
+        public const string TribeStringTable = "Tribe";
+        public const string StartConditionStringTable = "StartCondition";
+
         /// <summary>건물 표(Buildings.csv). AdjacentBuildingIndex{n}은 같은 표의 Index — 여기서 Id로 바꿔 BuildingInfo.AdjacentBuildings에 담는다.
         /// UnlockKey는 비워 두고 TableLinkSystem.ApplyBuildingUnlocks가 TechUnlocks의 BuildingIndex로 채운다.</summary>
         public static BuildingInfo[] ParseBuildings(string text, List<string> errors = null, string name = "Buildings.csv")
         {
             var t = Begin(name, text, new[] { "Index", "Id", "Terrain" },
-                new[] { "Name", "Cost", "Population", "RequiredStructure", "AdjacentBuildingIndex", "PopulationPerAdjacent", "Flag", "Task", "Description", "Wiki", "Note" },
+                new[] { "Cost", "Population", "RequiredStructure", "AdjacentBuildingIndex", "PopulationPerAdjacent", "Flag", "Task", "Wiki", "Note" },
                 new[] { "Terrain", "RequiredStructure", "AdjacentBuildingIndex", "Flag" }, errors);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var rows = new BuildingInfo[t.Rows.Count];
@@ -57,7 +63,7 @@ namespace TacticsECS
                 rows[r] = new BuildingInfo
                 {
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Name = LocalizationSystem.Name(BuildingStringTable, id),
                     UnlockKey = string.Empty,
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
@@ -72,7 +78,7 @@ namespace TacticsECS
                     ProducesStarsFromAdjacent = flags.Contains(GameTableCsvSerializer.FlagStarsFromAdjacent),
                     OnePerCity = flags.Contains(GameTableCsvSerializer.FlagOnePerCity),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Description = LocalizationSystem.Desc(BuildingStringTable, id),
                 };
                 if (rows[r].Terrain == TileClass.None) CsvTableReader.Report(t, r, "Terrain", "지을 수 있는 지형이 없음", errors);
             }
@@ -124,13 +130,13 @@ namespace TacticsECS
 
         /// <summary>유닛/배 표가 공통으로 갖는 컬럼(UnitCsvSerializer가 읽는 것).</summary>
         private static readonly string[] UnitColumns =
-            { "Name", "MaxHp", "Defense", "BaseVisual", UnitCsvSerializer.ActionColumn, "Domain", "Move.Range", "Attack.Attack", "Attack.Range",
+            { "MaxHp", "Defense", "BaseVisual", UnitCsvSerializer.ActionColumn, "Domain", "Move.Range", "Attack.Attack", "Attack.Range",
               "Heal.Amount", "Heal.Range", "Cost", "Trainable" };
 
         public static TechRow[] ParseTechs(string text, List<string> errors = null)
         {
             var t = Begin("Techs.csv", text, new[] { "Index", "Id", "CostBase", "CostPerCity" },
-                new[] { "Name", "Icon", "Description", "Note" }, new[] { "Unlock" }, errors);
+                new[] { "Icon", "Note" }, new[] { "Unlock" }, errors);
             var rows = new TechRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -139,12 +145,12 @@ namespace TacticsECS
                 {
                     Index = r,
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Name = LocalizationSystem.Name(TechStringTable, id),
                     Icon = CsvTableReader.Get(t, r, "Icon"),
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", 0, errors),
                     Unlocks = GetIndexList(t, r, "Unlock", errors),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Description = LocalizationSystem.Desc(TechStringTable, id),
                 };
             }
             return rows;
@@ -202,7 +208,7 @@ namespace TacticsECS
         public static TribeRow[] ParseTribes(string text, List<string> errors = null)
         {
             var t = Begin("Tribes.csv", text, new[] { "Index", "Id" },
-                new[] { "Name", "Description", "BiomeIndex", "TechGroupIndex", "StartStars", "StartConditionIndex", "Wiki", "Note" },
+                new[] { "BiomeIndex", "TechGroupIndex", "StartStars", "StartConditionIndex", "Wiki", "Note" },
                 new[] { "StartTech", "StartUnit" }, errors);
             var rows = new TribeRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
@@ -212,8 +218,8 @@ namespace TacticsECS
                 {
                     Index = r,
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Name = LocalizationSystem.Name(TribeStringTable, id),
+                    Description = LocalizationSystem.Desc(TribeStringTable, id),
                     BiomeIndex = CsvTableReader.GetInt(t, r, "BiomeIndex", -1, errors),
                     TechGroupIndex = CsvTableReader.GetInt(t, r, "TechGroupIndex", -1, errors),
                     StartTechs = GetIndexList(t, r, "StartTech", errors),
@@ -227,7 +233,7 @@ namespace TacticsECS
 
         public static StartConditionRow[] ParseStartConditions(string text, List<string> errors = null)
         {
-            var t = Begin("StartConditions.csv", text, new[] { "Index", "Id" }, new[] { "Name", "Description", "Note" }, new[] { "Rule" }, errors);
+            var t = Begin("StartConditions.csv", text, new[] { "Index", "Id" }, new[] { "Note" }, new[] { "Rule" }, errors);
             var rows = new StartConditionRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -236,8 +242,8 @@ namespace TacticsECS
                 {
                     Index = r,
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Name = LocalizationSystem.Name(StartConditionStringTable, id),
+                    Description = LocalizationSystem.Desc(StartConditionStringTable, id),
                     Rules = GetIndexList(t, r, "Rule", errors),
                 };
             }
@@ -301,9 +307,9 @@ namespace TacticsECS
                 null, null);
 
         public static string WriteTechs(IReadOnlyList<TechRow> rows) =>
-            Write(new[] { "Index", "Id", "Name", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",
-                r => new[] { I(r.Index), r.Id, r.Name, r.Icon, I(r.CostBase), I(r.CostPerCity) },
-                r => Ints(r.Unlocks), r => new[] { r.Description }, "Description");
+            Write(new[] { "Index", "Id", "Icon", "CostBase", "CostPerCity" }, rows, "Unlock",
+                r => new[] { I(r.Index), r.Id, r.Icon, I(r.CostBase), I(r.CostPerCity) },
+                r => Ints(r.Unlocks), null);
 
         public static string WriteTechSlots(IReadOnlyList<TechSlotRow> rows) =>
             Write(new[] { "Index", "Id", "ParentIndex", "Tier", "Slot" }, rows, null,
@@ -322,12 +328,12 @@ namespace TacticsECS
             int techCount = CsvTableReader.MaxCount(rows, r => r.StartTechs?.Length ?? 0);
             int unitCount = CsvTableReader.MaxCount(rows, r => r.StartUnits?.Length ?? 0);
             var sb = new StringBuilder();
-            sb.AppendLine(string.Join(",", new[] { "Index", "Id", "Name", "Description", "BiomeIndex", "TechGroupIndex" }
+            sb.AppendLine(string.Join(",", new[] { "Index", "Id", "BiomeIndex", "TechGroupIndex" }
                 .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartStars")
                 .Concat(CsvTableReader.ListHeader("StartUnit", unitCount)).Append("StartConditionIndex")));
             foreach (var r in rows)
             {
-                var cells = new List<string> { I(r.Index), Q(r.Id), Q(r.Name), Q(r.Description), I(r.BiomeIndex), I(r.TechGroupIndex) };
+                var cells = new List<string> { I(r.Index), Q(r.Id), I(r.BiomeIndex), I(r.TechGroupIndex) };
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartTechs), techCount));
                 cells.Add(I(r.StartStars));
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartUnits), unitCount));
@@ -338,8 +344,8 @@ namespace TacticsECS
         }
 
         public static string WriteStartConditions(IReadOnlyList<StartConditionRow> rows) =>
-            Write(new[] { "Index", "Id", "Name", "Description" }, rows, "Rule",
-                r => new[] { I(r.Index), r.Id, r.Name, r.Description }, r => Ints(r.Rules), null);
+            Write(new[] { "Index", "Id" }, rows, "Rule",
+                r => new[] { I(r.Index), r.Id }, r => Ints(r.Rules), null);
 
         public static string WriteStartConditionRules(IReadOnlyList<StartConditionRuleRow> rows) =>
             Write(new[] { "Index", "Id", "Kind", "Target", "TerrainType", "Count", "MinDistance", "MaxDistance", "MapType" }, rows, "AllowedTile",

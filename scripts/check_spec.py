@@ -115,9 +115,48 @@ def check_unlisted_csvs():
             errors.append(f"{path.relative_to(ROOT)}: 이 CSV를 설명하는 spec이 없음")
 
 
+def check_string_keys():
+    """번역 표(csv/strings.md): 코드가 문자열로 적은 키와 데이터 표 행의 이름 키가 Strings.csv에 있는지."""
+    import csv
+    res = ROOT / "Assets" / "Resources"
+    with open(res / "Strings.csv", encoding="utf-8-sig", newline="") as f:
+        rows = [r for r in csv.DictReader(f) if r.get("Key") and not r["Key"].startswith("#")]
+    keys = {r["Key"] for r in rows}
+    langs = [h for h in rows[0].keys() if h not in ("Key", "Note")] if rows else []
+    for r in rows:
+        for lang in langs:
+            if not (r.get(lang) or "").strip():
+                errors.append(f"Strings.csv: '{r['Key']}'의 '{lang}' 칸이 비어 있음")
+
+    pattern = re.compile(r'(?:LocalizationSystem\.(?:T|F|Source)|\bSrc|SetLabel\([^,]+,\s*"[^"]*",)\(?\s*"([A-Za-z]+\.[A-Za-z0-9_.]*[A-Za-z0-9_])"')
+    for cs in (ROOT / "Assets").rglob("*.cs"):
+        for key in pattern.findall(cs.read_text(encoding="utf-8-sig")):
+            if key not in keys:
+                errors.append(f"{cs.relative_to(ROOT)}: Strings.csv에 없는 키 '{key}'")
+
+    def ids(path, column="Id", where=None):
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            return [r[column] for r in csv.DictReader(f) if r.get(column) and not r[column].startswith("#") and (where is None or where(r))]
+
+    tables = res / "Tables"
+    expected = []
+    expected += [f"Unit.{i}.Name" for i in ids(tables / "Units.csv") + ids(tables / "Boats.csv")]
+    for prefix, path, col in (("Building", tables / "Buildings.csv", "Id"), ("Tech", tables / "Techs.csv", "Id"),
+                              ("Tribe", tables / "Tribes.csv", "Id"), ("StartCondition", tables / "StartConditions.csv", "Id"),
+                              ("TileAction", res / "TileActions.csv", "Id"), ("Task", res / "Tasks.csv", "Id"),
+                              ("CityReward", res / "CityRewards.csv", "Reward")):
+        expected += [f"{prefix}.{i}.Name" for i in ids(path, col)]
+    expected += [f"Biome.{i}.Name" for i in ids(tables / "Biomes.csv", "Biome", lambda r: r.get("Kind") == "Biome")]
+    hud = (ROOT / "Assets/Scripts/TacticsECS/View/BattleHud.cs").read_text(encoding="utf-8-sig")
+    expected += [f"Action.{flag}.Tooltip" for flag in re.findall(r'\(ActionType\.(\w+), "\w+"\)', hud)]
+    for key in sorted(set(expected) - keys):
+        errors.append(f"Strings.csv: 데이터 표 행의 이름 키 '{key}'이(가) 없음")
+
+
 check_links()
 check_columns()
 check_unlisted_csvs()
+check_string_keys()
 for e in errors:
     print("FAIL", e)
 print(f"check_spec: {'OK' if not errors else str(len(errors)) + ' problem(s)'}")

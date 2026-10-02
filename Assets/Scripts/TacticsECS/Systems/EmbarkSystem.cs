@@ -116,18 +116,18 @@ namespace TacticsECS
         public static bool CanUpgrade(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, string navalUnitId, out string reason)
         {
             reason = string.Empty;
-            if (econ == null || !UnitQueries.IsAlive(world, unitId)) { reason = "유닛 없음"; return false; }
-            if (NavalUnitId(world, unitId) != NavalUnitDefinition.RaftId) { reason = "뗏목만 업그레이드"; return false; }
+            if (econ == null || !UnitQueries.IsAlive(world, unitId)) { reason = LocalizationSystem.T("UI.Reason.NoUnit"); return false; }
+            if (NavalUnitId(world, unitId) != NavalUnitDefinition.RaftId) { reason = LocalizationSystem.T("UI.Reason.RaftOnly"); return false; }
             var team = world.Get<Team>(unitId);
             foreach (var u in NavalUnitDefinition.Upgrades)
             {
                 if (u.Row.Id != navalUnitId) continue;
-                if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], u.UnlockKey)) { reason = "기술 필요"; return false; }
-                if (!CitySystem.IsOwnTerritory(grid, team, world.Get<GridPosition>(unitId).Value)) { reason = "자기 영토 안에서만"; return false; }
-                if (econ.Resources[team].Stars < u.Row.Cost) { reason = $"별 부족 ({econ.Resources[team].Stars}/{u.Row.Cost})"; return false; }
+                if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], u.UnlockKey)) { reason = LocalizationSystem.T("UI.Reason.NeedsTech"); return false; }
+                if (!CitySystem.IsOwnTerritory(grid, team, world.Get<GridPosition>(unitId).Value)) { reason = LocalizationSystem.T("UI.Reason.OwnTerritoryOnly"); return false; }
+                if (econ.Resources[team].Stars < u.Row.Cost) { reason = LocalizationSystem.F("UI.Reason.NotEnoughStars", econ.Resources[team].Stars, u.Row.Cost); return false; }
                 return true;
             }
-            reason = "알 수 없는 배";
+            reason = LocalizationSystem.T("UI.Reason.UnknownBoat");
             return false;
         }
 

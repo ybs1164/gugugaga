@@ -72,7 +72,8 @@ namespace TacticsECS
             var techs = new List<string>();
             foreach (var t in tribe.StartTechs ?? new int[0])
                 if (t >= 0 && t < GameTables.Techs.Length) techs.Add(GameTables.Techs[t].Name);
-            sb.Append(techs.Count > 0 ? string.Join(",", techs) : "기술 없음").Append(" / 별 ").Append(tribe.StartStars);
+            sb.Append(techs.Count > 0 ? string.Join(",", techs) : LocalizationSystem.T("UI.Tribe.NoTech"))
+              .Append(" / ").Append(LocalizationSystem.F("UI.Tribe.Stars", tribe.StartStars));
             var units = new List<string>();
             foreach (var row in StartUnitRows(tribe, unitRows)) units.Add(row.Name);
             if (units.Count > 0) sb.Append(" / ").Append(string.Join(",", units));

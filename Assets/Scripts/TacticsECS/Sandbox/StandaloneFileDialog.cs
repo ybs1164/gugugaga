@@ -87,7 +87,7 @@ namespace TacticsECS
             var ofn = new OpenFileName();
             ofn.structSize = Marshal.SizeOf(typeof(OpenFileName));
             ofn.dlgOwner = GetActiveWindow();
-            ofn.title = string.IsNullOrEmpty(title) ? "파일 열기" : title;
+            ofn.title = string.IsNullOrEmpty(title) ? LocalizationSystem.T("UI.FileDialog.Open") : title;
 
             if (string.IsNullOrEmpty(directory))
                 directory = Directory.GetCurrentDirectory();
@@ -130,7 +130,7 @@ namespace TacticsECS
             var ofn = new OpenFileName();
             ofn.structSize = Marshal.SizeOf(typeof(OpenFileName));
             ofn.dlgOwner = GetActiveWindow();
-            ofn.title = string.IsNullOrEmpty(title) ? "파일 저장" : title;
+            ofn.title = string.IsNullOrEmpty(title) ? LocalizationSystem.T("UI.FileDialog.Save") : title;
 
             if (string.IsNullOrEmpty(directory))
                 directory = Directory.GetCurrentDirectory();

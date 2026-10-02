@@ -18,6 +18,9 @@ namespace TacticsECS
         private static readonly string[] HeaderBeforeActions = { "Id", "Name", "MaxHp", "Defense", "BaseVisual" };
 
         public const string ActionColumn = "Action";
+
+        /// <summary>유닛·배 이름의 번역 키 앞부분: "Unit.&lt;Id&gt;.Name". 번역이 있으면 Name 칸보다 앞선다(샌드박스 파일의 Name은 번역이 없을 때만).</summary>
+        public const string UnitStringTable = "Unit";
         private const string LegacyActionsColumn = "Actions";
 
         private static readonly string[] HeaderAfterActions =
@@ -44,10 +47,11 @@ namespace TacticsECS
             var t = CsvTableReader.Parse(name, csvText);
             for (int r = 0; r < t.Rows.Count; r++)
             {
+                string id = CsvTableReader.Get(t, r, "Id");
                 rows.Add(new UnitCsvRow
                 {
-                    Id = CsvTableReader.Get(t, r, "Id"),
-                    Name = CsvTableReader.Get(t, r, "Name"),
+                    Id = id,
+                    Name = LocalizationSystem.Name(UnitStringTable, id, CsvTableReader.Get(t, r, "Name")),
                     MaxHp = CsvTableReader.GetInt(t, r, "MaxHp", 0, errors),
                     Defense = CsvTableReader.GetFloat(t, r, "Defense", 0f, errors),
                     BaseVisual = CsvTableReader.Get(t, r, "BaseVisual"),

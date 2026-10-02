@@ -4,7 +4,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 게임 규칙 표 CSV(Assets/Resources/*.csv) -&gt; Core 값 타입 배열 변환. 표마다 컬럼 이름 목록(스키마)과 변환 한
-    /// 함수만 있고, 칸 읽기/오류 보고는 CsvTableReader가 한다. 자체 상태는 없다. 컬럼 설명은 docs/spec/csv/tile-actions.md, city-rewards.md, tasks.md.
+    /// 함수만 있고, 칸 읽기/오류 보고는 CsvTableReader가 한다. 이름/설명은 번역 표(LocalizationSystem — "TileAction/CityReward/Task.&lt;Id&gt;.Name/Desc"). 자체 상태는 없다. 컬럼 설명은 docs/spec/csv/tile-actions.md, city-rewards.md, tasks.md.
     ///
     /// 표 형식(1차 비교분석 결과 — docs/history/GameDataCsv.md): "넓은 표 + Flags 목록" 하이브리드.
     ///   - 숫자/문자열 속성은 컬럼 하나씩(스프레드시트에서 정렬·필터·합계가 된다).
@@ -32,7 +32,7 @@ namespace TacticsECS
 
         private static readonly string[] TileActionRequired = { "Id", "Kind", "Terrain" };
         private static readonly string[] TileActionOptional =
-            { "Name", "Unlock", "Cost", "RequiredStructure", "Population", "StarsGain", "Description", "Wiki", "Note", "RequiredStructures" };
+            { "Unlock", "Cost", "RequiredStructure", "Population", "StarsGain", "Wiki", "Note", "RequiredStructures" };
         private static readonly string[] TileActionLists = { "Terrain", "RequiredStructure" };
 
         public static TileActionInfo[] ParseTileActions(string csvText, List<string> errors, string name = "TileActions.csv")
@@ -47,7 +47,7 @@ namespace TacticsECS
                 list.Add(new TileActionInfo
                 {
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Name = LocalizationSystem.Name("TileAction", id),
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TileActionKind.Harvest, errors),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
@@ -55,7 +55,7 @@ namespace TacticsECS
                     RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
                     StarsGain = CsvTableReader.GetInt(t, r, "StarsGain", 0, errors),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Description = LocalizationSystem.Desc("TileAction", id),
                 });
             }
             return list.ToArray();
@@ -66,7 +66,7 @@ namespace TacticsECS
         public static CityRewardInfo[] ParseCityRewards(string csvText, List<string> errors, string name = "CityRewards.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, new[] { "Level", "Reward" }, new[] { "Name", "Amount", "Description", "Wiki", "Note" }, errors);
+            CsvTableReader.CheckColumns(t, new[] { "Level", "Reward" }, new[] { "Amount", "Wiki", "Note" }, errors);
             var list = new List<CityRewardInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
             {
@@ -75,9 +75,9 @@ namespace TacticsECS
                 {
                     Level = CsvTableReader.GetInt(t, r, "Level", 2, errors),
                     Type = type,
-                    Name = CsvTableReader.Get(t, r, "Name", type.ToString()),
+                    Name = LocalizationSystem.Name("CityReward", type.ToString()),
                     Amount = CsvTableReader.GetInt(t, r, "Amount", 0, errors),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Description = LocalizationSystem.Desc("CityReward", type.ToString()),
                 });
             }
             return list.ToArray();
@@ -88,7 +88,7 @@ namespace TacticsECS
         public static TaskInfo[] ParseTasks(string csvText, List<string> errors, string name = "Tasks.csv")
         {
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, new[] { "Id", "Kind" }, new[] { "Name", "Threshold", "Unlock", "Description", "Wiki", "Note" }, errors);
+            CsvTableReader.CheckColumns(t, new[] { "Id", "Kind" }, new[] { "Threshold", "Unlock", "Wiki", "Note" }, errors);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var list = new List<TaskInfo>();
             for (int r = 0; r < t.Rows.Count; r++)
@@ -97,11 +97,11 @@ namespace TacticsECS
                 list.Add(new TaskInfo
                 {
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Name = LocalizationSystem.Name("Task", id),
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TaskKind.Kills, errors),
                     Threshold = CsvTableReader.GetInt(t, r, "Threshold", 0, errors),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
-                    Description = CsvTableReader.Get(t, r, "Description"),
+                    Description = LocalizationSystem.Desc("Task", id),
                 });
             }
             return list.ToArray();

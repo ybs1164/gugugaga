@@ -31,6 +31,9 @@ namespace TacticsECS
         /// BattleController가 알아서 처리하고, BattleHud는 클릭했다는 사실만 알린다.</summary>
         public event Action OnRestartClicked;
 
+        /// <summary>언어 버튼(오른쪽 위). BattleController가 다음 언어로 바꾸고 씬을 다시 연다.</summary>
+        public event Action OnLanguageClicked;
+
         [Tooltip("uGUI 클릭 입력에 필요한 EventSystem 프리팹(EventSystem + InputSystemUIInputModule). " +
             "씬에 EventSystem이 이미 있으면 쓰이지 않는다. Assets/Prefabs/UI/EventSystem.prefab.")]
         [SerializeField] private GameObject eventSystemPrefab;
@@ -136,6 +139,7 @@ namespace TacticsECS
             WireActionButtons(canvas);
             WireTooltip(canvas);
             WireBattleEndPanel(canvas);
+            CreateLanguageButton(canvas);
 
             HideUnitPanel();
             HideStructurePanel();
@@ -323,21 +327,32 @@ namespace TacticsECS
         /// <summary>유닛이 가질 수 있는 패시브 전부와, 그 아이콘·툴팁 설명. 새 패시브가 생기면
         /// (OptionalActionDefs와 마찬가지로) 이 배열에 한 줄만 추가하고 UIPrefabSetup.GenerateBattleHud로
         /// 프리팹을 다시 생성하면 된다 — BattleController는 몰라도 된다.</summary>
-        private static readonly (ActionType Flag, string Icon, string Tooltip)[] PassiveDefs =
+        private static readonly (ActionType Flag, string Icon)[] PassiveDefs =
         {
-            (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
-            (ActionType.Charge, "charge", "돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다."),
-            (ActionType.Retreat, "retreat", "대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다."),
-            (ActionType.Ambush, "ambush", "기습(패시브): 공격 시 대상의 반격을 발동시키지 않습니다."),
-            (ActionType.Infiltrate, "infiltrate", "잠입(패시브): 적 유닛에 의한 이동 방해 페널티가 없습니다."),
-            (ActionType.Herd, "herd", "무리(패시브): 주변 1블록 내 아군에게 가속을 부여합니다(이동 거리 +1, 피격 시 해제)."),
-            (ActionType.Convert, "convert", "전향(패시브): 공격한 적 유닛을 아군으로 전환합니다."),
-            (ActionType.Combo, "combo", "연타(패시브): 적을 처치하면 같은 턴에 추가로 공격할 수 있습니다."),
-            (ActionType.Scout, "scout", "정찰(패시브): 시야 +1."),
-            (ActionType.Splash, "splash", "스플래시(패시브): 공격한 대상 주변 1블록 내 적 유닛들에게도 광역 피해를 입힙니다."),
-            (ActionType.Stiff, "stiff", "뻣뻣함(패시브): 공격받으면 반격을 갖고 있어도 발동시키지 않습니다."),
-            (ActionType.Freeze, "freeze", "빙결(패시브): 공격 시 대상을 다음 턴 동안 행동불능으로 만듭니다."),
+            (ActionType.Counter, "counter"),
+            (ActionType.Charge, "charge"),
+            (ActionType.Retreat, "retreat"),
+            (ActionType.Ambush, "ambush"),
+            (ActionType.Infiltrate, "infiltrate"),
+            (ActionType.Herd, "herd"),
+            (ActionType.Convert, "convert"),
+            (ActionType.Combo, "combo"),
+            (ActionType.Scout, "scout"),
+            (ActionType.Splash, "splash"),
+            (ActionType.Stiff, "stiff"),
+            (ActionType.Freeze, "freeze"),
         };
+
+        /// <summary>행동·패시브 툴팁 — 번역 표 "Action.&lt;행동&gt;.Tooltip". 수치는 GameRules에서 채운다.</summary>
+        public static string ActionTooltip(ActionType flag)
+        {
+            switch (flag)
+            {
+                case ActionType.Defend: return LocalizationSystem.F("Action.Defend.Tooltip", GameRules.Combat.GuardDefenseBonus);
+                case ActionType.Wait: return LocalizationSystem.F("Action.Wait.Tooltip", GameRules.Heal.Other, GameRules.Heal.OwnTerritory);
+                default: return LocalizationSystem.T("Action." + flag + ".Tooltip");
+            }
+        }
 
         private void WireUnitPanel(Transform canvas)
         {
@@ -366,7 +381,7 @@ namespace TacticsECS
             {
                 var def = PassiveDefs[i];
                 var badge = panel.Find("Passive_" + def.Icon);
-                WirePassiveBadge(badge, def.Icon, def.Tooltip);
+                WirePassiveBadge(badge, def.Icon, ActionTooltip(def.Flag));
                 _passiveBadges[i] = new PassiveBadge { Flag = def.Flag, Rect = (RectTransform)badge };
             }
         }
@@ -467,18 +482,18 @@ namespace TacticsECS
         /// 어떤 순서로 나열할지 + 아이콘 + 툴팁 설명을 한곳에 모아둔 표. 새 행동을 추가할 때
         /// (예: 향후 다른 특수 행동) 이 배열에 한 줄만 추가하고 UIPrefabSetup.GenerateBattleHud로 프리팹을
         /// 다시 생성하면 된다 — BattleController는 몰라도 된다.</summary>
-        private static readonly (ActionType Flag, string Icon, string Tooltip)[] OptionalActionDefs =
+        private static readonly (ActionType Flag, string Icon)[] OptionalActionDefs =
         {
-            (ActionType.Defend, "guard", "방어 태세: 받는 피해를 줄입니다. (방어력 +" + GameRules.Combat.GuardDefenseBonus + ")"),
-            (ActionType.Heal, "heal", "치유: 사거리 내의 모든 아군 유닛(자신 제외)의 체력을 회복시킵니다."),
-            (ActionType.SelfDestruct, "selfdestruct", "자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다."),
-            (ActionType.Wait, "hp", "대기: 이번 턴 행동을 종료하고 체력을 2(자기 영토 4) 회복합니다."),
+            (ActionType.Defend, "guard"),
+            (ActionType.Heal, "heal"),
+            (ActionType.SelfDestruct, "selfdestruct"),
+            (ActionType.Wait, "hp"),
         };
 
         private void WireActionButtons(Transform canvas)
         {
             var endTurn = canvas.Find("EndTurnButton");
-            WireIconButton(endTurn, "turn", "턴 종료: 현재 팀의 턴을 마칩니다.");
+            WireIconButton(endTurn, "turn", LocalizationSystem.T("UI.Battle.EndTurnTooltip"));
             _endTurnButton = endTurn.GetComponent<Button>();
             _endTurnButton.onClick.AddListener(() => OnEndTurnClicked?.Invoke());
 
@@ -488,9 +503,9 @@ namespace TacticsECS
                 var def = OptionalActionDefs[i];
                 var buttonTransform = canvas.Find(def.Flag + "Button");
                 if (buttonTransform == null)
-                    buttonTransform = CreateDynamicActionButton(canvas, def.Flag + "Button", def.Icon, def.Tooltip);
+                    buttonTransform = CreateDynamicActionButton(canvas, def.Flag + "Button", def.Icon, ActionTooltip(def.Flag));
                 else
-                    WireIconButton(buttonTransform, def.Icon, def.Tooltip);
+                    WireIconButton(buttonTransform, def.Icon, ActionTooltip(def.Flag));
 
                 var button = buttonTransform.GetComponent<Button>();
                 switch (def.Flag)
@@ -504,7 +519,7 @@ namespace TacticsECS
             }
 
             var deselect = canvas.Find("DeselectButton");
-            WireIconButton(deselect, "deselect", "선택 해제: 유닛 선택을 취소합니다.");
+            WireIconButton(deselect, "deselect", LocalizationSystem.T("UI.Battle.DeselectTooltip"));
             _deselectButton = deselect.GetComponent<Button>();
             _deselectRect = (RectTransform)deselect;
             _deselectButton.onClick.AddListener(() => OnDeselectClicked?.Invoke());
@@ -602,7 +617,9 @@ namespace TacticsECS
             _battleEndIcon = panel.Find("Icon").GetComponent<Image>();
             _battleEndText = panel.Find("Label").GetComponent<Text>();
 
-            panel.Find("RestartButton").GetComponent<Button>().onClick.AddListener(() => OnRestartClicked?.Invoke());
+            var restart = panel.Find("RestartButton");
+            restart.GetComponentInChildren<Text>().text = LocalizationSystem.T("UI.Battle.Restart");
+            restart.GetComponent<Button>().onClick.AddListener(() => OnRestartClicked?.Invoke());
 
             _battleEndPanel.SetActive(false);
         }
@@ -612,7 +629,45 @@ namespace TacticsECS
             _battleEndPanel.SetActive(true);
             _battleEndIcon.sprite = IconLibrary.Get(playerWon ? "victory" : "defeat");
             _battleEndIcon.color = playerWon ? PlayerAccent : EnemyAccent;
-            _battleEndText.text = playerWon ? "승리!" : "패배...";
+            _battleEndText.text = LocalizationSystem.T(playerWon ? "UI.Battle.Victory" : "UI.Battle.Defeat");
+        }
+
+        // ---------- 언어 버튼 (우상단) ----------
+
+        /// <summary>지금 언어 이름을 보여주는 작은 버튼. 프리팹에 없는 한 줄짜리라 로스터/로그 줄처럼 코드로 만든다.</summary>
+        private void CreateLanguageButton(Transform canvas)
+        {
+            var go = new GameObject("LanguageButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(canvas, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-8f, -8f);
+            rect.sizeDelta = new Vector2(88f, 26f);
+            var bg = go.GetComponent<Image>();
+            bg.color = new Color(0.16f, 0.17f, 0.20f, 0.95f);
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = bg;
+            button.onClick.AddListener(() => OnLanguageClicked?.Invoke());
+
+            var labelGo = new GameObject("Label", typeof(RectTransform));
+            labelGo.transform.SetParent(go.transform, false);
+            var labelRect = (RectTransform)labelGo.transform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            var text = labelGo.AddComponent<Text>();
+            text.font = uiFont;
+            text.fontSize = 14;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            text.text = LocalizationSystem.LanguageName(StringTable.Language);
+
+            var trigger = go.AddComponent<TooltipTrigger>();
+            trigger.Text = LocalizationSystem.T("UI.Battle.LanguageTooltip");
+            trigger.OnEnter = ShowTooltip;
+            trigger.OnExit = HideTooltip;
         }
     }
 }

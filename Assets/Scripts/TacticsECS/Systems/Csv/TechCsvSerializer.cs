@@ -43,7 +43,7 @@ namespace TacticsECS
                 nodes.Add(new TechNodeData
                 {
                     Id = id,
-                    Name = CsvTableReader.Get(t, r, "Name", id),
+                    Name = LocalizationSystem.Name(ArrayTableCsvSerializer.TechStringTable, id, CsvTableReader.Get(t, r, "Name")),
                     Branch = CsvTableReader.Get(t, r, "Branch"),
                     ParentId = CsvTableReader.Get(t, r, "Parent"),
                     Tier = tier,
@@ -52,7 +52,7 @@ namespace TacticsECS
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", tier, errors),
                     Unlocks = CsvTableReader.GetList(t, r, UnlockColumn, LegacyUnlocksColumn),
-                    Effect = CsvTableReader.Get(t, r, "Effect"),
+                    Effect = LocalizationSystem.Desc(ArrayTableCsvSerializer.TechStringTable, id, CsvTableReader.Get(t, r, "Effect")),
                 });
             }
 

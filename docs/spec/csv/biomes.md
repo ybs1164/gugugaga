@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | `Kind` | `Biome`/`Tile`/`Structure` | `Biome` | 전부 | 행 종류 |
 | `Biome` | 문자열 | (필수) | 전부 | 소속 바이옴 Id. `Biome` 행이 없으면 기본값 바이옴이 만들어진다 |
-| `Name` | 문자열 | `Biome` | Biome | 표시 이름 |
+| `Name` | 문자열 | `Biome` | Biome | 표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 [번역 표](strings.md#키-규칙) `Biome.<Biome>.Name`을 쓴다(번역이 있으면 이 칸보다 앞선다) |
 | `NoiseType` | 문자열 | `Perlin` | Biome | 노이즈 종류. `Perlin`만 지원 |
 | `Frequency` | 실수 | 0 | Biome | 노이즈 주파수 |
 | `Octaves` | 정수 | 0 | Biome | 노이즈 옥타브 |

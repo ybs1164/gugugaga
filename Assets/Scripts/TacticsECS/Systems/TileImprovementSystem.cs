@@ -186,12 +186,12 @@ namespace TacticsECS
 
                 string reason = null;
                 if (b.OnePerCity && CityHasBuilding(grid, tile.OwnerCity, b.Id))
-                    reason = "도시당 1개";
+                    reason = LocalizationSystem.T("UI.Reason.OnePerCity");
                 else if (b.AdjacentBuildings != null && b.AdjacentBuildings.Length > 0 &&
                     CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings) == 0)
-                    reason = "인접 조건: " + string.Join("/", NamesOf(b.AdjacentBuildings));
+                    reason = LocalizationSystem.F("UI.Reason.NeedsAdjacent", string.Join("/", NamesOf(b.AdjacentBuildings)));
                 else if (stars < b.Cost)
-                    reason = $"별 부족 ({stars}/{b.Cost})";
+                    reason = LocalizationSystem.F("UI.Reason.NotEnoughStars", stars, b.Cost);
 
                 options.Add(new TileOption { Id = b.Id, IsBuilding = true, Name = b.Name, Cost = b.Cost, Enabled = reason == null, Detail = reason ?? b.Description });
             }
@@ -219,7 +219,7 @@ namespace TacticsECS
                         break;
                 }
 
-                string reason = stars < a.Cost ? $"별 부족 ({stars}/{a.Cost})" : null;
+                string reason = stars < a.Cost ? LocalizationSystem.F("UI.Reason.NotEnoughStars", stars, a.Cost) : null;
                 options.Add(new TileOption { Id = a.Id, IsBuilding = false, Name = a.Name, Cost = a.Cost, Enabled = reason == null, Detail = reason ?? a.Description });
             }
             return options;

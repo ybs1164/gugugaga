@@ -62,7 +62,7 @@ namespace TacticsECS
                 var biome = Find(biomeId);
                 if (string.Equals(kind, KindBiome, StringComparison.OrdinalIgnoreCase))
                 {
-                    biome.Name = CsvTableReader.Get(t, r, "Name", biomeId);
+                    biome.Name = LocalizationSystem.Name("Biome", biomeId, CsvTableReader.Get(t, r, "Name"));
                     biome.NoiseType = CsvTableReader.Get(t, r, "NoiseType", "Perlin");
                     biome.Frequency = CsvTableReader.GetFloat(t, r, "Frequency", 0f, errors);
                     biome.Octaves = CsvTableReader.GetInt(t, r, "Octaves", 0, errors);

@@ -208,7 +208,8 @@ namespace TacticsECS
 
         private void Awake()
         {
-            // 건물/타일 행동 등 게임 규칙 표(Assets/Resources/*.csv)를 Data 표에 채운다.
+            // 건물/타일 행동 등 게임 규칙 표(Assets/Resources/*.csv)를 Data 표에 채운다. 번역 표는 저장된 언어로.
+            LanguagePreference.Apply();
             GameDataLoader.LoadAll();
             _cam = Camera.main;
             if (_cam == null)
@@ -253,6 +254,7 @@ namespace TacticsECS
             _hud.OnWaitClicked += HandleWaitClicked;
             _hud.OnDeselectClicked += ClearSelection;
             _hud.OnRestartClicked += HandleReturnToSetup;
+            _hud.OnLanguageClicked += HandleLanguageClicked;
 
             if (cityResourceHudPrefab != null)
             {
@@ -368,7 +370,7 @@ namespace TacticsECS
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
             _sandboxHud.SetSelectedTeam(Team.Player);
-            _sandboxHud.SetStatus("\"불러오기\"로 CSV 파일을 선택해 배치를 시작하세요.");
+            _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.StartHint"));
 
             _sandboxHud.OnMapTypeSelected += HandleMapTypeSelected;
             _sandboxHud.OnWaterRatioChanged += HandleWaterRatioChanged;
@@ -377,8 +379,8 @@ namespace TacticsECS
             _sandboxHud.OnTribeSelected += HandleTribeSelected;
 
             InitMapSizeSelection();
-            _sandboxHud.SetMapSizeLabel(MapSizePresets[_selectedMapSizeIndex].Name, MapSizePresets[_selectedMapSizeIndex].Size);
-            _sandboxHud.SetMapTypeOptions(WetnessPresets.Select(p => $"{p.Name} ({Mathf.RoundToInt(p.Wetness * 100f)}%)").ToList(), _selectedWetnessIndex);
+            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), MapSizePresets[_selectedMapSizeIndex].Size);
+            _sandboxHud.SetMapTypeOptions(WetnessPresets.Select(p => LocalizationSystem.F("UI.Sandbox.MapTypeOption", MapTypeName(p.Name), Mathf.RoundToInt(p.Wetness * 100f))).ToList(), _selectedWetnessIndex);
             _sandboxHud.SetWaterRatio(_waterRatio);
             RefreshWetnessLabel();
             RefreshBiomeOptions();
@@ -396,7 +398,12 @@ namespace TacticsECS
         private bool AnyTribe() => CitySystem.Teams.Any(t => TribeOf(t) != null);
 
         private void RefreshWetnessLabel() =>
-            _sandboxHud.SetWetnessLabel($"{WetnessPresets[_selectedWetnessIndex].Name} 물 {Mathf.RoundToInt(_waterRatio * 100f)}%");
+            _sandboxHud.SetWetnessLabel(LocalizationSystem.F("UI.Sandbox.WetnessLabel", MapTypeName(WetnessPresets[_selectedWetnessIndex].Name), Mathf.RoundToInt(_waterRatio * 100f)));
+
+        /// <summary>맵 타입 프리셋의 표시 이름(프리셋 Name은 규칙 키라 바꾸지 않는다 — StartConditionRules.MapType과 비교).</summary>
+        private static string MapTypeName(string preset) => LocalizationSystem.T("UI.MapType." + preset, preset);
+
+        private static string MapSizeName(int index) => LocalizationSystem.T("UI.MapSize." + MapSizePresets[index].Name, MapSizePresets[index].Name);
 
         private void RefreshBiomeOptions()
         {
@@ -413,10 +420,9 @@ namespace TacticsECS
             foreach (var team in CitySystem.Teams)
             {
                 var tribe = TribeOf(team);
-                if (tribe != null) lines.Add((team == Team.Player ? "아군 " : "적 ") + TribeSystem.Summary(tribe.Value, biomes, unitRows));
+                if (tribe != null) lines.Add(LocalizationSystem.F("UI.Sandbox.TribeInfoLine", TeamName(team), TribeSystem.Summary(tribe.Value, biomes, unitRows)));
             }
-            _sandboxHud.SetTribeInfo(lines.Count > 0 ? string.Join("\n", lines)
-                : "종족을 고르면 시작 별/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다(Assets/Resources/Tables).");
+            _sandboxHud.SetTribeInfo(lines.Count > 0 ? string.Join("\n", lines) : LocalizationSystem.T("UI.Sandbox.TribeInfoEmpty"));
         }
 
         /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 기본 유닛 표(Tables/Units.csv) — 종족 시작 유닛을 Id로 찾는 표.</summary>
@@ -442,8 +448,8 @@ namespace TacticsECS
             _biomeChoice = choice;
             var biomes = ActiveBiomes();
             _sandboxHud.SetStatus(choice > 0 && choice <= biomes.Count
-                ? $"바이옴 '{biomes[choice - 1].Name}'만으로 채웁니다. \"지형 생성\"을 누르세요(1차 지형이 있으면 그 모양 그대로)."
-                : "자동: 전체 바이옴(종족이 있으면 종족 바이옴)으로 채웁니다.");
+                ? LocalizationSystem.F("UI.Sandbox.BiomeOnly", biomes[choice - 1].Name)
+                : LocalizationSystem.T("UI.Sandbox.BiomeAuto"));
         }
 
         private void HandleTribeSelected(Team team, int tribeIndex)
@@ -492,9 +498,9 @@ namespace TacticsECS
             TerrainGenerationSystem.ApplyOutline(_grid, outline);
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
-            _sandboxHud.SetStatus($"1차 지형: 물 {Mathf.RoundToInt(TerrainGenerationSystem.OutlineWaterFraction(outline) * 100f)}% " +
-                $"(목표 {Mathf.RoundToInt(_waterRatio * 100f)}%, {WetnessPresets[_selectedWetnessIndex].Name}), 수도 {outline.Anchors.Length}, " +
-                $"사전 마을 {outline.Suburbs.Length + outline.PlannedVillages.Length}. \"지형 생성\"으로 바이옴을 채우세요.");
+            _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.OutlineDone", Mathf.RoundToInt(TerrainGenerationSystem.OutlineWaterFraction(outline) * 100f),
+                Mathf.RoundToInt(_waterRatio * 100f), MapTypeName(WetnessPresets[_selectedWetnessIndex].Name), outline.Anchors.Length,
+                outline.Suburbs.Length + outline.PlannedVillages.Length));
         }
 
         /// <summary>유닛 CSV의 BaseVisual 이름 -> 외형 프리팹. 배치 단계 팔레트와 전투 중 도시 훈련이 공유한다.</summary>
@@ -530,7 +536,7 @@ namespace TacticsECS
         {
             _selectedMapSizeIndex = (_selectedMapSizeIndex + 1) % MapSizePresets.Length;
             var preset = MapSizePresets[_selectedMapSizeIndex];
-            _sandboxHud.SetMapSizeLabel(preset.Name, preset.Size);
+            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), preset.Size);
         }
 
         private void HandleSandboxLoad(string path)
@@ -542,12 +548,12 @@ namespace TacticsECS
                 _placementController.SetRows(rows);
                 _sandboxHud.SetPalette(rows);
                 _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
-                _sandboxHud.SetStatus($"{rows.Count}개 유닛을 불러왔습니다. 팔레트에서 골라 빈 칸을 클릭하세요.");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsLoaded", rows.Count));
                 RefreshTribeInfo(); // 종족 시작 유닛을 이 표에서 Id로 찾는다
             }
             catch (System.Exception e)
             {
-                _sandboxHud.SetStatus($"불러오기 실패: {e.Message}");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", e.Message));
             }
         }
 
@@ -557,11 +563,11 @@ namespace TacticsECS
             {
                 var csvText = UnitCsvSerializer.Write(_placementController.Rows);
                 System.IO.File.WriteAllText(path, csvText);
-                _sandboxHud.SetStatus($"{_placementController.Rows.Count}개 유닛을 {path}에 내보냈습니다.");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsExported", _placementController.Rows.Count, path));
             }
             catch (System.Exception e)
             {
-                _sandboxHud.SetStatus($"내보내기 실패: {e.Message}");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.ExportFailed", e.Message));
             }
         }
 
@@ -578,7 +584,7 @@ namespace TacticsECS
                 var nodes = TechCsvSerializer.Parse(System.IO.File.ReadAllText(path), errors);
                 if (nodes.Count == 0)
                 {
-                    _sandboxHud.SetStatus("기술트리 불러오기 실패: 기술 행이 없습니다.");
+                    _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.TechLoadNoRows"));
                     return;
                 }
                 // 전투에 쓰일 유닛 목록과 같은 기준(InitEconomy): 불러온 유닛 CSV, 없으면 기본 유닛 표.
@@ -592,13 +598,13 @@ namespace TacticsECS
 
                 _customTechNodes = nodes;
                 if (_techTreeHud != null) _techTreeHud.SetNodes(nodes);
-                _sandboxHud.SetStatus($"기술 {nodes.Count}개를 불러왔습니다." +
-                                      (errors.Count > 0 ? $" 경고 {errors.Count}개(콘솔)." : string.Empty) +
-                                      (missing.Count > 0 ? $" 잠긴 채 남는 해금 {missing.Count}개." : string.Empty));
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoaded", nodes.Count) +
+                                      (errors.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.TechLoadWarnings", errors.Count) : string.Empty) +
+                                      (missing.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.TechLoadLocked", missing.Count) : string.Empty));
             }
             catch (System.Exception e)
             {
-                _sandboxHud.SetStatus($"기술트리 불러오기 실패: {e.Message}");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoadFailed", e.Message));
             }
         }
 
@@ -608,11 +614,11 @@ namespace TacticsECS
             {
                 var nodes = CurrentTechNodes();
                 System.IO.File.WriteAllText(path, TechCsvSerializer.Write(nodes), new System.Text.UTF8Encoding(true));
-                _sandboxHud.SetStatus($"기술 {nodes.Count}개를 {path}에 내보냈습니다.");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechExported", nodes.Count, path));
             }
             catch (System.Exception e)
             {
-                _sandboxHud.SetStatus($"기술트리 내보내기 실패: {e.Message}");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechExportFailed", e.Message));
             }
         }
 
@@ -626,7 +632,7 @@ namespace TacticsECS
                 var biomes = BiomeCsvSerializer.Parse(csvText);
                 if (biomes.Count == 0)
                 {
-                    _sandboxHud.SetStatus("바이옴 불러오기 실패: Biome 행이 없습니다.");
+                    _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.BiomeLoadNoRows"));
                     return;
                 }
                 _loadedBiomes = biomes;
@@ -635,12 +641,12 @@ namespace TacticsECS
                 RefreshTribeInfo();
                 var tribeWarnings = ArrayTableValidationSystem.ValidateLoaded(biomeCount: biomes.Count).Where(w => w.Contains("BiomeIndex")).ToList();
                 foreach (var w in tribeWarnings) Debug.LogWarning("[Tribes] " + w);
-                _sandboxHud.SetStatus($"{biomes.Count}개 바이옴을 불러왔습니다. 습도 탭의 바이옴 목록에서 하나를 골라 규칙을 확인할 수 있습니다." +
-                                      (tribeWarnings.Count > 0 ? $" 종족 바이옴 참조 경고 {tribeWarnings.Count}개(콘솔)." : string.Empty));
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.BiomesLoaded", biomes.Count) +
+                                      (tribeWarnings.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.BiomeTribeWarnings", tribeWarnings.Count) : string.Empty));
             }
             catch (System.Exception e)
             {
-                _sandboxHud.SetStatus($"바이옴 불러오기 실패: {e.Message}");
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.BiomeLoadFailed", e.Message));
             }
         }
 
@@ -654,7 +660,7 @@ namespace TacticsECS
         {
             if (ActiveBiomes().Count == 0)
             {
-                _sandboxHud.SetStatus("바이옴이 없습니다. \"바이옴 불러오기\"로 바이옴 CSV를 불러오세요.");
+                _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.NoBiomes"));
                 return;
             }
             if (!EnsureGridSize()) return;
@@ -693,10 +699,11 @@ namespace TacticsECS
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
-            string regionText = perTeam ? "종족 영역 " + string.Join("/", regions.Select(b => b.Name))
-                : _biomeChoice > 0 ? $"바이옴 '{regions[0].Name}'만" : $"바이옴 {regions.Count}개";
-            _sandboxHud.SetStatus($"지형 생성: {regionText}, {_grid.Width}x{_grid.Height}, {mapTypeName} 물 {Mathf.RoundToInt(outline.WaterFraction * 100f)}%" +
-                (reusedOutline ? " (1차 지형 유지)" : " (새 1차 지형)") + (startChanges > 0 ? $", 시작 조건 {startChanges}칸" : string.Empty) + $", seed={seed}.");
+            string regionText = perTeam ? LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", regions.Select(b => b.Name)))
+                : _biomeChoice > 0 ? LocalizationSystem.F("UI.Sandbox.RegionSingle", regions[0].Name) : LocalizationSystem.F("UI.Sandbox.RegionCount", regions.Count);
+            _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TerrainDone", regionText, _grid.Width, _grid.Height, MapTypeName(mapTypeName),
+                Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T(reusedOutline ? "UI.Sandbox.OutlineKept" : "UI.Sandbox.OutlineNew"),
+                startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));
         }
 
         /// <summary>습도 프리셋 이름 -> TerrainGenerationSystem.MapShapeMode. Drylands만 Freeform(마스크
@@ -735,7 +742,7 @@ namespace TacticsECS
         {
             if (_viewsById.Count > 0)
             {
-                _sandboxHud.SetStatus("맵 크기를 바꾸려면 먼저 배치된 유닛을 모두 치우세요.");
+                _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.ClearUnitsFirst"));
                 return false;
             }
 
@@ -808,15 +815,16 @@ namespace TacticsECS
 
         private void SpawnDemoFormation()
         {
-            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1), "방패병");
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3), "근접 전사");
-            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5), "궁수");
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6), "근접 전사");
+            string defender = LocalizationSystem.T("UI.Demo.Defender"), warrior = LocalizationSystem.T("UI.Demo.Warrior"), archer = LocalizationSystem.T("UI.Demo.Archer");
+            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1), defender);
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3), warrior);
+            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5), archer);
+            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6), warrior);
 
-            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2), "방패병");
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4), "근접 전사");
-            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6), "궁수");
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7), "근접 전사");
+            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2), defender);
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4), warrior);
+            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6), archer);
+            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7), warrior);
 
             if (stressTestExtraUnitsPerTeam > 0)
                 SpawnStressTestUnits(stressTestExtraUnitsPerTeam);
@@ -825,7 +833,7 @@ namespace TacticsECS
         private void SpawnStressTestUnits(int perTeam)
         {
             var prefabs = new[] { meleePrefab, rangedPrefab, guardPrefab };
-            var labels = new[] { "근접 전사", "궁수", "방패병" };
+            var labels = new[] { LocalizationSystem.T("UI.Demo.Warrior"), LocalizationSystem.T("UI.Demo.Archer"), LocalizationSystem.T("UI.Demo.Defender") };
             var rng = new System.Random(12345);
             for (int i = 0; i < perTeam; i++)
             {
@@ -976,7 +984,7 @@ namespace TacticsECS
             var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, false);
             _cityResourceHud.SetResources(resources, populationUsed);
             _cityResourceHud.SetScoreLine(_econ != null
-                ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
+                ? LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy))
                 : string.Empty);
         }
 
@@ -1084,15 +1092,15 @@ namespace TacticsECS
 
             switch (entry.Verb)
             {
-                case BattleLogVerb.Move: return $"{Colored(entry.ActorId)} 이동";
-                case BattleLogVerb.Attack: return $"{Colored(entry.ActorId)} 공격 → {Colored(entry.TargetId)} ({entry.Amount})";
-                case BattleLogVerb.Counter: return $"{Colored(entry.ActorId)} 반격 → {Colored(entry.TargetId)} ({entry.Amount})";
-                case BattleLogVerb.Defend: return $"{Colored(entry.ActorId)} 방어 태세";
-                case BattleLogVerb.Heal: return $"{Colored(entry.ActorId)} 치유 ({entry.Amount}명)";
-                case BattleLogVerb.SelfDestruct: return $"{Colored(entry.ActorId)} 자폭";
-                case BattleLogVerb.Wait: return entry.Amount > 0 ? $"{Colored(entry.ActorId)} 대기 (+{entry.Amount})" : $"{Colored(entry.ActorId)} 대기";
-                case BattleLogVerb.Defeated: return $"{Colored(entry.ActorId)} 쓰러짐";
-                case BattleLogVerb.Promote: return $"{Colored(entry.ActorId)} 베테랑 승급";
+                case BattleLogVerb.Move: return LocalizationSystem.F("UI.Log.Move", Colored(entry.ActorId));
+                case BattleLogVerb.Attack: return LocalizationSystem.F("UI.Log.Attack", Colored(entry.ActorId), Colored(entry.TargetId), entry.Amount);
+                case BattleLogVerb.Counter: return LocalizationSystem.F("UI.Log.Counter", Colored(entry.ActorId), Colored(entry.TargetId), entry.Amount);
+                case BattleLogVerb.Defend: return LocalizationSystem.F("UI.Log.Defend", Colored(entry.ActorId));
+                case BattleLogVerb.Heal: return LocalizationSystem.F("UI.Log.Heal", Colored(entry.ActorId), entry.Amount);
+                case BattleLogVerb.SelfDestruct: return LocalizationSystem.F("UI.Log.SelfDestruct", Colored(entry.ActorId));
+                case BattleLogVerb.Wait: return entry.Amount > 0 ? LocalizationSystem.F("UI.Log.WaitHeal", Colored(entry.ActorId), entry.Amount) : LocalizationSystem.F("UI.Log.Wait", Colored(entry.ActorId));
+                case BattleLogVerb.Defeated: return LocalizationSystem.F("UI.Log.Defeated", Colored(entry.ActorId));
+                case BattleLogVerb.Promote: return LocalizationSystem.F("UI.Log.Promote", Colored(entry.ActorId));
                 default: return Colored(entry.ActorId);
             }
         }
@@ -1291,7 +1299,8 @@ namespace TacticsECS
                 if (!_grid.InBounds(pos) || _grid.GetStructure(pos) != StructureGenerationSystem.CapitalStructureId) continue;
                 if (CitySystem.FindCapital(_econ, kv.Key) >= 0 || CitySystem.FindCityAt(_econ, pos) >= 0) continue;
                 var tribe = TribeOf(kv.Key);
-                string name = tribe != null ? $"{tribe.Value.Name} 수도" : (kv.Key == Team.Player ? "아군 수도" : "적 수도");
+                string name = tribe != null ? LocalizationSystem.F("UI.Common.TribeCapital", tribe.Value.Name)
+                    : LocalizationSystem.T(kv.Key == Team.Player ? "UI.Common.AllyCapital" : "UI.Common.EnemyCapital");
                 CitySystem.FoundCity(_grid, _econ, pos, kv.Key, true, name);
                 VisionSystem.Reveal(_grid, kv.Key, pos, GameRules.Vision.StartRevealRadius);
             }
@@ -1377,24 +1386,22 @@ namespace TacticsECS
         private string FormatEconomyEntry(EconomyLogEntry e)
         {
             var accent = e.Team == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
-            string who = $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{(e.Team == Team.Player ? "아군" : "적")}</color>";
+            string who = $"<color=#{ColorUtility.ToHtmlStringRGB(accent)}>{TeamName(e.Team)}</color>";
             switch (e.Kind)
             {
-                case EconomyLogKind.Capture: return $"{who} {e.Subject} 점령";
-                case EconomyLogKind.Research: return $"{who} 연구: {e.Subject}";
-                case EconomyLogKind.Build: return $"{who} 건설: {e.Subject}";
-                case EconomyLogKind.Action: return $"{who} {e.Subject}";
-                case EconomyLogKind.Train: return $"{who} 훈련: {e.Subject}";
+                case EconomyLogKind.Capture: return LocalizationSystem.F("UI.Log.Capture", who, e.Subject);
+                case EconomyLogKind.Research: return LocalizationSystem.F("UI.Log.Research", who, e.Subject);
+                case EconomyLogKind.Build: return LocalizationSystem.F("UI.Log.Build", who, e.Subject);
+                case EconomyLogKind.Train: return LocalizationSystem.F("UI.Log.Train", who, e.Subject);
                 case EconomyLogKind.LevelUp:
-                    return e.CityIndex >= 0 ? $"{who} {e.Subject} 레벨 업 (Lv {_econ.Cities[e.CityIndex].Level})" : $"{who} {e.Subject} 레벨 업";
-                case EconomyLogKind.Reward: return $"{who} 보상: {e.Subject}";
-                case EconomyLogKind.Explore: return $"{who} 유적 탐험: {e.Subject}";
-                case EconomyLogKind.Disband: return $"{who} 유닛 해산 ({e.Subject})";
-                case EconomyLogKind.Discover: return $"{who} {e.Subject}";
-                case EconomyLogKind.Task: return $"{who} 과업 달성: {e.Subject}";
-                case EconomyLogKind.Upgrade: return $"{who} 배 업그레이드: {e.Subject}";
-                case EconomyLogKind.StartUnit: return $"{who} 수도에서 시작 유닛: {e.Subject}";
-                default: return $"{who} {e.Subject}";
+                    return e.CityIndex >= 0 ? LocalizationSystem.F("UI.Log.LevelUpAt", who, e.Subject, _econ.Cities[e.CityIndex].Level) : LocalizationSystem.F("UI.Log.LevelUp", who, e.Subject);
+                case EconomyLogKind.Reward: return LocalizationSystem.F("UI.Log.Reward", who, e.Subject);
+                case EconomyLogKind.Explore: return LocalizationSystem.F("UI.Log.Explore", who, e.Subject);
+                case EconomyLogKind.Disband: return LocalizationSystem.F("UI.Log.Disband", who, e.Subject);
+                case EconomyLogKind.Task: return LocalizationSystem.F("UI.Log.Task", who, e.Subject);
+                case EconomyLogKind.Upgrade: return LocalizationSystem.F("UI.Log.Upgrade", who, e.Subject);
+                case EconomyLogKind.StartUnit: return LocalizationSystem.F("UI.Log.StartUnit", who, e.Subject);
+                default: return LocalizationSystem.F("UI.Log.Other", who, e.Subject); // Action, Discover
             }
         }
 
@@ -1445,16 +1452,22 @@ namespace TacticsECS
             if (cityIndex >= 0)
             {
                 var city = _econ.Cities[cityIndex];
-                title = $"{city.Name} (Lv {city.Level})";
-                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 유닛 {CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)} · 별 +{CitySystem.CityStarsIncome(_grid, _world, city)}/턴\n");
-                body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
+                title = LocalizationSystem.F("UI.CityMenu.Title", city.Name, city.Level);
+                body.Append(LocalizationSystem.F("UI.CityMenu.Stats", LocalizationSystem.T(city.Owner == Team.Player ? "UI.CityMenu.AllyCity" : "UI.CityMenu.EnemyCity"),
+                    city.Population, city.Level + 1, CitySystem.SupportedUnits(_world, cityIndex), CitySystem.CityCapacity(city), CitySystem.CityStarsIncome(_grid, _world, city))).Append('\n');
+                var traits = new List<string> { LocalizationSystem.F("UI.CityMenu.Border", city.BorderRadius) };
+                if (city.IsCapital) traits.Add(LocalizationSystem.T("UI.CityMenu.Capital"));
+                if (city.ConnectedToCapital) traits.Add(LocalizationSystem.T("UI.CityMenu.Connected"));
+                if (city.HasWorkshop) traits.Add(LocalizationSystem.T("UI.CityMenu.Workshop"));
+                if (city.HasWall) traits.Add(LocalizationSystem.T("UI.CityMenu.Wall"));
+                if (city.ParkCount > 0) traits.Add(LocalizationSystem.F("UI.CityMenu.Parks", city.ParkCount));
+                body.Append(string.Join(" · ", traits));
 
                 if (city.Owner == Team.Player && city.IsCapital)
                 {
-                    body.Append("\n과업: ");
-                    body.Append(string.Join(" · ", TaskDefinition.All
+                    body.Append('\n').Append(LocalizationSystem.F("UI.CityMenu.Tasks", string.Join(" · ", TaskDefinition.All
                         .Where(t => TaskSystem.IsUnlocked(_econ, Team.Player, t))
-                        .Select(t => $"{t.Name} {TaskSystem.ProgressText(_grid, _econ, Team.Player, t)}")));
+                        .Select(t => $"{t.Name} {TaskSystem.ProgressText(_grid, _econ, Team.Player, t)}"))));
                 }
 
                 if (city.Owner == Team.Player)
@@ -1467,7 +1480,7 @@ namespace TacticsECS
                             var r = reward;
                             options.Add(new ActionMenuOption
                             {
-                                Label = $"Lv{rewardLevel} 보상: {CitySystem.RewardName(r)}", Detail = CitySystem.RewardDescription(r), Enabled = true,
+                                Label = LocalizationSystem.F("UI.CityMenu.Reward", rewardLevel, CitySystem.RewardName(r)), Detail = CitySystem.RewardDescription(r), Enabled = true,
                                 OnClick = () => HandleReward(cityIndex, r)
                             });
                         }
@@ -1479,7 +1492,8 @@ namespace TacticsECS
                         var r = row;
                         options.Add(new ActionMenuOption
                         {
-                            Label = $"{row.Name} 훈련 (별 {row.Cost})", Detail = can ? $"체력 {row.MaxHp} · 공격 {row.AttackAttack} · 이동 {row.MoveRange}" : reason,
+                            Label = LocalizationSystem.F("UI.CityMenu.Train", row.Name, row.Cost),
+                            Detail = can ? LocalizationSystem.F("UI.CityMenu.TrainDetail", row.MaxHp, row.AttackAttack, row.MoveRange) : reason,
                             Enabled = can, OnClick = () => HandleTrain(cityIndex, r)
                         });
                     }
@@ -1488,20 +1502,21 @@ namespace TacticsECS
             else
             {
                 var cls = TileImprovementSystem.Classify(_grid, pos);
-                string owner = tile.OwnerTeam == (int)Team.Player ? "아군 영토" : tile.OwnerTeam == (int)Team.Enemy ? "적 영토" : "중립";
-                title = $"{TileClassName(cls)} ({pos.x}, {pos.y})";
+                string owner = LocalizationSystem.T(tile.OwnerTeam == (int)Team.Player ? "UI.TileMenu.AllyTerritory"
+                    : tile.OwnerTeam == (int)Team.Enemy ? "UI.TileMenu.EnemyTerritory" : "UI.TileMenu.Neutral");
+                title = LocalizationSystem.F("UI.TileMenu.Title", TileClassName(cls), pos.x, pos.y);
                 body.Append(owner);
                 var building = TileImprovementSystem.FindBuilding(tile.BuildingId);
                 if (building != null)
                 {
-                    body.Append($" · {building.Value.Name} (인구 {TileImprovementSystem.BuildingPopulation(_grid, pos)})");
+                    body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.Building", building.Value.Name, TileImprovementSystem.BuildingPopulation(_grid, pos)));
                     if (building.Value.IsTemple)
                     {
                         int level = ScoreSystem.TempleLevel(_econ.Turn, tile.BuildingTurn);
-                        body.Append($" · Lv {level} ({ScoreSystem.TemplePoints(level)}점)");
+                        body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.Temple", level, ScoreSystem.TemplePoints(level)));
                     }
                 }
-                if (tile.HasRoad) body.Append(" · 도로");
+                if (tile.HasRoad) body.Append(" · ").Append(LocalizationSystem.Name(ArrayTableCsvSerializer.BuildingStringTable, BuildingDefinition.Road));
             }
 
             foreach (var option in TileImprovementSystem.GetOptions(_grid, _econ, Team.Player, pos))
@@ -1509,7 +1524,7 @@ namespace TacticsECS
                 var o = option;
                 options.Add(new ActionMenuOption
                 {
-                    Label = o.Cost > 0 ? $"{o.Name} (별 {o.Cost})" : o.Name, Detail = o.Detail, Enabled = o.Enabled,
+                    Label = o.Cost > 0 ? LocalizationSystem.F("UI.TileMenu.OptionCost", o.Name, o.Cost) : o.Name, Detail = o.Detail, Enabled = o.Enabled,
                     OnClick = () => HandleTileOption(pos, o.Id)
                 });
             }
@@ -1532,11 +1547,11 @@ namespace TacticsECS
         {
             switch (cls)
             {
-                case TileClass.Forest: return "숲";
-                case TileClass.Mountain: return "산";
-                case TileClass.ShallowWater: return "얕은 물";
-                case TileClass.Ocean: return "깊은 바다";
-                default: return "평지";
+                case TileClass.Forest: return LocalizationSystem.T("UI.Tile.Forest");
+                case TileClass.Mountain: return LocalizationSystem.T("UI.Tile.Mountain");
+                case TileClass.ShallowWater: return LocalizationSystem.T("UI.Tile.ShallowWater");
+                case TileClass.Ocean: return LocalizationSystem.T("UI.Tile.Ocean");
+                default: return LocalizationSystem.T("UI.Tile.Field");
             }
         }
 
@@ -1548,16 +1563,16 @@ namespace TacticsECS
             var pos = _world.Get<GridPosition>(unitId).Value;
 
             if (CitySystem.CanCapture(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 정착지를 우리 도시로 만든다(턴 종료).", Enabled = true, OnClick = () => HandleCapture(unitId) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Capture"), Detail = LocalizationSystem.T("UI.UnitMenu.CaptureDetail"), Enabled = true, OnClick = () => HandleCapture(unitId) });
             else if (CitySystem.IsSettlementTile(_grid, pos) && !IsOwnCity(pos))
-                options.Add(new ActionMenuOption { Label = "점령", Detail = "이 칸에서 턴을 시작해야 점령할 수 있다.", Enabled = false });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Capture"), Detail = LocalizationSystem.T("UI.UnitMenu.CaptureWait"), Enabled = false });
 
             if (VeteranSystem.CanPromote(_world, unitId))
-                options.Add(new ActionMenuOption { Label = $"승급 (최대 체력 +{GameRules.Veteran.MaxHpBonus}, 완전 회복)", Detail = "베테랑이 된다(행동을 쓰지 않음).", Enabled = true, OnClick = () => HandlePromote(unitId) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Promote", GameRules.Veteran.MaxHpBonus), Detail = LocalizationSystem.T("UI.UnitMenu.PromoteDetail"), Enabled = true, OnClick = () => HandlePromote(unitId) });
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "별/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Explore"), Detail = LocalizationSystem.T("UI.UnitMenu.ExploreDetail"), Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"불가사리 인양 (별 +{GameRules.Starfish.Stars})", Detail = "이 유닛의 턴을 쓴다.", Enabled = true, OnClick = () => HandleStarfish(unitId) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Starfish", GameRules.Starfish.Stars), Detail = LocalizationSystem.T("UI.UnitMenu.StarfishDetail"), Enabled = true, OnClick = () => HandleStarfish(unitId) });
             if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
             {
                 foreach (var u in NavalUnitDefinition.Upgrades)
@@ -1567,28 +1582,37 @@ namespace TacticsECS
                     string navalId = u.Row.Id;
                     options.Add(new ActionMenuOption
                     {
-                        Label = $"{u.Row.Name}(으)로 업그레이드 (별 {u.Row.Cost})",
-                        Detail = can ? $"공격 {u.Row.AttackAttack} · 방어 {u.Row.Defense} · 이동 {u.Row.MoveRange} · 사거리 {u.Row.AttackRange}" : reason,
+                        Label = LocalizationSystem.F("UI.UnitMenu.Upgrade", u.Row.Name, u.Row.Cost),
+                        Detail = can ? LocalizationSystem.F("UI.UnitMenu.UpgradeDetail", u.Row.AttackAttack, u.Row.Defense, u.Row.MoveRange, u.Row.AttackRange) : reason,
                         Enabled = can, OnClick = () => HandleNavalUpgrade(unitId, navalId)
                     });
                 }
             }
 
             if (RuinSystem.CanDisband(_world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"해산 (별 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Disband", RuinSystem.DisbandRefund(_world, _econ, unitId)), Detail = LocalizationSystem.T("UI.UnitMenu.DisbandDetail"), Enabled = true, OnClick = () => HandleDisband(unitId) });
 
             int city = CitySystem.FindCityAt(_econ, pos);
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
-                options.Add(new ActionMenuOption { Label = "도시 관리", Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => FocusTile(pos) });
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.ManageCity"), Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => FocusTile(pos) });
 
             // 소속 도시(위키 City "Units will show which city they belong to").
             int home = CitySystem.HomeOf(_world, unitId);
-            string homeText = home >= 0 && home < _econ.Cities.Count ? $"소속: {_econ.Cities[home].Name}" : "소속 도시 없음";
-            homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · 베테랑"
+            string homeText = home >= 0 && home < _econ.Cities.Count ? LocalizationSystem.F("UI.UnitMenu.Home", _econ.Cities[home].Name) : LocalizationSystem.T("UI.UnitMenu.NoHome");
+            homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · " + LocalizationSystem.T("UI.UnitMenu.Veteran")
                 : VeteranSystem.CannotBePromoted(_world, unitId) ? string.Empty
-                : $" · 처치 {_world.GetOrDefault<Kills>(unitId).Value}/{GameRules.Veteran.KillsRequired}";
-            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : "유닛", homeText, options);
+                : " · " + LocalizationSystem.F("UI.UnitMenu.Kills", _world.GetOrDefault<Kills>(unitId).Value, GameRules.Veteran.KillsRequired);
+            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : LocalizationSystem.T("UI.Common.Unit"), homeText, options);
         }
+
+        /// <summary>다음 언어로 바꿔 저장하고 씬을 다시 연다 — 표 이름·프리팹 글자·이미 만든 도시 이름까지 한 번에 바뀌도록(진행 중 전투는 처음부터).</summary>
+        private void HandleLanguageClicked()
+        {
+            LanguagePreference.Save(LocalizationSystem.NextLanguage(StringTable.Language));
+            UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+        }
+
+        private static string TeamName(Team team) => LocalizationSystem.T(team == Team.Player ? "UI.Common.Player" : "UI.Common.Enemy");
 
         private void HandleNavalUpgrade(int unitId, string navalUnitId)
         {

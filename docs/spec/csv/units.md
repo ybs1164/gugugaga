@@ -10,13 +10,12 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 
 ## Units.csv — 육지 유닛
 파일: `Assets/Resources/Tables/Units.csv`
-한 행 = 유닛 종류 하나. 샌드박스에서 유닛 CSV를 불러오지 않으면 이 표가 전투에 쓰인다.
+한 행 = 유닛 종류 하나. 샌드박스에서 유닛 CSV를 불러오지 않으면 이 표가 전투에 쓰인다. 이름은 [번역 표](strings.md#키-규칙) `Unit.<Id>.Name`.
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `Index` | 정수 | O | | 배열 위치 |
 | `Id` | 문자열 | O | | 유닛 종류 키. 해금 키 `Unit.<Id>`, `GameRules.csv`의 `*UnitId`, 스프라이트 `Unit.<Id>`가 가리킨다 |
-| `Name` | 문자열 | | `Id` | 표시 이름 |
 | `MaxHp` | 정수 | O | 0 | 최대 체력 |
 | `Defense` | 실수 | O | 0 | 방어력(소수 허용 — 위키 원값 그대로) |
 | `BaseVisual` | 문자열 | O | | 스폰 프리팹 `Assets/Prefabs/Units/Unit_<BaseVisual>`. 스프라이트에 `Unit.<Id>`가 없으면 이 외형을 빌린다 |
@@ -36,14 +35,14 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 
 ## Boats.csv — 배
 파일: `Assets/Resources/Tables/Boats.csv`
-배는 도시에서 훈련하지 않는다 — [unit](../game/unit.md#배). 스탯 컬럼은 [Units.csv](#unitscsv--육지-유닛)와 같은 뜻이고(`Name`, `Defense`, `Action{n}`, `Move.Range`, `Attack.*`, `Heal.*`, `Cost`), `Domain`은 `Water`로 강제, `MaxHp`는 무시(태운 유닛의 체력).
+배는 도시에서 훈련하지 않는다 — [unit](../game/unit.md#배). 이름은 `Unit.<Id>.Name`(번역 표). 스탯 컬럼은 [Units.csv](#unitscsv--육지-유닛)와 같은 뜻이고(`Defense`, `Action{n}`, `Move.Range`, `Attack.*`, `Heal.*`, `Cost`), `Domain`은 `Water`로 강제, `MaxHp`는 무시(태운 유닛의 체력).
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `Index` | 정수 | O | | 배열 위치 |
 | `Id` | 문자열 | O | | 배 키. 해금 키 `Unit.<Id>`, 스프라이트 `Boat.<Id>`가 가리킨다 |
 | `Kind` | `Raft`/`Upgrade`/`Special` | O | `Special` | 아래 표 |
-| `Name`, `Defense`, `Action{n}`, `Move.Range`, `Attack.Attack`, `Attack.Range`, `Heal.Amount`, `Heal.Range`, `Cost` | | | | Units.csv와 같음. `Cost` = 뗏목에서 업그레이드하는 별 |
+| `Defense`, `Action{n}`, `Move.Range`, `Attack.Attack`, `Attack.Range`, `Heal.Amount`, `Heal.Range`, `Cost` | | | | Units.csv와 같음. `Cost` = 뗏목에서 업그레이드하는 별 |
 | `Note` | 메모 | | | 로더 무시 |
 
 | `Kind` | 뜻 |
@@ -59,7 +58,8 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
-| `Id`, `Name`, `MaxHp`, `Defense`, `BaseVisual`, `Action{n}`, `Domain`, `Move.Range`, `Attack.Attack`, `Attack.Range`, `Heal.Amount`, `Heal.Range`, `Cost`, `Trainable` | | | | Units.csv와 같음 |
+| `Id`, `MaxHp`, `Defense`, `BaseVisual`, `Action{n}`, `Domain`, `Move.Range`, `Attack.Attack`, `Attack.Range`, `Heal.Amount`, `Heal.Range`, `Cost`, `Trainable` | | | | Units.csv와 같음 |
+| `Name` | 문자열 | | `Id` | 표시 이름. `Unit.<Id>.Name` 번역이 있으면 그쪽이 앞선다 |
 | `Boat` | 배 Id | | 뗏목 | 자기 항구에 들어가면 바뀌는 배(`Boats.csv`의 `Special` 행 Id) |
 
 불러온 표에서도 종족 시작 유닛은 `Units.csv`의 그 Index 행과 같은 `Id`로 찾는다(없으면 빠진다).

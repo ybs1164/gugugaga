@@ -24,9 +24,10 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 - 좌클릭: 아군 선택 → 파란 칸 이동 / 빨간 칸 공격. 다른 칸·유닛은 정보 패널·건설 메뉴. 같은 칸을 다시 누르면 유닛 ↔ 칸 전환.
 - 우하단 버튼: 행동, 선택 해제, 턴 종료(마우스를 올리면 설명).
 - 카메라: `WASD`/방향키 이동, 휠 줌.
+- 우상단 언어 버튼: 한국어 ↔ English(화면을 다시 연다) — [번역 표](docs/spec/csv/strings.md).
 
 ## 샌드박스
-1. **불러오기 / 내보내기**: [유닛 CSV](docs/spec/csv/units.md). **바이옴 불러오기**: [바이옴 CSV](docs/spec/csv/biomes.md). **기술 불러오기·내보내기**: [기술 단일 파일](docs/spec/csv/tech.md#techtreecsv--샌드박스-단일-파일-형식).
+1. **불러오기 / 내보내기**: [샌드박스 유닛 CSV](docs/spec/csv/units.md#샌드박스-유닛-csv)(불러오지 않으면 기본 [Units.csv](docs/spec/csv/units.md#unitscsv--육지-유닛)). **바이옴 불러오기**: [바이옴 CSV](docs/spec/csv/biomes.md). **기술 불러오기·내보내기**: [기술 단일 파일](docs/spec/csv/tech.md#techtreecsv--샌드박스-단일-파일-형식).
 2. **맵 크기**, **습도 탭**: 맵 타입·물 비율 → 1차 지형 생성 → 바이옴·종족(아군/적) 선택 → **지형 생성**. 같은 땅 모양에 바이옴만 바꿔 다시 채울 수 있다.
 3. 팔레트에서 유닛·팀을 골라 칸 클릭으로 배치(다시 클릭하면 제거) → **전투 시작** → **다시 시작**으로 복귀.
 

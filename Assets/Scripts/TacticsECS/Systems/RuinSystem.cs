@@ -43,7 +43,7 @@ namespace TacticsECS
             var res = econ.Resources[team];
             res.Stars += GameRules.Starfish.Stars;
             econ.Resources[team] = res;
-            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Action, Subject = $"불가사리 인양 (별 +{GameRules.Starfish.Stars})", Position = pos, CityIndex = -1 });
+            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Action, Subject = LocalizationSystem.F("UI.Event.Starfish", GameRules.Starfish.Stars), Position = pos, CityIndex = -1 });
             return true;
         }
 
@@ -83,22 +83,22 @@ namespace TacticsECS
                 {
                     var pick = techCandidates[CitySystem.NextRandom(econ, techCandidates.Count)];
                     econ.Tech[team].Unlocked.Add(pick.Id);
-                    entry.Subject = $"기술 {pick.Name}";
+                    entry.Subject = LocalizationSystem.F("UI.Event.RuinTech", pick.Name);
                     break;
                 }
                 case RuinReward.Population:
-                    entry.Subject = $"인구 +{GameRules.Ruin.Population} ({econ.Cities[capital].Name})";
+                    entry.Subject = LocalizationSystem.F("UI.Event.RuinPopulation", GameRules.Ruin.Population, econ.Cities[capital].Name);
                     entry.CityIndex = capital;
                     log?.Add(entry);
                     CitySystem.AddPopulation(econ, capital, GameRules.Ruin.Population, log);
                     return true;
                 case RuinReward.Explorer:
-                    entry.Subject = "탐험가";
+                    entry.Subject = LocalizationSystem.T("UI.Event.RuinExplorer");
                     log?.Add(entry);
                     VisionSystem.RunExplorer(grid, econ, team, pos, log);
                     return true;
                 case RuinReward.Unit:
-                    entry.Subject = !friendKnown ? "유닛" : seaRuin ? "베테랑 충각선" : "새 친구(베테랑)";
+                    entry.Subject = LocalizationSystem.T(!friendKnown ? "UI.Event.RuinUnit" : seaRuin ? "UI.Event.RuinVeteranRammer" : "UI.Event.RuinNewFriend");
                     entry.SpawnUnitId = unit;
                     entry.SpawnVeteran = friendKnown;
                     if (friendKnown && seaRuin) entry.SpawnBoatId = GameRules.Ruin.SeaBoatId;
@@ -108,7 +108,7 @@ namespace TacticsECS
                     var res = econ.Resources[team];
                     res.Stars += GameRules.Ruin.Stars;
                     econ.Resources[team] = res;
-                    entry.Subject = $"별 +{GameRules.Ruin.Stars}";
+                    entry.Subject = LocalizationSystem.F("UI.Event.Stars", GameRules.Ruin.Stars);
                     break;
                 }
             }
@@ -162,7 +162,7 @@ namespace TacticsECS
             var res = econ.Resources[team];
             res.Stars += refund;
             econ.Resources[team] = res;
-            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Disband, Subject = $"별 +{refund}", Position = pos, CityIndex = -1 });
+            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Disband, Subject = LocalizationSystem.F("UI.Event.Stars", refund), Position = pos, CityIndex = -1 });
             return true;
         }
     }

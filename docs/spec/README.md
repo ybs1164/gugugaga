@@ -9,6 +9,7 @@
 | 정보 | 유일한 위치 | 다른 문서에서는 |
 |---|---|---|
 | 수치(비용·스탯·상수·확률) | CSV 셀 (`Assets/Resources/**.csv`) | 키·컬럼 이름만 적는다. 숫자를 옮겨 적지 않는다 |
+| 화면에 보이는 문자열(이름·설명·버튼·안내) | [`Strings.csv`](csv/strings.md) | 키만 적는다. 코드·데이터 표에 문구를 두지 않는다 |
 | 컬럼의 뜻·타입·기본값·허용값 | [`csv/<표>.md`](csv/) | 링크 |
 | CSV 공통 형식(읽기 규칙, 반복 컬럼, Index) | [`csv-common.md`](csv-common.md) | 링크 |
 | 게임 규칙(플레이어가 겪는 동작) | [`game/<요소>.md`](game/) | 링크 |
@@ -43,6 +44,7 @@
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
 | AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI` |
 | 화면 표시 | — | [sprites](csv/sprites.md) | `View/PixelSpriteCatalog` |
+| 화면 문구·언어 | — | [strings](csv/strings.md) | `LocalizationSystem`, `View/LanguagePreference` |
 
 ## 검증
 

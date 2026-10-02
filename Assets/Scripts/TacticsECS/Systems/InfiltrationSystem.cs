@@ -100,7 +100,7 @@ namespace TacticsECS
             log?.Add(new EconomyLogEntry
             {
                 Team = team, Kind = EconomyLogKind.Action, Position = cityPos, CityIndex = cityIndex,
-                Subject = $"{city.Name} 침투 — Dagger {made}기, 별 +{stolen}"
+                Subject = LocalizationSystem.F("UI.Event.Infiltration", city.Name, LocalizationSystem.Name(UnitCsvSerializer.UnitStringTable, GameRules.Infiltration.DaggerUnitId), made, stolen)
             });
             return true;
         }

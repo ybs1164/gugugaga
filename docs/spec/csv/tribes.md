@@ -13,9 +13,7 @@ StartConditions     ◄── Tribes.StartConditionIndex
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `Index` | 정수 | O | | 배열 위치 |
-| `Id` | 문자열 | O | | 종족 이름표 |
-| `Name` | 문자열 | | `Id` | 표시 이름 |
-| `Description` | 문자열 | | | 설명 |
+| `Id` | 문자열 | O | | 종족 이름표. 이름·설명은 [번역 표](strings.md#키-규칙) `Tribe.<Id>.Name`/`.Desc` |
 | `BiomeIndex` | 바이옴 Index | | -1 | 종족 영역을 채울 바이옴([biomes](biomes.md)의 `Biome` 행 순서). 범위 밖이면 0번 |
 | `TechGroupIndex` | [TechGroups](tech.md#techgroupscsv--종족별-기술-묶음) Index | | -1 | 연구 가능한 기술 묶음 |
 | `StartTech{n}` | [Techs](tech.md#techscsv--기술) Index | | 없음 | 처음부터 해금된 기술 |
@@ -30,9 +28,7 @@ StartConditions     ◄── Tribes.StartConditionIndex
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `Index` | 정수 | O | | 배열 위치 |
-| `Id` | 문자열 | O | | 이름표 |
-| `Name` | 문자열 | | `Id` | 표시 이름 |
-| `Description` | 문자열 | | | 설명 |
+| `Id` | 문자열 | O | | 이름표. 이름·설명은 [번역 표](strings.md#키-규칙) `StartCondition.<Id>.Name`/`.Desc` |
 | `Rule{n}` | StartConditionRules Index | | | 적힌 순서대로 적용할 규칙 |
 | `Note` | 메모 | | | 로더 무시 |
 
@@ -52,5 +48,5 @@ StartConditions     ◄── Tribes.StartConditionIndex
 | `MaxDistance` | 정수 | | 1 | 거리 상한 |
 | `MapType` | 맵 타입 이름 | | 항상 | 이 맵 타입에서만 적용 — [map](../game/map.md#맵-타입) |
 | `AllowedTile{n}` | TileTypeId | | | Tile: 바꿔도 되는 원래 타일(비우면 도시가 아닌 아무 육지) / Structure: 놓일 수 있는 타일 |
-| `Description` | 문자열 | | | 설명 |
+| `Description` | 메모 | | | 설계용 설명(화면에 나오지 않는다) |
 | `Note` | 메모 | | | 로더 무시 |

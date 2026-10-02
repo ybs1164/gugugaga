@@ -108,7 +108,7 @@ namespace TacticsECS
                     tasks.LighthousesFound.Add(p);
                     int city = CitySystem.FindCapital(econ, team);
                     if (city < 0) city = OldestCity(econ, team);
-                    log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Discover, Subject = "등대 발견", Position = p, CityIndex = city });
+                    log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Discover, Subject = LocalizationSystem.T("UI.Event.Lighthouse"), Position = p, CityIndex = city });
                     if (city >= 0) CitySystem.AddPopulation(econ, city, GameRules.Vision.LighthousePopulation, log);
                 }
             }

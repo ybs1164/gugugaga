@@ -49,36 +49,40 @@ namespace TacticsECS.EditorTools
         private static readonly Color ButtonIdle = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color PassiveBadgeBg = new Color(0.42f, 0.24f, 0.55f, 0.95f);
 
-        /// <summary>BattleHud의 패시브 배지 표(아이콘/툴팁). BattleHud.cs의 같은 이름 표와 값이 어긋나면
-        /// 배지가 안 만들어지거나 툴팁이 틀어지므로, 패시브를 추가할 땐 두 곳 다 갱신해야 한다.</summary>
-        private static readonly (ActionType Flag, string Icon, string Tooltip)[] PassiveDefs =
+        /// <summary>BattleHud의 패시브 배지 표(아이콘). BattleHud.cs의 같은 이름 표와 값이 어긋나면
+        /// 배지가 안 만들어지므로, 패시브를 추가할 땐 두 곳 다 갱신해야 한다. 툴팁 문구는 번역 표(BattleHud.ActionTooltip).</summary>
+        private static readonly (ActionType Flag, string Icon)[] PassiveDefs =
         {
-            (ActionType.Counter, "counter", "반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다."),
-            (ActionType.Charge, "charge", "돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다."),
-            (ActionType.Retreat, "retreat", "대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다."),
-            (ActionType.Ambush, "ambush", "기습(패시브): 공격 시 대상의 반격을 발동시키지 않습니다."),
-            (ActionType.Infiltrate, "infiltrate", "잠입(패시브): 적 유닛에 의한 이동 방해 페널티가 없습니다."),
-            (ActionType.Herd, "herd", "무리(패시브): 주변 1블록 내 아군에게 가속을 부여합니다(이동 거리 +1, 피격 시 해제)."),
-            (ActionType.Convert, "convert", "전향(패시브): 공격한 적 유닛을 아군으로 전환합니다."),
-            (ActionType.Combo, "combo", "연타(패시브): 적을 처치하면 같은 턴에 추가로 공격할 수 있습니다."),
-            (ActionType.Scout, "scout", "정찰(패시브): 시야 +1."),
-            (ActionType.Splash, "splash", "스플래시(패시브): 공격한 대상 주변 1블록 내 적 유닛들에게도 광역 피해를 입힙니다."),
-            (ActionType.Stiff, "stiff", "뻣뻣함(패시브): 공격받으면 반격을 갖고 있어도 발동시키지 않습니다."),
-            (ActionType.Freeze, "freeze", "빙결(패시브): 공격 시 대상을 다음 턴 동안 행동불능으로 만듭니다."),
+            (ActionType.Counter, "counter"),
+            (ActionType.Charge, "charge"),
+            (ActionType.Retreat, "retreat"),
+            (ActionType.Ambush, "ambush"),
+            (ActionType.Infiltrate, "infiltrate"),
+            (ActionType.Herd, "herd"),
+            (ActionType.Convert, "convert"),
+            (ActionType.Combo, "combo"),
+            (ActionType.Scout, "scout"),
+            (ActionType.Splash, "splash"),
+            (ActionType.Stiff, "stiff"),
+            (ActionType.Freeze, "freeze"),
         };
 
         /// <summary>BattleHud의 선택적 행동 버튼 표. BattleHud.cs의 같은 이름 표와 값이 어긋나면 버튼
         /// 이름(Find 경로)이 안 맞아 WireActionButtons가 실패한다.</summary>
-        private static readonly (ActionType Flag, string Icon, string Tooltip)[] OptionalActionDefs =
+        private static readonly (ActionType Flag, string Icon)[] OptionalActionDefs =
         {
-            (ActionType.Defend, "guard", "방어 태세: 받는 피해를 줄입니다. (방어력 +" + GameRules.Combat.GuardDefenseBonus + ")"),
-            (ActionType.Heal, "heal", "치유: 사거리 내의 모든 아군 유닛(자신 제외)의 체력을 회복시킵니다."),
-            (ActionType.SelfDestruct, "selfdestruct", "자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다."),
-            (ActionType.Wait, "hp", "대기: 이번 턴 행동을 종료하고 체력을 2(자기 영토 4) 회복합니다."),
+            (ActionType.Defend, "guard"),
+            (ActionType.Heal, "heal"),
+            (ActionType.SelfDestruct, "selfdestruct"),
+            (ActionType.Wait, "hp"),
         };
+
+        /// <summary>프리팹에 구울 글자 — 번역 표 원문(ko). 실행 중에는 각 HUD가 지금 언어로 다시 채운다.</summary>
+        private static string Src(string key) => LocalizationSystem.Source(key);
 
         public static void GenerateAll()
         {
+            GameDataLoader.LoadStrings(new System.Collections.Generic.List<string>());
             // Assets/Fonts에 새로 추가된 폰트 파일을 이번 배치 실행에서 바로 인식하게 한다(폴더 생성보다 먼저).
             AssetDatabase.Refresh();
 
@@ -415,7 +419,7 @@ namespace TacticsECS.EditorTools
             // 다음 top(-168)이 곧 패시브 배지 줄 위치다 — BattleHud.PassiveRowTop 상수와 값이 같아야 한다.
             top -= rowH;
             foreach (var def in PassiveDefs)
-                CreatePassiveBadgePlaceholder(panel, def.Icon, def.Tooltip);
+                CreatePassiveBadgePlaceholder(panel, def.Icon, BattleHud.ActionTooltip(def.Flag));
         }
 
         /// <summary>구조물 정보 패널(이름 + 설명 한두 줄) — BattleHud(전투 중, 타일 클릭)와 SandboxHud
@@ -492,12 +496,12 @@ namespace TacticsECS.EditorTools
 
         private static void BuildActionButtons(Transform root)
         {
-            CreateIconButton(root, "EndTurnButton", new Vector2(-16f, 16f), ButtonIdle, "턴 종료: 현재 팀의 턴을 마칩니다.");
+            CreateIconButton(root, "EndTurnButton", new Vector2(-16f, 16f), ButtonIdle, Src("UI.Battle.EndTurnTooltip"));
 
             foreach (var def in OptionalActionDefs)
-                CreateIconButton(root, def.Flag + "Button", Vector2.zero, ButtonIdle, def.Tooltip);
+                CreateIconButton(root, def.Flag + "Button", Vector2.zero, ButtonIdle, BattleHud.ActionTooltip(def.Flag));
 
-            CreateIconButton(root, "DeselectButton", Vector2.zero, ButtonIdle, "선택 해제: 유닛 선택을 취소합니다.");
+            CreateIconButton(root, "DeselectButton", Vector2.zero, ButtonIdle, Src("UI.Battle.DeselectTooltip"));
         }
 
         private static void CreateIconButton(Transform root, string name, Vector2 anchoredPosFromBottomRight, Color bg, string tooltip)
@@ -596,7 +600,7 @@ namespace TacticsECS.EditorTools
             restartLabel.fontSize = 18;
             restartLabel.alignment = TextAnchor.MiddleCenter;
             restartLabel.color = Color.white;
-            restartLabel.text = "다시 시작";
+            restartLabel.text = Src("UI.Battle.Restart");
 
             panel.gameObject.SetActive(false);
         }
@@ -638,16 +642,17 @@ namespace TacticsECS.EditorTools
             CreatePanelImage(panel, SandboxPanelBackground);
 
             float halfWidth = (SandboxPanelWidth - 24f) / 2f;
-            CreateTextButtonPlaceholder(font, panel, "불러오기", new Vector2(8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "내보내기", new Vector2(8f + halfWidth + 8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "플레이어", new Vector2(8f, -44f), new Vector2(halfWidth, 28f), PlayerAccent);
-            CreateTextButtonPlaceholder(font, panel, "적", new Vector2(8f + halfWidth + 8f, -44f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "맵크기", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "습도", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술불러오기", new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술내보내기", new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "지형생성", new Vector2(8f, -188f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            // 첫 인자는 계층 이름(SandboxHud가 이 이름 + "Button"으로 찾는다 — 바꾸지 않는다), 둘째는 구울 글자.
+            CreateTextButtonPlaceholder(font, panel, "불러오기", Src("UI.SandboxHud.Load"), new Vector2(8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "내보내기", Src("UI.SandboxHud.Export"), new Vector2(8f + halfWidth + 8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "플레이어", Src("UI.SandboxHud.Player"), new Vector2(8f, -44f), new Vector2(halfWidth, 28f), PlayerAccent);
+            CreateTextButtonPlaceholder(font, panel, "적", Src("UI.SandboxHud.Enemy"), new Vector2(8f + halfWidth + 8f, -44f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", Src("UI.SandboxHud.LoadBiomes"), new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "맵크기", "", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "습도", "", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.LoadTech"), new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ExportTech"), new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -188f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
@@ -680,23 +685,23 @@ namespace TacticsECS.EditorTools
             panel.sizeDelta = new Vector2(GenerationTabWidth, 318f);
             CreatePanelImage(panel, SandboxPanelBackground);
 
-            CreateLabel(font, panel, "Title", "습도 탭 — 1차 지형 · 바이옴 · 종족", new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
+            CreateLabel(font, panel, "Title", Src("UI.SandboxHud.TabTitle"), new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
 
             float labelW = 76f, controlX = 8f + labelW + 4f, controlW = GenerationTabWidth - controlX - 8f;
-            CreateLabel(font, panel, "MapTypeLabel", "맵 타입", new Vector2(8f, -34f), new Vector2(labelW, 26f), 14);
+            CreateLabel(font, panel, "MapTypeLabel", Src("UI.SandboxHud.MapType"), new Vector2(8f, -34f), new Vector2(labelW, 26f), 14);
             CreateDropdown(font, panel, "MapTypeDropdown", new Vector2(controlX, -34f), new Vector2(controlW, 26f));
 
-            CreateLabel(font, panel, "WaterLabel", "물 비율", new Vector2(8f, -68f), new Vector2(labelW, 26f), 14);
+            CreateLabel(font, panel, "WaterLabel", Src("UI.SandboxHud.Water"), new Vector2(8f, -68f), new Vector2(labelW, 26f), 14);
             CreateSlider(panel, "WaterSlider", new Vector2(controlX, -73f), new Vector2(controlW - 50f, 16f));
             CreateLabel(font, panel, "WaterValue", "55%", new Vector2(GenerationTabWidth - 52f, -68f), new Vector2(44f, 26f), 14);
 
-            CreateTextButtonPlaceholder(font, panel, "1차지형생성", new Vector2(8f, -102f), new Vector2(GenerationTabWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "1차지형생성", Src("UI.SandboxHud.GenerateOutline"), new Vector2(8f, -102f), new Vector2(GenerationTabWidth - 16f, 28f), ButtonIdle);
 
-            CreateLabel(font, panel, "BiomeLabel", "바이옴", new Vector2(8f, -140f), new Vector2(labelW, 26f), 14);
+            CreateLabel(font, panel, "BiomeLabel", Src("UI.SandboxHud.Biome"), new Vector2(8f, -140f), new Vector2(labelW, 26f), 14);
             CreateDropdown(font, panel, "BiomeDropdown", new Vector2(controlX, -140f), new Vector2(controlW, 26f));
-            CreateLabel(font, panel, "PlayerTribeLabel", "종족(아군)", new Vector2(8f, -174f), new Vector2(labelW, 26f), 14);
+            CreateLabel(font, panel, "PlayerTribeLabel", Src("UI.SandboxHud.PlayerTribe"), new Vector2(8f, -174f), new Vector2(labelW, 26f), 14);
             CreateDropdown(font, panel, "PlayerTribeDropdown", new Vector2(controlX, -174f), new Vector2(controlW, 26f));
-            CreateLabel(font, panel, "EnemyTribeLabel", "종족(적)", new Vector2(8f, -208f), new Vector2(labelW, 26f), 14);
+            CreateLabel(font, panel, "EnemyTribeLabel", Src("UI.SandboxHud.EnemyTribe"), new Vector2(8f, -208f), new Vector2(labelW, 26f), 14);
             CreateDropdown(font, panel, "EnemyTribeDropdown", new Vector2(controlX, -208f), new Vector2(controlW, 26f));
 
             var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -242f), new Vector2(GenerationTabWidth - 16f, 70f), 12);
@@ -780,9 +785,9 @@ namespace TacticsECS.EditorTools
             slider.value = 0.55f;
         }
 
-        private static void CreateTextButtonPlaceholder(Font font, Transform parent, string label, Vector2 anchoredPos, Vector2 size, Color bg)
+        private static void CreateTextButtonPlaceholder(Font font, Transform parent, string name, string label, Vector2 anchoredPos, Vector2 size, Color bg)
         {
-            var rect = CreateRect(label + "Button", parent);
+            var rect = CreateRect(name + "Button", parent);
             rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.sizeDelta = size;
@@ -902,17 +907,13 @@ namespace TacticsECS.EditorTools
             text.fontSize = 18;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = "전투 시작";
+            text.text = Src("UI.SandboxHud.StartBattle");
         }
 
         // ---------- CityResourceBar (도시 별/인구/별, 재사용 가능한 독립 프리팹) ----------
 
-        /// <summary>표시 순서 + 툴팁 문구. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
-        private static readonly (string Name, string Tooltip)[] CityResourceDefs =
-        {
-            ("Stars", "별: 기술 연구·건설·채집·유닛 훈련에 함께 쓰는 재화. 도시 레벨·수도·공방·공원·시장에서 매 턴 생산됩니다."),
-            ("Population", "유닛 수 / 유닛 수용량(도시마다 레벨 + 1)."),
-        };
+        /// <summary>표시 순서. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
+        private static readonly string[] CityResourceDefs = { "Stars", "Population" };
 
         private const float CityResourceSlotWidth = 140f;
         private const float CityResourceBarHeight = 40f;
@@ -920,6 +921,7 @@ namespace TacticsECS.EditorTools
         /// <summary>다른 프리팹/씬을 변경하지 않고 통합 자원 바를 생성한 뒤 기존 검증을 실행한다(Unity CLI 전용).</summary>
         public static void GenerateCityResourceBarAndVerify()
         {
+            GameDataLoader.LoadStrings(new System.Collections.Generic.List<string>());
             GenerateCityResourceBar(LoadUiFont());
             AssetDatabase.SaveAssets();
             VerificationSuite.Run();
@@ -958,16 +960,16 @@ namespace TacticsECS.EditorTools
             for (int i = 0; i < CityResourceDefs.Length; i++)
             {
                 var def = CityResourceDefs[i];
-                var slot = CreateRect(def.Name, bar);
+                var slot = CreateRect(def, bar);
                 slot.anchorMin = slot.anchorMax = new Vector2(0f, 0.5f);
                 slot.pivot = new Vector2(0f, 0.5f);
                 slot.sizeDelta = new Vector2(CityResourceSlotWidth, CityResourceBarHeight);
                 slot.anchoredPosition = new Vector2(i * CityResourceSlotWidth, 0f);
 
-                if (def.Name == "Stars")
+                if (def == "Stars")
                 {
                     var label = CreateNumberText(font, "Icon", slot, new Vector2(8f, -10f), new Vector2(24f, 20f));
-                    label.text = "별";
+                    label.text = Src("UI.CityResource.StarsIcon");
                     label.color = new Color(0.95f, 0.80f, 0.25f);
                     label.fontSize = 18;
                 }
@@ -1035,7 +1037,7 @@ namespace TacticsECS.EditorTools
             text.fontSize = 15;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = "기술트리";
+            text.text = Src("UI.TechTree.Toggle");
         }
 
         private static RectTransform BuildTechTreeContent(Font font, Transform root)
@@ -1147,7 +1149,7 @@ namespace TacticsECS.EditorTools
             unlockLabel.fontSize = 15;
             unlockLabel.alignment = TextAnchor.MiddleCenter;
             unlockLabel.color = Color.white;
-            unlockLabel.text = "해금";
+            unlockLabel.text = Src("UI.TechTree.Unlock");
         }
 
         // ---------- 공용 빌딩 블록 ----------

@@ -8,9 +8,7 @@
 |---|---|---|---|---|
 | `Level` | 정수 | O | 2 | 이 레벨에 도달하면 고를 수 있음 |
 | `Reward` | 아래 표 | O | `Resources` | 보상 종류(효과는 코드 `CitySystem.ApplyReward`) |
-| `Name` | 문자열 | | `Reward` | 표시 이름 |
 | `Amount` | 정수 | | 0 | 보상 크기 — 뜻은 종류마다 아래 표 |
-| `Description` | 문자열 | | | 설명 |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |
 
 ## Reward

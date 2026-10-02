@@ -17,6 +17,7 @@ namespace TacticsECS
         public static List<string> LoadAll()
         {
             var errors = new List<string>();
+            LoadStrings(errors); // 다른 표의 이름/설명이 번역 표를 조회하므로 가장 먼저
             TileActionDefinition.All = GameTableCsvSerializer.ParseTileActions(Read(TileActionDefinition.CsvResourcePath, errors), errors);
             CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors), errors);
             TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors), errors);
@@ -49,6 +50,24 @@ namespace TacticsECS
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors), errors);
             errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(biomeCount: LoadDefaultBiomes().Count));
+        }
+
+        /// <summary>번역 표(Strings.csv)의 StringTable.Language 열을 올리고, 코드에 있는 구조물 표의 이름/설명을 채운다.
+        /// 언어를 바꾸면 LoadAll을 다시 불러야 표의 이름이 바뀐다.</summary>
+        public static void LoadStrings(List<string> errors)
+        {
+            var values = StringTableCsvSerializer.Parse(Read(StringTable.CsvResourcePath, errors), StringTable.Language, errors);
+            if (values.Language != null) StringTable.Language = values.Language;
+            StringTable.Languages = values.Languages.Length > 0 ? values.Languages : new[] { StringTable.SourceLanguage };
+            StringTable.Current = values.Current;
+            StringTable.Source = values.Source;
+            StringTable.LanguageNames = values.LanguageNames;
+            for (int i = 0; i < StructureDefinition.All.Length; i++)
+            {
+                string id = StructureDefinition.All[i].Id;
+                StructureDefinition.All[i].Name = LocalizationSystem.Name(StructureDefinition.StringTable, id);
+                StructureDefinition.All[i].Description = LocalizationSystem.Desc(StructureDefinition.StringTable, id);
+            }
         }
 
         /// <summary>기본 바이옴 표(Assets/Resources/Tables/Biomes.csv). 없으면 빈 목록.</summary>

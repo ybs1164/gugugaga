@@ -105,7 +105,7 @@ namespace TacticsECS
                 {
                     if (p.Completed.Contains(task.Id) || !IsUnlocked(econ, team, task) || !IsMet(grid, econ, team, task)) continue;
                     p.Completed.Add(task.Id);
-                    log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Task, Subject = $"{task.Name} ({MonumentName(task.Id)} 건설 가능)", CityIndex = -1 });
+                    log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Task, Subject = LocalizationSystem.F("UI.Event.TaskDone", task.Name, MonumentName(task.Id)), CityIndex = -1 });
                 }
             }
         }
@@ -129,10 +129,10 @@ namespace TacticsECS
         public static string ProgressText(GridWorld grid, EconomyWorld econ, Team team, TaskInfo task)
         {
             var p = econ.Tasks[team];
-            if (p.Completed.Contains(task.Id)) return p.MonumentsBuilt.Contains(task.Id) ? "완료(건설함)" : "달성";
+            if (p.Completed.Contains(task.Id)) return LocalizationSystem.T(p.MonumentsBuilt.Contains(task.Id) ? "UI.Task.Built" : "UI.Task.Achieved");
             switch (task.Kind)
             {
-                case TaskKind.TurnsWithoutAttack: return $"{p.TurnsWithoutAttack}/{task.Threshold}턴";
+                case TaskKind.TurnsWithoutAttack: return LocalizationSystem.F("UI.Task.Turns", p.TurnsWithoutAttack, task.Threshold);
                 case TaskKind.StarsHeld: return $"{econ.Resources[team].Stars}/{task.Threshold}";
                 case TaskKind.Kills: return $"{p.Kills}/{task.Threshold}";
                 case TaskKind.AllLighthouses: return $"{p.LighthousesFound.Count}/{VisionSystem.LighthousePositions(grid).Count}";

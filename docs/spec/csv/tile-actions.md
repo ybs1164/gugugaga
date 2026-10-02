@@ -6,7 +6,6 @@
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `Id` | 문자열 | O | | 행동 키 |
-| `Name` | 문자열 | | `Id` | 표시 이름 |
 | `Kind` | 아래 표 | O | `Harvest` | 효과 종류(효과 자체는 코드) |
 | `Unlock` | 해금 키 | | 없음 | [tech](tech.md#해금-키) |
 | `Cost` | 정수 | | 0 | 별 |
@@ -14,7 +13,6 @@
 | `RequiredStructure{n}` | StructureId | | 없음 | `Harvest`는 이 중 하나가 칸에 있어야 하고 소모한다 |
 | `Population` | 정수 | | 0 | 주인 도시 인구 증가 |
 | `StarsGain` | 정수 | | 0 | 즉시 얻는 별 |
-| `Description` | 문자열 | | | 메뉴 설명 |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |
 
 옛 한 칸 목록 `RequiredStructures`도 읽는다.

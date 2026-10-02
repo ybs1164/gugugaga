@@ -70,6 +70,7 @@ namespace TacticsECS
             _nodes = nodes ?? new List<TechNodeData>();
 
             var toggleButton = canvas.Find("ToggleButton").GetComponent<Button>();
+            toggleButton.transform.Find("Label").GetComponent<Text>().text = LocalizationSystem.T("UI.TechTree.Toggle");
             _panel = canvas.Find("Panel").gameObject;
             toggleButton.onClick.AddListener(TogglePanel);
 
@@ -257,39 +258,39 @@ namespace TacticsECS
             var found = TechSystem.Find(_nodes, _selectedId);
             if (found == null || !_hasState)
             {
-                _detailName.text = "기술을 선택하세요.";
+                _detailName.text = LocalizationSystem.T("UI.TechTree.Select");
                 _detailEffect.text = string.Empty;
                 _detailStatus.text = string.Empty;
                 _unlockButton.interactable = false;
-                _unlockLabel.text = "해금";
+                _unlockLabel.text = LocalizationSystem.T("UI.TechTree.Unlock");
                 return;
             }
 
             var node = found.Value;
             int cost = TechSystem.Cost(_nodes, _tech, node, _cityCount);
-            _detailName.text = $"{node.Name} ({node.Tier}티어)";
+            _detailName.text = LocalizationSystem.F("UI.TechTree.Title", node.Name, node.Tier);
             _detailEffect.text = node.Effect;
-            _unlockLabel.text = $"해금 ({cost})";
+            _unlockLabel.text = LocalizationSystem.F("UI.TechTree.UnlockCost", cost);
 
             if (TechSystem.IsUnlocked(_tech, node.Id))
             {
-                _detailStatus.text = "해금 완료";
+                _detailStatus.text = LocalizationSystem.T("UI.TechTree.Unlocked");
                 _unlockButton.interactable = false;
             }
             else if (!TechSystem.IsAvailable(_nodes, _tech, node.Id))
             {
                 var parent = TechSystem.Find(_nodes, node.ParentId);
-                _detailStatus.text = parent != null ? $"선행 기술 필요: {parent.Value.Name}" : "선행 기술 필요";
+                _detailStatus.text = parent != null ? LocalizationSystem.F("UI.TechTree.NeedsParentOf", parent.Value.Name) : LocalizationSystem.T("UI.TechTree.NeedsParent");
                 _unlockButton.interactable = false;
             }
             else if (_resources.Stars < cost)
             {
-                _detailStatus.text = $"별 부족 ({_resources.Stars}/{cost})";
+                _detailStatus.text = LocalizationSystem.F("UI.TechTree.NotEnoughStars", _resources.Stars, cost);
                 _unlockButton.interactable = false;
             }
             else
             {
-                _detailStatus.text = "해금 가능";
+                _detailStatus.text = LocalizationSystem.T("UI.TechTree.Available");
                 _unlockButton.interactable = true;
             }
         }

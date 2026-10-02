@@ -239,7 +239,7 @@ namespace TacticsECS
                     grid.SetStructure(best.Value, StructureGenerationSystem.CapitalStructureId);
                 }
 
-                FoundCity(grid, econ, best.Value, team, true, team == Team.Player ? "아군 수도" : "적 수도");
+                FoundCity(grid, econ, best.Value, team, true, LocalizationSystem.T(team == Team.Player ? "UI.Common.AllyCapital" : "UI.Common.EnemyCapital"));
                 VisionSystem.Reveal(grid, team, best.Value, GameRules.Vision.StartRevealRadius); // 시작 시 수도 주변 5x5
             }
             AssignUnitsToCapital(world, econ);
@@ -267,7 +267,7 @@ namespace TacticsECS
             int index = FindCityAt(econ, pos);
             if (index < 0)
             {
-                index = FoundCity(grid, econ, pos, team, false, $"도시 {econ.Cities.Count + 1}");
+                index = FoundCity(grid, econ, pos, team, false, LocalizationSystem.F("UI.City.Default", econ.Cities.Count + 1));
             }
             else
             {
@@ -548,13 +548,13 @@ namespace TacticsECS
         {
             reason = string.Empty;
             var city = econ.Cities[cityIndex];
-            if (city.Owner != team) { reason = "우리 도시가 아님"; return false; }
-            if (!IsTrainable(row)) { reason = "훈련 불가(보상/침투 전용)"; return false; }
-            if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = "기술 필요"; return false; }
-            if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
+            if (city.Owner != team) { reason = LocalizationSystem.T("UI.Reason.NotOurCity"); return false; }
+            if (!IsTrainable(row)) { reason = LocalizationSystem.T("UI.Reason.NotTrainable"); return false; }
+            if (!TechSystem.CanTrainUnitType(econ.TechNodes, econ.Tech[team], row.Id)) { reason = LocalizationSystem.T("UI.Reason.NeedsTech"); return false; }
+            if (grid.IsOccupied(city.Position)) { reason = LocalizationSystem.T("UI.Reason.CityTileOccupied"); return false; }
             int supported = SupportedUnits(world, cityIndex), capacity = CityCapacity(city);
-            if (supported >= capacity) { reason = $"유닛 수용량 ({supported}/{capacity})"; return false; }
-            if (econ.Resources[team].Stars < row.Cost) { reason = $"별 부족 ({econ.Resources[team].Stars}/{row.Cost})"; return false; }
+            if (supported >= capacity) { reason = LocalizationSystem.F("UI.Reason.UnitCapacity", supported, capacity); return false; }
+            if (econ.Resources[team].Stars < row.Cost) { reason = LocalizationSystem.F("UI.Reason.NotEnoughStars", econ.Resources[team].Stars, row.Cost); return false; }
             return true;
         }
 

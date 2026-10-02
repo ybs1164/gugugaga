@@ -33,6 +33,9 @@ namespace TacticsECS
             var bar = canvas.Find("Bar");
             _populationText = WirePopulationSlot(bar.Find("Population"));
             _starsText = bar.Find("Stars/Number").GetComponent<Text>();
+            var starsIcon = bar.Find("Stars/Icon").GetComponent<Text>();
+            if (starsIcon != null) starsIcon.text = LocalizationSystem.T("UI.CityResource.StarsIcon");
+
             _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
             PixelUISkin.Apply(gameObject);
         }

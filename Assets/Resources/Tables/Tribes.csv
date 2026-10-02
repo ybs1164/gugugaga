@@ -1,13 +1,13 @@
-Index,Id,Name,Description,BiomeIndex,TechGroupIndex,StartTech1,StartStars,StartUnit1,StartConditionIndex,Wiki
-0,XinXi,시신,벚꽃이 핀 험준한 산악지대에서 시작한다.,2,0,0,7,0,0,Climbing/Warrior/7
-1,Imperius,임페리우스,큰 산과 푸른 계곡 — 과일이 잘 자라는 기후.,0,1,5,5,0,0,Organization/Warrior/5
-2,Bardur,바르두르,끝없는 겨울 숲에서 살아남는 부족.,0,2,15,5,0,0,Hunting/Warrior/5
-3,Oumaji,우마지,햇볕이 내리쬐는 끝없는 사막의 부족. 기마병으로 시작한다.,1,3,10,6,3,0,Riding/Rider/6
-4,Kickoo,키쿠,흰 모래 해변과 야자수 — 과일과 물고기가 풍부하다.,0,4,20,5,0,1,Fishing/Warrior/5
-5,Hoodrick,후드릭,노란 가을 숲에 숨어 사는 버섯 요리의 부족. 궁수로 시작한다.,0,5,17,7,5,0,Archery/Archer/7
-6,Luxidoor,룩시도르,값비싼 것을 사랑하는 부족 — 시작 기술 없이 별 2로 시작한다.,0,6,,2,0,1,None/Warrior/2
-7,Vengir,벵기르,황무지로 밀려난 부족. 검사로 시작한다.,2,7,4,5,2,0,Smithery/Swordsman/5
-8,Zebasi,제바시,따뜻한 사바나에서 농사를 짓는 부족.,1,8,7,5,0,0,Farming/Warrior/5
-9,AiMo,아이모,가장 높고 바람 부는 산맥에서 명상하는 부족. 현자로 시작한다.,2,9,3,5,7,0,Philosophy/Mind Bender/5
-10,Quetzali,케찰리,붉은 흙의 새 신을 섬기는 부족. 방패병으로 시작한다.,0,10,6,7,1,0,Strategy/Defender/7
-11,Yadakk,야닥,초원의 유목민에서 교역의 부족이 되었다.,1,11,12,7,0,0,Roads/Warrior/7
+Index,Id,BiomeIndex,TechGroupIndex,StartTech1,StartStars,StartUnit1,StartConditionIndex,Wiki
+0,XinXi,2,0,0,7,0,0,Climbing/Warrior/7
+1,Imperius,0,1,5,5,0,0,Organization/Warrior/5
+2,Bardur,0,2,15,5,0,0,Hunting/Warrior/5
+3,Oumaji,1,3,10,6,3,0,Riding/Rider/6
+4,Kickoo,0,4,20,5,0,1,Fishing/Warrior/5
+5,Hoodrick,0,5,17,7,5,0,Archery/Archer/7
+6,Luxidoor,0,6,,2,0,1,None/Warrior/2
+7,Vengir,2,7,4,5,2,0,Smithery/Swordsman/5
+8,Zebasi,1,8,7,5,0,0,Farming/Warrior/5
+9,AiMo,2,9,3,5,7,0,Philosophy/Mind Bender/5
+10,Quetzali,0,10,6,7,1,0,Strategy/Defender/7
+11,Yadakk,1,11,12,7,0,0,Roads/Warrior/7

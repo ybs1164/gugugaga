@@ -1,22 +1,22 @@
-Index,Id,Name,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,AdjacentBuildingIndex1,AdjacentBuildingIndex2,AdjacentBuildingIndex3,PopulationPerAdjacent,Flag1,Flag2,Flag3,Task,Description
-0,LumberHut,벌목장,3,1,Forest,,,,,,,0,,,,,인구 +1.
-1,Farm,농장,5,2,Field,,Resource_Crop,,,,,0,,,,,작물 위. 인구 +2.
-2,Mine,광산,5,2,Mountain,,Resource_Metal,Resource_Ore,,,,0,,,,,광물 위. 인구 +2.
-3,Port,항구,7,1,ShallowWater,,,,,,,0,,,,,"얕은 물. 인구 +1, 들어온 육지 유닛은 뗏목이 된다, 물 5칸 이내 항구와 수도 연결."
-4,Sawmill,제재소,5,0,Field,,,,0,,,1,OnePerCity,,,,인접 벌목장 하나당 인구 +1. 도시당 1개.
-5,Windmill,풍차,5,0,Field,,,,1,,,1,OnePerCity,,,,인접 농장 하나당 인구 +1. 도시당 1개.
-6,Forge,대장간,5,0,Field,Forest,,,2,,,2,OnePerCity,,,,인접 광산 하나당 인구 +2. 평지/숲. 도시당 1개.
-7,Market,시장,5,0,Field,,,,4,5,6,0,StarsFromAdjacent,,,,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 별 (최대 8).
-8,Temple,신전,20,1,Field,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-9,ForestTemple,숲 신전,15,1,Forest,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-10,MountainTemple,산악 신전,20,1,Mountain,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-11,WaterTemple,해양 신전,20,1,ShallowWater,Ocean,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
-12,Road,도로,3,0,Field,Forest,,,,,,0,Road,Neutral,,,"도로끼리 이동 비용 0.5, 숲 이동 제한 해제, 수도 연결. 중립 땅에도 건설 가능."
-13,Bridge,다리,5,0,ShallowWater,,,,,,,0,Neutral,OppositeLand,ActsAsRoad,,양쪽(상하/좌우)이 육지인 물 1칸. 육지 유닛 통행 + 도로 효과 + 수도 연결. 중립 물에도 건설 가능.
-14,AltarOfPeace,평화의 제단,0,3,Field,ShallowWater,,,,,,0,,,,Pacifist,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-15,EmperorsTomb,황제의 무덤,0,3,Field,ShallowWater,,,,,,0,,,,Wealth,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-16,EyeOfGod,신의 눈,0,3,Field,ShallowWater,,,,,,0,,,,Explorer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-17,GateOfPower,힘의 문,0,3,Field,ShallowWater,,,,,,0,,,,Killer,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-18,GrandBazaar,대시장,0,3,Field,ShallowWater,,,,,,0,,,,Network,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-19,ParkOfFortune,행운의 공원,0,3,Field,ShallowWater,,,,,,0,,,,Metropolis,"기념물. 인구 +3, 점수 400. 팀당 한 번."
-20,TowerOfWisdom,지혜의 탑,0,3,Field,ShallowWater,,,,,,0,,,,Genius,"기념물. 인구 +3, 점수 400. 팀당 한 번."
+Index,Id,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,AdjacentBuildingIndex1,AdjacentBuildingIndex2,AdjacentBuildingIndex3,PopulationPerAdjacent,Flag1,Flag2,Flag3,Task
+0,LumberHut,3,1,Forest,,,,,,,0,,,,
+1,Farm,5,2,Field,,Resource_Crop,,,,,0,,,,
+2,Mine,5,2,Mountain,,Resource_Metal,Resource_Ore,,,,0,,,,
+3,Port,7,1,ShallowWater,,,,,,,0,,,,
+4,Sawmill,5,0,Field,,,,0,,,1,OnePerCity,,,
+5,Windmill,5,0,Field,,,,1,,,1,OnePerCity,,,
+6,Forge,5,0,Field,Forest,,,2,,,2,OnePerCity,,,
+7,Market,5,0,Field,,,,4,5,6,0,StarsFromAdjacent,,,
+8,Temple,20,1,Field,,,,,,,0,Temple,,,
+9,ForestTemple,15,1,Forest,,,,,,,0,Temple,,,
+10,MountainTemple,20,1,Mountain,,,,,,,0,Temple,,,
+11,WaterTemple,20,1,ShallowWater,Ocean,,,,,,0,Temple,,,
+12,Road,3,0,Field,Forest,,,,,,0,Road,Neutral,,
+13,Bridge,5,0,ShallowWater,,,,,,,0,Neutral,OppositeLand,ActsAsRoad,
+14,AltarOfPeace,0,3,Field,ShallowWater,,,,,,0,,,,Pacifist
+15,EmperorsTomb,0,3,Field,ShallowWater,,,,,,0,,,,Wealth
+16,EyeOfGod,0,3,Field,ShallowWater,,,,,,0,,,,Explorer
+17,GateOfPower,0,3,Field,ShallowWater,,,,,,0,,,,Killer
+18,GrandBazaar,0,3,Field,ShallowWater,,,,,,0,,,,Network
+19,ParkOfFortune,0,3,Field,ShallowWater,,,,,,0,,,,Metropolis
+20,TowerOfWisdom,0,3,Field,ShallowWater,,,,,,0,,,,Genius

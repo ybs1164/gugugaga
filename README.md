@@ -861,6 +861,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-10-02: 기술 CSV 명세의 위치 설명을 시계방향 기준으로 변경하고 Wiki 항목 제거. 도시당 추가 비용이 기술 패널의 총 해금 비용과 실제 발전도 차감에 적용됨을 명시.
+
 - 2026-10-02: 샌드박스 기술 불러오기용 [예시 CSV](docs/sample_tech_tree.csv)(25개 기술)와 [형식 명세 CSV](docs/tech_tree_csv_spec.csv)(컬럼·작성 규칙·50개 해금 키)를 추가. 두 파일은 한글 Excel 호환 UTF-8 BOM이며 CSV 구조/참조 검증 통과.
 
 - 2026-10-02: 기술트리를 고정 슬롯과 기술 배치로 분리. 기술 교체 시 선행 조건 자동 연결, 기술별 비용 독립 조정, 해금 종류 5종 분류.

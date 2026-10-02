@@ -7,7 +7,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 기술트리 패널. BattleHud/CityResourceHud와 마찬가지로 값을 스스로 판단하지 않고, 넘겨받은 기술 정의/
-    /// 해금 상태/자원을 그대로 그리기만 하는 View다 — 해금 시도(발전도 소모/선행 기술 판정)는 TechSystem이
+    /// 해금 상태/자원을 그대로 그리기만 하는 View다 — 해금 시도(별 소모/선행 기술 판정)는 TechSystem이
     /// 계산하고, 그 결과를 다시 SetState로 받아 그린다.
     ///
     /// 고정 뼈대(토글 버튼/반투명 패널/닫기 버튼/빈 "Tree" 컨테이너/하단 Detail 패널)는 프리팹
@@ -282,9 +282,9 @@ namespace TacticsECS
                 _detailStatus.text = parent != null ? $"선행 기술 필요: {parent.Value.Name}" : "선행 기술 필요";
                 _unlockButton.interactable = false;
             }
-            else if (_resources.Development < cost)
+            else if (_resources.Stars < cost)
             {
-                _detailStatus.text = $"발전도 부족 ({_resources.Development}/{cost})";
+                _detailStatus.text = $"별 부족 ({_resources.Stars}/{cost})";
                 _unlockButton.interactable = false;
             }
             else

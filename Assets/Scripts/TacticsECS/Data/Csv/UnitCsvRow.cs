@@ -40,7 +40,7 @@ namespace TacticsECS
         public int HealRange;
 
 
-        /// <summary>도시에서 이 유닛을 훈련하는 골드 비용(폴리토피아 별 비용 — 보병 2, 기병/궁수/방패병 3,
+        /// <summary>도시에서 이 유닛을 훈련하는 별 비용(폴리토피아 별 비용 — 보병 2, 기병/궁수/방패병 3,
         /// 검사/현자 5, 기사/투석기/망토 8). CSV에서 칸을 비우거나 컬럼이 없는 옛 파일이면 DefaultCost.</summary>
         public int Cost = DefaultCost;
 

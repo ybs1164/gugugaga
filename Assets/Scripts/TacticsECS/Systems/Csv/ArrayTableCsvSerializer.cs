@@ -110,7 +110,7 @@ namespace TacticsECS
         public static TribeRow[] ParseTribes(string text, List<string> errors = null)
         {
             var t = Begin("Tribes.csv", text, new[] { "Index", "Id" },
-                new[] { "Name", "Description", "BiomeIndex", "TechGroupIndex", "StartGold", "StartConditionIndex", "Wiki", "Note" },
+                new[] { "Name", "Description", "BiomeIndex", "TechGroupIndex", "StartStars", "StartConditionIndex", "Wiki", "Note" },
                 new[] { "StartTech", "StartUnit" }, errors);
             var rows = new TribeRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
@@ -125,7 +125,7 @@ namespace TacticsECS
                     BiomeIndex = CsvTableReader.GetInt(t, r, "BiomeIndex", -1, errors),
                     TechGroupIndex = CsvTableReader.GetInt(t, r, "TechGroupIndex", -1, errors),
                     StartTechs = GetIndexList(t, r, "StartTech", errors),
-                    StartGold = CsvTableReader.GetInt(t, r, "StartGold", GameRules.Economy.StartingGold, errors),
+                    StartStars = CsvTableReader.GetInt(t, r, "StartStars", GameRules.Economy.StartingStars, errors),
                     StartUnits = GetIndexList(t, r, "StartUnit", errors),
                     StartConditionIndex = CsvTableReader.GetInt(t, r, "StartConditionIndex", -1, errors),
                 };
@@ -230,13 +230,13 @@ namespace TacticsECS
             int unitCount = CsvTableReader.MaxCount(rows, r => r.StartUnits?.Length ?? 0);
             var sb = new StringBuilder();
             sb.AppendLine(string.Join(",", new[] { "Index", "Id", "Name", "Description", "BiomeIndex", "TechGroupIndex" }
-                .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartGold")
+                .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartStars")
                 .Concat(CsvTableReader.ListHeader("StartUnit", unitCount)).Append("StartConditionIndex")));
             foreach (var r in rows)
             {
                 var cells = new List<string> { I(r.Index), Q(r.Id), Q(r.Name), Q(r.Description), I(r.BiomeIndex), I(r.TechGroupIndex) };
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartTechs), techCount));
-                cells.Add(I(r.StartGold));
+                cells.Add(I(r.StartStars));
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartUnits), unitCount));
                 cells.Add(I(r.StartConditionIndex));
                 sb.AppendLine(string.Join(",", cells));

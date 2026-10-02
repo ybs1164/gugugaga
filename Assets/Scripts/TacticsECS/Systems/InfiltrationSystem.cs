@@ -14,7 +14,7 @@ namespace TacticsECS
     ///     3. 도시 레벨만큼(최대 5) Dagger가 침투한 팀 소속으로 그 도시 영토에 나타난다 — 도시 칸 → 방어 보너스 칸(침투 팀 기술 기준:
     ///        산=Defense.Mountain, 숲=Defense.Forest) → 나머지 육지 → 물(Pirate) 순, 같은 순위면 도시에 가까운 칸. 침투 팀이 들어갈 수 없는
     ///        지형(산/깊은 바다 기술)에는 안 나온다. 다음 턴까지 행동할 수 없다. Dagger는 독립(소속 도시 없음).
-    ///     4. 침투한 팀이 그 도시의 골드 수입만큼 즉시 받고, 도시는 주인의 다음 턴에 골드를 만들지 않는다(CityData.Infiltrated).
+    ///     4. 침투한 팀이 그 도시의 별 수입만큼 즉시 받고, 도시는 주인의 다음 턴에 별을 만들지 않는다(CityData.Infiltrated).
     ///   침투는 공격이 아니다(평화주의 과업에 영향 없음). Dagger 행(GameRules.Infiltration.DaggerUnitId)이 유닛 CSV에 없으면 소환은 건너뛴다.
     /// </summary>
     public static class InfiltrationSystem
@@ -53,7 +53,7 @@ namespace TacticsECS
             int cityIndex = CitySystem.FindCityAt(econ, cityPos);
             var city = econ.Cities[cityIndex];
             float strength = world.Get<Attack>(unitId).Value;
-            int stolen = CitySystem.CityGoldIncome(grid, world, city);
+            int stolen = CitySystem.CityStarsIncome(grid, world, city);
 
             // 1. 침투 유닛 소모.
             grid.RemoveOccupant(world.Get<GridPosition>(unitId).Value);
@@ -92,7 +92,7 @@ namespace TacticsECS
 
             // 4. 수입 탈취 + 다음 턴 수입 없음.
             var res = econ.Resources[team];
-            res.Gold += stolen;
+            res.Stars += stolen;
             econ.Resources[team] = res;
             city.Infiltrated = true;
             econ.Cities[cityIndex] = city;
@@ -100,7 +100,7 @@ namespace TacticsECS
             log?.Add(new EconomyLogEntry
             {
                 Team = team, Kind = EconomyLogKind.Action, Position = cityPos, CityIndex = cityIndex,
-                Subject = $"{city.Name} 침투 — Dagger {made}기, 골드 +{stolen}"
+                Subject = $"{city.Name} 침투 — Dagger {made}기, 별 +{stolen}"
             });
             return true;
         }

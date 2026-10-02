@@ -18,7 +18,7 @@ namespace TacticsECS
         public int Level;
 
         /// <summary>현재 레벨에서 모은 인구(레벨업 시 필요량만큼 차감되고 남은 값은 이월). 음수일 수 있다
-        /// (건물 파괴/수도 연결 해제) — 음수만큼 그 도시의 골드 수입이 줄어든다.</summary>
+        /// (건물 파괴/수도 연결 해제) — 음수만큼 그 도시의 별 수입이 줄어든다.</summary>
         public int Population;
 
         /// <summary>영토 반경(체비쇼프 거리). 기본 1(3x3), 4레벨 보상 "국경 확장"으로 2(5x5).</summary>
@@ -36,7 +36,7 @@ namespace TacticsECS
         /// 갱신하며, 연결될 때 이 도시와 수도에 인구 +1씩, 끊기면 -1씩 반영된다.</summary>
         public bool ConnectedToCapital;
 
-        /// <summary>적 Cloak이 침투했다(위키 Cloak): 이 도시는 주인의 다음 턴에 골드를 만들지 않고, 그때까지 다시 침투당하지 않는다.
+        /// <summary>적 Cloak이 침투했다(위키 Cloak): 이 도시는 주인의 다음 턴에 별을 만들지 않고, 그때까지 다시 침투당하지 않는다.
         /// CityResourceSystem.ApplyTurnStart가 주인 턴 시작에 수입을 계산한 뒤 해제한다.</summary>
         public bool Infiltrated;
     }

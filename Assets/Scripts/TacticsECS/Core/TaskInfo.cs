@@ -5,8 +5,8 @@ namespace TacticsECS
     {
         /// <summary>Threshold 턴 연속으로 공격하지 않기(평화의 제단).</summary>
         TurnsWithoutAttack,
-        /// <summary>골드 Threshold 이상을 한 번에 보유(황제의 무덤).</summary>
-        GoldHeld,
+        /// <summary>별 Threshold 이상을 한 번에 보유(황제의 무덤).</summary>
+        StarsHeld,
         /// <summary>맵의 등대 전부 발견(신의 눈).</summary>
         AllLighthouses,
         /// <summary>적 유닛 Threshold 기 처치(힘의 문).</summary>

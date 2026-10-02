@@ -54,8 +54,8 @@ namespace TacticsECS.EditorTools
             var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count, SandboxUnits().Count);
             Check(unitWarnings.Count == 0, "tribe start units are in range of SandboxUnits.csv: " + string.Join(" | ", unitWarnings));
 
-            // 위키(Tribes) 시작 기술/골드 대조.
-            var expected = new Dictionary<string, (string Tech, int Gold)>
+            // 위키(Tribes) 시작 기술/별 대조.
+            var expected = new Dictionary<string, (string Tech, int Stars)>
             {
                 ["XinXi"] = ("Climbing", 7), ["Imperius"] = ("Organization", 5), ["Bardur"] = ("Hunting", 5), ["Oumaji"] = ("Riding", 6),
                 ["Kickoo"] = ("Fishing", 5), ["Hoodrick"] = ("Archery", 7), ["Luxidoor"] = (null, 2), ["Vengir"] = ("Smithery", 5),
@@ -65,7 +65,7 @@ namespace TacticsECS.EditorTools
             {
                 var e = expected[t.Id];
                 string tech = t.StartTechs.Length > 0 ? GameTables.Techs[t.StartTechs[0]].Id : null;
-                Check(tech == e.Tech && t.StartGold == e.Gold, $"{t.Id} start tech/gold matches wiki ({tech}/{t.StartGold})");
+                Check(tech == e.Tech && t.StartStars == e.Stars, $"{t.Id} start tech/stars matches wiki ({tech}/{t.StartStars})");
             }
         }
 
@@ -131,8 +131,8 @@ namespace TacticsECS.EditorTools
             Check(child.ParentId == "Replacement" && !TechSystem.IsAvailable(nodes, tech, child.Id), "child requires technology currently in parent slot");
             Check(TechSystem.IsAvailable(nodes, tech, "Replacement") && !TechSystem.IsAvailable(nodes, tech, oldId), "replacement root is researchable; removed technology is not");
             Check(TechSystem.Cost(nodes, tech, replacement.Value, 2) == 23, "replacement uses its own cost independently of slot tier");
-            var resources = new CityResourceData { Development = 23 };
-            Check(TechSystem.Unlock(nodes, tech, ref resources, 2, "Replacement") && resources.Development == 0, "research consumes replacement cost");
+            var resources = new CityResourceData { Stars = 23 };
+            Check(TechSystem.Unlock(nodes, tech, ref resources, 2, "Replacement") && resources.Stars == 0, "research consumes replacement cost");
             Check(TechSystem.IsAvailable(nodes, tech, child.Id) && TechSystem.HasUnlock(nodes, tech, "Unit.shield"), "replacement research opens child and its own unlocks");
             var changed = techs[techs.Length - 1]; changed.CostBase = 3; changed.CostPerCity = 2; techs[techs.Length - 1] = changed;
             var balanced = TechGroupSystem.BuildTechNodes(techs, GameTables.TechUnlocks, GameTables.TechSlots, layout);
@@ -189,7 +189,7 @@ namespace TacticsECS.EditorTools
             var econ = new EconomyWorld { TechNodes = TechGroupSystem.BuildTechNodes(), UnitRows = SandboxUnits() };
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = CityResourceData.Create(0, 0, 0, false);
+                econ.Resources[team] = CityResourceData.Create(0, 0, false);
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             return econ;
@@ -200,7 +200,7 @@ namespace TacticsECS.EditorTools
             var econ = NewEconomy();
             var oumaji = GameTables.Tribes.First(t => t.Id == "Oumaji");
             TribeSystem.Apply(econ, Team.Player, oumaji, econ.UnitRows);
-            Check(econ.Resources[Team.Player].Gold == 6, "Oumaji starts with 6 gold");
+            Check(econ.Resources[Team.Player].Stars == 6, "Oumaji starts with 6 stars");
             Check(TechSystem.IsUnlocked(econ.Tech[Team.Player], "Riding"), "Oumaji starts with Riding");
             Check(TechSystem.HasUnlock(econ.TechNodes, econ.Tech[Team.Player], "Unit.cavalry"), "Riding unlock key reached through TechUnlocks");
             Check(econ.StartUnitIds[Team.Player].SequenceEqual(new[] { "cavalry" }), "Oumaji start unit = cavalry (rider)");
@@ -217,7 +217,7 @@ namespace TacticsECS.EditorTools
             var luxidoor = GameTables.Tribes.First(t => t.Id == "Luxidoor");
             var econ2 = NewEconomy();
             TribeSystem.Apply(econ2, Team.Player, luxidoor, econ2.UnitRows);
-            Check(econ2.Tech[Team.Player].Unlocked.Count == 0 && econ2.Resources[Team.Player].Gold == 2, "Luxidoor: no start tech, 2 gold");
+            Check(econ2.Tech[Team.Player].Unlocked.Count == 0 && econ2.Resources[Team.Player].Stars == 2, "Luxidoor: no start tech, 2 stars");
             Check(!string.IsNullOrEmpty(TribeSystem.Summary(oumaji, GameDataLoader.LoadDefaultBiomes(), econ.UnitRows)), "tribe summary text");
         }
 

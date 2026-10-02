@@ -2,7 +2,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 건물 표 — 폴리토피아 위키 Buildings 문서의 Resource Buildings / Monuments / Temples / Other improvements
-    /// 표를 옮긴 값(비용 = 별 → 이 프로젝트의 골드). 값 자체는 Assets/Resources/Buildings.csv에 있고, 여기에는 코드가
+    /// 표를 옮긴 값(비용 = 별 → 이 프로젝트의 별). 값 자체는 Assets/Resources/Buildings.csv에 있고, 여기에는 코드가
     /// 특별 취급하는 건물 Id 상수와 CSV를 담을 필드만 있다. 어떤 기술이 어떤 건물을 여는지는 CSV의 Unlock 칸과
     /// TechTree.csv의 Unlocks 칸이 같은 키("Build.Farm" 등)를 공유하는 것으로만 연결된다.
     ///

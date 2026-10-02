@@ -57,7 +57,7 @@ namespace TacticsECS.EditorTools
                 Actions = ActionType.Move | ActionType.Attack, MoveRange = 1, AttackAttack = 4, AttackRange = 1 });
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = new CityResourceData { Gold = 100, Development = 5 };
+                econ.Resources[team] = new CityResourceData { Stars = 100 };
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             TaskSystem.Init(econ);
@@ -183,9 +183,9 @@ namespace TacticsECS.EditorTools
             Check(world.Get<Hp>(unit).Value == 10 && world.Get<Attack>(unit).Value == 0, "raft keeps hp, has no attack");
 
             Check(EmbarkSystem.CanUpgrade(grid, world, econ, unit, "scout", out _), "raft upgradable to scout in own territory");
-            int gold = econ.Resources[p].Gold;
+            int stars = econ.Resources[p].Stars;
             Check(EmbarkSystem.Upgrade(grid, world, econ, unit, "scout", log), "upgrade to scout");
-            Check(econ.Resources[p].Gold == gold - 5 && world.Get<VisionRange>(unit).Value == 2 && world.Get<AttackRange>(unit).Value == 2, "scout: -5 gold, 5x5 vision, range 2");
+            Check(econ.Resources[p].Stars == stars - 5 && world.Get<VisionRange>(unit).Value == 2 && world.Get<AttackRange>(unit).Value == 2, "scout: -5 stars, 5x5 vision, range 2");
 
             TurnSystem.StartTurn(world, p, 2);
             var far = new Vector2Int(5, 1);
@@ -338,12 +338,12 @@ namespace TacticsECS.EditorTools
             // 과업 기술 게이트: 부(Wealth)는 교역이 있어야.
             var econ2 = NewEconomy();
             CitySystem.FoundCity(grid, econ2, new Vector2Int(1, 1), p, true, "x");
-            econ2.Resources[p] = new CityResourceData { Gold = 150 };
+            econ2.Resources[p] = new CityResourceData { Stars = 150 };
             TaskSystem.Refresh(grid, econ2, null);
             Check(!econ2.Tasks[p].Completed.Contains(TaskDefinition.Wealth), "Wealth needs Trade");
             econ2.Tech[p].Unlocked.Add("Riding"); econ2.Tech[p].Unlocked.Add("Roads"); econ2.Tech[p].Unlocked.Add("Trade");
             TaskSystem.Refresh(grid, econ2, null);
-            Check(econ2.Tasks[p].Completed.Contains(TaskDefinition.Wealth), "Wealth with Trade + 100 gold");
+            Check(econ2.Tasks[p].Completed.Contains(TaskDefinition.Wealth), "Wealth with Trade + 100 stars");
 
             // 평화주의: 5턴 연속 비공격.
             var econ3 = NewEconomy();

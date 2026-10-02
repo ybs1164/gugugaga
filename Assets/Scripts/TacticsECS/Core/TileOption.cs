@@ -13,7 +13,7 @@ namespace TacticsECS
         public int Cost;
         public bool Enabled;
 
-        /// <summary>Enabled=false일 때 그 이유(골드 부족/인접 조건 등), true일 때는 효과 요약.</summary>
+        /// <summary>Enabled=false일 때 그 이유(별 부족/인접 조건 등), true일 때는 효과 요약.</summary>
         public string Detail;
     }
 }

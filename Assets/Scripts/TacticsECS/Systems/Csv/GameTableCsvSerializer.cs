@@ -23,10 +23,10 @@ namespace TacticsECS
         public const string FlagOppositeLand = "OppositeLand";
         public const string FlagActsAsRoad = "ActsAsRoad";
         public const string FlagTemple = "Temple";
-        public const string FlagGoldFromAdjacent = "GoldFromAdjacent";
+        public const string FlagStarsFromAdjacent = "StarsFromAdjacent";
         public const string FlagOnePerCity = "OnePerCity";
 
-        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagGoldFromAdjacent, FlagOnePerCity };
+        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagStarsFromAdjacent, FlagOnePerCity };
 
         private static readonly string[] BuildingRequired = { "Id", "Terrain" };
         private static readonly string[] BuildingOptional =
@@ -60,7 +60,7 @@ namespace TacticsECS
                     RequiresOppositeLand = flags.Contains(FlagOppositeLand),
                     ActsAsRoad = flags.Contains(FlagActsAsRoad),
                     IsTemple = flags.Contains(FlagTemple),
-                    ProducesGoldFromAdjacent = flags.Contains(FlagGoldFromAdjacent),
+                    ProducesStarsFromAdjacent = flags.Contains(FlagStarsFromAdjacent),
                     OnePerCity = flags.Contains(FlagOnePerCity),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
                     Description = CsvTableReader.Get(t, r, "Description"),
@@ -80,7 +80,7 @@ namespace TacticsECS
 
         private static readonly string[] TileActionRequired = { "Id", "Kind", "Terrain" };
         private static readonly string[] TileActionOptional =
-            { "Name", "Unlock", "Cost", "RequiredStructure", "Population", "GoldGain", "Description", "Wiki", "Note", "RequiredStructures" };
+            { "Name", "Unlock", "Cost", "RequiredStructure", "Population", "StarsGain", "Description", "Wiki", "Note", "RequiredStructures" };
         private static readonly string[] TileActionLists = { "Terrain", "RequiredStructure" };
 
         public static TileActionInfo[] ParseTileActions(string csvText, List<string> errors, string name = "TileActions.csv")
@@ -102,7 +102,7 @@ namespace TacticsECS
                     Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
                     RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
-                    GoldGain = CsvTableReader.GetInt(t, r, "GoldGain", 0, errors),
+                    StarsGain = CsvTableReader.GetInt(t, r, "StarsGain", 0, errors),
                     Description = CsvTableReader.Get(t, r, "Description"),
                 });
             }

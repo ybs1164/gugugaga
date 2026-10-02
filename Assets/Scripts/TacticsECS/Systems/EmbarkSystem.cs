@@ -7,7 +7,7 @@ namespace TacticsECS
     /// 항구 승선/하선과 배 업그레이드 — 폴리토피아 위키 Port/Raft/Scout/Unit Skills(Carry) 규칙. 순수 함수형, 자체 상태 없음.
     ///   - 육지 유닛이 자기 팀 항구 칸에 들어가면 뗏목이 되고 그 턴 행동이 끝난다(적 항구는 쓸 수 없다 — 경로 탐색이 막는다).
     ///   - 배가 육지 칸에 들어가면 원래 유닛으로 돌아오고 그 턴 행동이 끝난다. 업그레이드는 사라진다.
-    ///   - 뗏목은 자기 영토 안에서 골드를 내고 정찰선/충각선/폭격선으로 업그레이드한다(치유 없음, 행동 소모 없음).
+    ///   - 뗏목은 자기 영토 안에서 별을 내고 정찰선/충각선/폭격선으로 업그레이드한다(치유 없음, 행동 소모 없음).
     /// 배로 바뀌는 동안 원래 스탯은 LandForm 컴포넌트에 보관한다. 배 스탯 표는 Data/NavalUnitDefinition.cs.
     /// </summary>
     public static class EmbarkSystem
@@ -112,7 +112,7 @@ namespace TacticsECS
             return null;
         }
 
-        /// <summary>뗏목을 이 배로 업그레이드할 수 있는지(뗏목 상태, 자기 영토, 기술, 골드)와 못 하면 그 이유.</summary>
+        /// <summary>뗏목을 이 배로 업그레이드할 수 있는지(뗏목 상태, 자기 영토, 기술, 별)와 못 하면 그 이유.</summary>
         public static bool CanUpgrade(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId, string navalUnitId, out string reason)
         {
             reason = string.Empty;
@@ -124,7 +124,7 @@ namespace TacticsECS
                 if (u.Row.Id != navalUnitId) continue;
                 if (!TechSystem.HasUnlock(econ.TechNodes, econ.Tech[team], u.UnlockKey)) { reason = "기술 필요"; return false; }
                 if (!CitySystem.IsOwnTerritory(grid, team, world.Get<GridPosition>(unitId).Value)) { reason = "자기 영토 안에서만"; return false; }
-                if (econ.Resources[team].Gold < u.Row.Cost) { reason = $"골드 부족 ({econ.Resources[team].Gold}/{u.Row.Cost})"; return false; }
+                if (econ.Resources[team].Stars < u.Row.Cost) { reason = $"별 부족 ({econ.Resources[team].Stars}/{u.Row.Cost})"; return false; }
                 return true;
             }
             reason = "알 수 없는 배";
@@ -137,7 +137,7 @@ namespace TacticsECS
             var team = world.Get<Team>(unitId);
             var row = FindNavalRow(navalUnitId);
             var res = econ.Resources[team];
-            res.Gold -= row.Cost;
+            res.Stars -= row.Cost;
             econ.Resources[team] = res;
 
             // 이번 턴 이미 움직였거나 행동했으면 그 상태를 유지한다(업그레이드 자체는 행동을 쓰지 않는다).

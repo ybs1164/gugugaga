@@ -53,15 +53,15 @@ namespace TacticsECS
         {
             if (!IsAvailable(nodes, tech, id)) return false;
             var node = Find(nodes, id);
-            return node != null && resources.Development >= Cost(nodes, tech, node.Value, cityCount);
+            return node != null && resources.Stars >= Cost(nodes, tech, node.Value, cityCount);
         }
 
-        /// <summary>해금 가능(CanUnlock)할 때만 발전도를 소모하고 해금 집합에 추가한다. TechTreeData.Unlocked는
+        /// <summary>해금 가능(CanUnlock)할 때만 별을 소모하고 해금 집합에 추가한다. TechTreeData.Unlocked는
         /// 참조 타입(HashSet)이라 성공하면 인자로 받은 tech 자체가 제자리에서 바뀐다.</summary>
         public static bool Unlock(IReadOnlyList<TechNodeData> nodes, TechTreeData tech, ref CityResourceData resources, int cityCount, string id)
         {
             if (!CanUnlock(nodes, tech, resources, cityCount, id)) return false;
-            resources.Development -= Cost(nodes, tech, Find(nodes, id).Value, cityCount);
+            resources.Stars -= Cost(nodes, tech, Find(nodes, id).Value, cityCount);
             tech.Unlocked.Add(id);
             return true;
         }

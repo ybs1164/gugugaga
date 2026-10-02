@@ -106,7 +106,7 @@ namespace TacticsECS.EditorTools
             Check(new[] { "Sawmill", "Windmill", "Forge" }.All(id => TileImprovementSystem.FindBuilding(id)?.OnePerCity == true) &&
                   TileImprovementSystem.FindBuilding(BuildingDefinition.Market)?.OnePerCity == false, "sawmill/windmill/forge one per city, market unlimited (wiki)");
             var market = TileImprovementSystem.FindBuilding(BuildingDefinition.Market);
-            Check(market != null && market.Value.ProducesGoldFromAdjacent && market.Value.AdjacentBuildings.Length == 3, "market adjacency from CSV");
+            Check(market != null && market.Value.ProducesStarsFromAdjacent && market.Value.AdjacentBuildings.Length == 3, "market adjacency from CSV");
             Check(BuildingDefinition.All.Count(b => !string.IsNullOrEmpty(b.TaskId)) == 7 && BuildingDefinition.All.Where(b => !string.IsNullOrEmpty(b.TaskId)).All(b => b.Population == 3 && b.Cost == 0),
                 "7 monuments, pop 3, free");
             foreach (var b in BuildingDefinition.All)
@@ -173,22 +173,22 @@ namespace TacticsECS.EditorTools
             Debug.Log($"[GameDataCsvVerification] rules: {rows.Count}, wiki-equal {rows.Count - deviations.Count - projectOnly.Count}, " +
                       $"deviations {deviations.Count} ({string.Join(", ", deviations.ConvertAll(r => r.Key))}), project-only {projectOnly.Count}");
 
-            // CSV 값이 실제 시스템 동작을 바꾸는지: 도시 레벨당 골드 1 -> 2.
+            // CSV 값이 실제 시스템 동작을 바꾸는지: 도시 레벨당 별 1 -> 2.
             var grid = new GridWorld(5, 5);
             var world = new EntityWorld();
             var city = new CityData { Owner = Team.Player, Level = 3, Position = new Vector2Int(2, 2), IsCapital = true };
-            int before = CitySystem.CityGoldIncome(grid, world, city);
+            int before = CitySystem.CityStarsIncome(grid, world, city);
             errors.Clear();
-            GameRulesCsvSerializer.Apply("Key,Value,Note\nCity.GoldPerLevel,2,테스트\n", errors);
-            Check(GameRules.City.GoldPerLevel == 2 && CitySystem.CityGoldIncome(grid, world, city) == before + 3, "editing a CSV rule changes city income");
-            Check(errors.Exists(e => e.Contains("City.MarketGoldCap") && e.Contains("행이 없음")), "missing rule rows are reported");
+            GameRulesCsvSerializer.Apply("Key,Value,Note\nCity.StarsPerLevel,2,테스트\n", errors);
+            Check(GameRules.City.StarsPerLevel == 2 && CitySystem.CityStarsIncome(grid, world, city) == before + 3, "editing a CSV rule changes city income");
+            Check(errors.Exists(e => e.Contains("City.MarketStarsCap") && e.Contains("행이 없음")), "missing rule rows are reported");
 
             errors.Clear();
-            GameRulesCsvSerializer.Apply("Key,Value,Wiki\nCity.Nope,1,\nCity.MarketGoldCap,abc,8\n", errors);
+            GameRulesCsvSerializer.Apply("Key,Value,Wiki\nCity.Nope,1,\nCity.MarketStarsCap,abc,8\n", errors);
             Check(errors.Exists(e => e.Contains("City.Nope")) && errors.Exists(e => e.Contains("abc")), "unknown key / bad value reported");
             Check(errors.Exists(e => e.Contains("위키 값(8)과 달라")), "deviation from wiki without a Note is reported");
             GameDataLoader.LoadAll();
-            Check(GameRules.City.GoldPerLevel == 1 && GameRules.City.MarketGoldCap == 8, "reload restores CSV values");
+            Check(GameRules.City.StarsPerLevel == 1 && GameRules.City.MarketStarsCap == 8, "reload restores CSV values");
         }
 
         private static void VerifyRewardsAndTasks()
@@ -297,7 +297,7 @@ namespace TacticsECS.EditorTools
 
             // 슈퍼 유닛: 거인은 훈련 불가, 레벨 5+ 보상으로 소환, 점수 50.
             var econ2 = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = rows };
-            foreach (var team in CitySystem.Teams) { econ2.Resources[team] = new CityResourceData { Gold = 100 }; econ2.Tech[team] = TechTreeData.CreateEmpty(); }
+            foreach (var team in CitySystem.Teams) { econ2.Resources[team] = new CityResourceData { Stars = 100 }; econ2.Tech[team] = TechTreeData.CreateEmpty(); }
             TaskSystem.Init(econ2);
             var g5 = Field(5, 5);
             int ci = CitySystem.FoundCity(g5, econ2, new Vector2Int(2, 2), Team.Player, true, "수도");

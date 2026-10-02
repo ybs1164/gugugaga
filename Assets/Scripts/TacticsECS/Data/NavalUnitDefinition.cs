@@ -3,7 +3,7 @@ namespace TacticsECS
     /// <summary>
     /// 배 유닛 표 — 폴리토피아 위키 Raft/Scout/Rammer/Bomber 문서. 값은 Assets/Resources/NavalUnits.csv(유닛 CSV와 같은 컬럼 +
     /// 업그레이드에 필요한 해금 키 Unlock)이고 GameDataLoader.LoadAll이 채운다. 배는 도시에서 훈련하지 않는다: 육지 유닛이 자기
-    /// 항구에 들어가면 뗏목(Raft)이 되고(EmbarkSystem), 뗏목은 자기 영토 안에서 골드를 내고 정찰선/충각선/폭격선으로
+    /// 항구에 들어가면 뗏목(Raft)이 되고(EmbarkSystem), 뗏목은 자기 영토 안에서 별을 내고 정찰선/충각선/폭격선으로
     /// 업그레이드한다. 배의 체력은 태운 유닛의 체력 그대로이고, 육지에 내리면 원래 유닛으로 돌아온다(업그레이드는 사라짐).
     ///
     /// 3차(위키 전투 공식 도입) 이후 공격력은 위키 원값 그대로다(예전엔 뺄셈 공식 척도에 맞춰 x2). 행동 태그는 위키 스킬과

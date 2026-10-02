@@ -133,7 +133,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>CityResourceBar.prefab(도시 발전도/인구/골드/신앙 표시)이 SetResources로 넘긴 값을
+        /// <summary>CityResourceBar.prefab(도시 별/인구/별/신앙 표시)이 SetResources로 넘긴 값을
         /// 그대로 4칸에 반영하는지 확인한다.</summary>
         private static bool VerifyCityResourceBar()
         {
@@ -145,9 +145,8 @@ namespace TacticsECS.EditorTools
             {
                 instance.Init();
 
-                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, isCapital: true);
-                city.Development = 2;
-                city.Gold = 5;
+                var city = CityResourceData.Create(populationCap: 10, starsProduction: 1, isCapital: true);
+                city.Stars = 5;
                 instance.SetResources(city, populationUsed: 3);
 
                 var bar = instance.transform.Find("Canvas/Bar");
@@ -161,9 +160,12 @@ namespace TacticsECS.EditorTools
                     }
                 }
 
-                CheckSlot("Development", "2 (+1)");
                 CheckSlot("Population", "3/10");
-                CheckSlot("Gold", "5 (+1)");
+                CheckSlot("Stars", "5 (+1)");
+                if (bar.Find("Development") != null || bar.Find("Gold") != null || bar.childCount != 2)
+                { Debug.LogError("[UIVerification] resource bar must contain only Stars and Population"); ok = false; }
+                if (bar.Find("Stars/Icon")?.GetComponent<Text>()?.text != "별")
+                { Debug.LogError("[UIVerification] shared currency must be labelled 별"); ok = false; }
                 if (bar.Find("Faith") != null) { Debug.LogError("[UIVerification] CityResourceBar still has the removed Faith slot"); ok = false; }
             }
             finally
@@ -176,7 +178,7 @@ namespace TacticsECS.EditorTools
         }
 
         /// <summary>TechTreePanel.prefab(기술트리)이 노드 선택 시 상세 정보를 제대로 보여주고, 선행 기술/
-        /// 발전도 부족 판정에 따라 해금 버튼 활성화를 올바르게 바꾸며, 실제로 해금 버튼을 누르면
+        /// 별 부족 판정에 따라 해금 버튼 활성화를 올바르게 바꾸며, 실제로 해금 버튼을 누르면
         /// OnUnlockRequested가 발생하는지 확인한다.</summary>
         private static bool VerifyTechTreePanel()
         {
@@ -191,8 +193,8 @@ namespace TacticsECS.EditorTools
 
                 var tech = TechTreeData.CreateEmpty();
                 tech.Unlocked.Add("Climbing");
-                var city = CityResourceData.Create(populationCap: 10, goldProduction: 1, developmentProduction: 1, isCapital: true);
-                city.Development = 10;
+                var city = CityResourceData.Create(populationCap: 10, starsProduction: 1, isCapital: true);
+                city.Stars = 10;
                 instance.SetState(tech, city, cityCount: 1);
 
                 var tree = instance.transform.Find("Canvas/Panel/Tree");
@@ -201,7 +203,7 @@ namespace TacticsECS.EditorTools
                 var statusText = detail.Find("Status").GetComponent<Text>();
                 var unlockButton = detail.Find("UnlockButton").GetComponent<Button>();
 
-                // 선행 기술(등산)이 해금되어 있고 발전도(10)가 비용(2x1+4=6)보다 많은 2티어 노드 -> 해금 가능해야 한다.
+                // 선행 기술(등산)이 해금되어 있고 별(10)가 비용(2x1+4=6)보다 많은 2티어 노드 -> 해금 가능해야 한다.
                 tree.Find("Meditation").GetComponent<Button>().onClick.Invoke();
                 if (!nameText.text.Contains("명상") || !unlockButton.interactable)
                 {

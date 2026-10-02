@@ -69,7 +69,7 @@ namespace TacticsECS
             switch (task.Kind)
             {
                 case TaskKind.TurnsWithoutAttack: return p.TurnsWithoutAttack >= task.Threshold;
-                case TaskKind.GoldHeld: return econ.Resources[team].Gold >= task.Threshold;
+                case TaskKind.StarsHeld: return econ.Resources[team].Stars >= task.Threshold;
                 case TaskKind.Kills: return p.Kills >= task.Threshold;
                 case TaskKind.AllLighthouses:
                 {
@@ -133,7 +133,7 @@ namespace TacticsECS
             switch (task.Kind)
             {
                 case TaskKind.TurnsWithoutAttack: return $"{p.TurnsWithoutAttack}/{task.Threshold}턴";
-                case TaskKind.GoldHeld: return $"{econ.Resources[team].Gold}/{task.Threshold}";
+                case TaskKind.StarsHeld: return $"{econ.Resources[team].Stars}/{task.Threshold}";
                 case TaskKind.Kills: return $"{p.Kills}/{task.Threshold}";
                 case TaskKind.AllLighthouses: return $"{p.LighthousesFound.Count}/{VisionSystem.LighthousePositions(grid).Count}";
                 case TaskKind.ConnectedCities:

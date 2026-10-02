@@ -12,7 +12,7 @@ namespace TacticsECS
         /// <summary>모든 도시(주인이 바뀌어도 제거되지 않는다 — TileData.OwnerCity가 이 인덱스를 가리킨다).</summary>
         public readonly List<CityData> Cities = new List<CityData>();
 
-        /// <summary>팀별 자원(골드/발전도/신앙...).</summary>
+        /// <summary>팀별 자원(별/신앙...).</summary>
         public readonly Dictionary<Team, CityResourceData> Resources = new Dictionary<Team, CityResourceData>();
 
         /// <summary>팀별 해금 기술.</summary>

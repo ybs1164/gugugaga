@@ -2,7 +2,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 스칼라 게임 규칙 값 — Assets/Resources/GameRules.csv의 "Key,Value" 행이 <c>도메인.이름</c>으로 여기 필드에 대응한다
-    /// (예: <c>City.MarketGoldCap</c> -&gt; <see cref="City.MarketGoldCap"/>). GameDataLoader.LoadAll이 CSV 값을 채우고,
+    /// (예: <c>City.MarketStarsCap</c> -&gt; <see cref="City.MarketStarsCap"/>). GameDataLoader.LoadAll이 CSV 값을 채우고,
     /// 필드 초기값은 CSV를 읽기 전/행이 빠졌을 때 쓰는 위키 기본값이다(행이 빠지면 경고). 순수 데이터(CLAUDE.md 규칙 2).
     ///
     /// 2차 비교분석(docs/GameDataCsv.md) 결과 키-값 표를 택했다: 한 줄 = 규칙 하나 + 위키 값(Wiki) + 설명 + 원문과 다른 이유(Note).
@@ -12,21 +12,17 @@ namespace TacticsECS
     {
         public static class Economy
         {
-            public static int StartingGold = 5;
-            public static int StartingDevelopment = 5;
-            public static int DevelopmentPerCity = 1;
-            public static int DevelopmentPerConnection = 1;
-            public static int DevelopmentCapital = 1;
+            public static int StartingStars = 5;
         }
 
         public static class City
         {
-            public static int GoldPerLevel = 1;
-            public static int CapitalGold = 1;
+            public static int StarsPerLevel = 1;
+            public static int CapitalStars = 1;
             public static int DefaultBorderRadius = 1;
             public static int UnitCapacityBase = 1;
-            public static int MarketGoldPerLevel = 1;
-            public static int MarketGoldCap = 8;
+            public static int MarketStarsPerLevel = 1;
+            public static int MarketStarsCap = 8;
             public static int MaxPortWaterGap = 5;
             public static string SuperUnitId = "giant";
         }
@@ -44,7 +40,7 @@ namespace TacticsECS
 
         public static class Ruin
         {
-            public static int Gold = 10;
+            public static int Stars = 10;
             public static int Population = 3;
             public static string NewFriendsUnitId = "gladiator";
             public static string SeaUnitId = "infantry";
@@ -65,10 +61,10 @@ namespace TacticsECS
             public static int MaxHpBonus = 5;
         }
 
-        /// <summary>위키 Starfish: 배가 불가사리 칸에서 턴을 시작하면 인양(턴 소모)해 골드를 받는다.</summary>
+        /// <summary>위키 Starfish: 배가 불가사리 칸에서 턴을 시작하면 인양(턴 소모)해 별을 받는다.</summary>
         public static class Starfish
         {
-            public static int Gold = 8;
+            public static int Stars = 8;
         }
 
         public static class Tech

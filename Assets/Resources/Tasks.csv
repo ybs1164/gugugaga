@@ -1,6 +1,6 @@
 ﻿Id,Name,Kind,Threshold,Unlock,Description,Note
 Pacifist,평화주의,TurnsWithoutAttack,5,Task.Pacifist,5턴 연속 공격하지 않기(반격은 공격이 아님).,명상
-Wealth,부,GoldHeld,100,Task.Wealth,골드 100을 한 번에 보유.,교역
+Wealth,부,StarsHeld,100,Task.Wealth,별 100을 한 번에 보유.,교역
 Explorer,탐험가,AllLighthouses,0,,맵의 등대를 전부 발견.,위키: 등대를 하나 찾으면 개방 — 등대를 못 찾으면 달성도 불가능해 조건 생략
 Killer,살육자,Kills,10,,적 유닛 10기 처치.,위키: 적 유닛 처치 시 개방 — 같은 이유로 생략
 Network,교역망,ConnectedCities,5,Task.Network,수도와 연결된 도시 5개.,도로

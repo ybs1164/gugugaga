@@ -83,7 +83,7 @@ namespace TacticsECS
 
         /// <summary>처음부터 해금된 기술(Techs Index 목록).</summary>
         public int[] StartTechs;
-        public int StartGold;
+        public int StartStars;
 
         /// <summary>수도에 받는 시작 유닛 — 유닛 CSV(불러온 파일, 없으면 SandboxUnits.csv) 행 순서의 Index 목록.</summary>
         public int[] StartUnits;

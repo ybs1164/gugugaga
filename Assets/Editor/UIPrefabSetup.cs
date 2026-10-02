@@ -905,18 +905,26 @@ namespace TacticsECS.EditorTools
             text.text = "전투 시작";
         }
 
-        // ---------- CityResourceBar (도시 발전도/인구/골드, 재사용 가능한 독립 프리팹) ----------
+        // ---------- CityResourceBar (도시 별/인구/별, 재사용 가능한 독립 프리팹) ----------
 
         /// <summary>표시 순서 + 툴팁 문구. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
         private static readonly (string Name, string Tooltip)[] CityResourceDefs =
         {
-            ("Development", "발전도: 기술 연구에 쓰는 자원(도시 수 + 수도 연결 도시 수 + 수도 1 / 턴)."),
+            ("Stars", "별: 기술 연구·건설·채집·유닛 훈련에 함께 쓰는 재화. 도시 레벨·수도·공방·공원·시장에서 매 턴 생산됩니다."),
             ("Population", "유닛 수 / 유닛 수용량(도시마다 레벨 + 1)."),
-            ("Gold", "골드: 건설·채집·유닛 훈련에 쓰는 기본 재화(위키의 별)."),
         };
 
-        private const float CityResourceSlotWidth = 92f;
+        private const float CityResourceSlotWidth = 140f;
         private const float CityResourceBarHeight = 40f;
+
+        /// <summary>다른 프리팹/씬을 변경하지 않고 통합 자원 바를 생성한 뒤 기존 검증을 실행한다(Unity CLI 전용).</summary>
+        public static void GenerateCityResourceBarAndVerify()
+        {
+            GenerateCityResourceBar(LoadUiFont());
+            AssetDatabase.SaveAssets();
+            VerificationSuite.Run();
+        }
+
 
         /// <summary>BattleHud와 독립된 별도 프리팹으로 만든다 — 특정 화면(BattleHud)에 종속되지 않고,
         /// 자원 표시가 필요한 어느 씬/화면에나 그대로 갖다 놓을 수 있게 하기 위함(사용자 요청: 재사용
@@ -956,8 +964,15 @@ namespace TacticsECS.EditorTools
                 slot.sizeDelta = new Vector2(CityResourceSlotWidth, CityResourceBarHeight);
                 slot.anchoredPosition = new Vector2(i * CityResourceSlotWidth, 0f);
 
-                CreateIconPlaceholder("Icon", slot, 24f, new Vector2(8f, -8f));
-                var number = CreateNumberText(font, "Number", slot, new Vector2(38f, -10f), new Vector2(48f, 20f));
+                if (def.Name == "Stars")
+                {
+                    var label = CreateNumberText(font, "Icon", slot, new Vector2(8f, -10f), new Vector2(24f, 20f));
+                    label.text = "별";
+                    label.color = new Color(0.95f, 0.80f, 0.25f);
+                    label.fontSize = 18;
+                }
+                else CreateIconPlaceholder("Icon", slot, 24f, new Vector2(8f, -8f));
+                var number = CreateNumberText(font, "Number", slot, new Vector2(38f, -10f), new Vector2(96f, 20f));
                 number.fontSize = 16;
             }
         }

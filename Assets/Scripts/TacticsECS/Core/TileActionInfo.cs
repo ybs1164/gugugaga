@@ -3,9 +3,9 @@ namespace TacticsECS
     /// <summary>타일 행동(건물이 아닌 1회성 작업)의 종류. 효과 처리는 TileImprovementSystem.Execute.</summary>
     public enum TileActionKind
     {
-        /// <summary>자원을 소모하고 인구(+골드)를 얻는다 — 과일 채집/사냥/낚시/불가사리 인양.</summary>
+        /// <summary>자원을 소모하고 인구(+별)를 얻는다 — 과일 채집/사냥/낚시/불가사리 인양.</summary>
         Harvest,
-        /// <summary>숲 -> 평지, 골드 획득(임업).</summary>
+        /// <summary>숲 -> 평지, 별 획득(임업).</summary>
         ClearForest,
         /// <summary>숲 -> 작물이 있는 평지(화전).</summary>
         BurnForest,
@@ -31,7 +31,7 @@ namespace TacticsECS
         public string[] RequiredStructures;
 
         public int Population;
-        public int GoldGain;
+        public int StarsGain;
         public string Description;
     }
 }

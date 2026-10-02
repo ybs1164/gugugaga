@@ -6,13 +6,13 @@ namespace TacticsECS
     /// <summary>
     /// 유닛이 쓰는 경제 행동 중 도시/타일 쪽이 아닌 것 — 유적 탐험, 불가사리 인양(항해), 해산(자유 영혼). 순수 함수형, 자체 상태 없음.
     ///   - 불가사리 인양(위키 Starfish): "Harvest.Starfish"(항해) 해금 팀의 배가 불가사리 칸에서 턴을 시작하면(이번 턴 이동·행동 전)
-    ///     중립/적 영토에서도 인양해 골드 GameRules.Starfish.Gold를 받는다. 유적 탐험처럼 그 유닛의 턴을 쓴다.
+    ///     중립/적 영토에서도 인양해 별 GameRules.Starfish.Stars를 받는다. 유적 탐험처럼 그 유닛의 턴을 쓴다.
     ///   - 유적 탐험: 유적 칸에서 턴을 시작한(이번 턴 이동·행동 전) 유닛이 행동을 써서 탐험하면 유적이 사라지고 보상 하나(폴리토피아 위키
-    ///     Ruins: 골드 10 / 무료 기술 / 수도 인구 +3 / 탐험가 / 유닛)를 조건이 맞는 것 중 균등하게 무작위로 받는다.
+    ///     Ruins: 별 10 / 무료 기술 / 수도 인구 +3 / 탐험가 / 유닛)를 조건이 맞는 것 중 균등하게 무작위로 받는다.
     ///     기술은 트리가 남았을 때, 인구는 수도가 있을 때, 탐험가는 유적 주변 5x5에 구름이 남았을 때만 후보가 된다.
     ///     유닛 보상은 위키대로 육지 유적이면 베테랑 검사("New Friends" — GameRules.Ruin.NewFriendsUnitId), 물 위 유적이면 전사를
     ///     태운 베테랑 충각선(Ruin.SeaUnitId/SeaBoatId). 그 유닛 CSV 행이 없으면(옛 샌드박스 CSV) 가장 싼 유닛(베테랑 아님)으로 대신한다.
-    ///   - 해산: "Ability.Disband" 해금 시 이번 턴 이동도 행동도 하지 않은 자기 유닛을 없애고 훈련 비용 절반(내림)을 골드로 돌려받는다
+    ///   - 해산: "Ability.Disband" 해금 시 이번 턴 이동도 행동도 하지 않은 자기 유닛을 없애고 훈련 비용 절반(내림)을 별로 돌려받는다
     ///     (위키 Disband — 슈퍼 유닛은 비용 10이라 5, 배는 태운 유닛 비용의 절반이고 배 업그레이드 비용은 돌려받지 않는다:
     ///     UnitTypeId가 태운 육지 유닛 Id라 자연히 그렇게 된다).
     /// </summary>
@@ -41,9 +41,9 @@ namespace TacticsECS
             world.Set(unitId, new HasMoved { Value = true });
             world.Set(unitId, new HasActed { Value = true });
             var res = econ.Resources[team];
-            res.Gold += GameRules.Starfish.Gold;
+            res.Stars += GameRules.Starfish.Stars;
             econ.Resources[team] = res;
-            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Action, Subject = $"불가사리 인양 (골드 +{GameRules.Starfish.Gold})", Position = pos, CityIndex = -1 });
+            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Action, Subject = $"불가사리 인양 (별 +{GameRules.Starfish.Stars})", Position = pos, CityIndex = -1 });
             return true;
         }
 
@@ -71,7 +71,7 @@ namespace TacticsECS
             bool friendKnown = CitySystem.FindUnitRow(econ, friendId) != null;
             string unit = friendKnown ? friendId : CheapestUnitId(econ);
 
-            var rewards = new List<RuinReward> { RuinReward.Gold };
+            var rewards = new List<RuinReward> { RuinReward.Stars };
             if (techCandidates.Count > 0) rewards.Add(RuinReward.Tech);
             if (capital >= 0) rewards.Add(RuinReward.Population);
             if (HasFogAround(grid, team, pos, 2)) rewards.Add(RuinReward.Explorer);
@@ -106,9 +106,9 @@ namespace TacticsECS
                 default:
                 {
                     var res = econ.Resources[team];
-                    res.Gold += GameRules.Ruin.Gold;
+                    res.Stars += GameRules.Ruin.Stars;
                     econ.Resources[team] = res;
-                    entry.Subject = $"골드 +{GameRules.Ruin.Gold}";
+                    entry.Subject = $"별 +{GameRules.Ruin.Stars}";
                     break;
                 }
             }
@@ -116,7 +116,7 @@ namespace TacticsECS
             return true;
         }
 
-        private enum RuinReward { Gold, Tech, Population, Explorer, Unit }
+        private enum RuinReward { Stars, Tech, Population, Explorer, Unit }
 
         /// <summary>center 주변 반경 radius 안에 team에게 아직 구름인 칸이 있는지(위키: 탐험가 보상 조건 5x5).</summary>
         private static bool HasFogAround(GridWorld grid, Team team, Vector2Int center, int radius)
@@ -160,9 +160,9 @@ namespace TacticsECS
             grid.RemoveOccupant(pos);
             world.Set(unitId, new Hp { Value = 0 });
             var res = econ.Resources[team];
-            res.Gold += refund;
+            res.Stars += refund;
             econ.Resources[team] = res;
-            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Disband, Subject = $"골드 +{refund}", Position = pos, CityIndex = -1 });
+            log?.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Disband, Subject = $"별 +{refund}", Position = pos, CityIndex = -1 });
             return true;
         }
     }

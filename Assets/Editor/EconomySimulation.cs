@@ -11,7 +11,7 @@ namespace TacticsECS.EditorTools
     /// 전투 화면의 턴 흐름(BattleController: 턴 시작 수입 → 시야/과업 → 경제 AI → 스폰 → 군사 AI → 턴 종료 대기/과업)을
     /// 같은 System 호출 순서로 재현하고, 유닛 스폰은 UnitFactorySystem으로 한다.
     ///
-    /// 출력: Logs/Simulation/&lt;시나리오&gt;.csv(턴·팀별 골드/수입/도시/연결/건물/기술/유닛/탐험/점수) + Console 요약.
+    /// 출력: Logs/Simulation/&lt;시나리오&gt;.csv(턴·팀별 별/수입/도시/연결/건물/기술/유닛/탐험/점수) + Console 요약.
     /// 판정(ALL PASS 형식): 예외 없이 완주, 양 팀 모두 탐험/연구/건설 진행, 같은 시드 두 번 실행 결과 동일, 전체 시나리오에서
     /// 핵심 건물(도로/항구/가공 건물/시장/신전)이 한 번 이상 지어지고 물 맵에서 승선이 일어남.
     /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.EconomySimulation.Run
@@ -146,7 +146,7 @@ namespace TacticsECS.EditorTools
             var econ = new EconomyWorld { TechNodes = techNodes, UnitRows = new List<UnitCsvRow>(units) };
             foreach (var team in CitySystem.Teams)
             {
-                econ.Resources[team] = new CityResourceData { Gold = 5, Development = 5 };
+                econ.Resources[team] = new CityResourceData { Stars = 5 };
                 econ.Tech[team] = TechTreeData.CreateEmpty();
             }
             TaskSystem.Init(econ);
@@ -176,7 +176,7 @@ namespace TacticsECS.EditorTools
             foreach (var team in CitySystem.Teams) result.ExploredStart[team] = VisionSystem.CountExplored(grid, team);
 
             var csv = new StringBuilder();
-            csv.AppendLine("turn,team,gold,goldIncome,devIncome,cities,levels,connected,buildings,roads,techs,units,embarked,explored,kills,score");
+            csv.AppendLine("turn,team,stars,starsIncome,cities,levels,connected,buildings,roads,techs,units,embarked,explored,kills,score");
 
             for (int turn = 1; turn <= MaxTurns; turn++)
             {
@@ -290,7 +290,7 @@ namespace TacticsECS.EditorTools
                 if (EmbarkSystem.IsEmbarked(world, i)) embarked++;
             }
             var res = econ.Resources[team];
-            return $"{turn},{team},{res.Gold},{CitySystem.GoldIncome(grid, world, econ, team)},{CitySystem.DevelopmentIncome(econ, team)},{cities},{levels},{connected}," +
+            return $"{turn},{team},{res.Stars},{CitySystem.StarsIncome(grid, world, econ, team)},{cities},{levels},{connected}," +
                    $"{buildings},{roads},{econ.Tech[team].Unlocked.Count},{unitsAlive},{embarked},{VisionSystem.CountExplored(grid, team)},{econ.Tasks[team].Kills}," +
                    $"{ScoreSystem.Compute(grid, world, econ, team)}";
         }

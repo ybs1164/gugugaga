@@ -613,20 +613,20 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 누르면 켜지고, `SampleScene`처럼 비어있으면 모든 경제 규칙이 꺼진 예전 순수 전투 그대로다.
 
 **한 턴의 흐름** (양 팀 동일, 적은 `EconomyAI` + `EnemyAI`가 대신 한다):
-1. 턴 시작 — 도시 수입이 들어온다(1턴은 시작 자원 골드 5/발전도 5만): 골드 = 도시마다 (레벨 + 공방 + 공원 + 수도 1)
-   + 시장, 발전도 = 도시 수 + 수도 연결 도시 수 + 수도 1. 적 유닛이 서 있는(포위된) 도시는 수입이 없다.
-2. **연구** — 기술트리 패널에서 발전도로 기술을 연다. 비용 = (티어) × (도시 수) + 4, 철학 연구 시 1/3 감소.
+1. 턴 시작 — 도시 수입이 들어온다(1턴은 시작 별만 사용하며 기본값은 5): 별 = 도시마다 (레벨 + 공방 + 공원 + 수도 1)
+   + 시장. 적 유닛이 서 있는(포위된) 도시는 수입이 없다. 연구·건설·채집·훈련 모두 이 별을 함께 사용한다.
+2. **연구** — 기술트리 패널에서 별로 기술을 연다. 비용 = (티어) × (도시 수) + 4, 철학 연구 시 1/3 감소.
 3. **채집/건설** — 영토 칸을 클릭하면 오른쪽 메뉴에 그 칸에서 할 수 있는 채집(과일/사냥/낚시)·건물(농장/광산/벌목장/
-   항구/풍차/대장간/제재소/시장/신전 4종/도로)·타일 행동(벌목/화전/숲 조성/파괴)이 골드 비용과 함께 뜬다. 인구가
+   항구/풍차/대장간/제재소/시장/신전 4종/도로)·타일 행동(벌목/화전/숲 조성/파괴)이 별 비용과 함께 뜬다. 인구가
    그 칸의 주인 도시에 쌓인다.
 4. **도시 성장** — 레벨 L에서 인구 L+1이 차면 레벨업(남는 인구 이월), 레벨마다 2지선다 보상(Lv2 공방/탐험가,
-   Lv3 성벽/골드 5, Lv4 인구 +3/국경 확장, Lv5+ 공원/슈퍼 유닛). 도시를 클릭하면 보상 버튼이 뜬다.
-5. **훈련** — 우리 도시(빈 칸)를 클릭하면 유닛 CSV의 유닛을 골드로 훈련한다(`Unit.<Id>` 기술 필요한 유닛은 해금 후).
+   Lv3 성벽/별 5, Lv4 인구 +3/국경 확장, Lv5+ 공원/슈퍼 유닛). 도시를 클릭하면 보상 버튼이 뜬다.
+5. **훈련** — 우리 도시(빈 칸)를 클릭하면 유닛 CSV의 유닛을 별로 훈련한다(`Unit.<Id>` 기술 필요한 유닛은 해금 후).
    도시마다 (레벨 + 1)개까지 유닛을 지원하고(위키 City "Unit Capacity"), 유닛은 소속 도시(`HomeCity`)를 가진다 — 훈련한 도시,
    점령한 유닛은 점령한 도시, 전향된 유닛은 전향시킨 유닛의 도시(상한 초과 허용), 독립(`Independent`) 유닛은 소속 없음.
    도시 메뉴에 "유닛 n/L+1", 유닛 메뉴에 소속 도시가 보인다. 새 유닛은 그 턴에 행동할 수 없다.
 6. **이동/전투/점령** — 마을·적 도시·주인 없는 수도 위에서 턴을 시작한 유닛은 유닛 메뉴의 "점령"으로 그 칸을 도시로
-   만든다(반경 1 영토, 턴 종료). 유적 위 유닛은 "유적 탐험"(골드 10/무료 기술/인구 +3/유닛 중 하나).
+   만든다(반경 1 영토, 턴 종료). 유적 위 유닛은 "유적 탐험"(별 10/무료 기술/인구 +3/유닛 중 하나).
 7. **승패** — 도시를 가졌던 팀은 도시를 전부 잃으면 패배(유닛이 남아 있어도), 처음부터 도시가 없던 팀은 예전처럼 유닛 전멸.
 
 전투 시작 시 각 팀은 자기 유닛 무게중심에서 가장 가까운 "Capital" 구조물을 수도로 받는다(지형을 생성하지 않아
@@ -640,10 +640,10 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
   [`CityRewardDefinition`](Assets/Scripts/TacticsECS/Data/CityRewardDefinition.cs).
 - 시스템: [`CitySystem`](Assets/Scripts/TacticsECS/Systems/CitySystem.cs)(창설/영토/점령/인구·레벨업/보상/수입/수도 연결/
   훈련 조건), [`TileImprovementSystem`](Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs)(건설·채집 배치 판정과 효과,
-  인접 가공 건물 인구, 시장 골드), [`TechSystem`](Assets/Scripts/TacticsECS/Systems/TechSystem.cs)(비용 공식/해금 키 조회),
+  인접 가공 건물 인구, 시장 별), [`TechSystem`](Assets/Scripts/TacticsECS/Systems/TechSystem.cs)(비용 공식/해금 키 조회),
   [`TechEffectSystem`](Assets/Scripts/TacticsECS/Systems/TechEffectSystem.cs)(기술 → 유닛 지형 진입 `TerrainAccess`/위치 방어
   보너스 `PositionalDefenseBonus` 컴포넌트), [`RuinSystem`](Assets/Scripts/TacticsECS/Systems/RuinSystem.cs)(유적 탐험/해산),
-  [`EconomyAI`](Assets/Scripts/TacticsECS/Systems/EconomyAI.cs)(적: 점령 → 보상 → 가장 싼 기술 → 도시별 훈련 → 골드당 인구가
+  [`EconomyAI`](Assets/Scripts/TacticsECS/Systems/EconomyAI.cs)(적: 점령 → 보상 → 가장 싼 기술 → 도시별 훈련 → 별당 인구가
   좋은 건설 순 — 이후 확장은 아래 적 시뮬레이션 항목). `EnemyAI.RunTurn`은 점령 목표 칸을 받아 가까운 마을/도시로 향한다.
 - 표시: [`GridView.RefreshEconomy`](Assets/Scripts/TacticsECS/View/GridView.cs)(영토 옅은 팀 색 + 팀 색 국경선, 도로, 건물,
   도시 발밑 팀 색 원판 + 레벨 눈금), [`BuildingMarkerView`](Assets/Scripts/TacticsECS/View/BuildingMarkerView.cs)(건물 전용
@@ -652,9 +652,8 @@ Waterworld/Continents 설명, "Inner City = 도시에 바로 인접한 칸", Bal
 - 검증: [`EconomyVerification`](Assets/Editor/EconomyVerification.cs) — CSV 파싱/왕복, 위키 비용 표, 채집→레벨업→보상,
   농장+풍차 인접, 파괴, 마을 점령, 도로 수도 연결, 산 진입/요새화 방어, 적 AI 연구/훈련/점령, 도시 전멸 패배.
 
-**위키와 다르게 단순화한 것**: 발전도(연구)와 골드(건설/훈련)를 분리한 것은 이 프로젝트 기존 기획(도시 발전도로 기술 해금)을
-따른 것. (예전엔 유닛 상한을 팀 합계로 봤지만 2026-09-29부터 위키대로 도시별.) 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 2026-09-29부터
-위키대로 배의 행동(불가사리 칸에서 턴을 시작한 배, 영토 무관, 골드 8 — `RuinSystem.HarvestStarfish`). 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
+2026-10-02부터 연구·건설·훈련 재화를 원작처럼 별 하나로 통합했다. 도시별 유닛 상한은 2026-09-29부터 위키를 따른다. 슈퍼 유닛은 거인(`City.SuperUnitId` — 3차 전엔 유닛 CSV에서 최대 체력이 가장 높은 유닛). 불가사리 인양은 2026-09-29부터
+위키대로 배의 행동(불가사리 칸에서 턴을 시작한 배, 영토 무관, 별 8 — `RuinSystem.HarvestStarfish`). 지형·요새화 도시 방어는 3차부터 위키 그대로 x1.5(성벽 x4), 겹치지 않음. 다리/기념물/신전
 레벨/항구 승선/시야/점수는 아래 [건물 기능 · 시야 · 적 시뮬레이션](#건물-기능--시야--적-시뮬레이션) 절에서 채웠다.
 
 ## 건물 기능 · 시야 · 적 시뮬레이션
@@ -671,14 +670,14 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 구름(탐험하지 않은 칸)에는 못 들어간다. `MoveAction.Execute`도 같은 판정(`PathfindingSystem.CanEnter`)을 쓴다.
 
 **건물** ([`BuildingDefinition`](Assets/Scripts/TacticsECS/Data/BuildingDefinition.cs), [`TileImprovementSystem`](Assets/Scripts/TacticsECS/Systems/TileImprovementSystem.cs))
-- **다리**(도로 기술, 골드 5): 상하 또는 좌우 양쪽이 육지인 얕은 물 1칸, 중립 물에도 건설. 육지 유닛 통행 + 도로 효과 + 수도 연결, 파괴 가능.
+- **다리**(도로 기술, 별 5): 상하 또는 좌우 양쪽이 육지인 얕은 물 1칸, 중립 물에도 건설. 육지 유닛 통행 + 도로 효과 + 수도 연결, 파괴 가능.
 - **항구**: 들어온 육지 유닛은 **뗏목**이 되고 그 턴 끝([`EmbarkSystem`](Assets/Scripts/TacticsECS/Systems/EmbarkSystem.cs)). 배는 해안에
   내리면 원래 유닛으로 돌아온다(체력 유지, 업그레이드 소멸). 뗏목은 자기 영토 안에서 정찰선(배 타기, 5)/충각선(충파, 5)/
   폭격선(항해, 15)으로 업그레이드([`NavalUnitDefinition`](Assets/Scripts/TacticsECS/Data/NavalUnitDefinition.cs) — 공격력만 이
   프로젝트 척도로 x2). 적 항구는 못 쓴다. 해로 연결은 항구 사이 물 5칸 이하, 깊은 바다는 항해(`Connect.Ocean`) 필요.
 - **신전**: 점수만 준다(예전 신앙 최대치 +5 제거). 지은 턴(`TileData.BuildingTurn`)부터 3턴마다 레벨 업(최대 5), 모델도 층이 쌓인다.
 - **기념물 7종**(평화의 제단/황제의 무덤/신의 눈/힘의 문/대시장/행운의 공원/지혜의 탑): 과업
-  ([`TaskDefinition`](Assets/Scripts/TacticsECS/Data/TaskDefinition.cs) — 5턴 비공격/골드 100/등대 전부/10킬/연결 도시 5/레벨 5 도시/
+  ([`TaskDefinition`](Assets/Scripts/TacticsECS/Data/TaskDefinition.cs) — 5턴 비공격/별 100/등대 전부/10킬/연결 도시 5/레벨 5 도시/
   기술 전부, 명상·교역·철학이 각각 개방)을 달성하면 무료로 한 번, 인구 +3, 파괴 불가. [`TaskSystem`](Assets/Scripts/TacticsECS/Systems/TaskSystem.cs)이 기록.
 - **대사관은 보류**: 평화 조약 상대의 수도에만 지을 수 있는데, 두 팀이 항상 전쟁 중이라(외교 없음) 넣지 않았다.
 - 숨겨진 자원(예: 채집 전 작물) 위에 숲을 조성하면 자원이 사라진다(숲 + 작물 칸이 생기던 버그).
@@ -686,7 +685,7 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 **시야(구름)** ([`VisionSystem`](Assets/Scripts/TacticsECS/Systems/VisionSystem.cs), 상수 [`VisionDefinition`](Assets/Scripts/TacticsECS/Data/VisionDefinition.cs))
 - 팀별 탐험 여부를 `TileData.ExploredMask` 비트로 기록, 한 번 밝힌 칸은 계속 보인다. 경제가 켜진 전투에서만(`GridWorld.FogEnabled`).
 - 유닛 주변 3x3, 산 위/정찰(Scout) 5x5, 자기 영토, 시작 시 수도 주변 5x5.
-- **탐험가**(Lv2 보상, 유적 보상 — 예전 "발전도 +3" 대체): 12걸음 동안 가장 가까운 구름 쪽으로(걷히는 칸 수/등대 가산/되돌아가기 감점).
+- **탐험가**(Lv2 보상, 유적 보상 — 예전 "별 +3" 대체): 12걸음 동안 가장 가까운 구름 쪽으로(걷히는 칸 수/등대 가산/되돌아가기 감점).
 - **등대**를 처음 밝히면 수도 인구 +1, 전부 찾으면 탐험가 과업.
 - 유적: 이제 그 칸에서 턴을 시작해야 탐험(위키), 보상 후보에 탐험가 추가, 인구 보상은 수도로.
 - 화면: 구름 칸은 옅은 회색 + 그 위 장식/구조물/건물 숨김, 구름 속 적 유닛 숨김, 구름 칸 클릭/메뉴 무시.
@@ -700,31 +699,26 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   처치 가능 대상 우선 공격, 위협받는 도시 복귀, 점령 목표 분배, 목표가 없으면 가장 가까운 구름 가장자리로 탐험(뭍 먼저, 없으면 배로),
   지형을 고려한 여행 거리(바다 건너 목표면 항구 → 뗏목 → 해안 상륙).
 - [`EconomyAI`](Assets/Scripts/TacticsECS/Systems/EconomyAI.cs): 위협 시 훈련 먼저/아니면 건설 먼저(훈련 예비금), 상황별 보상 선택,
-  기념물 즉시, 미연결 도시 도로·다리 연결 계획(골드 18 이내), 가공 건물 연쇄/시장 수입/첫 항구 가치 반영, 뗏목 업그레이드.
+  기념물 즉시, 미연결 도시 도로·다리 연결 계획(별 18 이내), 가공 건물 연쇄/시장 수입/첫 항구 가치 반영, 뗏목 업그레이드.
 - [`UnitFactorySystem`](Assets/Scripts/TacticsECS/Systems/UnitFactorySystem.cs): 유닛 엔티티 생성을 View(`UnitSpawner`)에서 분리 —
   전투 화면과 시뮬레이션이 같은 경로로 유닛을 만든다.
 - [`EconomySimulation`](Assets/Editor/EconomySimulation.cs)(Editor, 배치모드): 6개 맵(Continents x2/Pangea/Lakes/Archipelago/Drylands)에서
-  양 팀 모두 AI로 40턴. `Logs/Simulation/<시나리오>.csv`(턴·팀별 골드/수입/도시/연결/건물/기술/유닛/승선/탐험/처치/점수)와
+  양 팀 모두 AI로 40턴. `Logs/Simulation/<시나리오>.csv`(턴·팀별 별/수입/도시/연결/건물/기술/유닛/승선/탐험/처치/점수)와
   `summary.csv`. 판정: 예외 없이 완주, 양 팀 탐험·연구, 같은 시드 재실행 동일, 전체에서 도로/항구/시장/가공 건물/신전 건설과
   물 맵 승선 발생.
 - 알려진 한계: 섬 맵 후반에 뗏목이 상륙 지점(적 도시 주변 몇 칸)을 두고 몰려 바다에 쌓인다. 대장간/황제의 무덤/지혜의 탑은
   40턴 안에 거의 나오지 않는다.
 
-## 도시 발전 자원
+## 별과 유닛 수용량
 
-도시 발전도(⚙️)/인구(👤)/골드(🪙) 세 가지 팀 자원(신앙은 쓰는 곳이 없는 프로젝트 고유 자원이라 2026-09-29에 삭제). 예전엔 타일/영토 시스템이 없어 생산량이 인스펙터
-고정값이었고 영토 회복/수도 연결은 항상 false인 플레이스홀더였는데, 위 경제 루프로 전부 실제 값이 됐다.
+별(Stars)은 기술 연구·채집·건설·유닛 훈련·함선 업그레이드에 공통으로 사용하는 단일 재화다.
+연구용 별도 잔액과 생산량은 제거했다. 도시 연결은 도시와 수도의 인구를 늘리며 연구 전용 수입을 지급하지 않는다.
 
-- [`CityResourceData`](Assets/Scripts/TacticsECS/Core/CityResourceData.cs): 팀 하나의 자원(`EconomyWorld.Resources`).
-  `GoldProduction`/`DevelopmentProduction`/`PopulationCap`은 도시 목록으로 매번 다시 계산해 넣는 캐시다.
-- [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs): `ApplyTurnStart`(생산량 재계산 + 골드/발전도
-  증가), `RefreshProduction`(자원은 그대로 두고 생산량만 갱신 — 건설/점령 직후 HUD용), `IsConnectedToCapital`(이제
-  `CitySystem.RefreshConnections`가 도로/도시/항구를 8방향으로 탐색해 기록한 값을 돌려준다).
-- 영토 회복: [`WaitAction.IsInOwnTerritory`](Assets/Scripts/TacticsECS/Actions/WaitAction.cs)가 서 있는 칸의 `TileData.OwnerTeam`을 봐서
-  자기 영토면 4 회복(아니면 2).
-- [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs) + `Assets/Prefabs/UI/CityResourceBar.prefab`: 발전도/골드는
-  "보유량 (+턴당 생산량)"으로 보여준다. 시작값은 `BattleController` 인스펙터의 `startingGold`/`startingDevelopment`(기본 5/5,
-  폴리토피아 시작 별 5 — 지금은 `GameRules.csv` `Economy.*`).
+- [`CityResourceData`](Assets/Scripts/TacticsECS/Core/CityResourceData.cs): `Stars`는 보유 별, `StarsProduction`은 턴당 수입, `PopulationCap`은 유닛 수용량.
+- [`CityResourceSystem`](Assets/Scripts/TacticsECS/Systems/CityResourceSystem.cs): 도시 레벨·수도·공방·공원·시장 수입을 계산하고 매 턴 시작 시 한 번 지급한다.
+- [`CityResourceHud`](Assets/Scripts/TacticsECS/View/CityResourceHud.cs): 별의 "보유량 (+턴당 수입)"과 유닛 수/수용량을 표시한다.
+- 시작 별은 `GameRules.csv`의 `Economy.StartingStars`(기본 5), 종족 선택 시 `Tribes.csv`의 `StartStars`를 사용한다.
+- 영토 회복은 `WaitAction.IsInOwnTerritory`가 서 있는 칸의 소유자를 확인해 자기 영토면 4, 아니면 2만큼 회복한다.
 
 ## 기술트리 (CSV)
 
@@ -779,8 +773,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 - 방식 비교(키-값 표 / 도메인별 1행 넓은 표 / 바꾼 값만 덮어쓰기) → **키-값 표** 채택: `Key,Value,Wiki,Description,Note`.
   `Wiki`와 `Value`가 다르면(또는 프로젝트 고유 규칙이면) `Note`에 이유가 없을 때 경고 — "원문과 다른 점"을 데이터로 강제.
 - [`GameRules`](Assets/Scripts/TacticsECS/Data/GameRules.cs)(도메인별 중첩 클래스의 정적 필드) ← [`GameRulesCsvSerializer`](Assets/Scripts/TacticsECS/Systems/Csv/GameRulesCsvSerializer.cs)(리플렉션 — 새 규칙은 필드 1 + 행 1).
-  `ScoreDefinition`은 삭제(→ `GameRules.Score`), `VisionDefinition`엔 해금 키만 남김. 시작 골드/발전도/신앙은 씬 인스펙터에서 `Economy.*`로 이동.
-- 도시 보상([`CityRewards.csv`](Assets/Resources/CityRewards.csv), `Amount` 칸)·과업([`Tasks.csv`](Assets/Resources/Tasks.csv)) 표도 CSV로. 시장 골드 = min(인접 레벨, 8) × `City.MarketGoldPerLevel`.
+  `ScoreDefinition`은 삭제(→ `GameRules.Score`), `VisionDefinition`엔 해금 키만 남김. 시작 별/신앙은 씬 인스펙터에서 `Economy.*`로 이동.
+- 도시 보상([`CityRewards.csv`](Assets/Resources/CityRewards.csv), `Amount` 칸)·과업([`Tasks.csv`](Assets/Resources/Tasks.csv)) 표도 CSV로. 시장 별 = min(인접 레벨, 8) × `City.MarketStarsPerLevel`.
 - 검증: CSV 규칙 하나를 바꾸면 도시 수입이 바뀌는지까지 확인, 기존 검증 전부 ALL PASS, **시뮬레이션 결과가 1차와 동일**(동작 불변 리팩터 확인).
 
 **3차 — 유닛 스탯 + 위키 전투 공식**
@@ -842,7 +836,7 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 | `TechSlots.csv` / `TechTreeLayout.csv` | 고정 슬롯 구조 / 슬롯별 기술 배치 | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
 | `Techs.csv` | 기술명·설명·비용·해금 참조(위치/선행 관계는 슬롯 표) | [`TechGroupSystem`](Assets/Scripts/TacticsECS/Systems/TechGroupSystem.cs) |
 | `TechGroups.csv` | 종족별 기술 묶음 — 그룹 밖 기술은 트리에 안 보이고 연구 불가(`TechTreeData.Allowed`) | `TechSystem.IsAvailable` |
-| `Tribes.csv` | 위키 일반 부족 12개: 이름/설명, 바이옴 Index, 기술 그룹 Index, 시작 기술, 시작 골드, 시작 유닛, 시작 조건 | [`TribeSystem`](Assets/Scripts/TacticsECS/Systems/TribeSystem.cs) |
+| `Tribes.csv` | 위키 일반 부족 12개: 이름/설명, 바이옴 Index, 기술 그룹 Index, 시작 기술, 시작 별, 시작 유닛, 시작 조건 | [`TribeSystem`](Assets/Scripts/TacticsECS/Systems/TribeSystem.cs) |
 | `StartConditions.csv` + `StartConditionRules.csv` | 수도 주변 스타팅 자원/지형 규칙(바이옴 표와 분리) — "수도 거리 a~b 안에 X가 최소 N개" | [`StartConditionSystem`](Assets/Scripts/TacticsECS/Systems/StartConditionSystem.cs) |
 | `Biomes.csv` | 바이옴 CSV를 불러오지 않았을 때 쓰는 기본 바이옴 표(`docs/sample_biomes.csv`와 같은 내용) | |
 
@@ -855,13 +849,15 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   **바이옴 드롭다운**(자동 / 불러온 바이옴 CSV 중 하나만), **종족 드롭다운**(아군/적). "지형 생성"은 설정이 같으면 그 아웃라인 위에 바이옴만
   채운다(`GenerateFromOutline`) — 같은 땅 모양에서 바이옴을 바꿔 가며 규칙을 확인할 수 있다.
 - 종족을 고르면 영역이 팀마다 하나(종족 바이옴)가 되고, 생성 뒤 그 수도에 종족 시작 조건을 적용하며, 전투 시작 때(`InitEconomy`) 그 자리가 그
-  팀 수도가 되고 시작 골드/기술/기술 그룹/시작 유닛이 적용된다(기술트리는 슬롯/배치/기술/해금 표를 조합한다).
+  팀 수도가 되고 시작 별/기술/기술 그룹/시작 유닛이 적용된다(기술트리는 슬롯/배치/기술/해금 표를 조합한다).
 - 원문과 다른 점: Drylands도 아웃라인에서는 노이즈 마스크(목표 물 비율 순위 컷)를 쓴다(슬라이더로 비율을 맞추기 위함). Luxidoor "레벨 3 수도로
   시작"은 아직 없다. 종족 고유 지형 배수는 기본 바이옴 3개로 근사한다.
 
 ## 작업 로그
 
-- 2026-10-02: 기술 CSV 명세의 위치 설명을 시계방향 기준으로 변경하고 Wiki 항목 제거. 도시당 추가 비용이 기술 패널의 총 해금 비용과 실제 발전도 차감에 적용됨을 명시.
+- 2026-10-02: 연구·건설·채집·훈련 재화를 별(Stars) 하나로 통합. 별도 연구 잔액/생산 규칙 제거, 시작 별 한 번 지급, 도시 수입 한 번 지급. 자원 바를 별·유닛 수용량 두 항목으로 변경하고 공유 잔액 지출 검증 추가. Unity CLI 검증 8종 ALL PASS(`Logs/stars_currency_verification.log`).
+
+- 2026-10-02: 기술 CSV 명세의 위치 설명을 시계방향 기준으로 변경하고 Wiki 항목 제거. 도시당 추가 비용이 기술 패널의 총 해금 비용과 실제 별 차감에 적용됨을 명시.
 
 - 2026-10-02: 샌드박스 기술 불러오기용 [예시 CSV](docs/sample_tech_tree.csv)(25개 기술)와 [형식 명세 CSV](docs/tech_tree_csv_spec.csv)(컬럼·작성 규칙·50개 해금 키)를 추가. 두 파일은 한글 Excel 호환 UTF-8 BOM이며 CSV 구조/참조 검증 통과.
 
@@ -873,7 +869,7 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   - 새 배열형 표 7개(`Assets/Resources/Tables`), 형식 문서 [`docs/ArrayTables.md`](docs/ArrayTables.md). 기존 표는 그대로.
   - 기술: `TechUnlocks`(해금 내역) → `Techs`(TechTree.csv를 Index 참조로 옮김) → `TechGroups`(종족별 묶음). `TechTreeData.Allowed` +
     `TechSystem.IsAvailable`이 그룹 밖 기술을 막고, 기술트리 패널은 아군 그룹만 보여 준다.
-  - 종족 12개(위키 Tribes 시작 기술/유닛/골드). `EconomyWorld.StartUnitIds` → `CitySystem.StartingUnitRequests`가 종족 시작 유닛(여러 개 가능)을 스폰.
+  - 종족 12개(위키 Tribes 시작 기술/유닛/별). `EconomyWorld.StartUnitIds` → `CitySystem.StartingUnitRequests`가 종족 시작 유닛(여러 개 가능)을 스폰.
   - 시작 조건: `StartConditionSystem`(수도 거리 고리 안 최소 개수 보장, 맵 타입 필터). 예: Drylands의 Kickoo/Luxidoor 수도 옆 물 2칸 + 물고기.
   - 지형: `TerrainGenerationSystem.PlanOutline`/`ApplyOutline`/`GenerateFromOutline`(`Core/TerrainOutlineData`). 한 번에 생성하는 기존 `Generate`는 그대로.
   - UI: `UIPrefabSetup.BuildGenerationTab`(uGUI 표준 Dropdown/Slider — 캡션 영역이 폰트보다 작아 글자가 잘리던 것은 `VerticalWrapMode.Overflow`로 해결),
@@ -883,7 +879,7 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   - 검증: 신규 `ArrayTableVerification`(표 모양·위키 대조, 왕복, Techs↔TechTree.csv 일치, Index/참조 오류 보고, 종족 적용·그룹 제한, 시작 유닛,
     시작 조건(개수/고리/맵 타입 필터/재적용 0), 6개 맵 타입 × 물 비율 4개 아웃라인 정확도·결정론, 아웃라인 모양 유지·단일 바이옴 채우기, 프리팹 구성)을
     `VerificationSuite`에 추가 — 전체 8개 스위트 ALL PASS. Sandbox 씬 Edit Mode 렌더로 아웃라인/종족 영역/단일 바이옴 화면과, 종족 전투 시작
-    (키쿠 골드 5·낚시, 우마지 골드 6·기마·기병, 수도 = 종족 영역 수도)을 확인(임시 스크립트는 삭제).
+    (키쿠 별 5·낚시, 우마지 별 6·기마·기병, 수도 = 종족 영역 수도)을 확인(임시 스크립트는 삭제).
 
 - 2026-09-30: **클릭 포커스 자동 전환 + 겹친 대상 순환**.
   - `BattleController.HandleClick`: 유닛 선택 중에도 공격 대상/이동 가능 칸이 아니면 선택 해제 없이 클릭한 칸으로 포커스를 옮긴다(예전에는 아무 반응 없음).
@@ -893,8 +889,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   - 검증: Unity 배치모드 컴파일 오류 없음.
 
 - 2026-09-30: **유닛 없이 시작하면 수도에 시작 유닛 자동 생성**(위키 City/Units: 부족은 수도에 Warrior 하나를 두고 시작).
-  - 점검: 건물(도시)에서 유닛 생산은 이미 된다 — 우리 도시 칸을 클릭하면 칸 메뉴(`ShowTileMenu`)에 "X 훈련 (골드 N)" 버튼이 뜨고,
-    `CitySystem.CanTrain`(골드/기술/수용량/도시 칸 비어 있음) → `PayForTraining` → 스폰 순으로 처리된다. 그래서 UI 추가 없이 시작 유닛만 구현.
+  - 점검: 건물(도시)에서 유닛 생산은 이미 된다 — 우리 도시 칸을 클릭하면 칸 메뉴(`ShowTileMenu`)에 "X 훈련 (별 N)" 버튼이 뜨고,
+    `CitySystem.CanTrain`(별/기술/수용량/도시 칸 비어 있음) → `PayForTraining` → 스폰 순으로 처리된다. 그래서 UI 추가 없이 시작 유닛만 구현.
   - `CitySystem.InitializeCapitals(..., includeUnitlessTeams)`: 유닛이 없는 팀도 기본 자리(아군 (0,0), 적 반대쪽 모서리)에서 가장 가까운
     수도 구조물(없으면 빈 육지)을 수도로 정한다. 전투(`BattleController.InitEconomy`)만 켜고, 기존 검증은 예전 동작 그대로.
   - `CitySystem.StartingUnitId`(기술 없이 훈련 가능한 가장 싼 육지 유닛 — SandboxUnits.csv면 보병) + `StartingUnitRequests`(유닛이 하나도 없는
@@ -934,13 +930,13 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
   - 검증: `EconomyVerification.VerifyHomeCities` 추가, `VerificationSuite`/`EconomySimulation` ALL PASS.
 
 - 2026-09-29: **구현 계획 1단계 — 작은 독립 기능**.
-  - **불가사리 인양 = 배의 행동**(위키 Starfish): 항해 연구 팀의 배가 불가사리 칸에서 턴을 시작하면 영토와 무관하게 인양(턴 소모, 골드
-    `GameRules.csv` `Starfish.Gold` = 8). 영토 타일 행동(`TileActions.csv` `HarvestStarfish`)은 삭제. 유닛 메뉴 버튼, `EconomyAI`가 인양,
+  - **불가사리 인양 = 배의 행동**(위키 Starfish): 항해 연구 팀의 배가 불가사리 칸에서 턴을 시작하면 영토와 무관하게 인양(턴 소모, 별
+    `GameRules.csv` `Starfish.Stars` = 8). 영토 타일 행동(`TileActions.csv` `HarvestStarfish`)은 삭제. 유닛 메뉴 버튼, `EconomyAI`가 인양,
     `EnemyAI`의 배가 보이는 불가사리로 가서 기다린다.
   - **파괴(위키 Destroy)는 건물과 유적**: 영토 안 유적도 없앨 수 있다. 계획에 있던 "도로 파괴"는 위키 Roads 문서("Roads cannot be destroyed")를
     확인하고 넣지 않았다(계획 수정).
   - **신앙 자원 삭제**(위키에 없고 쓰는 곳 없음): `CityResourceData.Faith/MaxFaith`, `Economy.StartingMaxFaith`, 자원 바 신앙 칸(`UIPrefabSetup` 재생성).
-    자원 바 툴팁도 실제 쓰임(발전도 = 연구, 골드 = 건설·훈련)으로 고침.
+    자원 바 툴팁도 실제 쓰임(별 = 연구·건설·훈련)으로 고침.
   - **플레이스홀더 패시브 삭제**: 약탈/고정/수송(`PillageAction`/`AnchoredAction`/`TransportAction`, `CargoCapacity`, `Transport.Capacity` 컬럼, docs/passives 3개).
   - 검증: `VerificationSuite` ALL PASS(불가사리/유적 파괴/도로 파괴 불가/도시당 1개 건물 검사 추가), `EconomySimulation` ALL PASS.
 
@@ -957,7 +953,7 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
     - 회복(위키 Units "Recover"): 이동도 행동이라 **이동한 유닛은 턴 종료에 자동 회복하지 않고** 대기 버튼도 사라진다(`WaitAction.CanExecute`).
     - 해산(위키 Disband): 이동한 유닛은 해산 불가.
     - 제재소/풍차/대장간 **도시당 1개**(위키 각 문서) — 건물 `OnePerCity` 플래그. 시장은 제한 없음(위키 Market). 대장간은 **숲에도** 건설 가능(위키 Forge).
-    - 수도 연결을 시야 갱신마다 다시 계산(`VisionSystem.Refresh` → `CitySystem.RefreshConnections`) — 항해 연구·구름 걷힘 직후에도 인구/발전도에 바로 반영.
+    - 수도 연결을 시야 갱신마다 다시 계산(`VisionSystem.Refresh` → `CitySystem.RefreshConnections`) — 항해 연구·구름 걷힘 직후에도 인구/별에 바로 반영.
     - 자폭 뒤 경제 화면(점수/시야/포위) 갱신, 샌드박스 "전투 시작"은 두 팀 모두 유닛이 있어야 가능.
   - **해변(얕은 물) 판정**: 코드는 이미 상하좌우 4방향 기준(`TerrainGenerationSystem.ClassifyWaterDepth`, 2026-09-26 `2b9c4de`)이고
     다른 육지-물 인접 판정도 전부 4방향임을 재확인했다. `Builds/gugugaga.exe`는 2026-09-13 빌드라 그 이전(8방향) 규칙으로 보인다 — 다시 빌드해야 반영된다.
@@ -1026,12 +1022,12 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
     도시/영토/수입/레벨업 보상/점령/수도 연결(도로·항구), 건물 13종 + 타일 행동 8종, 유닛 훈련(유닛 CSV에 `Cost` 컬럼 추가),
     유적 탐험/해산, 기술 25종 효과 전부, 적 경제 AI, 도시 전멸 패배.
   - 함께 채운 플레이스홀더: `WaitAction.IsInOwnTerritory`(영토 회복), `CityResourceSystem.IsConnectedToCapital`(수도 연결),
-    고정값이던 골드/발전도 생산량·인구 상한, **요새화(`FortifyAction`) 패시브**(자기 도시 방어 +1, 성벽 +3) — 요새화는 성벽
+    고정값이던 별 생산량·인구 상한, **요새화(`FortifyAction`) 패시브**(자기 도시 방어 +1, 성벽 +3) — 요새화는 성벽
     보상과 한 몸이라 같이 구현했다(은신/약탈/고정/수송은 그대로 플레이스홀더).
   - `TechId` enum 삭제 → 문자열 Id. `TechTreeDefinition`의 25행 표 → `Assets/Resources/TechTree.csv`(UTF-8 BOM, 엑셀 호환).
     `TechTreePanel.prefab`은 노드를 굽지 않도록 `UIPrefabSetup`으로 재생성. 씬의 옛 인스펙터 필드(`cityPopulationCap`/
-    `cityGoldProduction`/`cityDevelopmentProduction`/`cityIsCapital`)는 `startingGold`/`startingDevelopment`로 교체.
-  - 🪙 이모지가 Jua 폰트에 없어 UI에서 빈칸으로 나와 메뉴 문구는 "골드"로 썼다. 영토를 팀 색으로 진하게 칠하니 파란 팀 풀밭이
+    `cityStarsProduction`/`cityDevelopmentProduction`/`cityIsCapital`)는 `startingStars`/`startingDevelopment`로 교체.
+  - ★ 이모지가 Jua 폰트에 없어 UI에서 빈칸으로 나와 메뉴 문구는 "별"로 썼다. 영토를 팀 색으로 진하게 칠하니 파란 팀 풀밭이
     물처럼 보여서 옅은 색 + 팀 색 국경선으로 바꿨다.
   - **검증**: 에디터가 닫혀 있음을 확인한 뒤 Unity CLI로 `EconomyVerification`(신규)/`UIVerification`/`UnitCsvVerification`/
     `TerrainGenerationVerification`/`StructureGenerationVerification` 전부 ALL PASS. 1회성 스크립트(확인 후 삭제)로 Sandbox 씬을
@@ -1791,8 +1787,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
     TacticsECS.EditorTools.UnitCsvVerification.Run` — 새 13컬럼 스키마로 13종 샘플 + 9종 샌드박스 유닛
     round-trip/스폰 `ALL PASS`.
 
-- 2026-09-16: 도시 발전 자원(발전도/인구/골드/신앙) 최소 구현 + 재사용 가능한 표시 UI 프리팹 추가.
-  - **동기**: 기획 문서(도시 발전도/인구/골드/신앙 네 자원의 획득·소모 규칙)를 받아 구현 요청. 타일/영토
+- 2026-09-16: 도시 발전 자원(별/인구/별/신앙) 최소 구현 + 재사용 가능한 표시 UI 프리팹 추가.
+  - **동기**: 기획 문서(도시 별/인구/별/신앙 네 자원의 획득·소모 규칙)를 받아 구현 요청. 타일/영토
     정보가 프로젝트에 아직 없어, 그에 의존하는 규칙(채집형/설치형 자원, 영토 밖 특수 자원, 수도 연결
     보너스)은 플레이스홀더로 남겨두고, UI는 프리팹으로 만들어 재사용 가능하게 해달라는 요청을 받음. "커스텀
     화면"은 프로젝트에 그 이름의 씬이 없어 사용자에게 확인한 결과 `Assets/Scenes/Sandbox.unity`의 배치
@@ -1810,22 +1806,22 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
     이 프리팹을 `Sandbox.unity`에만 배정하도록 수정(`SampleScene`은 비워둠 → `BattleController`가 null
     체크로 생성을 건너뜀).
   - [`UIVerification.cs`](Assets/Editor/UIVerification.cs)에 `VerifyCityResourceBar` 추가 — 프리팹을
-    인스턴스화해 `SetResources`로 넘긴 값이 4개 슬롯(Development/Population/Gold/Faith) 텍스트에 그대로
+    인스턴스화해 `SetResources`로 넘긴 값이 4개 슬롯(Development/Population/Stars/Faith) 텍스트에 그대로
     반영되는지 확인.
   - **검증**: Unity 에디터가 닫혀 있음을 확인한 뒤 CLI로 진행. `unity run . -- -executeMethod
     TacticsECS.EditorTools.UIPrefabSetup.GenerateAll`(컴파일 에러 없음, `CityResourceBar.prefab` 생성 및
     `Sandbox.unity`에만 배정됨을 씬 diff로 확인), `unity run . -- -executeMethod
     TacticsECS.EditorTools.UIVerification.Run`(`ALL PASS`) 순으로 실행.
 
-- 2026-09-16: 기술트리(스킬트리) 구현 — 도시 발전도 소모형, 5갈래 x 25노드.
+- 2026-09-16: 기술트리(스킬트리) 구현 — 도시 별 소모형, 5갈래 x 25노드.
   - **동기**: 폴리토피아 기반 기술트리 기획(등산/채집/기마/사냥/낚시 5갈래, 각 1+2+2티어) 다이어그램 +
     표를 받아 구현 요청. "도시 발전 자원을 소모해서 진행"하라는 요청에 따라, 위 [기술트리](#기술트리-스킬트리-플레이스홀더)
     절 참고. 미구현 기능은 플레이스홀더로 유지해달라는 요청대로, 노드 25개가 실제로 여는 효과(건물
     건설/유닛 훈련/지형 보너스)는 대상 시스템 자체가 없어 구현하지 않고 "해금 여부" 상태만 관리한다.
-  - **부수 변경**: 기존 `CityResourceData.Development`(도시 발전도)는 생산 로직이 전혀 없어 항상 0으로
-    고정돼 있었다 — 기술트리가 실제로 소모할 자원이 필요해져, `GoldProduction`과 같은 방식의 고정값
+  - **부수 변경**: 기존 `CityResourceData.Development`(도시 별)는 생산 로직이 전혀 없어 항상 0으로
+    고정돼 있었다 — 기술트리가 실제로 소모할 자원이 필요해져, `StarsProduction`과 같은 방식의 고정값
     플레이스홀더 `DevelopmentProduction` 필드를 추가하고 `CityResourceSystem.ApplyTurnStart`가 매
-    플레이어 턴마다 발전도를 그만큼 늘리도록 했다(`CityResourceData.Create` 시그니처에 매개변수 추가 —
+    플레이어 턴마다 별을 그만큼 늘리도록 했다(`CityResourceData.Create` 시그니처에 매개변수 추가 —
     기존 호출부 `BattleController`/`UIVerification` 갱신).
   - 순수 데이터 [`TechId`](Assets/Scripts/TacticsECS/Core/TechId.cs)/[`TechNodeData`](Assets/Scripts/TacticsECS/Core/TechNodeData.cs)/
     [`TechTreeData`](Assets/Scripts/TacticsECS/Core/TechTreeData.cs)(Core), 고정 테이블

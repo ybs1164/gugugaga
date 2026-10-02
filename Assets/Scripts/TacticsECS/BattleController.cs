@@ -95,12 +95,12 @@ namespace TacticsECS
         [SerializeField] private bool sandboxMode;
 
         [Header("City Resources")]
-        [Tooltip("도시 발전 자원(발전도/인구/골드/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
+        [Tooltip("도시 발전 자원(별/인구/별/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
             "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
         [SerializeField] private CityResourceHud cityResourceHudPrefab;
-        // 시작 골드/발전도/신앙 최대치는 인스펙터가 아니라 Assets/Resources/GameRules.csv(Economy.*)에서 온다.
+        // 시작 별/신앙 최대치는 인스펙터가 아니라 Assets/Resources/GameRules.csv(Economy.*)에서 온다.
         [Tooltip("기술트리 패널 프리팹. 비워두면 생성 자체를 건너뛴다 — cityResourceHudPrefab과 같은 블록 " +
-            "에서만 초기화된다(도시 발전도가 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
+            "에서만 초기화된다(도시 별이 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
         [SerializeField] private TechTreeHud techTreeHudPrefab;
 
         [Header("Camera (Pixel 2D)")]
@@ -416,7 +416,7 @@ namespace TacticsECS
                 if (tribe != null) lines.Add((team == Team.Player ? "아군 " : "적 ") + TribeSystem.Summary(tribe.Value, biomes, unitRows));
             }
             _sandboxHud.SetTribeInfo(lines.Count > 0 ? string.Join("\n", lines)
-                : "종족을 고르면 시작 골드/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다(Assets/Resources/Tables).");
+                : "종족을 고르면 시작 별/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다(Assets/Resources/Tables).");
         }
 
         /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 SandboxUnits.csv — 종족 StartUnit Index가 가리키는 표.</summary>
@@ -973,7 +973,7 @@ namespace TacticsECS
         {
             if (_cityResourceHud == null) return;
             int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
-            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, 0, false);
+            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, false);
             _cityResourceHud.SetResources(resources, populationUsed);
             _cityResourceHud.SetScoreLine(_econ != null
                 ? $"점수 {ScoreSystem.Compute(_grid, _world, _econ, Team.Player)} · 적 {ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)}"
@@ -986,10 +986,10 @@ namespace TacticsECS
             if (_econ != null)
                 _techTreeHud.SetState(_econ.Tech[Team.Player], _econ.Resources[Team.Player], CitySystem.CountCities(_econ, Team.Player));
             else
-                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, 0, false), 1);
+                _techTreeHud.SetState(TechTreeData.CreateEmpty(), CityResourceData.Create(0, 0, false), 1);
         }
 
-        /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/발전도 소모는 TechSystem이 계산하고,
+        /// <summary>TechTreeHud.OnUnlockRequested 핸들러. 실제 해금 판정/별 소모는 TechSystem이 계산하고,
         /// 결과를 HUD/지도(숨겨진 자원 공개, 지형 이동/방어 효과)에 다시 반영한다. 배치 단계(경제 시작 전)나
         /// 적 턴에는 무시한다.</summary>
         private void HandleTechUnlockRequested(string id)
@@ -1262,12 +1262,11 @@ namespace TacticsECS
             if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
             foreach (var team in CitySystem.Teams)
             {
-                var res = CityResourceData.Create(0, 0, 0, false);
-                res.Gold = GameRules.Economy.StartingGold;
-                res.Development = GameRules.Economy.StartingDevelopment;
+                var res = CityResourceData.Create(0, 0, false);
+                res.Stars = GameRules.Economy.StartingStars;
                 _econ.Resources[team] = res;
                 _econ.Tech[team] = TechTreeData.CreateEmpty();
-                // 종족: 시작 골드 / 기술 그룹(연구 가능 목록) / 시작 기술 / 시작 유닛.
+                // 종족: 시작 별 / 기술 그룹(연구 가능 목록) / 시작 기술 / 시작 유닛.
                 if (TribeOf(team) is TribeRow tribe) TribeSystem.Apply(_econ, team, tribe, _econ.UnitRows);
             }
             if (tribeMode && _techTreeHud != null)
@@ -1459,7 +1458,7 @@ namespace TacticsECS
             {
                 var city = _econ.Cities[cityIndex];
                 title = $"{city.Name} (Lv {city.Level})";
-                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 유닛 {CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)} · 골드 +{CitySystem.CityGoldIncome(_grid, _world, city)}/턴\n");
+                body.Append($"{(city.Owner == Team.Player ? "아군" : "적")} 도시 · 인구 {city.Population}/{city.Level + 1} · 유닛 {CitySystem.SupportedUnits(_world, cityIndex)}/{CitySystem.CityCapacity(city)} · 별 +{CitySystem.CityStarsIncome(_grid, _world, city)}/턴\n");
                 body.Append($"영토 반경 {city.BorderRadius}{(city.IsCapital ? " · 수도" : "")}{(city.ConnectedToCapital ? " · 수도 연결" : "")}{(city.HasWorkshop ? " · 공방" : "")}{(city.HasWall ? " · 성벽" : "")}{(city.ParkCount > 0 ? $" · 공원 {city.ParkCount}" : "")}");
 
                 if (city.Owner == Team.Player && city.IsCapital)
@@ -1492,7 +1491,7 @@ namespace TacticsECS
                         var r = row;
                         options.Add(new ActionMenuOption
                         {
-                            Label = $"{row.Name} 훈련 (골드 {row.Cost})", Detail = can ? $"체력 {row.MaxHp} · 공격 {row.AttackAttack} · 이동 {row.MoveRange}" : reason,
+                            Label = $"{row.Name} 훈련 (별 {row.Cost})", Detail = can ? $"체력 {row.MaxHp} · 공격 {row.AttackAttack} · 이동 {row.MoveRange}" : reason,
                             Enabled = can, OnClick = () => HandleTrain(cityIndex, r)
                         });
                     }
@@ -1522,7 +1521,7 @@ namespace TacticsECS
                 var o = option;
                 options.Add(new ActionMenuOption
                 {
-                    Label = o.Cost > 0 ? $"{o.Name} (골드 {o.Cost})" : o.Name, Detail = o.Detail, Enabled = o.Enabled,
+                    Label = o.Cost > 0 ? $"{o.Name} (별 {o.Cost})" : o.Name, Detail = o.Detail, Enabled = o.Enabled,
                     OnClick = () => HandleTileOption(pos, o.Id)
                 });
             }
@@ -1568,9 +1567,9 @@ namespace TacticsECS
             if (VeteranSystem.CanPromote(_world, unitId))
                 options.Add(new ActionMenuOption { Label = $"승급 (최대 체력 +{GameRules.Veteran.MaxHpBonus}, 완전 회복)", Detail = "베테랑이 된다(행동을 쓰지 않음).", Enabled = true, OnClick = () => HandlePromote(unitId) });
             if (RuinSystem.CanExplore(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "골드/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
+                options.Add(new ActionMenuOption { Label = "유적 탐험", Detail = "별/기술/인구/유닛 중 하나(행동 소모).", Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"불가사리 인양 (골드 +{GameRules.Starfish.Gold})", Detail = "이 유닛의 턴을 쓴다.", Enabled = true, OnClick = () => HandleStarfish(unitId) });
+                options.Add(new ActionMenuOption { Label = $"불가사리 인양 (별 +{GameRules.Starfish.Stars})", Detail = "이 유닛의 턴을 쓴다.", Enabled = true, OnClick = () => HandleStarfish(unitId) });
             if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
             {
                 foreach (var u in NavalUnitDefinition.Upgrades)
@@ -1580,7 +1579,7 @@ namespace TacticsECS
                     string navalId = u.Row.Id;
                     options.Add(new ActionMenuOption
                     {
-                        Label = $"{u.Row.Name}(으)로 업그레이드 (골드 {u.Row.Cost})",
+                        Label = $"{u.Row.Name}(으)로 업그레이드 (별 {u.Row.Cost})",
                         Detail = can ? $"공격 {u.Row.AttackAttack} · 방어 {u.Row.Defense} · 이동 {u.Row.MoveRange} · 사거리 {u.Row.AttackRange}" : reason,
                         Enabled = can, OnClick = () => HandleNavalUpgrade(unitId, navalId)
                     });
@@ -1588,7 +1587,7 @@ namespace TacticsECS
             }
 
             if (RuinSystem.CanDisband(_world, _econ, unitId))
-                options.Add(new ActionMenuOption { Label = $"해산 (골드 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
+                options.Add(new ActionMenuOption { Label = $"해산 (별 +{RuinSystem.DisbandRefund(_world, _econ, unitId)})", Detail = "유닛을 없애고 훈련 비용 절반을 돌려받는다.", Enabled = true, OnClick = () => HandleDisband(unitId) });
 
             int city = CitySystem.FindCityAt(_econ, pos);
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)

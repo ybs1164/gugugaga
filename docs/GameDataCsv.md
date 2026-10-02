@@ -1,3 +1,5 @@
+> 2026-10-02 갱신: 연구용 별도 자원과 생산 규칙 4개를 제거하고 연구·건설·훈련을 별(Stars)로 통합했습니다. 아래 단계별 비교 기록은 통합 이전의 설계 이력입니다.
+
 # 게임 규칙 CSV 설계 — 위키 대조 + 방식 비교분석 (3회 반복)
 
 작성: 2026-09-27. 기준: [The Battle of Polytopia Wiki](https://polytopia.fandom.com/wiki/The_Battle_of_Polytopia_Wiki)
@@ -75,7 +77,7 @@
 | 파서 복잡도 | 낮음 | 낮음 | 높음 | 낮음 |
 
 **결정: D.** 숫자·문자열 속성은 컬럼(정렬/필터/차트 가능), 대부분의 행에 해당 없는 불리언(도로/중립 건설/양쪽 육지/
-도로 역할/신전/인접 골드)은 `Flags` 한 칸의 태그 목록. B는 편집 diff는 작지만 스프레드시트에서 "표"로 볼 수 없어 탈락,
+도로 역할/신전/인접 별)은 `Flags` 한 칸의 태그 목록. B는 편집 diff는 작지만 스프레드시트에서 "표"로 볼 수 없어 탈락,
 C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/비교)이 불가능해 탈락.
 
 ### 1-3. 스키마
@@ -87,13 +89,13 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 | `Id` | O | `TileData.BuildingId`에 저장되는 키. 코드가 특별 취급하는 Id(`Port`/`Road`/`Bridge`/`Market`...)는 바꾸지 말 것 |
 | `Name` | | 표시 이름 |
 | `Unlock` | | 필요한 해금 키(TechTree.csv `Unlocks`와 같은 문자열). 비우면 기술 불필요 |
-| `Cost` | | 골드 |
+| `Cost` | | 별 |
 | `Population` | | 지을 때 도시에 더해지는 고정 인구 |
 | `Terrain1`..`N` | O | 지을 수 있는 지형 — 칸마다 `Field`/`Forest`/`Mountain`/`ShallowWater`/`Ocean` 중 하나 |
 | `RequiredStructure1`..`N` | | 이 자원(구조물) 중 하나 위에만 — 지으면 소모 (예: `Resource_Crop`) |
 | `AdjacentBuilding1`..`N` | | 인접(8방향, 같은 팀 영토)에 이 건물 중 하나가 있어야 함 — 같은 표의 Id |
 | `PopulationPerAdjacent` | | 인접 건물 하나당 인구(풍차/제재소/대장간) |
-| `Flag1`..`N` | | 칸마다 태그 하나: `Road`(타일 개량, 건물과 공존) `Neutral`(중립 땅/물 가능) `OppositeLand`(상하/좌우 양쪽 육지) `ActsAsRoad`(도로 효과) `Temple`(레벨·점수) `GoldFromAdjacent`(인접 인구만큼 골드/턴) `OnePerCity`(도시당 1개 — 위키 제재소/풍차/대장간) |
+| `Flag1`..`N` | | 칸마다 태그 하나: `Road`(타일 개량, 건물과 공존) `Neutral`(중립 땅/물 가능) `OppositeLand`(상하/좌우 양쪽 육지) `ActsAsRoad`(도로 효과) `Temple`(레벨·점수) `StarsFromAdjacent`(인접 인구만큼 별/턴) `OnePerCity`(도시당 1개 — 위키 제재소/풍차/대장간) |
 | `Task` | | 기념물이면 과업 Id(`Pacifist`/`Wealth`/`Explorer`/`Killer`/`Network`/`Metropolis`/`Genius`) — 과업 달성 시 팀당 1회 |
 | `Description` | | 메뉴 설명 |
 
@@ -103,7 +105,7 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 |---|---|---|
 | `Id` | O | 행동 키 |
 | `Kind` | O | `Harvest`/`ClearForest`/`BurnForest`/`GrowForest`/`Destroy` — 효과 종류(코드) |
-| `Unlock`, `Cost`, `Terrain`, `RequiredStructures`, `Population`, `GoldGain`, `Name`, `Description` | | 건물 표와 같은 의미 |
+| `Unlock`, `Cost`, `Terrain`, `RequiredStructures`, `Population`, `StarsGain`, `Name`, `Description` | | 건물 표와 같은 의미 |
 
 ### 1-4. 검증과 개선점
 
@@ -111,8 +113,8 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
   잘못된 지형·숫자·태그·인접 Id·중복 Id가 `파일:줄`과 함께 보고되는지, 위키 정합(기사도=파괴, 건축=화전, 전략→외교,
   도로=교역망, 외교=수도 시야, 화전 3), 수도 시야가 수도 칸만 밝히는지.
 - 기존 검증 5종(Economy/BuildingFeature/UI/UnitCsv) + 헤드리스 시뮬레이션 모두 ALL PASS.
-- **2차로 넘긴 개선점**: 이번에 표를 옮기면서 보니 규칙 수치가 아직 코드 곳곳의 `const`에 흩어져 있다 — 시장 골드 상한
-  (`CitySystem.MarketGoldCap`), 도시/성벽 방어(`CityDefenseBonus`/`WallDefenseBonus`), 유적 보상, 보상 골드/인구, 점수
+- **2차로 넘긴 개선점**: 이번에 표를 옮기면서 보니 규칙 수치가 아직 코드 곳곳의 `const`에 흩어져 있다 — 시장 별 상한
+  (`CitySystem.MarketStarsCap`), 도시/성벽 방어(`CityDefenseBonus`/`WallDefenseBonus`), 유적 보상, 보상 별/인구, 점수
   상수 14개, 시야 상수, 탐험가 걸음 수 등 40여 개. 이것들은 "한 행 = 한 개체" 표가 아니라 스칼라라서 1차 방식을 그대로
   쓸 수 없다 → 2차에서 별도로 비교한다. 또 위키와 다르게 둔 값이 어디 있는지 코드 주석을 뒤져야만 알 수 있다는 점도
   함께 풀 문제로 남겼다.
@@ -128,18 +130,18 @@ C는 가장 작지만 숫자가 문자열 안에 묻혀 밸런스 작업(정렬/
 
 | 분류 | 개수 | 내용 |
 |---|---|---|
-| 위키와 같음 | 35 | 시작 골드 5, 도시 레벨당 1, 수도 +1, 시장 레벨당 1(최대 8), 회복 4/2, 해산 절반, 유적 골드 10/인구 3, 연구 비용 4 + 티어×도시, Literacy 1/3, 점수 14종, 시야/탐험가/등대 |
+| 위키와 같음 | 35 | 시작 별 5, 도시 레벨당 1, 수도 +1, 시장 레벨당 1(최대 8), 회복 4/2, 해산 절반, 유적 별 10/인구 3, 연구 비용 4 + 티어×도시, Literacy 1/3, 점수 14종, 시야/탐험가/등대 |
 | **위키와 다름** | 3 | 지형/도시 방어 보너스 +1(위키 ×1.5), 성벽 +3(위키 ×4) — 정수 뺄셈 전투 공식 때문. **3차로 넘김** |
-| 프로젝트 고유 | 10 | 발전도(연구 자원) 5종, 신앙 최대치, 방어 태세 +2, AI 튜닝 4종 |
+| 프로젝트 고유 | 10 | 별(연구 자원) 5종, 신앙 최대치, 방어 태세 +2, AI 튜닝 4종 |
 
-그 밖에 새로 확인한 "원문과 다른 점"(모두 `Note`에 기록): 유닛 상한을 도시별이 아니라 팀 합계로 판정, 시장 골드는 위키
+그 밖에 새로 확인한 "원문과 다른 점"(모두 `Note`에 기록): 유닛 상한을 도시별이 아니라 팀 합계로 판정, 시장 별는 위키
 Stars 문서(2)가 아니라 Market/Buildings 문서(1)를 따름, 신전 점수·레벨 간격은 Temple/Score 문서가 서로 달라 한쪽을 택함.
 그리고 1차 때 코드에서 찾지 못했던 불일치 하나 — **방어 보너스가 합산된다**(`TechEffectSystem`: 숲 +1 + 도시 +1 = +2).
 위키 Combat 문서는 방어 보너스를 배수 하나로만 적용하므로(겹치지 않음) 이것도 3차 전투 공식 작업에서 함께 고친다.
 
 ### 2-2. 스칼라 규칙을 CSV로 옮기는 방식 — 3개 비교
 
-1차 방식(한 행 = 개체 하나)은 "시장 골드 상한" 같은 단일 값에는 맞지 않는다. 같은 48개 규칙을 세 방식으로 만들어 쟀다.
+1차 방식(한 행 = 개체 하나)은 "시장 별 상한" 같은 단일 값에는 맞지 않는다. 같은 48개 규칙을 세 방식으로 만들어 쟀다.
 
 | 방식 | 파일 수 | 바이트 | 기획자에게 보이는 규칙 | 위키 값 추적 | 값 1개 수정 diff(줄 / 가장 긴 줄) | 규칙 1개 추가 diff |
 |---|---|---|---|---|---|---|
@@ -179,18 +181,18 @@ A에는 덤으로 **원문 편차 자동 점검**을 붙였다: `Wiki` 칸이 �
 규칙을 추가할 때 `GameRules`에 필드 하나 + CSV 행 하나면 끝(로더 수정 불필요). 모르는 키, 읽을 수 없는 값, CSV에 없는 필드는 경고.
 
 **`Assets/Resources/CityRewards.csv`** — `Level,Reward,Name,Amount,Description` (같은 `Level` 행들이 그 레벨의 선택지, 최고 레벨 행이
-그 이상에서 반복). `Amount`는 공방/공원 = 골드/턴, 자원 = 골드, 인구 성장 = 인구, 국경 확장 = 새 반경.
+그 이상에서 반복). `Amount`는 공방/공원 = 별/턴, 자원 = 별, 인구 성장 = 인구, 국경 확장 = 새 반경.
 
-**`Assets/Resources/Tasks.csv`** — `Id,Name,Kind,Threshold,Unlock,Description` (`Kind`: `TurnsWithoutAttack`/`GoldHeld`/
+**`Assets/Resources/Tasks.csv`** — `Id,Name,Kind,Threshold,Unlock,Description` (`Kind`: `TurnsWithoutAttack`/`StarsHeld`/
 `AllLighthouses`/`Kills`/`ConnectedCities`/`CityLevel`/`AllTech` — 판정 방식만 코드).
 
-시작 골드/발전도/신앙 최대치는 씬 인스펙터(`BattleController.startingGold` 등)에서 `GameRules.csv`의 `Economy.*`로 옮겼다
+시작 별/신앙 최대치는 씬 인스펙터(`BattleController.startingStars` 등)에서 `GameRules.csv`의 `Economy.*`로 옮겼다
 (씬마다 값이 따로 놀던 문제 제거).
 
 ### 2-4. 검증과 개선점
 
 - `GameDataCsvVerification` 추가 항목: 모든 `GameRules` 필드가 CSV에 정확히 한 행, 편차/고유 규칙 목록 로그
-  (`rules: 48, wiki-equal 35, deviations 3, project-only 10`), **CSV 값 하나(`City.GoldPerLevel` 1→2)를 바꾸면 도시 수입이 실제로
+  (`rules: 48, wiki-equal 35, deviations 3, project-only 10`), **CSV 값 하나(`City.StarsPerLevel` 1→2)를 바꾸면 도시 수입이 실제로
   바뀌는지**, 모르는 키/잘못된 값/이유 없는 편차 경고, 보상 레벨별 선택지와 크기, 과업.
 - 기존 검증 전부 ALL PASS, **헤드리스 시뮬레이션 결과가 1차와 한 글자도 다르지 않음**(값을 옮기기만 한 리팩터가 동작을
   바꾸지 않았음을 확인).
@@ -273,7 +275,7 @@ A에는 덤으로 **원문 편차 자동 점검**을 붙였다: `Wiki` 칸이 �
 
 | 항목 | 이유 | 위치 |
 |---|---|---|
-| 연구는 발전도, 건설/훈련은 골드(위키는 별 하나) | 프로젝트 기존 기획 | `GameRules.csv` `Economy.*` |
+| 연구·건설·훈련 재화 | 2026-10-02부터 원작처럼 별 하나로 통합 | `Economy.StartingStars` / `CityResourceData.Stars` |
 | 유닛 상한을 도시별이 아니라 팀 합계로 | 유닛-출신 도시 추적 미구현 | `City.UnitCapacityBase` Note |
 | 평화 조약/대사관 없음 | 두 팀 상시 전쟁(외교 시스템 없음) | `TechTree.csv` 전략/외교 Effect |
 | 수도 시야에 "발견한 부족" 조건 없음 | 팀이 둘뿐 | `VisionDefinition.CapitalVisionKey` |

@@ -98,7 +98,7 @@ namespace TacticsECS
             if (t.OwnerTeam == TileData.NoOwner) return 1;
             var team = (Team)t.OwnerTeam;
             if (b.PopulationPerAdjacent > 0) return CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings);
-            if (b.ProducesGoldFromAdjacent)
+            if (b.ProducesStarsFromAdjacent)
             {
                 int level = 0;
                 foreach (var n in grid.GetNeighbors(pos, true))
@@ -108,7 +108,7 @@ namespace TacticsECS
                     var ninfo = FindBuilding(nt.BuildingId);
                     if (ninfo != null) level += ProcessorPopulation(grid, n, ninfo.Value, team);
                 }
-                return Mathf.Min(level, GameRules.City.MarketGoldCap);
+                return Mathf.Min(level, GameRules.City.MarketStarsCap);
             }
             return 1;
         }
@@ -122,7 +122,7 @@ namespace TacticsECS
             return info.Value.Population + ProcessorPopulation(grid, pos, info.Value, (Team)t.OwnerTeam);
         }
 
-        /// <summary>팀의 모든 시장이 만드는 골드 합(시장마다 인접 가공 건물 인구 합, 최대 MarketGoldCap).</summary>
+        /// <summary>팀의 모든 시장이 만드는 별 합(시장마다 인접 가공 건물 인구 합, 최대 MarketStarsCap).</summary>
         public static int MarketIncome(GridWorld grid, Team team)
         {
             int total = 0;
@@ -133,17 +133,17 @@ namespace TacticsECS
                 var t = grid.GetTile(p);
                 if (t.OwnerTeam != (int)team) continue;
                 var info = FindBuilding(t.BuildingId);
-                if (info == null || !info.Value.ProducesGoldFromAdjacent) continue;
+                if (info == null || !info.Value.ProducesStarsFromAdjacent) continue;
 
-                int gold = 0;
+                int stars = 0;
                 foreach (var n in grid.GetNeighbors(p, true))
                 {
                     var nt = grid.GetTile(n);
                     if (nt.OwnerTeam != (int)team || !Contains(info.Value.AdjacentBuildings, nt.BuildingId)) continue;
                     var ninfo = FindBuilding(nt.BuildingId);
-                    if (ninfo != null) gold += ProcessorPopulation(grid, n, ninfo.Value, team);
+                    if (ninfo != null) stars += ProcessorPopulation(grid, n, ninfo.Value, team);
                 }
-                total += Mathf.Min(gold, GameRules.City.MarketGoldCap) * GameRules.City.MarketGoldPerLevel; // 위키: 시장 레벨(최대 8)당 별 1
+                total += Mathf.Min(stars, GameRules.City.MarketStarsCap) * GameRules.City.MarketStarsPerLevel; // 위키: 시장 레벨(최대 8)당 별 1
             }
             return total;
         }
@@ -151,7 +151,7 @@ namespace TacticsECS
         // ---------- 선택지 ----------
 
         /// <summary>team이 pos에서 할 수 있는 건설/행동 목록. 기술이 없거나 지형/구조물이 안 맞는 항목은 아예
-        /// 빼고, 조건은 맞는데 골드/인접 조건이 모자란 항목은 Enabled=false와 이유를 담아 넣는다.</summary>
+        /// 빼고, 조건은 맞는데 별/인접 조건이 모자란 항목은 Enabled=false와 이유를 담아 넣는다.</summary>
         public static List<TileOption> GetOptions(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos)
         {
             var options = new List<TileOption>();
@@ -162,7 +162,7 @@ namespace TacticsECS
             bool neutral = tile.OwnerTeam == TileData.NoOwner;
             var cls = Classify(grid, pos);
             var tech = econ.Tech[team];
-            int gold = econ.Resources[team].Gold;
+            int stars = econ.Resources[team].Stars;
             var hidden = TechSystem.HiddenStructures(econ.TechNodes, tech);
             string structure = hidden.Contains(tile.StructureId) ? string.Empty : tile.StructureId;
 
@@ -190,8 +190,8 @@ namespace TacticsECS
                 else if (b.AdjacentBuildings != null && b.AdjacentBuildings.Length > 0 &&
                     CountAdjacentBuildings(grid, pos, team, b.AdjacentBuildings) == 0)
                     reason = "인접 조건: " + string.Join("/", NamesOf(b.AdjacentBuildings));
-                else if (gold < b.Cost)
-                    reason = $"골드 부족 ({gold}/{b.Cost})";
+                else if (stars < b.Cost)
+                    reason = $"별 부족 ({stars}/{b.Cost})";
 
                 options.Add(new TileOption { Id = b.Id, IsBuilding = true, Name = b.Name, Cost = b.Cost, Enabled = reason == null, Detail = reason ?? b.Description });
             }
@@ -219,7 +219,7 @@ namespace TacticsECS
                         break;
                 }
 
-                string reason = gold < a.Cost ? $"골드 부족 ({gold}/{a.Cost})" : null;
+                string reason = stars < a.Cost ? $"별 부족 ({stars}/{a.Cost})" : null;
                 options.Add(new TileOption { Id = a.Id, IsBuilding = false, Name = a.Name, Cost = a.Cost, Enabled = reason == null, Detail = reason ?? a.Description });
             }
             return options;
@@ -249,7 +249,7 @@ namespace TacticsECS
 
         // ---------- 실행 ----------
 
-        /// <summary>GetOptions에서 Enabled였던 항목 하나를 실행한다(다시 검증한 뒤 골드 차감 + 효과 적용).
+        /// <summary>GetOptions에서 Enabled였던 항목 하나를 실행한다(다시 검증한 뒤 별 차감 + 효과 적용).
         /// 인구 변화로 도시 레벨이 오르면 log에 LevelUp이 쌓인다. 도로/항구처럼 수도 연결이 바뀔 수 있는 개량은
         /// 곧바로 CitySystem.RefreshConnections까지 돌린다.</summary>
         public static bool Execute(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos, string optionId, List<EconomyLogEntry> log)
@@ -260,7 +260,7 @@ namespace TacticsECS
             if (chosen == null || !chosen.Value.Enabled) return false;
 
             var res = econ.Resources[team];
-            res.Gold -= chosen.Value.Cost;
+            res.Stars -= chosen.Value.Cost;
             econ.Resources[team] = res;
 
             if (chosen.Value.IsBuilding) Build(grid, econ, team, pos, FindBuilding(optionId).Value, log);
@@ -341,10 +341,10 @@ namespace TacticsECS
             }
 
             if (a.Population != 0) CitySystem.AddPopulation(econ, t.OwnerCity, a.Population, log);
-            if (a.GoldGain != 0)
+            if (a.StarsGain != 0)
             {
                 var res = econ.Resources[team];
-                res.Gold += a.GoldGain;
+                res.Stars += a.StarsGain;
                 econ.Resources[team] = res;
             }
         }

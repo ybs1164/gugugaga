@@ -11,7 +11,7 @@ namespace TacticsECS
     /// 주요 규칙:
     ///   - 도시는 반경 1(3x3)의 영토를 갖는다. 이미 다른 도시 영토인 칸은 빼앗지 않는다.
     ///   - 레벨 L -> L+1에 인구 L+1이 필요하고, 남는 인구는 이월된다. 레벨업마다 2지선다 보상 하나.
-    ///   - 골드 수입 = 도시마다 (레벨 + 공방 + 공원 + 수도 1 + 음수 인구) (0 미만 불가) + 시장. 적 유닛이 도시
+    ///   - 별 수입 = 도시마다 (레벨 + 공방 + 공원 + 수도 1 + 음수 인구) (0 미만 불가) + 시장. 적 유닛이 도시
     ///     칸에 서 있으면(포위) 그 도시는 수입이 없다.
     ///   - 도시 하나가 지원하는 유닛 = 레벨 + 1(위키 City "Unit Capacity"). 유닛은 소속 도시(HomeCity)를 갖고, 훈련은 그 도시에
     ///     자리가 있어야 한다. 점령한 유닛은 점령한 도시 소속이 되고, 도시를 빼앗긴 쪽의 그 도시 소속 유닛은 소속을 잃는다(자리 없음 —
@@ -361,7 +361,7 @@ namespace TacticsECS
             {
                 case CityRewardType.Workshop: city.HasWorkshop = true; break;
                 case CityRewardType.CityWall: city.HasWall = true; break;
-                case CityRewardType.Resources: res.Gold += RewardAmount(CityRewardType.Resources); break;
+                case CityRewardType.Resources: res.Stars += RewardAmount(CityRewardType.Resources); break;
                 case CityRewardType.Park: city.ParkCount++; break;
                 case CityRewardType.BorderGrowth: city.BorderRadius = Mathf.Max(city.BorderRadius, RewardAmount(CityRewardType.BorderGrowth)); break;
                 case CityRewardType.SuperUnit: entry.SpawnUnitId = StrongestUnitId(econ); break;
@@ -394,7 +394,7 @@ namespace TacticsECS
         public static bool IsTrainable(UnitCsvRow row) => row != null && row.Trainable && !IsSuperUnit(row.Id);
 
         /// <summary>시작 유닛 CSV Id — 기술 없이 훈련할 수 있는 육지 유닛 중 가장 싼 것(같으면 CSV 앞쪽).
-        /// 위키: 대부분의 부족은 수도에 Warrior(보병, 2골드) 하나를 두고 시작한다. 없으면 빈 문자열.</summary>
+        /// 위키: 대부분의 부족은 수도에 Warrior(보병, 2별) 하나를 두고 시작한다. 없으면 빈 문자열.</summary>
         public static string StartingUnitId(EconomyWorld econ, Team team)
         {
             UnitCsvRow best = null;
@@ -441,34 +441,21 @@ namespace TacticsECS
             return occ != TileData.NoOccupant && UnitQueries.IsAlive(world, occ) && world.Get<Team>(occ) != city.Owner;
         }
 
-        public static int CityGoldIncome(GridWorld grid, EntityWorld world, CityData city)
+        public static int CityStarsIncome(GridWorld grid, EntityWorld world, CityData city)
         {
             if (IsBesieged(grid, world, city) || city.Infiltrated) return 0;
-            int income = city.Level * GameRules.City.GoldPerLevel + (city.HasWorkshop ? RewardAmount(CityRewardType.Workshop) : 0) +
-                         city.ParkCount * RewardAmount(CityRewardType.Park) + (city.IsCapital ? GameRules.City.CapitalGold : 0);
+            int income = city.Level * GameRules.City.StarsPerLevel + (city.HasWorkshop ? RewardAmount(CityRewardType.Workshop) : 0) +
+                         city.ParkCount * RewardAmount(CityRewardType.Park) + (city.IsCapital ? GameRules.City.CapitalStars : 0);
             if (city.Population < 0) income += city.Population;
             return Mathf.Max(0, income);
         }
 
-        public static int GoldIncome(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
+        public static int StarsIncome(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
             int total = 0;
             foreach (var city in econ.Cities)
-                if (city.Owner == team) total += CityGoldIncome(grid, world, city);
+                if (city.Owner == team) total += CityStarsIncome(grid, world, city);
             return total + TileImprovementSystem.MarketIncome(grid, team);
-        }
-
-        /// <summary>발전도(기술 연구 자원) 수입 = 도시 수 + 수도와 연결된 도시 수 + 수도 1.</summary>
-        public static int DevelopmentIncome(EconomyWorld econ, Team team)
-        {
-            int total = 0;
-            foreach (var city in econ.Cities)
-            {
-                if (city.Owner != team) continue;
-                total += GameRules.Economy.DevelopmentPerCity + (city.ConnectedToCapital ? GameRules.Economy.DevelopmentPerConnection : 0) +
-                         (city.IsCapital ? GameRules.Economy.DevelopmentCapital : 0);
-            }
-            return total;
         }
 
         // ---------- 수도 연결 ----------
@@ -567,17 +554,17 @@ namespace TacticsECS
             if (grid.IsOccupied(city.Position)) { reason = "도시 칸이 비어있지 않음"; return false; }
             int supported = SupportedUnits(world, cityIndex), capacity = CityCapacity(city);
             if (supported >= capacity) { reason = $"유닛 수용량 ({supported}/{capacity})"; return false; }
-            if (econ.Resources[team].Gold < row.Cost) { reason = $"골드 부족 ({econ.Resources[team].Gold}/{row.Cost})"; return false; }
+            if (econ.Resources[team].Stars < row.Cost) { reason = $"별 부족 ({econ.Resources[team].Stars}/{row.Cost})"; return false; }
             return true;
         }
 
-        /// <summary>CanTrain이 참일 때 골드만 차감한다 — 실제 스폰(프리팹/View 필요)은 호출자(BattleController)가
+        /// <summary>CanTrain이 참일 때 별만 차감한다 — 실제 스폰(프리팹/View 필요)은 호출자(BattleController)가
         /// 이어서 하고, 스폰된 유닛은 폴리토피아처럼 그 턴에는 움직일 수 없게 HasMoved/HasActed를 세운다.</summary>
         public static bool PayForTraining(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int cityIndex, UnitCsvRow row)
         {
             if (!CanTrain(grid, world, econ, team, cityIndex, row, out _)) return false;
             var res = econ.Resources[team];
-            res.Gold -= row.Cost;
+            res.Stars -= row.Cost;
             econ.Resources[team] = res;
             return true;
         }

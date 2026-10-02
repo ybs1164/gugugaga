@@ -78,7 +78,7 @@ namespace TacticsECS
                 RevealCapitals(grid, econ);
                 ProcessLighthouses(grid, econ, log);
                 // 수도 연결은 구름에 가린 칸을 쓰지 못하고 깊은 바다는 항해 연구가 있어야 건넌다 — 시야가 넓어지거나 기술을
-                // 연구한 뒤(이 Refresh가 불리는 모든 지점)에도 다시 계산해야 인구/발전도가 바로 반영된다.
+                // 연구한 뒤(이 Refresh가 불리는 모든 지점)에도 다시 계산해야 인구/별이 바로 반영된다.
                 CitySystem.RefreshConnections(grid, econ, log);
             }
         }

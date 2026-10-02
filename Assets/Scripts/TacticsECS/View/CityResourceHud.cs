@@ -4,7 +4,7 @@ using UnityEngine.UI;
 namespace TacticsECS
 {
     /// <summary>
-    /// 도시 발전 자원(발전도/인구/골드/신앙) 표시 전용 HUD. BattleHud와 완전히 독립된 별도 프리팹
+    /// 팀 자원(별/유닛 수용량) 표시 전용 HUD. BattleHud와 완전히 독립된 별도 프리팹
     /// (Assets/Prefabs/UI/CityResourceBar.prefab, UIPrefabSetup.GenerateCityResourceBar 참고, Unity CLI
     /// -executeMethod로만 생성)이라 필요한 화면에만 골라서 배치할 수 있다 — 지금은 BattleController의
     /// cityResourceHudPrefab 필드를 통해 샌드박스 커스텀 화면(Sandbox.unity)에만 연결돼 있다.
@@ -17,22 +17,9 @@ namespace TacticsECS
         [Tooltip("유닛 로스터/행동 로그와 같은 공용 한글 폰트. Assets/Fonts/Jua-Regular.ttf. UIPrefabSetup.GenerateAll이 채운다.")]
         [SerializeField] private Font uiFont;
 
-        private Text _developmentText;
         private Text _populationText;
-        private Text _goldText;
+        private Text _starsText;
         private Text _scoreText;
-
-        // 발전도/인구/골드 전용 아이콘 아트는 아직 없어(Assets/Art/GameIcons/LICENSE.txt에 그 3종이
-        // 없음), 기존 IconLibrary 세트 중 의미가 가장 비슷한 아이콘을 대신 가져다 쓴다 — combo(상승하는
-        // 화살표 3개 = 성장/발전), herd(겹친 원 3개 = 무리/보유 수), victory(트로피 = 재화/보상).
-        // 각 자원 색으로 틴트(Image.color)해서 서로 구분한다. 전용 아이콘이 추가되면 이 표만 교체하면 된다.
-        // (신앙은 쓰는 곳이 없는 프로젝트 고유 자원이라 2026-09-29에 뺐다 — 위키에도 없음.)
-        private static readonly (string Icon, Color Tint)[] SlotDefs =
-        {
-            ("combo", new Color(0.75f, 0.75f, 0.80f)),
-            ("herd", new Color(0.30f, 0.55f, 0.95f)),
-            ("victory", new Color(0.95f, 0.80f, 0.25f)),
-        };
 
         public void Init()
         {
@@ -44,9 +31,8 @@ namespace TacticsECS
             }
 
             var bar = canvas.Find("Bar");
-            _developmentText = WireSlot(bar.Find("Development"), SlotDefs[0]);
-            _populationText = WireSlot(bar.Find("Population"), SlotDefs[1]);
-            _goldText = WireSlot(bar.Find("Gold"), SlotDefs[2]);
+            _populationText = WirePopulationSlot(bar.Find("Population"));
+            _starsText = bar.Find("Stars/Number").GetComponent<Text>();
             _scoreText = CreateScoreLine(canvas, bar.GetComponent<RectTransform>());
             PixelUISkin.Apply(gameObject);
         }
@@ -81,11 +67,11 @@ namespace TacticsECS
             _scoreText.gameObject.SetActive(!string.IsNullOrEmpty(line));
         }
 
-        private static Text WireSlot(Transform slot, (string Icon, Color Tint) def)
+        private static Text WirePopulationSlot(Transform slot)
         {
             var icon = slot.Find("Icon").GetComponent<Image>();
-            icon.sprite = IconLibrary.Get(def.Icon);
-            icon.color = def.Tint;
+            icon.sprite = IconLibrary.Get("herd");
+            icon.color = new Color(0.30f, 0.55f, 0.95f);
             return slot.Find("Number").GetComponent<Text>();
         }
 
@@ -94,11 +80,10 @@ namespace TacticsECS
         /// 것과 같은 방식으로, 호출자(BattleController)가 계산해서 넘긴다.</summary>
         public void SetResources(CityResourceData city, int populationUsed)
         {
-            // 발전도/골드는 "보유량 (+턴당 생산량)" — 생산량은 도시 목록으로 매번 다시 계산되는 값이라
+            // 별는 "보유량 (+턴당 생산량)" — 생산량은 도시 목록으로 매번 다시 계산되는 값이라
             // (CityResourceSystem.RefreshProduction) 옆에 같이 보여줘야 건설/점령 효과가 바로 읽힌다.
-            _developmentText.text = city.DevelopmentProduction > 0 ? $"{city.Development} (+{city.DevelopmentProduction})" : city.Development.ToString();
             _populationText.text = $"{populationUsed}/{city.PopulationCap}";
-            _goldText.text = city.GoldProduction > 0 ? $"{city.Gold} (+{city.GoldProduction})" : city.Gold.ToString();
+            _starsText.text = city.StarsProduction > 0 ? $"{city.Stars} (+{city.StarsProduction})" : city.Stars.ToString();
         }
     }
 }

@@ -8,9 +8,9 @@ namespace TacticsECS
     ///   1. 마을/적 도시 위에서 턴을 시작한 유닛은 점령하고, 유적 위 유닛은 탐험한다.
     ///   2. 밀린 레벨업 보상을 상황에 맞게 고른다(구름이 남았으면 탐험가, 위협받으면 성벽/슈퍼 유닛 ...).
     ///   3. 연구 가능한 기술 중 가장 싼 것 하나를 연구한다.
-    ///   4. 위협(보이는 적 유닛이 자기 도시 3칸 안)이 있으면 훈련 먼저, 없으면 건설 먼저 하고 남은 골드로 훈련한다.
-    ///   5. 건설: 달성한 기념물(무료) → 수도와 미연결 도시를 잇는 도로/다리(연결 계획) → "골드당 가치"가 좋은 채집/건설 순.
-    ///      가치 = 즉시 인구 + 이 건물 덕에 옆 가공 건물(풍차/제재소/대장간)이 더 얻는 인구, 시장은 늘어날 골드 수입,
+    ///   4. 위협(보이는 적 유닛이 자기 도시 3칸 안)이 있으면 훈련 먼저, 없으면 건설 먼저 하고 남은 별로 훈련한다.
+    ///   5. 건설: 달성한 기념물(무료) → 수도와 미연결 도시를 잇는 도로/다리(연결 계획) → "별당 가치"가 좋은 채집/건설 순.
+    ///      가치 = 즉시 인구 + 이 건물 덕에 옆 가공 건물(풍차/제재소/대장간)이 더 얻는 인구, 시장은 늘어날 별 수입,
     ///      첫 항구는 바다 진출 가치, 신전은 점수용(낮은 우선순위).
     ///   6. 자기 영토 안의 뗏목은 살 수 있는 가장 좋은 배로 업그레이드한다.
     /// 유닛 스폰은 View가 필요해서 여기서 하지 않고, Kind=Train(SpawnUnitId 포함) 기록으로 돌려주면 호출자가
@@ -18,7 +18,7 @@ namespace TacticsECS
     /// </summary>
     public static class EconomyAI
     {
-        /// <summary>도로 연결 계획이 한 도시에 쓰는 최대 골드(이보다 먼 도시는 연결을 미룬다).</summary>
+        /// <summary>도로 연결 계획이 한 도시에 쓰는 최대 별(이보다 먼 도시는 연결을 미룬다).</summary>
 
         public static List<EconomyLogEntry> RunTurn(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
@@ -163,12 +163,12 @@ namespace TacticsECS
             {
                 (Vector2Int Pos, TileOption Option)? best = null;
                 float bestScore = 0f;
-                int gold = econ.Resources[team].Gold;
+                int stars = econ.Resources[team].Stars;
                 bool hasPort = CountBuildings(grid, team, BuildingDefinition.Port) > 0;
                 foreach (var candidate in TileImprovementSystem.GetAllOptions(grid, econ, team))
                 {
                     if (!candidate.Option.Enabled) continue;
-                    if (candidate.Option.Cost > 0 && gold - candidate.Option.Cost < reserve) continue;
+                    if (candidate.Option.Cost > 0 && stars - candidate.Option.Cost < reserve) continue;
                     float score = Score(grid, team, candidate.Pos, candidate.Option, hasPort);
                     if (score > bestScore) { bestScore = score; best = candidate; }
                 }
@@ -190,7 +190,7 @@ namespace TacticsECS
         }
 
         /// <summary>
-        /// 건설/채집 한 건의 "골드 1당 가치". 인구 1 = 가치 1, 골드 수입 1/턴 = 가치 1로 본다.
+        /// 건설/채집 한 건의 "별 1당 가치". 인구 1 = 가치 1, 별 수입 1/턴 = 가치 1로 본다.
         /// 기념물(무료)은 가장 먼저, 도로/다리는 연결 계획(PlanConnections)이 따로 짓고, 벌목/화전/숲 조성/파괴는 쓰지 않는다.
         /// </summary>
         private static float Score(GridWorld grid, Team team, Vector2Int pos, TileOption option, bool hasPort)
@@ -201,8 +201,8 @@ namespace TacticsECS
                 var info = TileImprovementSystem.FindBuilding(option.Id).Value;
                 if (!string.IsNullOrEmpty(info.TaskId)) return 1000f;
                 if (info.IsRoad || info.ActsAsRoad) return 0f;
-                if (info.ProducesGoldFromAdjacent)
-                    value = Mathf.Min(GameRules.City.MarketGoldCap, MarketPotential(grid, pos, info, team));
+                if (info.ProducesStarsFromAdjacent)
+                    value = Mathf.Min(GameRules.City.MarketStarsCap, MarketPotential(grid, pos, info, team));
                 else
                     value = info.Population + TileImprovementSystem.ProcessorPopulation(grid, pos, info, team) + NeighborProcessorGain(grid, pos, info.Id, team);
                 if (info.Id == BuildingDefinition.Port && !hasPort) value += 3f;
@@ -212,7 +212,7 @@ namespace TacticsECS
             {
                 var info = TileImprovementSystem.FindAction(option.Id).Value;
                 if (info.Kind != TileActionKind.Harvest) return 0f;
-                if (info.GoldGain > 0) return 100f;
+                if (info.StarsGain > 0) return 100f;
                 value = info.Population;
             }
             return value <= 0 ? 0f : value / Mathf.Max(1, option.Cost);
@@ -233,25 +233,25 @@ namespace TacticsECS
             return gain;
         }
 
-        /// <summary>시장 후보 칸 옆 가공 건물들이 지금 만드는 인구 합(= 시장 골드 수입).</summary>
+        /// <summary>시장 후보 칸 옆 가공 건물들이 지금 만드는 인구 합(= 시장 별 수입).</summary>
         private static int MarketPotential(GridWorld grid, Vector2Int pos, BuildingInfo market, Team team)
         {
-            int gold = 0;
+            int stars = 0;
             foreach (var n in grid.GetNeighbors(pos, true))
             {
                 var t = grid.GetTile(n);
                 if (t.OwnerTeam != (int)team || System.Array.IndexOf(market.AdjacentBuildings, t.BuildingId) < 0) continue;
-                gold += TileImprovementSystem.BuildingPopulation(grid, n);
+                stars += TileImprovementSystem.BuildingPopulation(grid, n);
             }
-            return gold;
+            return stars;
         }
 
         // ---------- 연결 계획(도로/다리) ----------
 
         /// <summary>
         /// 수도와 연결되지 않은 자기 도시마다, 이미 연결된 망(수도/연결 도시/쓸 수 있는 도로·다리)까지 가장 싼 도로·다리 경로를
-        /// 찾아(도로 3, 다리 5, 이미 있는 도로/다리/도시 0) 예산(MaxConnectionBudget) 안이면 골드가 허락하는 만큼 경로를 따라
-        /// 짓는다. 연결되면 도시/수도 인구 +1과 발전도 +1/턴(위키 City Connections)이라 가치가 크다.
+        /// 찾아(도로 3, 다리 5, 이미 있는 도로/다리/도시 0) 예산(MaxConnectionBudget) 안이면 별이 허락하는 만큼 경로를 따라
+        /// 짓는다. 연결되면 도시/수도 인구 +1(위키 City Connections)이라 가치가 크다.
         /// </summary>
         private static void PlanConnections(GridWorld grid, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
         {
@@ -275,7 +275,7 @@ namespace TacticsECS
                     else if (t.Terrain == TerrainType.Water && t.BuildingId != BuildingDefinition.Bridge) build = BuildingDefinition.Bridge;
                     if (build == null) continue;
                     int price = TileImprovementSystem.FindBuilding(build).Value.Cost;
-                    if (econ.Resources[team].Gold - price < reserve) return;
+                    if (econ.Resources[team].Stars - price < reserve) return;
                     if (!TileImprovementSystem.Execute(grid, econ, team, p, build, log)) break;
                 }
             }

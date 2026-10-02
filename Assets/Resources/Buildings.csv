@@ -6,7 +6,7 @@ Port,항구,Build.Port,7,1,ShallowWater,,,,,,,0,,,,,"얕은 물. 인구 +1, 들�
 Sawmill,제재소,Build.Sawmill,5,0,Field,,,,LumberHut,,,1,OnePerCity,,,,인접 벌목장 하나당 인구 +1. 도시당 1개.
 Windmill,풍차,Build.Windmill,5,0,Field,,,,Farm,,,1,OnePerCity,,,,인접 농장 하나당 인구 +1. 도시당 1개.
 Forge,대장간,Build.Forge,5,0,Field,Forest,,,Mine,,,2,OnePerCity,,,,인접 광산 하나당 인구 +2. 평지/숲. 도시당 1개.
-Market,시장,Build.Market,5,0,Field,,,,Sawmill,Windmill,Forge,0,GoldFromAdjacent,,,,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 골드 (최대 8).
+Market,시장,Build.Market,5,0,Field,,,,Sawmill,Windmill,Forge,0,StarsFromAdjacent,,,,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 별 (최대 8).
 Temple,신전,Build.Temple,20,1,Field,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
 ForestTemple,숲 신전,Build.ForestTemple,15,1,Forest,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."
 MountainTemple,산악 신전,Build.MountainTemple,20,1,Mountain,,,,,,,0,Temple,,,,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점)."

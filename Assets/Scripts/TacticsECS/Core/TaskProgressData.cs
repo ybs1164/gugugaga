@@ -4,8 +4,8 @@ namespace TacticsECS
 {
     /// <summary>
     /// 한 팀의 과업(기념물) 진행 값. 순수 데이터 — 갱신/판정은 TaskSystem. EconomyWorld.Tasks에 팀마다 하나.
-    /// 조건이 "지금 상태"로 바로 계산되는 과업(골드/연결/도시 레벨/기술)도 한 번 달성하면 Completed에 남는다
-    /// (위키: 황제의 무덤은 "한 번이라도 100골드를 가지면").
+    /// 조건이 "지금 상태"로 바로 계산되는 과업(별/연결/도시 레벨/기술)도 한 번 달성하면 Completed에 남는다
+    /// (위키: 황제의 무덤은 "한 번이라도 100별을 가지면").
     /// </summary>
     public class TaskProgressData
     {

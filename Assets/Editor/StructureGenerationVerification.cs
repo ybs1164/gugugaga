@@ -245,7 +245,7 @@ namespace TacticsECS.EditorTools
             foreach (var f in fruits)
             {
                 int d = NearestDistance(cities, f);
-                if (d > StructureGenerationSystem.ResourceCityRadius)
+                if (d > GameRules.Map.ResourceCityRadius)
                 { Debug.LogError($"[StructureGenerationVerification] Resource_Fruit at {f} is {d} tiles from the nearest city"); ok = false; }
                 if (NearestDistance(villages, f) <= 2) nextToVillage = true;
                 if (ProceduralGenerationUtil.ChebyshevDistance(f, anchors[0]) == 1) nextToCapital = true;
@@ -336,14 +336,14 @@ namespace TacticsECS.EditorTools
                     var pos = new Vector2Int(x, y);
                     if (!string.IsNullOrEmpty(grid.GetStructure(pos)) && grid.GetStructure(pos) != "Resource_Fruit") continue;
                     if (grid.GetTileType(pos) != "Grass") continue;
-                    if (NearestDistance(cities, pos) < TerrainGenerationSystem.PostTerrainCityMinDistance) { blockedEmpty++; continue; }
+                    if (NearestDistance(cities, pos) < GameRules.Map.PostTerrainCityMinDistance) { blockedEmpty++; continue; }
                     Debug.LogError($"[StructureGenerationVerification] FillRemaining left {pos} empty even though no spacing conflict exists — not saturated");
                     ok = false;
                 }
             for (int i = 0; i < cities.Count; i++)
                 for (int j = i + 1; j < cities.Count; j++)
-                    if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < TerrainGenerationSystem.PostTerrainCityMinDistance)
-                    { Debug.LogError($"[StructureGenerationVerification] post-terrain cities {cities[i]} and {cities[j]} closer than {TerrainGenerationSystem.PostTerrainCityMinDistance}"); ok = false; }
+                    if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < GameRules.Map.PostTerrainCityMinDistance)
+                    { Debug.LogError($"[StructureGenerationVerification] post-terrain cities {cities[i]} and {cities[j]} closer than {GameRules.Map.PostTerrainCityMinDistance}"); ok = false; }
 
             if (ok) Debug.Log($"[StructureGenerationVerification] FillRemaining PASS ({villages.Count} villages, {blockedEmpty} correctly-blocked cells)");
             return ok;
@@ -467,7 +467,7 @@ namespace TacticsECS.EditorTools
                             else if (id != null && id.StartsWith("Resource_"))
                             {
                                 resources++;
-                                if (NearestDistance(cities, pos) > StructureGenerationSystem.ResourceCityRadius)
+                                if (NearestDistance(cities, pos) > GameRules.Map.ResourceCityRadius)
                                 { Debug.LogError($"[StructureGenerationVerification] {tag}: {id} {pos} farther than 2 from every city"); ok = false; }
                                 if (id == "Resource_Fish" && grid.GetTileType(pos) != "Water")
                                 { Debug.LogError($"[StructureGenerationVerification] {tag}: fish {pos} not on shallow water ({grid.GetTileType(pos)})"); ok = false; }

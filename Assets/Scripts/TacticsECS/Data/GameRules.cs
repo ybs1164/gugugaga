@@ -114,6 +114,33 @@ namespace TacticsECS
             public static int LighthousePopulation = 1;
         }
 
+        /// <summary>위키 Map Generation(요약: docs/reference/PolytopiaMapGeneration.md). 계산은 TerrainGenerationSystem·StructureGenerationSystem.</summary>
+        public static class Map
+        {
+            public static float MountainFraction = 0.14f;
+            public static float ForestFraction = 0.38f;
+            public static int CapitalEdgeMargin = 2;
+            public static int CapitalLandRadius = 1;
+            public static int MinCapitalLandmassSize = 9;
+            public static int CapitalMinDistance = 3;
+            public static int CityMinDistance = 2;
+            public static int SuburbRadius = 3;
+            public static int SuburbsPerCapital = 2;
+            public static float PreTerrainDensity = 0.3f;
+            public static float PreTerrainDensityWaterworld = 0.1f;
+            public static int PreTerrainEdgeMargin = 1;
+            public static int PostTerrainCityMinDistance = 3;
+            public static int PostTerrainEdgeMargin = 2;
+            public static int ContinentMinSize = 30;
+            public static int ContinentMaxSize = 200;
+            public static int LakesRequiredVillages = 2;
+            public static int LakesMaxBridgesPerCapital = 4;
+            public static int ResourceCityRadius = 2;
+            public static int TinyIslandEdgeMargin = 1;
+            public static int TinyIslandTilesPerVillage = 100;
+            public static int RuinTilesPerRuin = 36;
+        }
+
         /// <summary>AI 튜닝 값(위키 무관).</summary>
         public static class AI
         {

@@ -58,6 +58,29 @@ Vision.StartRevealRadius,2,2,시작 시 수도 주변 밝히는 반경,
 Vision.ExplorerMoves,12,12,탐험가 이동 횟수(2026-02 패치로 15 -> 12),
 Vision.ExplorerScanRange,4,4,탐험가가 한 걸음에 세는 구름 칸 상한,
 Vision.LighthousePopulation,1,1,등대를 처음 밝히면 수도 인구 +N,
+# 맵 생성(위키 Map Generation),,,,
+Map.MountainFraction,0.14,0.14,육지 중 산 비율(바이옴 MountainRate를 곱함),
+Map.ForestFraction,0.38,0.38,육지 중 숲 비율(바이옴 ForestRate를 곱함),
+Map.CapitalEdgeMargin,2,,수도는 맵 가장자리로부터 최소 N칸,원문은 가장자리 여백을 밝히지 않음 — 수도가 벽에 붙지 않게 3x3 영역 + 한 칸 여유
+Map.CapitalLandRadius,1,,수도 주변 N칸(체비쇼프)은 육지로 강제,원문 "수도 자리의 땅은 강제로 생성"의 범위를 3x3으로 해석
+Map.MinCapitalLandmassSize,9,,Pangea/Continents에서 수도가 설 수 있는 육지 덩어리(4방향 연결) 최소 칸 수,원문에 없음 — 수도가 한두 칸짜리 섬에 갇히지 않게
+Map.CapitalMinDistance,3,,수도끼리 최소 거리(체비쇼프),원문에 없음 — 쿼드런트 경계에서 수도가 붙지 않게
+Map.CityMinDistance,2,2,수도·Suburb·Pre-terrain 마을끼리 최소 거리(체비쇼프; 2 = 바로 인접 금지),
+Map.SuburbRadius,3,,Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프),원문은 "보통 몇 칸 떨어짐"이라고만 함
+Map.SuburbsPerCapital,2,2,수도마다 시도하는 Suburb 수(자리가 없을 때만 줄어듦),
+Map.PreTerrainDensity,0.3,0.3,Pre-terrain 마을 수 공식의 밀도 계수(Lakes/Archipelago),
+Map.PreTerrainDensityWaterworld,0.1,0.1,Pre-terrain 마을 수 공식의 밀도 계수(Waterworld),
+Map.PreTerrainEdgeMargin,1,1,Pre-terrain 마을은 맵 가장자리로부터 최소 N칸,
+Map.PostTerrainCityMinDistance,3,3,Post-terrain 마을의 다른 도시와 최소 거리(체비쇼프; 원문 "2칸 이내 금지"),
+Map.PostTerrainEdgeMargin,2,2,Post-terrain 마을은 맵 가장자리로부터 최소 N칸(자리가 없으면 줄여 가며 다시 찾음),
+Map.ContinentMinSize,30,30,Continents 대륙 한 덩어리 최소 칸 수,
+Map.ContinentMaxSize,200,200,Continents 대륙 한 덩어리 최대 칸 수,
+Map.LakesRequiredVillages,2,2,Lakes: 수도마다 육로로 닿아야 하는 마을 수,
+Map.LakesMaxBridgesPerCapital,4,,Lakes: 위 조건을 맞추려 수도마다 놓는 육지 다리 최대 개수,원문에 없음 — 무한 반복 방지 상한
+Map.ResourceCityRadius,2,2,자원은 도시·마을로부터 이 거리(체비쇼프) 이내에만 생성(1 = Inner; 그 밖 = Outer),
+Map.TinyIslandEdgeMargin,1,,외딴 섬 마을은 맵 가장자리로부터 최소 N칸,원문에 없음 — 8방향 이웃이 모두 물인지 보려면 맨 가장자리는 제외
+Map.TinyIslandTilesPerVillage,100,,맵 크기 표에 없는 크기의 외딴 섬 마을 수 = 칸 수 / N(내림),원문 표에 없는 크기를 표와 같은 비율로 근사
+Map.RuinTilesPerRuin,36,,맵 크기 표에 없는 크기의 유적 수 = 칸 수 / N(반올림; 최소 1),원문 표에 없는 크기를 표와 같은 비율로 근사
 # AI 튜닝(위키 무관),,,,
 AI.MaxImprovementsPerTurn,12,,경제 AI가 한 턴에 하는 건설/채집 최대 횟수,AI 전용
 AI.ThreatRadius,3,,경제 AI: 자기 영토 N칸 안의 적 유닛을 위협으로 센다,AI 전용

@@ -28,33 +28,6 @@ namespace TacticsECS
         /// 타일(얕은 물) 그대로 남는다. TerrainType은 둘 다 Water.</summary>
         public const string OceanTileId = "Ocean";
 
-        /// <summary>Polytopia 기준 스폰 비율(3절, Luxidoor 기준값) — 육지 중 산 14%, 숲 38%, 나머지 평지.</summary>
-        private const float BaseMountainFraction = 0.14f;
-        private const float BaseForestFraction = 0.38f;
-
-        /// <summary>수도는 맵 가장자리로부터 최소 이 거리(12절 보강 3 — "수도가 벽에 붙는 문제").</summary>
-        public const int CapitalEdgeMargin = 2;
-        /// <summary>쿼드런트 맵에서 수도 주변 이 반경(체비쇼프)까지 육지로 강제 — 1이면 3x3(12절 보강 2).</summary>
-        public const int CapitalLandRadius = 1;
-        /// <summary>Pangea/Continents에서 수도가 설 수 있는 육지 덩어리(4방향 연결)의 최소 크기(12절 보강 2).</summary>
-        public const int MinCapitalLandmassSize = 9;
-        /// <summary>수도끼리 최소 거리(체비쇼프) — 쿼드런트 중심부 샘플링과 함께 간격을 고르게 한다(12절 보강 1).</summary>
-        private const int CapitalMinDistance = 3;
-        /// <summary>수도/마을(모든 "도시")끼리 최소 거리(체비쇼프) — 2면 바로 인접(대각선 포함) 금지(12절 보강 4).
-        /// 원문 7.3절 "Pre-terrain 마을은 다른 마을로부터 2칸"(Suburb 포함)의 값이고, 모든 도시가 지키는 하한이다.</summary>
-        public const int CityMinDistance = 2;
-        /// <summary>Post-terrain 마을(외딴 섬 마을, Pangea/Continents 본토 마을 포함)의 도시 간 최소 거리 —
-        /// 원문 7.4절 "다른 마을로부터 2칸 이내에 놓이면 안 됨" = 거리 3 이상. CSV MinDistance가 더 크면 그 값.</summary>
-        public const int PostTerrainCityMinDistance = 3;
-        /// <summary>Post-terrain 마을의 가장자리 여백(원문 7.4절 "맵 가장자리로부터 2칸 이내 금지").</summary>
-        public const int PostTerrainVillageEdgeMargin = 2;
-        /// <summary>Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프).</summary>
-        private const int SuburbRadius = 3;
-        /// <summary>수도마다 시도하는 Suburb 수 — 원문 "최대 2개, 보통 2개". 자리가 없을 때만 0~1개가 된다.</summary>
-        private const int SuburbsPerCapital = 2;
-        /// <summary>Continents 대륙 한 덩어리의 크기 범위(원문 7.5절 "30~200타일").</summary>
-        private const int ContinentMinSize = 30;
-        private const int ContinentMaxSize = 200;
         /// <summary>Pangea/Continents 수도 선택 시도 횟수 — 가장 고르게 퍼진(최소 쌍 거리가 가장 큰) 조합을 쓴다.</summary>
         private const int CapitalSelectionTrials = 12;
 
@@ -132,7 +105,7 @@ namespace TacticsECS
             var capitalAnchors = capitalsAfterLand ? Array.Empty<Vector2Int>() : GenerateQuadrantAnchors(grid, regionCount, rng);
             var (suburbs, preTerrain) = PlanPreTerrainVillages(grid, shapeMode, capitalAnchors, rng);
 
-            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), suburbs, preTerrain);
+            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, GameRules.Map.CapitalLandRadius), suburbs, preTerrain);
             var shapeParams = shapeMode == MapShapeMode.Freeform ? new MapShapeParams(0, 0f, false) : GetShapeParams(shapeMode, regionCount);
             var landMask = shapeMode == MapShapeMode.Continents
                 ? GenerateContinentsLandMask(grid, rng, waterFraction, regionCount)
@@ -142,8 +115,8 @@ namespace TacticsECS
             if (capitalAnchors.Length > 0)
             {
                 anchors = SnapAllToLand(grid, capitalAnchors, landMask);
-                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, CityMinDistance);
-                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), CityMinDistance);
+                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, GameRules.Map.CityMinDistance);
+                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), GameRules.Map.CityMinDistance);
             }
             else
             {
@@ -287,7 +260,7 @@ namespace TacticsECS
             PlaceMinCountQuota(grid, effectiveBiomes, biomeIndexPerCell, regionSizePerBiome, placedPositionsByType, rng);
             FillRemaining(grid, effectiveBiomes, biomeIndexPerCell, cities, placedPositionsByType, rng);
 
-            ForceLandAt(grid, biomes, biomeIndexPerCell, ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), placedPositionsByType);
+            ForceLandAt(grid, biomes, biomeIndexPerCell, ExpandToSquare(grid, capitalAnchors, GameRules.Map.CapitalLandRadius), placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, suburbs, placedPositionsByType);
             ForceLandAt(grid, biomes, biomeIndexPerCell, preTerrain, placedPositionsByType);
 
@@ -349,7 +322,7 @@ namespace TacticsECS
             IReadOnlyList<BiomeCsvRow> biomes, Random rng, MapShapeMode mode, float waterFraction,
             Vector2Int[] capitalAnchors, Vector2Int[] suburbs, Vector2Int[] preTerrain)
         {
-            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, CapitalLandRadius), suburbs, preTerrain);
+            var guaranteedLand = Combine(ExpandToSquare(grid, capitalAnchors, GameRules.Map.CapitalLandRadius), suburbs, preTerrain);
             // Continents는 원문 7.5절(대륙 30~200칸, 서로 1칸 이상 떨어짐, 개수는 인원/습도/맵 크기로 결정)대로
             // 전용 대륙 성장 방식으로, 나머지는 공통 "방사형 감쇠 + 노이즈 순위 컷" 마스크로 만든다.
             var landMask = mode == MapShapeMode.Continents
@@ -362,8 +335,8 @@ namespace TacticsECS
                 // 쿼드런트로 미리 정한 수도/마을 — 마스크 컷에서 탈락했을 때의 안전망 스냅 후, 스냅으로 서로
                 // 붙어버린 마을은 버린다(간격 규칙이 스냅보다 우선).
                 anchors = SnapAllToLand(grid, capitalAnchors, landMask);
-                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, CityMinDistance);
-                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), CityMinDistance);
+                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, GameRules.Map.CityMinDistance);
+                snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), GameRules.Map.CityMinDistance);
             }
             else
             {
@@ -420,7 +393,7 @@ namespace TacticsECS
         }
 
         /// <summary>Pangea/Continents 본토 마을(원문 7.5절) — 육지 칸을 셔플된 순서로 보며, 가장자리 여백
-        /// (PostTerrainVillageEdgeMargin)과 도시 간 간격(PostTerrainCityMinDistance, 이미 정해진 수도 포함)을 지키는
+        /// (GameRules.Map.PostTerrainEdgeMargin)과 도시 간 간격(GameRules.Map.PostTerrainCityMinDistance, 이미 정해진 수도 포함)을 지키는
         /// 칸에 더 이상 자리가 없을 때까지 마을을 놓는다. ensureEveryLandmass면(Continents "모든 대륙에 최소 1개
         /// 마을") 포화 전에 아직 도시가 없는 대륙(4방향 연결 육지 덩어리)마다 하나씩 먼저 놓는다 — 작은 대륙은
         /// 가장자리 여백을 풀어서라도 놓는다. 새로 놓은 마을만 반환한다.</summary>
@@ -442,14 +415,14 @@ namespace TacticsECS
                 for (int component = 1; component < componentSizes.Count; component++)
                 {
                     if (covered.Contains(component)) continue;
-                    for (int margin = PostTerrainVillageEdgeMargin; margin >= 0; margin--)
+                    for (int margin = GameRules.Map.PostTerrainEdgeMargin; margin >= 0; margin--)
                     {
                         Vector2Int? pick = null;
                         foreach (var p in landCells)
                         {
                             if (componentPerCell[grid.Index(p)] != component) continue;
                             if (ProceduralGenerationUtil.DistanceToEdge(grid, p) < margin) continue;
-                            if (IsWithinDistance(cities, p, PostTerrainCityMinDistance)) continue;
+                            if (IsWithinDistance(cities, p, GameRules.Map.PostTerrainCityMinDistance)) continue;
                             pick = p;
                             break;
                         }
@@ -463,8 +436,8 @@ namespace TacticsECS
 
             foreach (var p in landCells)
             {
-                if (ProceduralGenerationUtil.DistanceToEdge(grid, p) < PostTerrainVillageEdgeMargin) continue;
-                if (IsWithinDistance(cities, p, PostTerrainCityMinDistance)) continue;
+                if (ProceduralGenerationUtil.DistanceToEdge(grid, p) < GameRules.Map.PostTerrainEdgeMargin) continue;
+                if (IsWithinDistance(cities, p, GameRules.Map.PostTerrainCityMinDistance)) continue;
                 villages.Add(p);
                 cities.Add(p);
             }
@@ -472,7 +445,7 @@ namespace TacticsECS
         }
 
         /// <summary>Continents 전용 랜드마스 마스크(원문 7.5절). 대륙 수 = 인원 수를 기본으로 하되, 대륙 하나가
-        /// ContinentMinSize~ContinentMaxSize(30~200칸)가 되도록 목표 육지 면적(= 맵 x (1-물 비율))으로 제한한다
+        /// GameRules.Map.ContinentMinSize~GameRules.Map.ContinentMaxSize가 되도록 목표 육지 면적(= 맵 x (1-물 비율))으로 제한한다
         /// (예: 196칸 + 2명 + 물 절반 -> 대륙 2개 x 약 50칸). 대륙 씨앗은 서로 최대한 멀리(farthest-point) 뽑고,
         /// 라운드 로빈으로 한 칸씩 노이즈 점수가 가장 높은 경계 칸을 붙여 키운다. 다른 대륙 칸과 8방향으로 맞닿는
         /// 칸은 붙이지 않아 대륙끼리 항상 1칸 이상 물로 떨어진다(그 틈이 원문의 "1칸 폭 얕은 물 줄기(강)").</summary>
@@ -480,8 +453,8 @@ namespace TacticsECS
         {
             int total = grid.Width * grid.Height;
             int landTarget = Mathf.Clamp(Mathf.RoundToInt(total * (1f - waterFraction)), 1, total);
-            int minCount = Mathf.Max(1, Mathf.CeilToInt(landTarget / (float)ContinentMaxSize));
-            int maxCount = Mathf.Max(minCount, landTarget / ContinentMinSize);
+            int minCount = Mathf.Max(1, Mathf.CeilToInt(landTarget / (float)GameRules.Map.ContinentMaxSize));
+            int maxCount = Mathf.Max(minCount, landTarget / GameRules.Map.ContinentMinSize);
             int continentCount = Mathf.Clamp(Mathf.Max(1, playerCount), minCount, maxCount);
 
             // 씨앗: 가장자리 2칸 안쪽에서 첫 칸은 랜덤, 이후는 기존 씨앗들과의 최소 거리가 가장 큰 칸.
@@ -490,7 +463,7 @@ namespace TacticsECS
                 for (int x = 0; x < grid.Width; x++)
                 {
                     var p = new Vector2Int(x, y);
-                    if (ProceduralGenerationUtil.DistanceToEdge(grid, p) >= CapitalEdgeMargin) seedCandidates.Add(p);
+                    if (ProceduralGenerationUtil.DistanceToEdge(grid, p) >= GameRules.Map.CapitalEdgeMargin) seedCandidates.Add(p);
                 }
             if (seedCandidates.Count == 0)
                 for (int y = 0; y < grid.Height; y++)
@@ -785,7 +758,7 @@ namespace TacticsECS
                 {
                     // 항상 2개를 시도한다(7.2절 "최대 2개, 보통 2개") — 0~1개는 자리가 없어 실패했을 때만 나온다
                     // (그래서 원문처럼 작은 맵일수록 1개가 더 흔하다).
-                    for (int i = 0; i < SuburbsPerCapital; i++)
+                    for (int i = 0; i < GameRules.Map.SuburbsPerCapital; i++)
                     {
                         var pos = FindSuburbCell(grid, capital, reserved, rng);
                         if (!pos.HasValue) continue;
@@ -798,7 +771,7 @@ namespace TacticsECS
             var preTerrain = new List<Vector2Int>();
             if (hasPreTerrain)
             {
-                float density = shapeMode == MapShapeMode.Waterworld ? 0.1f : 0.3f; // 4.4절 밀도 계수
+                float density = shapeMode == MapShapeMode.Waterworld ? GameRules.Map.PreTerrainDensityWaterworld : GameRules.Map.PreTerrainDensity;
                 int widthThird = Mathf.FloorToInt(grid.Width / 3f);
                 int target = Mathf.Max(0, Mathf.RoundToInt((widthThird * widthThird - reserved.Count) * density));
 
@@ -811,11 +784,11 @@ namespace TacticsECS
                 foreach (var pos in candidates)
                 {
                     if (preTerrain.Count >= target) break;
-                    if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < 1) continue; // 4.4절: 가장자리 최소 1칸
+                    if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < GameRules.Map.PreTerrainEdgeMargin) continue;
 
                     bool tooClose = false;
                     foreach (var r in reserved)
-                        if (ProceduralGenerationUtil.ChebyshevDistance(r, pos) < CityMinDistance) { tooClose = true; break; } // 7.3절: 다른 마을/수도로부터 2칸
+                        if (ProceduralGenerationUtil.ChebyshevDistance(r, pos) < GameRules.Map.CityMinDistance) { tooClose = true; break; }
                     if (tooClose) continue;
 
                     preTerrain.Add(pos);
@@ -826,18 +799,18 @@ namespace TacticsECS
             return (suburbs.ToArray(), preTerrain.ToArray());
         }
 
-        /// <summary>capital로부터 SuburbRadius 이내에서 Suburb 자리를 찾는다 — 가장자리 1칸 여백 + 이미 정해진
-        /// 수도/마을 전부와 CityMinDistance 이상(12절 보강 4: 예전엔 거리 검사가 없어 수도/다른 Suburb에 바로
+        /// <summary>capital로부터 GameRules.Map.SuburbRadius 이내에서 Suburb 자리를 찾는다 — 가장자리 1칸 여백 + 이미 정해진
+        /// 수도/마을 전부와 GameRules.Map.CityMinDistance 이상(12절 보강 4: 예전엔 거리 검사가 없어 수도/다른 Suburb에 바로
         /// 붙을 수 있었다). 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
         private static Vector2Int? FindSuburbCell(GridWorld grid, Vector2Int capital, List<Vector2Int> reserved, Random rng)
         {
             var candidates = new List<Vector2Int>();
-            for (int dy = -SuburbRadius; dy <= SuburbRadius; dy++)
-                for (int dx = -SuburbRadius; dx <= SuburbRadius; dx++)
+            for (int dy = -GameRules.Map.SuburbRadius; dy <= GameRules.Map.SuburbRadius; dy++)
+                for (int dx = -GameRules.Map.SuburbRadius; dx <= GameRules.Map.SuburbRadius; dx++)
                 {
                     var p = capital + new Vector2Int(dx, dy);
                     if (!grid.InBounds(p) || ProceduralGenerationUtil.DistanceToEdge(grid, p) < 1) continue;
-                    if (IsWithinDistance(reserved, p, CityMinDistance)) continue;
+                    if (IsWithinDistance(reserved, p, GameRules.Map.CityMinDistance)) continue;
                     candidates.Add(p);
                 }
             if (candidates.Count == 0) return null;
@@ -967,7 +940,7 @@ namespace TacticsECS
         /// 구역 수는 원문대로 1~4명=4, 5~9명=9, 10~16명=16. 8차 재정비(12절 보강 1/3) — 간격을 고르게 하려고
         /// (1) 빈 구역이 남을 때는 서로 가장 먼 구역부터 채우고(PickSpreadQuadrants), (2) 구역 안에서도 구역
         /// 중심 근처(구역 한 변의 1/5 반경)만 후보로 삼고 구역 경계 칸은 제외하며, (3) 맵 가장자리로부터
-        /// CapitalEdgeMargin 이상, 이미 뽑힌 앵커와 CapitalMinDistance 이상 떨어진 칸만 쓴다. 조건을 만족하는
+        /// GameRules.Map.CapitalEdgeMargin 이상, 이미 뽑힌 앵커와 GameRules.Map.CapitalMinDistance 이상 떨어진 칸만 쓴다. 조건을 만족하는
         /// 칸이 없으면(아주 작은 맵) 조건을 하나씩 풀어 폴백한다. 랜드마스 마스크의 대륙 중심점도 이 함수로 뽑는다.</summary>
         private static Vector2Int[] GenerateQuadrantAnchors(GridWorld grid, int biomeCount, Random rng)
         {
@@ -1043,8 +1016,8 @@ namespace TacticsECS
                         var p = new Vector2Int(x, y);
                         if (tier < 1 && (Mathf.Abs(x - cx) > radius || Mathf.Abs(y - cy) > radius)) continue;
                         if (tier < 2 && IsOnInnerQuadrantBorder(grid, p, xMin, xMax, yMin, yMax)) continue;
-                        if (tier < 3 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < CapitalEdgeMargin) continue;
-                        if (IsWithinDistance(chosen, p, tier < 3 ? CapitalMinDistance : 1)) continue;
+                        if (tier < 3 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < GameRules.Map.CapitalEdgeMargin) continue;
+                        if (IsWithinDistance(chosen, p, tier < 3 ? GameRules.Map.CapitalMinDistance : 1)) continue;
                         candidates.Add(p);
                     }
                 if (candidates.Count > 0) return candidates[rng.Next(candidates.Count)];
@@ -1059,7 +1032,7 @@ namespace TacticsECS
             (p.y == yMin && yMin > 0) || (p.y == yMax - 1 && yMax < grid.Height);
 
         /// <summary>Pangea/Continents 전용(7.5절) — 이미 만들어진 땅(landMask) 위에서 수도 count개를 고른다.
-        /// 후보: 가장자리로부터 CapitalEdgeMargin 이상 + 크기 MinCapitalLandmassSize 이상인 육지 덩어리에 속한 칸
+        /// 후보: 가장자리로부터 GameRules.Map.CapitalEdgeMargin 이상 + 크기 GameRules.Map.MinCapitalLandmassSize 이상인 육지 덩어리에 속한 칸
         /// (12절 보강 2/3 — 1칸 섬 수도 방지). 원문 기준 두 가지를 반영한다: (a) 수도끼리 최대한 멀리 — 첫 수도는
         /// 랜덤, 이후는 기존 수도들과의 최소 거리가 가장 큰 칸(farthest-point)을 고르고, 이를 여러 번 시도해 최소 쌍
         /// 거리가 가장 큰 조합을 채택(12절 보강 1), (b) 해안(물 인접) 선호 — 점수 보너스. Continents는 아직 수도가
@@ -1080,8 +1053,8 @@ namespace TacticsECS
                         var p = new Vector2Int(x, y);
                         int index = grid.Index(p);
                         if (!landMask[index]) continue;
-                        if (tier < 2 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < CapitalEdgeMargin) continue;
-                        if (tier < 1 && componentSizes[componentPerCell[index]] < MinCapitalLandmassSize) continue;
+                        if (tier < 2 && ProceduralGenerationUtil.DistanceToEdge(grid, p) < GameRules.Map.CapitalEdgeMargin) continue;
+                        if (tier < 1 && componentSizes[componentPerCell[index]] < GameRules.Map.MinCapitalLandmassSize) continue;
                         candidates.Add(p);
                     }
                 if (candidates.Count >= count) break;
@@ -1090,7 +1063,7 @@ namespace TacticsECS
             if (candidates.Count < count)
             {
                 var fallback = GenerateQuadrantAnchors(grid, count, rng);
-                foreach (var p in ExpandToSquare(grid, fallback, CapitalLandRadius)) landMask[grid.Index(p)] = true;
+                foreach (var p in ExpandToSquare(grid, fallback, GameRules.Map.CapitalLandRadius)) landMask[grid.Index(p)] = true;
                 return fallback;
             }
 
@@ -1185,8 +1158,8 @@ namespace TacticsECS
         /// 숲은 기준 38%를 "남은 비율(100%-산%)/86%"로 비례 보정한 뒤 ForestRate를 곱한다. 평지는 나머지.</summary>
         public static (float Mountain, float Forest) ComputeFeatureFractions(float mountainRate, float forestRate)
         {
-            float mountain = Mathf.Clamp01(BaseMountainFraction * Mathf.Max(0f, mountainRate));
-            float forest = BaseForestFraction * (1f - mountain) / (1f - BaseMountainFraction) * Mathf.Max(0f, forestRate);
+            float mountain = Mathf.Clamp01(GameRules.Map.MountainFraction * Mathf.Max(0f, mountainRate));
+            float forest = GameRules.Map.ForestFraction * (1f - mountain) / (1f - GameRules.Map.MountainFraction) * Mathf.Max(0f, forestRate);
             return (mountain, Mathf.Clamp(forest, 0f, 1f - mountain));
         }
 

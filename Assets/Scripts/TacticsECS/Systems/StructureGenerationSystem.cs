@@ -26,12 +26,7 @@ namespace TacticsECS
         public const string RuinStructureId = "Ruin";
         public const string LighthouseStructureId = "Lighthouse";
 
-        /// <summary>자원은 항상 도시(수도/마을)로부터 이 거리(체비쇼프) 이내에만 생긴다(원문 3절). 거리 1 = Inner
-        /// City(도시에 인접), 거리 2 = Outer City.</summary>
-        public const int ResourceCityRadius = 2;
 
-        /// <summary>외딴 섬 마을의 가장자리 여백 — 사방(8방향)이 물이어야 하므로 맨 가장자리 칸은 제외한다.</summary>
-        private const int TinyIslandEdgeMargin = 1;
 
         /// <summary>Polytopia의 맵 크기별 외딴 섬 마을 개수표(8절) — MapSizePresets(BattleController)의
         /// 변 길이와 같은 값으로 조회한다.</summary>
@@ -45,7 +40,6 @@ namespace TacticsECS
         {
             (11, 4), (14, 5), (16, 7), (18, 9), (20, 11), (30, 23)
         };
-        private const float RuinTilesPerRuinFallback = 36f;
 
         /// <summary>지형 생성 전에 이미 확정된 Suburb/사전 확정 마을 위치(TerrainGenerationSystem.Generate의
         /// out 파라미터)를 받아 Village로 먼저 배치한 뒤, 클래스 주석의 단계 순서대로 나머지를 배치한다.
@@ -232,9 +226,9 @@ namespace TacticsECS
             if (entry.MaxDistanceFromCity > 0 && DistanceToNearestCity(pos, placedPositionsByStructure) > entry.MaxDistanceFromCity) return true;
 
             // Post-terrain 도시는 서로 종류가 달라도 같은 간격 규칙을 따르고, CSV 값이 작거나 0이어도 최소
-            // PostTerrainCityMinDistance(원문 7.4절 "다른 마을로부터 2칸 이내 금지")는 항상 지킨다.
+            // GameRules.Map.PostTerrainCityMinDistance(원문 7.4절 "다른 마을로부터 2칸 이내 금지")는 항상 지킨다.
             if (IsCityStructure(entry.StructureId) &&
-                IsTooCloseToCity(pos, Mathf.Max(entry.MinDistance, TerrainGenerationSystem.PostTerrainCityMinDistance), placedPositionsByStructure))
+                IsTooCloseToCity(pos, Mathf.Max(entry.MinDistance, GameRules.Map.PostTerrainCityMinDistance), placedPositionsByStructure))
                 return true;
 
             if (entry.MinDistance > 0 && placedPositionsByStructure.TryGetValue(entry.StructureId, out var placed))
@@ -273,8 +267,7 @@ namespace TacticsECS
         private static void PlaceTinyIslandVillages(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
             Dictionary<string, List<Vector2Int>> placedPositionsByStructure, Random rng)
         {
-            // 표에 없는 크기는 표와 같은 비율(약 100칸당 1개)로 근사한다.
-            int count = LookupBySize(TinyIslandCounts, grid.Width, Mathf.FloorToInt(grid.Width * grid.Height / 100f));
+            int count = LookupBySize(TinyIslandCounts, grid.Width, Mathf.FloorToInt(grid.Width * grid.Height / (float)GameRules.Map.TinyIslandTilesPerVillage));
             if (count <= 0) return;
 
             var candidates = new List<Vector2Int>();
@@ -284,7 +277,7 @@ namespace TacticsECS
                     var pos = new Vector2Int(x, y);
                     if (grid.GetTerrain(pos) != TerrainType.Water || grid.IsOccupied(pos)) continue;
                     if (!string.IsNullOrEmpty(grid.GetStructure(pos))) continue;
-                    if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < TinyIslandEdgeMargin) continue;
+                    if (ProceduralGenerationUtil.DistanceToEdge(grid, pos) < GameRules.Map.TinyIslandEdgeMargin) continue;
 
                     bool surroundedByWater = true;
                     foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
@@ -297,7 +290,7 @@ namespace TacticsECS
             foreach (var pos in candidates)
             {
                 if (placed >= count) break;
-                if (IsTooCloseToCity(pos, TerrainGenerationSystem.PostTerrainCityMinDistance, placedPositionsByStructure)) continue;
+                if (IsTooCloseToCity(pos, GameRules.Map.PostTerrainCityMinDistance, placedPositionsByStructure)) continue;
                 // 앞서 놓인 섬이 이 칸의 이웃을 육지로 만들었을 수 있다(간격 3이면 불가능하지만 방어적으로 재확인).
                 bool stillIsolated = true;
                 foreach (var n in grid.GetNeighbors(pos, allowDiagonal: true))
@@ -321,18 +314,16 @@ namespace TacticsECS
         private static void EnsureLakesVillageConnections(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
             Vector2Int[] anchors, Dictionary<string, List<Vector2Int>> placedPositionsByStructure)
         {
-            const int RequiredVillages = 2;
-            const int MaxBridgesPerCapital = 4;
             foreach (var capital in anchors)
             {
                 if (grid.GetStructure(capital) != CapitalStructureId) continue;
-                for (int attempt = 0; attempt < MaxBridgesPerCapital; attempt++)
+                for (int attempt = 0; attempt < GameRules.Map.LakesMaxBridgesPerCapital; attempt++)
                 {
                     var component = LandComponent(grid, capital);
                     int villages = 0;
                     foreach (var p in component)
                         if (grid.GetStructure(p) == VillageStructureId) villages++;
-                    if (villages >= RequiredVillages) break;
+                    if (villages >= GameRules.Map.LakesRequiredVillages) break;
 
                     var path = ShortestPathToOutsideVillage(grid, component);
                     if (path == null) break;
@@ -420,7 +411,7 @@ namespace TacticsECS
                     if (!IsFreeCell(grid, pos)) continue;
                     int dist = int.MaxValue;
                     foreach (var c in cities) dist = Mathf.Min(dist, ProceduralGenerationUtil.ChebyshevDistance(c, pos));
-                    if (dist < 1 || dist > ResourceCityRadius) continue;
+                    if (dist < 1 || dist > GameRules.Map.ResourceCityRadius) continue;
 
                     var key = (biomeIndexPerCell[grid.Index(pos)], dist == 1, grid.GetTileType(pos));
                     if (!groups.TryGetValue(key, out var list))
@@ -510,7 +501,7 @@ namespace TacticsECS
             }
             if (targets.TryGetValue(RuinStructureId, out var ruinTarget) && ruinTarget != int.MaxValue)
                 targets[RuinStructureId] = LookupBySize(RuinCounts, grid.Width,
-                    Mathf.Max(1, Mathf.RoundToInt(grid.Width * grid.Height / RuinTilesPerRuinFallback)));
+                    Mathf.Max(1, Mathf.RoundToInt(grid.Width * grid.Height / (float)GameRules.Map.RuinTilesPerRuin)));
 
             bool isLakes = shapeMode == TerrainGenerationSystem.MapShapeMode.Lakes;
             foreach (var structureId in order)

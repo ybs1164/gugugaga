@@ -663,8 +663,8 @@ namespace TacticsECS.EditorTools
             {
                 if (grid.GetTerrain(all[i]) != TerrainType.Land) { Debug.LogError($"[TerrainGenerationVerification] {mode} city {all[i]} not on land"); ok = false; }
                 for (int j = i + 1; j < all.Count; j++)
-                    if (ProceduralGenerationUtil.ChebyshevDistance(all[i], all[j]) < TerrainGenerationSystem.PostTerrainCityMinDistance)
-                    { Debug.LogError($"[TerrainGenerationVerification] {mode} cities {all[i]} and {all[j]} closer than {TerrainGenerationSystem.PostTerrainCityMinDistance}"); ok = false; }
+                    if (ProceduralGenerationUtil.ChebyshevDistance(all[i], all[j]) < GameRules.Map.PostTerrainCityMinDistance)
+                    { Debug.LogError($"[TerrainGenerationVerification] {mode} cities {all[i]} and {all[j]} closer than {GameRules.Map.PostTerrainCityMinDistance}"); ok = false; }
             }
             if (ok) Debug.Log($"[TerrainGenerationVerification] {mode} mainland villages PASS ({mainland.Length} villages, {anchors.Length} capitals)");
             return ok;
@@ -801,11 +801,11 @@ namespace TacticsECS.EditorTools
 
                             foreach (var a in anchors)
                             {
-                                if (ProceduralGenerationUtil.DistanceToEdge(grid, a) < TerrainGenerationSystem.CapitalEdgeMargin)
+                                if (ProceduralGenerationUtil.DistanceToEdge(grid, a) < GameRules.Map.CapitalEdgeMargin)
                                 { Debug.LogError($"[TerrainGenerationVerification] {tag}: capital {a} too close to map edge"); ok = false; }
 
                                 int landmass = LandComponentSize(grid, a);
-                                if (landmass < TerrainGenerationSystem.MinCapitalLandmassSize)
+                                if (landmass < GameRules.Map.MinCapitalLandmassSize)
                                 { Debug.LogError($"[TerrainGenerationVerification] {tag}: capital {a} on tiny landmass ({landmass} tiles)"); ok = false; }
 
                                 if (quadrantMode)
@@ -890,7 +890,7 @@ namespace TacticsECS.EditorTools
 
                             for (int i = 0; i < cities.Count; i++)
                                 for (int j = i + 1; j < cities.Count; j++)
-                                    if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < TerrainGenerationSystem.CityMinDistance)
+                                    if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < GameRules.Map.CityMinDistance)
                                     {
                                         Debug.LogError($"[TerrainGenerationVerification] {mode} {size}x{size} seed={s}: cities {cities[i]}({grid.GetStructure(cities[i])}) and {cities[j]}({grid.GetStructure(cities[j])}) are adjacent");
                                         ok = false;

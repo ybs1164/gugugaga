@@ -861,6 +861,8 @@ Monuments/Score/Explorer/Lighthouse/Ruins/City Connections 문서 원문)와 대
 
 ## 작업 로그
 
+- 2026-10-02: 샌드박스 기술 불러오기용 [예시 CSV](docs/sample_tech_tree.csv)(25개 기술)와 [형식 명세 CSV](docs/tech_tree_csv_spec.csv)(컬럼·작성 규칙·50개 해금 키)를 추가. 두 파일은 한글 Excel 호환 UTF-8 BOM이며 CSV 구조/참조 검증 통과.
+
 - 2026-10-02: 기술트리를 고정 슬롯과 기술 배치로 분리. 기술 교체 시 선행 조건 자동 연결, 기술별 비용 독립 조정, 해금 종류 5종 분류.
   `ArrayTableVerification`에 슬롯 교체 후 연구/효과/비용 검증과 잘못된 배치 거부 검증을 추가.
   Unity CLI `VerificationSuite.Run` 검증 8종 ALL PASS(로그: `Logs/tech_slot_verification.log`).

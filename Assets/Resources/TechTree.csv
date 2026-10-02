@@ -11,7 +11,7 @@ Diplomacy,외교,Organization,Strategy,3,0,diplomacy,4,3,Unit.spy,Vision.Capital
 Construction,건축,Organization,Farming,3,1,construction,4,3,Build.Windmill,Ability.BurnForest,,,풍차 건설 가능(인접 농장당 인구 +1). 자기 숲 화전 가능(별 3 / 숲 -> 작물 평지).
 Riding,기마,Riding,,1,0,riding,4,1,Unit.cavalry,,,,기마병 훈련 가능.
 FreeSpirit,자유 영혼,Riding,Riding,2,0,freespirit,4,2,Build.Temple,Ability.Disband,,,신전 건설 가능(별 20). 자기 유닛 해산 가능(비용 절반 환급).
-Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road,Task.Network,,,도로(별 3)/다리(별 5) 건설 가능 - 도로끼리 이동 0.5, 수도 연결 시 인구 보너스. 교역망 과업(연결 도시 5 → 대시장) 개방.
+Roads,도로,Riding,Riding,2,1,roads,4,2,Build.Road,Task.Network,,,"도로(별 3)/다리(별 5) 건설 가능 - 도로끼리 이동 0.5, 수도 연결 시 인구 보너스. 교역망 과업(연결 도시 5 → 대시장) 개방."
 Chivalry,기사도,Riding,FreeSpirit,3,0,chivalry,4,3,Unit.knight,Ability.Destroy,,,기사 훈련 가능. 자기 건물 파괴 가능.
 Trade,교역,Riding,Roads,3,1,trade,4,3,Build.Market,Task.Wealth,,,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 별/턴). 부 과업(별 100 보유 → 황제의 무덤) 개방.
 Hunting,사냥,Hunting,,1,0,hunting,4,1,Harvest.Animal,Reveal.Resource_Animal,,,동물 사냥 가능(별 2 / 인구 +1). 숨겨진 동물 발견.
@@ -20,7 +20,7 @@ Archery,궁술,Hunting,Hunting,2,1,archery,4,2,Unit.archer,Defense.Forest,,,궁�
 Mathematics,수학,Hunting,Forestry,3,0,mathematics,4,3,Build.Sawmill,Unit.catapult,,,제재소 건설 가능(인접 벌목장당 인구 +1). 투석기 훈련 가능.
 Spiritualism,강신술,Hunting,Archery,3,1,spiritualism,4,3,Build.ForestTemple,Ability.GrowForest,,,숲 신전 건설 가능(별 15). 자기 평지에 숲 생성 가능(별 5).
 Fishing,낚시,Fishing,,1,0,fishing,4,1,Build.Port,Harvest.Fish,Reveal.Resource_Fish,,항구 건설 가능(별 7 / 인구 +1 / 들어온 육지 유닛은 뗏목 / 해로 연결). 물고기 낚시 가능. 숨겨진 물고기 발견.
-Ramming,충파,Fishing,Fishing,2,0,ramming,4,2,Unit.rammer,,,,뗏목을 충각선으로 업그레이드 가능(별 5, 자기 영토).
-Sailing,배 타기,Fishing,Fishing,2,1,sailing,4,2,Move.Ocean,Unit.scout,,,원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(별 5, 시야 5x5).
+Ramming,충파,Fishing,Fishing,2,0,ramming,4,2,Unit.rammer,,,,"뗏목을 충각선으로 업그레이드 가능(별 5, 자기 영토)."
+Sailing,배 타기,Fishing,Fishing,2,1,sailing,4,2,Move.Ocean,Unit.scout,,,"원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(별 5, 시야 5x5)."
 Aquatism,수생학,Fishing,Ramming,3,0,aquatics,4,3,Build.WaterTemple,Defense.Water,,,해양 신전 건설 가능(별 20). 근해/원양 타일 유닛 방어력 +1.
 Navigation,항해,Fishing,Sailing,3,1,navigation,4,3,Unit.bomber,Harvest.Starfish,Reveal.Starfish,Connect.Ocean,뗏목을 폭격선으로 업그레이드 가능(별 15). 불가사리(유물) 인양 가능(별 +8). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.

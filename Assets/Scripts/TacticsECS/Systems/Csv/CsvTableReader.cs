@@ -196,6 +196,16 @@ namespace TacticsECS
                              Array.Exists(listColumns, l => IsNumberedColumn(h, l));
                 if (!known) errors.Add($"{t.Name}: 모르는 컬럼 '{h}' (무시됨)");
             }
+            for (int r = 0; r < t.Rows.Count; r++)
+            {
+                var cells = t.Rows[r];
+                for (int c = t.Header.Length; c < cells.Length; c++)
+                {
+                    if (cells[c].Length == 0) continue;
+                    Report(t, r, $"#{c + 1}", $"헤더보다 칸이 많음('{cells[c]}' 무시됨) — 쉼표가 든 값은 큰따옴표로 감싼다", errors);
+                    break;
+                }
+            }
         }
 
         /// <summary>같은 Id가 두 번 나오면 오류(뒤의 행은 앞의 행과 구분할 수 없다).</summary>

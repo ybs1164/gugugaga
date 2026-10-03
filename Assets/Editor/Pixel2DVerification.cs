@@ -103,6 +103,7 @@ namespace TacticsECS.EditorTools
                 if (edge) uniform &= c.r == PixelSpriteComposer.Outline.r && c.g == PixelSpriteComposer.Outline.g && c.b == PixelSpriteComposer.Outline.b;
             }
             Check(any,"composite has pixels: " + label);
+            Check(PixelSpriteComposer.ThinLineSegments(pixels,w,h) == 0,"no 1px-thin line left: " + label);
             Check(uniform,"uniform thick silhouette stroke: " + label);
         }
         private static void VerifyCoordinates()
@@ -238,6 +239,19 @@ namespace TacticsECS.EditorTools
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
+        /// <summary>Writes every baked composite to Logs/Composites for offline inspection.</summary>
+        public static void ExportComposites()
+        {
+            GameDataLoader.LoadAll();
+            Directory.CreateDirectory("Logs/Composites");
+            foreach (string id in PixelSpriteCatalog.VisualIds)
+            {
+                if (id.StartsWith("Ground.") || id.StartsWith("UI.") || id == "Terrain.Cloud") continue;
+                var sprite = PixelSpriteComposer.Compose(id,3,Blue);
+                File.WriteAllBytes("Logs/Composites/" + id + ".png",sprite.texture.EncodeToPNG());
+            }
+            Debug.Log("[Pixel2DVerification] EXPORT DONE");
+        }
         public static void RefreshAndCapture()
         {
             Pixel2DSetup.Run();

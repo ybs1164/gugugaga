@@ -70,6 +70,7 @@ namespace TacticsECS
                     Draw(canvas, width, height, l, centreX + placements[g].X + dx, centreY + placements[g].Y + dy);
             }
             canvas = OuterStroke(canvas, width, height);
+            ThickenThinLines(canvas, width, height); // one pass: repeating it would creep into the art
 
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
                 { name = "Composite_" + placements[0].VisualId, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
@@ -168,6 +169,100 @@ namespace TacticsECS
                 // Only where this part covers earlier art: one separating line, never a second outer stroke.
                 else if (l.Stroke[k] && canvas[y * width + x].a != 0) canvas[y * width + x] = Outline;
             }
+        }
+
+        private static bool IsLine(Color32 c) => c.a != 0 && (.299f * c.r + .587f * c.g + .114f * c.b) / 255f < .26f;
+
+        /// <summary>
+        /// Source art keeps 1px interior lines (window frames, roof seams, stems) while the stroke is <see cref="Stroke"/> px.
+        /// Every 1px-wide run of a line gains its neighbouring art pixel, so all lines share the stroke width.
+        /// Line specks under 3 pixels (eyes, dots) stay as drawn. Returns how many pixels were painted.
+        /// </summary>
+        public static int ThickenThinLines(Color32[] canvas, int width, int height)
+        {
+            var source = (Color32[])canvas.Clone();
+            var size = LineComponentSizes(source, width, height);
+            int thin = 0;
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                int i = y * width + x;
+                if (!IsLine(source[i]) || size[i] < 3) continue;
+                if (Run(source, width, height, x, y, 1, 0) == 1 && Fill(source, canvas, width, height, x + 1, y, x - 1, y)) thin++;
+                if (Run(source, width, height, x, y, 0, 1) == 1 && Fill(source, canvas, width, height, x, y - 1, x, y + 1)) thin++;
+            }
+            return thin;
+        }
+
+        /// <summary>Pixels of 1px-wide line segments (two or more in a row) that could still be thickened; verification expects 0.</summary>
+        public static int ThinLineSegments(Color32[] c, int width, int height)
+        {
+            var size = LineComponentSizes(c, width, height);
+            int thin = 0;
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                if (!IsLine(c[y * width + x]) || size[y * width + x] < 3) continue;
+                bool vertical = Run(c, width, height, x, y, 1, 0) == 1 && (ThinAt(c, width, height, x, y + 1, 1, 0) || ThinAt(c, width, height, x, y - 1, 1, 0))
+                    && (Art(c, width, height, x + 1, y) || Art(c, width, height, x - 1, y));
+                bool horizontal = Run(c, width, height, x, y, 0, 1) == 1 && (ThinAt(c, width, height, x + 1, y, 0, 1) || ThinAt(c, width, height, x - 1, y, 0, 1))
+                    && (Art(c, width, height, x, y + 1) || Art(c, width, height, x, y - 1));
+                if (vertical || horizontal) thin++;
+            }
+            return thin;
+        }
+
+        private static bool ThinAt(Color32[] c, int width, int height, int x, int y, int dx, int dy) =>
+            x >= 0 && y >= 0 && x < width && y < height && IsLine(c[y * width + x]) && Run(c, width, height, x, y, dx, dy) == 1;
+
+        private static bool Art(Color32[] c, int width, int height, int x, int y) =>
+            x >= 0 && y >= 0 && x < width && y < height && c[y * width + x].a != 0 && !IsLine(c[y * width + x]);
+
+        private static int Run(Color32[] c, int width, int height, int x, int y, int dx, int dy)
+        {
+            int n = 1;
+            for (int s = -1; s <= 1; s += 2)
+                for (int i = 1; ; i++)
+                {
+                    int nx = x + dx * i * s, ny = y + dy * i * s;
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height || !IsLine(c[ny * width + nx])) break;
+                    n++;
+                }
+            return n;
+        }
+
+        /// <summary>Paint the first candidate that is non-line art (never transparent, so the silhouette keeps its size).</summary>
+        private static bool Fill(Color32[] source, Color32[] canvas, int width, int height, int ax, int ay, int bx, int by)
+        {
+            foreach (var (x, y) in new[] { (ax, ay), (bx, by) })
+            {
+                if (x < 0 || y < 0 || x >= width || y >= height) continue;
+                var c = source[y * width + x];
+                if (c.a == 0 || IsLine(c)) continue;
+                canvas[y * width + x] = Outline;
+                return true;
+            }
+            return false;
+        }
+
+        private static int[] LineComponentSizes(Color32[] c, int width, int height)
+        {
+            var size = new int[c.Length];
+            var seen = new bool[c.Length];
+            var stack = new Stack<int>();
+            var members = new List<int>();
+            for (int start = 0; start < c.Length; start++)
+            {
+                if (seen[start] || !IsLine(c[start])) continue;
+                members.Clear(); stack.Push(start); seen[start] = true;
+                while (stack.Count > 0)
+                {
+                    int i = stack.Pop(); members.Add(i);
+                    int x = i % width, y = i / width;
+                    foreach (var n in new[] { x > 0 ? i - 1 : -1, x < width - 1 ? i + 1 : -1, y > 0 ? i - width : -1, y < height - 1 ? i + width : -1 })
+                        if (n >= 0 && !seen[n] && IsLine(c[n])) { seen[n] = true; stack.Push(n); }
+                }
+                foreach (int i in members) size[i] = members.Count;
+            }
+            return size;
         }
 
         /// <summary>One stroke around the final silhouette, so overlapping parts never stack their outlines.</summary>

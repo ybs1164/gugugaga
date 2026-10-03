@@ -99,7 +99,7 @@ SHAPES = {
         '.rrrrrrrrrrrrrr.','.rrrrrrrrrrrrrr.','.rrrrrrrrrrrrrr.','................'],
 }
 for name, rows in SHAPES.items():
-    save(name, rows, name != 'Crown')  # Crown: the composer adds the stroke
+    save(name, rows, False)  # the composer adds the one shared stroke
 for name, base, wave in [('Water','a','h'), ('Ocean','v','a')]:
     rows = [[base]*16 for _ in range(16)]
     for x,y in [(3,3),(10,8),(2,13)]:

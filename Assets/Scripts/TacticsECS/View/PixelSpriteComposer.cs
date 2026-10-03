@@ -69,6 +69,7 @@ namespace TacticsECS
                 foreach (var l in group)
                     Draw(canvas, width, height, l, centreX + placements[g].X + dx, centreY + placements[g].Y + dy);
             }
+            CloseGaps(canvas, width, height);
             canvas = OuterStroke(canvas, width, height);
             ThickenThinLines(canvas, width, height); // one pass: repeating it would creep into the art
 
@@ -116,15 +117,11 @@ namespace TacticsECS
                     opaque[j * sw + i] = source[((int)rect.y + j) * sprite.texture.width + (int)rect.x + i].a >= 128;
                 w = sw * scale; h = sh * scale;
                 art = new Color32[w * h];
+                var stripped = SourceOutline(source, sprite.texture.width, (int)rect.x, (int)rect.y, sw, sh, opaque);
                 for (int j = 0; j < sh; j++) for (int i = 0; i < sw; i++)
                 {
-                    if (!opaque[j * sw + i]) continue;
+                    if (!opaque[j * sw + i] || stripped[j * sw + i]) continue;
                     Color32 c = source[((int)rect.y + j) * sprite.texture.width + (int)rect.x + i];
-                    // 8-neighbour test so inner-corner outline pixels go too; otherwise corners end up one pixel thicker.
-                    bool edge = false;
-                    for (int oy = -1; oy <= 1 && !edge; oy++) for (int ox = -1; ox <= 1 && !edge; ox++)
-                        edge = i + ox < 0 || j + oy < 0 || i + ox >= sw || j + oy >= sh || !opaque[(j + oy) * sw + i + ox];
-                    if (edge &&(.299f * c.r + .587f * c.g + .114f * c.b) / 255f < .26f) continue;
                     var tinted = new Color32((byte)(c.r * tint.r), (byte)(c.g * tint.g), (byte)(c.b * tint.b), 255);
                     for (int sy = 0; sy < scale; sy++) for (int sx = 0; sx < scale; sx++)
                         art[(j * scale + sy) * w + (flip ? w - 1 - (i * scale + sx) : i * scale + sx)] = tinted;
@@ -168,6 +165,78 @@ namespace TacticsECS
                 if (l.Pixels[k].a != 0) canvas[y * width + x] = l.Pixels[k];
                 // Only where this part covers earlier art: one separating line, never a second outer stroke.
                 else if (l.Stroke[k] && canvas[y * width + x].a != 0) canvas[y * width + x] = Outline;
+            }
+        }
+
+        /// <summary>
+        /// The source's own outline band: dark pixels reachable from outside (8-neighbour) through dark pixels, up to
+        /// <see cref="Stroke"/>+1 source pixels deep. Kenney art draws a 2-3px outline; patterns are saved without one; removing the whole
+        /// band (not just one ring) is what lets every visual end up with the same stroke width.
+        /// </summary>
+        private static bool[] SourceOutline(Color32[] source, int texWidth, int rx, int ry, int sw, int sh, bool[] opaque)
+        {
+            var depth = new int[sw * sh];
+            var queue = new Queue<int>();
+            bool Dark(int k) => opaque[k] && IsLine(source[(ry + k / sw) * texWidth + rx + k % sw]);
+            for (int j = 0; j < sh; j++) for (int i = 0; i < sw; i++)
+            {
+                int k = j * sw + i;
+                if (!Dark(k)) continue;
+                bool edge = false;
+                for (int oy = -1; oy <= 1 && !edge; oy++) for (int ox = -1; ox <= 1 && !edge; ox++)
+                    edge = i + ox < 0 || j + oy < 0 || i + ox >= sw || j + oy >= sh || !opaque[(j + oy) * sw + i + ox];
+                if (edge) { depth[k] = 1; queue.Enqueue(k); }
+            }
+            while (queue.Count > 0)
+            {
+                int k = queue.Dequeue(), i = k % sw, j = k / sw;
+                if (depth[k] > Stroke) continue; // Kenney's 2px outline thickens to 3px in places
+                for (int oy = -1; oy <= 1; oy++) for (int ox = -1; ox <= 1; ox++)
+                {
+                    int ni = i + ox, nj = j + oy, n = nj * sw + ni;
+                    if (ni < 0 || nj < 0 || ni >= sw || nj >= sh || depth[n] != 0 || !Dark(n)) continue;
+                    depth[n] = depth[k] + 1; queue.Enqueue(n);
+                }
+            }
+            var stripped = new bool[sw * sh];
+            for (int k = 0; k < stripped.Length; k++) stripped[k] = depth[k] != 0;
+            return stripped;
+        }
+
+        /// <summary>
+        /// A transparent run of up to 2×<see cref="Stroke"/> between two art pixels (row or column) would fill with stroke from
+        /// both sides into a 3-4px dark band. Keep a <see cref="Stroke"/>-wide seam and extend the art on each side over the rest.
+        /// </summary>
+        private static void CloseGaps(Color32[] canvas, int width, int height)
+        {
+            var source = (Color32[])canvas.Clone();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bool rows = pass == 0;
+                int outer = rows ? height : width, inner = rows ? width : height;
+                for (int a = 0; a < outer; a++)
+                {
+                    int Index(int t) => rows ? a * width + t : t * width + a;
+                    for (int b = 0; b < inner;)
+                    {
+                        if (source[Index(b)].a != 0) { b++; continue; }
+                        int e = b;
+                        while (e < inner && source[Index(e)].a == 0) e++;
+                        int gap = e - b;
+                        if (b > 0 && e < inner && gap <= 2 * Stroke)
+                        {
+                            Color32 left = source[Index(b - 1)], right = source[Index(e)];
+                            int extra = Mathf.Max(0, gap - Stroke), leftFill = extra / 2, rightFill = extra - leftFill;
+                            for (int t = b; t < e; t++)
+                            {
+                                if (canvas[Index(t)].a != 0) continue;
+                                canvas[Index(t)] = t < b + leftFill ? (IsLine(left) ? Outline : left)
+                                    : t >= e - rightFill ? (IsLine(right) ? Outline : right) : Outline;
+                            }
+                        }
+                        b = e;
+                    }
+                }
             }
         }
 

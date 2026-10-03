@@ -87,6 +87,8 @@ namespace TacticsECS.EditorTools
                 Check(coloured == 0 || coloured >= 12,$"art not cut at the sheet cell top: {id} {part.Sheet} {part.Column},{part.Row}");
             }
         }
+        private static Color32 At(Color32[] p, int w, int h, int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? default : p[y*w+x];
+        private static bool IsStroke(Color32 c) => c.a != 0 && c.r == PixelSpriteComposer.Outline.r && c.g == PixelSpriteComposer.Outline.g && c.b == PixelSpriteComposer.Outline.b;
         /// <summary>Detail resolution, and every silhouette edge pixel is the shared thick stroke colour.</summary>
         private static void CheckComposite(Sprite sprite, string label)
         {
@@ -104,6 +106,25 @@ namespace TacticsECS.EditorTools
             }
             Check(any,"composite has pixels: " + label);
             Check(PixelSpriteComposer.ThinLineSegments(pixels,w,h) == 0,"no 1px-thin line left: " + label);
+            // Outer outline width measured across the edge (min over 8 directions from outside into art).
+            // A doubled source outline shows up as nearly every edge pixel at width 3.
+            int edges = 0, thick = 0;
+            for (int y=0;y<h;y++) for (int x=0;x<w;x++)
+            {
+                if (!IsStroke(At(pixels,w,h,x,y))) continue;
+                int best = int.MaxValue;
+                for (int dy=-1;dy<=1;dy++) for (int dx=-1;dx<=1;dx++)
+                {
+                    if ((dx == 0 && dy == 0) || At(pixels,w,h,x-dx,y-dy).a != 0) continue;
+                    int n = 0, u = x, v = y;
+                    while (IsStroke(At(pixels,w,h,u,v))) { n++; u += dx; v += dy; }
+                    if (At(pixels,w,h,u,v).a != 0) best = Mathf.Min(best,n);
+                }
+                if (best == int.MaxValue) continue;
+                edges++;
+                if (best > PixelSpriteComposer.Stroke) thick++;
+            }
+            Check(edges == 0 || thick <= edges / 4,$"outline is {PixelSpriteComposer.Stroke}px across the edge: {label} ({thick}/{edges} thicker)");
             Check(uniform,"uniform thick silhouette stroke: " + label);
         }
         private static void VerifyCoordinates()

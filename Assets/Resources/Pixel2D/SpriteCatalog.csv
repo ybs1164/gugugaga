@@ -1,170 +1,188 @@
-VisualId,Sheet,Column,Row,Width,Height,X,Y,ScaleX,ScaleY,Layer,Color,MinLevel,MaxLevel,Note
-Ground.Grass,Town,1,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Ground.Forest,Town,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Ground.Mountain,Town,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Ground.Sand,Town,1,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Ground.Rock,Town,1,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Ground.Snow,Pattern/Solid,0,0,16,16,0,0,1,1,0,E7F0F4,0,2147483647,Original code-native pixel pattern
-Ground.Water,Pattern/Water,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Ground.Ocean,Pattern/Ocean,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Terrain.Forest,Farm,3,1,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Terrain.Mountain,Pattern/Mountain,0,0,16,16,0,0,0.94,0.94,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Terrain.Rock,Pattern/Rock,0,0,16,16,0,0,0.7,0.7,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Terrain.Cloud,Pattern/Fog,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-UI.Solid,Pattern/Solid,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-UI.Missing,Pattern/Missing,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-UI.Shadow,Pattern/Solid,0,0,16,16,0,0,0.6,0.16,0,29334466,0,2147483647,Original code-native pixel pattern
-Structure.Village,Town,3,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Structure.Village,Town,1,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Structure.Capital,Town,7,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Structure.Capital,Town,5,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Structure.Ruin,Dungeon,7,1,16,16,0,0,0.8,0.8,0,FFFFFF,0,2147483647,CC0 original
-Structure.Ruin,Dungeon,0,2,16,16,0,-0.27,0.7,0.7,1,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Fruit,Farm,6,0,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Crop,Farm,6,2,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Animal,Farm,0,10,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Metal,Farm,5,7,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Ore,Farm,5,7,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Food,Town,5,2,16,16,0,0,0.62,0.62,0,FFFFFF,0,2147483647,CC0 original
-Structure.Resource_Fish,Pattern/Fish,0,0,16,16,0,0,0.65,0.65,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Structure.Starfish,Pattern/Starfish,0,0,16,16,0,0,0.55,0.55,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Structure.Lighthouse,Pattern/Lighthouse,0,0,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Building.LumberHut,Town,3,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Building.LumberHut,Town,1,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Building.LumberHut,Town,7,9,16,16,0.3,-0.23,0.45,0.45,2,FFFFFF,0,2147483647,CC0 original
-Building.Sawmill,Town,7,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Building.Sawmill,Town,5,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Building.Sawmill,Town,10,8,16,16,-0.27,-0.3,0.45,0.45,2,FFFFFF,0,2147483647,CC0 original
-Building.Farm,Farm,1,2,16,16,-0.25,0,0.5,0.5,0,FFFFFF,0,2147483647,CC0 original
-Building.Farm,Farm,6,2,16,16,-0.25,0,0.5,0.5,1,FFFFFF,0,2147483647,CC0 original
-Building.Farm,Farm,1,2,16,16,0.25,0,0.5,0.5,0,FFFFFF,0,2147483647,CC0 original
-Building.Farm,Farm,6,2,16,16,0.25,0,0.5,0.5,1,FFFFFF,0,2147483647,CC0 original
-Building.Mine,Pattern/Mountain,0,0,16,16,0,0,0.86,0.86,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Building.Mine,Dungeon,9,0,16,16,0,-0.17,0.4,0.4,1,FFFFFF,0,2147483647,CC0 original
-Building.Mine,Town,7,9,16,16,0.28,-0.18,0.4,0.4,2,FFFFFF,0,2147483647,CC0 original
-Building.Windmill,Town,3,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Building.Windmill,Town,1,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Building.Windmill,Pattern/Windmill,0,0,16,16,0,0.17,0.85,0.85,3,FFFFFF,0,2147483647,Original code-native pixel pattern
-Building.Forge,Town,7,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Building.Forge,Town,5,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Building.Forge,Dungeon,9,9,16,16,0.3,-0.18,0.45,0.45,2,FFFFFF,0,2147483647,CC0 original
-Building.Forge,Dungeon,5,2,16,16,-0.22,-0.17,0.32,0.32,2,FFFFFF,1,2147483647,CC0 original
-Building.Market,Town,3,5,16,16,0,0.2,0.65,0.65,0,FFFFFF,0,2147483647,CC0 original
-Building.Market,Town,1,7,16,16,0,-0.22,0.65,0.65,1,FFFFFF,0,2147483647,CC0 original
-Building.Market,Farm,11,0,16,16,-0.27,-0.22,0.45,0.45,2,FFFFFF,0,2147483647,CC0 original
-Building.Market,Town,9,7,16,16,0.27,-0.22,0.35,0.35,2,FFFFFF,0,2147483647,CC0 original
-Building.Port,Pattern/Solid,0,0,16,16,0,-0.15,0.92,0.25,0,AE7951,0,2147483647,Original code-native pixel pattern
-Building.Port,Farm,1,6,16,16,0.32,0.18,0.42,0.42,2,FFFFFF,0,2147483647,CC0 original
-Building.Port,Pattern/Sail,0,0,16,16,-0.27,0.15,0.6,0.6,2,FFFFFF,0,2147483647,Original code-native pixel pattern
-Building.Road,Pattern/Solid,0,0,16,16,0,0,0.3,0.3,0,B58355,0,2147483647,Original code-native pixel pattern
-Building.Bridge,Pattern/Solid,0,0,16,16,0,0,1,0.35,0,AE7951,0,2147483647,Original code-native pixel pattern
-Building.Bridge,Pattern/Solid,0,0,16,16,0,-0.22,1,0.0625,1,E9D5A3,0,2147483647,Original code-native pixel pattern
-Building.Bridge,Pattern/Solid,0,0,16,16,0,0.22,1,0.0625,1,E9D5A3,0,2147483647,Original code-native pixel pattern
-Building.Temple,Dungeon,7,0,16,16,0,0,0.84,0.84,0,FFFFFF,0,2147483647,CC0 original
-Building.Temple,Dungeon,5,2,16,16,0.26,-0.25,0.3,0.3,1,FFFFFF,3,2147483647,CC0 original
-Building.ForestTemple,Dungeon,8,0,16,16,0,0,0.84,0.84,0,FFFFFF,0,2147483647,CC0 original
-Building.ForestTemple,Dungeon,8,2,16,16,0.26,-0.25,0.3,0.3,1,FFFFFF,3,2147483647,CC0 original
-Building.MountainTemple,Dungeon,6,1,16,16,0,0,0.84,0.84,0,FFFFFF,0,2147483647,CC0 original
-Building.MountainTemple,Dungeon,8,2,16,16,0.26,-0.25,0.3,0.3,1,FFFFFF,3,2147483647,CC0 original
-Building.WaterTemple,Dungeon,8,1,16,16,0,0,0.84,0.84,0,FFFFFF,0,2147483647,CC0 original
-Building.WaterTemple,Dungeon,8,2,16,16,0.26,-0.25,0.3,0.3,1,FFFFFF,3,2147483647,CC0 original
-Building.AltarOfPeace,Dungeon,5,2,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.EmperorsTomb,Dungeon,10,6,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.EyeOfGod,Dungeon,8,1,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.GateOfPower,Dungeon,9,0,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.GrandBazaar,Town,9,4,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.GrandBazaar,Town,9,7,16,16,0.31,-0.22,0.35,0.35,1,FFFFFF,0,2147483647,CC0 original
-Building.ParkOfFortune,Town,5,0,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.ParkOfFortune,Farm,11,6,16,16,-0.26,-0.23,0.4,0.4,1,FFFFFF,0,2147483647,CC0 original
-Building.TowerOfWisdom,Dungeon,6,1,16,16,0,0,0.9,0.9,0,FFFFFF,0,2147483647,CC0 original
-Building.TowerOfWisdom,Dungeon,8,2,16,16,0,0.25,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-City.Houses,Town,3,5,16,16,0,0.2,0.6,0.6,0,FFFFFF,0,2147483647,CC0 original
-City.Houses,Town,1,7,16,16,0,-0.22,0.6,0.6,1,FFFFFF,0,2147483647,CC0 original
-City.Capital,Town,7,5,16,16,0,0.2,0.5,0.5,0,FFFFFF,0,2147483647,CC0 original
-City.Capital,Town,5,7,16,16,0,-0.22,0.5,0.5,1,FFFFFF,0,2147483647,CC0 original
-City.Wall,Town,0,8,16,16,-0.35,0,0.4,0.4,0,FFFFFF,0,2147483647,CC0 original
-City.Wall,Town,2,8,16,16,0.35,0,0.4,0.4,0,FFFFFF,0,2147483647,CC0 original
-City.Workshop,Town,7,9,16,16,0.32,-0.3,0.4,0.4,0,FFFFFF,0,2147483647,CC0 original
-City.Park,Farm,3,1,16,16,-0.32,-0.3,0.4,0.4,0,FFFFFF,0,2147483647,CC0 original
-City.Flag,Pattern/Solid,0,0,16,16,0.34,0.27,0.1875,0.125,0,Team,0,2147483647,Original code-native pixel pattern
-Unit.infantry,Dungeon,1,7,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.shield,Dungeon,0,8,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.gladiator,Dungeon,1,8,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.archer,Dungeon,4,9,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.cleric,Dungeon,0,7,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.spy,Dungeon,3,9,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.dagger,Dungeon,1,9,16,16,0,0,0.75,0.75,0,FFFFFF,0,2147483647,CC0 original
-Unit.giant,Dungeon,4,7,16,16,0,0,1.05,1.05,0,FFFFFF,0,2147483647,CC0 original
-Unit.shield,Dungeon,5,2,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.gladiator,Dungeon,8,8,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.archer,Town,10,9,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.cleric,Dungeon,9,10,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.dagger,Dungeon,7,8,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.infantry,Dungeon,11,8,16,16,0.25,-0.06,0.42,0.42,1,FFFFFF,0,2147483647,CC0 original
-Unit.cavalry,Pattern/Horse,0,0,16,16,0,-0.12,0.92,0.92,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Unit.cavalry,Dungeon,1,7,16,16,0,0.21,0.6,0.6,2,FFFFFF,0,2147483647,CC0 original
-Unit.cavalry,Dungeon,7,8,16,16,0.3,0.12,0.45,0.45,3,FFFFFF,0,2147483647,CC0 original
-Unit.knight,Pattern/Horse,0,0,16,16,0,-0.12,0.92,0.92,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Unit.knight,Dungeon,0,8,16,16,0,0.21,0.6,0.6,2,FFFFFF,0,2147483647,CC0 original
-Unit.knight,Dungeon,8,8,16,16,0.3,0.12,0.45,0.45,3,FFFFFF,0,2147483647,CC0 original
-Unit.catapult,Pattern/Catapult,0,0,16,16,0,0,0.87,0.87,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.raft,Pattern/Raft,0,0,16,16,0,0,0.95,0.95,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.scout,Pattern/Boat,0,0,16,16,0,0,0.95,0.95,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.scout,Pattern/Sail,0,0,16,16,0,0.18,0.7,0.7,2,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.rammer,Pattern/Boat,0,0,16,16,0,0,0.95,0.95,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.rammer,Dungeon,8,8,16,16,0,0.36,0.45,0.45,1,FFFFFF,0,2147483647,CC0 original
-Boat.bomber,Pattern/Boat,0,0,16,16,0,0,0.95,0.95,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.bomber,Dungeon,6,5,16,16,0,0.17,0.6,0.6,2,FFFFFF,0,2147483647,CC0 original
-Boat.dinghy,Pattern/Boat,0,0,16,16,0,0,0.65,0.65,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Boat.pirate,Pattern/Boat,0,0,16,16,0,0,0.95,0.95,0,9A9A9A,0,2147483647,Original code-native pixel pattern
-Boat.pirate,Pattern/Sail,0,0,16,16,0,0.18,0.7,0.7,2,526071,0,2147483647,Original code-native pixel pattern
-Icon.attack,Dungeon,8,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.defense,Dungeon,5,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.guard,Dungeon,5,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.range,Town,10,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.selfdestruct,Town,9,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.counter,Dungeon,9,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.charge,Dungeon,8,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.retreat,Town,11,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.ambush,Dungeon,7,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.infiltrate,Town,9,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.herd,Farm,0,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.convert,Dungeon,9,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.combo,Town,9,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.scout,Town,8,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.splash,Farm,1,6,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.stiff,Dungeon,0,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.freeze,Dungeon,8,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.victory,Town,10,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.defeat,Dungeon,1,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.deselect,Town,11,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.turn,Town,10,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.mountaineering,Pattern/Mountain,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.meditation,Dungeon,0,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.mining,Town,7,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.philosophy,Dungeon,9,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.smithing,Dungeon,9,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.gathering,Farm,6,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.shields,Dungeon,5,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.farming,Farm,6,2,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.diplomacy,Dungeon,3,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.construction,Town,9,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.riding,Pattern/Horse,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.freespirit,Dungeon,1,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.roads,Farm,1,4,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.chivalry,Dungeon,0,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.trade,Town,9,7,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.hunting,Farm,0,10,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.forestry,Farm,3,1,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.archery,Town,10,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.mathematics,Pattern/Catapult,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.spiritualism,Dungeon,0,9,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.fishing,Pattern/Fish,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.ramming,Dungeon,8,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.sailing,Pattern/Sail,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.aquatics,Farm,1,6,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.navigation,Pattern/Starfish,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.tech_hub,Town,8,8,16,16,0,0,1,1,0,FFFFFF,0,2147483647,CC0 original
-Icon.hp,Pattern/Heart,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Icon.heal,Pattern/Cross,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
-Icon.move,Pattern/Arrow,0,0,16,16,0,0,1,1,0,FFFFFF,0,2147483647,Original code-native pixel pattern
+VisualId,Sheet,Column,Row,Width,Height,X,Y,Scale,FlipX,Layer,Color,MinLevel,MaxLevel,Note
+Ground.Grass,Town,1,0,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Ground.Forest,Town,0,0,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Ground.Mountain,Town,0,0,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Ground.Sand,Town,1,2,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Ground.Rock,Town,1,2,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Ground.Snow,Pattern/Solid,0,0,16,16,0,0,1,0,0,E7F0F4,0,,Original pattern
+Ground.Water,Pattern/Water,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
+Ground.Ocean,Pattern/Ocean,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
+Terrain.Forest,Farm,3,1,16,16,-7,5,1,0,0,FFFFFF,0,,CC0 original
+Terrain.Forest,Town,4,2,16,16,7,2,1,0,1,FFFFFF,0,,CC0 original
+Terrain.Forest,Farm,3,2,16,16,-1,-7,1,0,2,FFFFFF,0,,CC0 original
+Terrain.Mountain,Pattern/Mountain,0,0,16,16,-5,7,1,0,0,FFFFFF,0,,Original pattern
+Terrain.Mountain,Pattern/Mountain,0,0,16,16,6,-1,1,0,1,FFFFFF,0,,Original pattern
+Terrain.Rock,Farm,5,7,16,16,-3,0,1,0,0,FFFFFF,0,,CC0 original
+Terrain.Rock,Farm,5,6,16,16,6,-6,1,0,1,FFFFFF,0,,CC0 original
+Terrain.Cloud,Pattern/Fog,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
+UI.Solid,Pattern/Solid,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
+UI.Missing,Pattern/Missing,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
+UI.Shadow,Pattern/Solid,0,0,16,16,0,0,1,0,0,293344,0,,Original pattern
+Structure.Village,Town,1,7,16,16,0,-4,1,0,0,FFFFFF,0,,CC0 original
+Structure.Village,Town,3,5,16,16,0,12,1,0,0,FFFFFF,0,,CC0 original
+Structure.Capital,Town,5,7,16,16,0,-4,1,0,0,FFFFFF,0,,CC0 original
+Structure.Capital,Town,7,5,16,16,0,12,1,0,0,FFFFFF,0,,CC0 original
+Structure.Ruin,Dungeon,5,5,16,16,-3,2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Ruin,Dungeon,4,5,16,16,5,-2,1,0,1,FFFFFF,0,,CC0 original
+Structure.Ruin,Farm,5,6,16,16,0,-8,1,0,2,FFFFFF,0,,CC0 original
+Structure.Resource_Fruit,Farm,6,6,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Crop,Farm,6,5,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Animal,Farm,0,10,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Metal,Farm,5,7,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Ore,Farm,5,7,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Food,Town,5,2,16,16,0,-2,1,0,0,FFFFFF,0,,CC0 original
+Structure.Resource_Fish,Pattern/Fish,0,0,16,16,0,-1,1,0,0,FFFFFF,0,,Original pattern
+Structure.Starfish,Pattern/Starfish,0,0,16,16,0,-1,1,0,0,FFFFFF,0,,Original pattern
+Structure.Lighthouse,Pattern/Lighthouse,0,0,16,16,0,2,1,0,0,FFFFFF,0,,Original pattern
+Building.LumberHut,Town,1,7,16,16,-5,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.LumberHut,Town,3,5,16,16,-5,12,1,0,0,FFFFFF,0,,CC0 original
+Building.LumberHut,Farm,2,2,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Sawmill,Town,4,7,16,16,-5,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.Sawmill,Town,7,5,16,16,-5,12,1,0,0,FFFFFF,0,,CC0 original
+Building.Sawmill,Town,7,10,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Farm,Farm,6,5,16,16,-7,5,1,0,0,FFFFFF,0,,CC0 original
+Building.Farm,Farm,6,5,16,16,7,5,1,0,0,FFFFFF,0,,CC0 original
+Building.Farm,Farm,6,5,16,16,-7,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Farm,Farm,6,5,16,16,7,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Mine,Pattern/Mountain,0,0,16,16,0,5,1,0,0,FFFFFF,0,,Original pattern
+Building.Mine,Town,7,9,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Windmill,Farm,6,5,16,16,-7,-6,1,0,0,FFFFFF,0,,CC0 original
+Building.Windmill,Farm,6,5,16,16,7,-6,1,0,0,FFFFFF,0,,CC0 original
+Building.Windmill,Pattern/Windmill,0,0,16,16,0,4,1,0,1,FFFFFF,0,,Original pattern
+Building.Forge,Town,5,7,16,16,-5,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.Forge,Town,7,5,16,16,-5,12,1,0,0,FFFFFF,0,,CC0 original
+Building.Forge,Dungeon,2,6,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Market,Town,0,7,16,16,-5,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.Market,Town,3,5,16,16,-5,12,1,0,0,FFFFFF,0,,CC0 original
+Building.Market,Farm,11,2,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Port,Pattern/Solid,0,0,28,6,0,-8,1,0,0,AE7951,0,,Original pattern
+Building.Port,Pattern/Boat,0,0,16,16,0,3,1,0,1,FFFFFF,0,,Original pattern
+Building.Road,Pattern/Solid,0,0,10,10,0,0,1,0,0,B58355,0,,Original pattern
+Building.Bridge,Pattern/Solid,0,0,28,12,0,0,1,0,0,AE7951,0,,Original pattern
+Building.Bridge,Pattern/Solid,0,0,28,2,0,-7,1,0,1,E9D5A3,0,,Original pattern
+Building.Bridge,Pattern/Solid,0,0,28,2,0,7,1,0,1,E9D5A3,0,,Original pattern
+Building.Temple,Town,4,7,16,16,-4,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.Temple,Town,3,5,16,16,-4,12,1,0,0,FFFFFF,0,,CC0 original
+Building.Temple,Dungeon,4,5,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.Temple,Pattern/Crown,0,0,16,16,-4,17,1,0,2,FFFFFF,3,,Original pattern
+Building.ForestTemple,Town,4,7,16,16,-4,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.ForestTemple,Town,3,5,16,16,-4,12,1,0,0,FFFFFF,0,,CC0 original
+Building.ForestTemple,Farm,3,3,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.ForestTemple,Pattern/Crown,0,0,16,16,-4,17,1,0,2,FFFFFF,3,,Original pattern
+Building.MountainTemple,Town,4,7,16,16,-4,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.MountainTemple,Town,3,5,16,16,-4,12,1,0,0,FFFFFF,0,,CC0 original
+Building.MountainTemple,Pattern/Mountain,0,0,16,16,6,-7,1,0,1,FFFFFF,0,,Original pattern
+Building.MountainTemple,Pattern/Crown,0,0,16,16,-4,17,1,0,2,FFFFFF,3,,Original pattern
+Building.WaterTemple,Town,4,7,16,16,-4,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.WaterTemple,Town,3,5,16,16,-4,12,1,0,0,FFFFFF,0,,CC0 original
+Building.WaterTemple,Pattern/Fish,0,0,16,16,6,-7,1,0,1,FFFFFF,0,,Original pattern
+Building.WaterTemple,Pattern/Crown,0,0,16,16,-4,17,1,0,2,FFFFFF,3,,Original pattern
+Building.AltarOfPeace,Dungeon,5,5,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Building.AltarOfPeace,Farm,11,6,16,16,6,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.EmperorsTomb,Dungeon,5,5,16,16,-6,0,1,0,0,FFFFFF,0,,CC0 original
+Building.EmperorsTomb,Dungeon,4,5,16,16,7,-4,1,0,1,FFFFFF,0,,CC0 original
+Building.EyeOfGod,Dungeon,6,0,16,16,0,12,1,0,0,FFFFFF,0,,CC0 original
+Building.EyeOfGod,Dungeon,6,1,16,16,0,-4,1,0,0,FFFFFF,0,,CC0 original
+Building.GateOfPower,Dungeon,9,0,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
+Building.GrandBazaar,Farm,11,0,16,16,-6,2,1,0,0,FFFFFF,0,,CC0 original
+Building.GrandBazaar,Farm,11,3,16,16,6,2,1,0,0,FFFFFF,0,,CC0 original
+Building.GrandBazaar,Town,9,7,16,16,0,-7,1,0,1,FFFFFF,0,,CC0 original
+Building.ParkOfFortune,Town,5,0,16,16,-6,4,1,0,0,FFFFFF,0,,CC0 original
+Building.ParkOfFortune,Farm,11,6,16,16,7,-6,1,0,1,FFFFFF,0,,CC0 original
+Building.TowerOfWisdom,Town,3,4,16,16,0,10,1,0,0,FFFFFF,0,,CC0 original
+Building.TowerOfWisdom,Town,4,7,16,16,0,-6,1,0,0,FFFFFF,0,,CC0 original
+City.Houses,Town,1,7,16,16,0,-4,1,0,0,FFFFFF,0,1,CC0 original
+City.Houses,Town,3,5,16,16,0,12,1,0,0,FFFFFF,0,1,CC0 original
+City.Houses,Town,1,7,16,16,-6,-3,1,0,0,FFFFFF,2,,CC0 original
+City.Houses,Town,3,5,16,16,-6,13,1,0,0,FFFFFF,2,,CC0 original
+City.Houses,Town,4,7,16,16,6,-6,1,0,1,FFFFFF,3,,CC0 original
+City.Houses,Town,7,5,16,16,6,10,1,0,1,FFFFFF,3,,CC0 original
+City.Houses,Farm,11,0,16,16,-1,-8,1,0,2,FFFFFF,5,,CC0 original
+City.Capital,Pattern/Crown,0,0,16,16,-3,19,1,0,3,FFFFFF,0,,Original pattern
+City.Wall,Town,4,8,16,16,-6,-9,1,0,4,FFFFFF,0,,CC0 original
+City.Wall,Town,6,8,16,16,6,-9,1,0,4,FFFFFF,0,,CC0 original
+City.Workshop,Dungeon,2,6,16,16,7,-8,1,0,5,FFFFFF,0,,CC0 original
+City.Park,Farm,3,3,16,16,-8,-8,1,0,5,FFFFFF,0,,CC0 original
+City.Flag,Pattern/Solid,0,0,2,16,12,12,1,0,6,5A4632,0,,Original pattern
+City.Flag,Pattern/Solid,0,0,7,6,8,17,1,0,6,Team,0,,Original pattern
+Unit.infantry,Dungeon,1,7,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.infantry,Dungeon,11,8,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.shield,Dungeon,0,8,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.shield,Dungeon,6,8,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.gladiator,Dungeon,1,8,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.gladiator,Dungeon,8,8,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.archer,Dungeon,4,9,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.archer,Town,10,9,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.cleric,Dungeon,0,7,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.cleric,Dungeon,9,10,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.spy,Dungeon,3,9,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.dagger,Dungeon,2,7,16,16,0,-3,1,0,0,FFFFFF,0,,CC0 original
+Unit.dagger,Dungeon,7,8,16,16,8,-5,1,0,1,FFFFFF,0,,CC0 original
+Unit.giant,Dungeon,4,7,16,16,0,3,2,0,0,FFFFFF,0,,CC0 original
+Unit.cavalry,Pattern/Horse,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Unit.cavalry,Dungeon,1,7,16,16,-1,5,1,0,1,FFFFFF,0,,CC0 original
+Unit.cavalry,Dungeon,7,8,16,16,7,3,1,0,2,FFFFFF,0,,CC0 original
+Unit.knight,Pattern/Horse,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Unit.knight,Dungeon,0,8,16,16,-1,5,1,0,1,FFFFFF,0,,CC0 original
+Unit.knight,Dungeon,8,8,16,16,7,3,1,0,2,FFFFFF,0,,CC0 original
+Unit.catapult,Pattern/Catapult,0,0,16,16,0,-3,1,0,0,FFFFFF,0,,Original pattern
+Boat.raft,Pattern/Raft,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Boat.scout,Pattern/Boat,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Boat.rammer,Pattern/Boat,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Boat.bomber,Pattern/Boat,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Boat.dinghy,Pattern/Boat,0,0,16,16,0,-6,1,0,0,FFFFFF,0,,Original pattern
+Boat.pirate,Pattern/Boat,0,0,16,16,0,-6,1,0,0,9A9A9A,0,,Original pattern
+Boat.scout,Pattern/Sail,0,0,16,16,-4,4,1,0,-1,FFFFFF,0,,Original pattern
+Boat.pirate,Pattern/Sail,0,0,16,16,-4,4,1,0,-1,526071,0,,Original pattern
+Boat.rammer,Dungeon,8,8,16,16,8,-4,1,0,1,FFFFFF,0,,CC0 original
+Boat.bomber,Dungeon,6,5,16,16,7,-5,1,0,1,FFFFFF,0,,CC0 original
+Icon.attack,Dungeon,8,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.defense,Dungeon,6,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.guard,Dungeon,6,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.range,Town,10,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.selfdestruct,Town,9,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.counter,Dungeon,9,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.charge,Dungeon,8,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.retreat,Town,11,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.ambush,Dungeon,7,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.infiltrate,Town,9,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.herd,Farm,0,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.convert,Dungeon,9,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.combo,Town,9,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.scout,Town,8,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.splash,Farm,1,6,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.stiff,Dungeon,0,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.freeze,Dungeon,8,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.victory,Town,10,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.defeat,Dungeon,1,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.deselect,Town,11,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.turn,Town,10,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.mountaineering,Pattern/Mountain,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.meditation,Dungeon,0,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.mining,Town,7,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.philosophy,Dungeon,9,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.smithing,Dungeon,9,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.gathering,Farm,6,0,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.shields,Dungeon,6,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.farming,Farm,6,2,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.diplomacy,Dungeon,3,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.construction,Town,9,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.riding,Pattern/Horse,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.freespirit,Dungeon,1,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.roads,Farm,1,4,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.chivalry,Dungeon,0,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.trade,Town,9,7,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.hunting,Farm,0,10,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.forestry,Farm,3,1,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.archery,Town,10,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.mathematics,Pattern/Catapult,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.spiritualism,Dungeon,0,9,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.fishing,Pattern/Fish,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.ramming,Dungeon,8,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.sailing,Pattern/Sail,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.aquatics,Farm,1,6,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.navigation,Pattern/Starfish,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.tech_hub,Town,8,8,16,16,0,0,2,0,0,FFFFFF,0,,CC0 original
+Icon.hp,Pattern/Heart,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.heal,Pattern/Cross,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
+Icon.move,Pattern/Arrow,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern

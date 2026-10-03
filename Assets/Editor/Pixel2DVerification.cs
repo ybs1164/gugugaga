@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,6 +25,7 @@ namespace TacticsECS.EditorTools
         {
             GameDataLoader.LoadAll();
             VerifyCatalog();
+            VerifyPixelStyle();
             VerifyCoordinates();
             VerifyFogAndEconomy();
             VerifyUnits();
@@ -43,6 +44,46 @@ namespace TacticsECS.EditorTools
             foreach (string id in new[] { NavalUnitDefinition.Raft.Id }.Concat(NavalUnitDefinition.Upgrades.Select(n => n.Row.Id)).Concat(NavalUnitDefinition.Special.Select(n => n.Id)))
                 Check(PixelSpriteCatalog.Has("Boat." + id), "naval: " + id);
             foreach (var tech in GameDataLoader.LoadTechNodes()) Check(PixelSpriteCatalog.Has("Icon." + tech.Icon), "tech icon: " + tech.Icon);
+        }
+        private static void VerifyPixelStyle()
+        {
+            PixelSpriteComposer.Clipped.Clear();
+            foreach (string id in PixelSpriteCatalog.VisualIds)
+            {
+                if (id.StartsWith("Ground.") || id.StartsWith("UI.") || id == "Terrain.Cloud") continue;
+                foreach (int level in new[] { 1,3,8 }) CheckComposite(PixelSpriteComposer.Compose(id,level,Blue),id + " level " + level);
+            }
+            // Every tile combination the priority rules can produce stays inside the canvas.
+            foreach (string feature in new[] { "Forest","Mountain","Rock" })
+            foreach (var structure in StructureDefinition.All)
+            {
+                var placements = TileVisuals.For(Vector2Int.zero,feature,structure.Id,null,null);
+                CheckComposite(PixelSpriteComposer.Compose(placements),feature + "+" + structure.Id);
+            }
+            var city = new CityData { Level = 8, IsCapital = true, HasWall = true, HasWorkshop = true, ParkCount = 1 };
+            CheckComposite(PixelSpriteComposer.Compose(TileVisuals.City(city),8,Blue),"full city");
+            foreach (string boat in new[] { "raft","scout","rammer","bomber","dinghy","pirate" })
+            foreach (var row in GameTables.Units)
+                CheckComposite(PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+boat), new SpritePlacement("Unit."+row.Id,3,7) }),row.Id + " on " + boat);
+            Check(PixelSpriteComposer.Clipped.Count == 0,"nothing cut at the canvas edge: " + string.Join(", ",PixelSpriteComposer.Clipped));
+        }
+        /// <summary>Detail resolution, and every silhouette edge pixel is the shared thick stroke colour.</summary>
+        private static void CheckComposite(Sprite sprite, string label)
+        {
+            Check(sprite.pixelsPerUnit == PixelSpriteCatalog.PixelsPerUnit,"detail pixel grid: " + label);
+            int w = (int)sprite.rect.width, h = (int)sprite.rect.height;
+            var pixels = sprite.texture.GetPixels32();
+            bool uniform = true, any = false;
+            for (int y=0;y<h;y++) for (int x=0;x<w;x++)
+            {
+                var c = pixels[y*w+x];
+                if (c.a == 0) continue;
+                any = true;
+                bool edge = x == 0 || y == 0 || x == w-1 || y == h-1 || pixels[y*w+x-1].a == 0 || pixels[y*w+x+1].a == 0 || pixels[(y-1)*w+x].a == 0 || pixels[(y+1)*w+x].a == 0;
+                if (edge) uniform &= c.r == PixelSpriteComposer.Outline.r && c.g == PixelSpriteComposer.Outline.g && c.b == PixelSpriteComposer.Outline.b;
+            }
+            Check(any,"composite has pixels: " + label);
+            Check(uniform,"uniform thick silhouette stroke: " + label);
         }
         private static void VerifyCoordinates()
         {
@@ -85,17 +126,24 @@ namespace TacticsECS.EditorTools
                 view.Build(grid); view.RefreshFog(grid,Team.Player);
                 view.RefreshStructures(grid,null); view.RefreshEconomy(grid,null,Blue,Red);
                 var cell = root.transform.Find("Tile_1_1");
-                Check(!cell.Find("Structure.Resource_Animal").gameObject.activeSelf,"regenerated structure remains hidden");
                 Check(!cell.Find("Building.LumberHut").gameObject.activeSelf,"regenerated building remains hidden");
                 Check(!cell.Find("Road").gameObject.activeSelf,"road remains hidden");
+                Check(cell.Find("Structure.Resource_Animal") == null && cell.Find("Terrain.Forest") == null,"building outranks forest and resource");
                 tile=grid.GetTile(p); tile.ExploredMask |= 1 << (int)Team.Player; grid.SetTile(p,tile);
                 view.RefreshFog(grid,Team.Player);
                 Check(cell.Find("Building.LumberHut").gameObject.activeSelf,"explored building becomes visible");
-                Check(!cell.Find("Terrain.Forest").gameObject.activeSelf,"building replaces forest feature");
+                tile=grid.GetTile(p); tile.BuildingId=string.Empty; grid.SetTile(p,tile); view.RefreshEconomy(grid,null,Blue,Red);
+                Check(cell.Find("Building.LumberHut") == null && cell.Find("Terrain.Forest") != null,"forest and resource share one composite");
+                Check(cell.GetComponentsInChildren<SpriteRenderer>().Count(r => r.name == "Pixels") == 1,"one object sprite per tile");
                 grid.SetStructure(p,string.Empty); view.RefreshStructures(grid,null);
-                Check(cell.Find("Structure.Resource_Animal") == null,"consumed resource removed");
+                Check(cell.Find("Terrain.Forest") != null,"forest stays after resource is consumed");
                 grid.SetTileType(p,"Grass"); view.RefreshTerrain(grid);
                 Check(cell.Find("Terrain.Forest") == null,"cleared forest removed");
+                var city = new CityData { Position = new Vector2Int(2,2), Owner = Team.Player, Level = 3 };
+                grid.SetTileType(city.Position,"Mountain"); grid.SetStructure(city.Position,"Village"); view.RefreshTerrain(grid);
+                view.RefreshStructures(grid,null); view.RefreshEconomy(grid,new[] { city },Blue,Red);
+                var cityCell = root.transform.Find("Tile_2_2");
+                Check(cityCell.Find("City.Houses") != null && cityCell.Find("Structure.Village") == null && cityCell.Find("Terrain.Mountain") == null,"city outranks structure and feature");
                 Check(root.GetComponentsInChildren<MeshFilter>(true).Length == 0,"world uses no primitive meshes");
                 Check(root.GetComponentsInChildren<Tilemap>().Length == 2,"ground and fog are shared tilemaps");
             }
@@ -118,17 +166,19 @@ namespace TacticsECS.EditorTools
                     Check(view.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length==0,"no skinned model");
                 }
                 var first=spawner.SpawnedViews[0];
+                var body=first.transform.Find("Unit."+rows[0].Id).GetComponentInChildren<SpriteRenderer>();
+                Check(first.GetComponent<SortingGroup>().sortingOrder > PixelSpriteCatalog.ObjectOrder+5000,"units sort above every tile object");
                 foreach(string id in new[] {"raft","scout","rammer","bomber","dinghy","pirate"})
                 {
                     world.Set(first.UnitId,new Embarked{Value=true,NavalUnitId=id}); first.Refresh(world,first.UnitId);
-                    Check(first.transform.Find("Boat."+id) != null,"boat swap: "+id);
+                    Check(body.sprite.name.StartsWith("Composite_Boat_"+id+"_"),"boat and rider share one sprite: "+id);
                 }
                 first.SetVisible(false);
                 world.Set(first.UnitId,new Embarked{Value=true,NavalUnitId="raft"}); first.Refresh(world,first.UnitId);
                 Check(first.GetComponentsInChildren<Renderer>().All(r=>!r.enabled),"new boat remains invisible");
                 first.SetVisible(true);
                 world.Set(first.UnitId,new Embarked()); first.Refresh(world,first.UnitId);
-                Check(first.transform.Find("Boat.raft")==null,"disembark removes boat");
+                Check(body.sprite.name.StartsWith("Composite_Unit_"),"disembark removes boat");
                 world.Set(first.UnitId,Team.Enemy); world.Set(first.UnitId,new IsGuarding{Value=true}); first.Refresh(world,first.UnitId);
                 Check(first.transform.Find("Guarding").gameObject.activeSelf,"guard badge");
                 Check(first.transform.Find("Team").GetComponent<SpriteRenderer>().color.r>.9f,"conversion changes team badge");
@@ -168,6 +218,11 @@ namespace TacticsECS.EditorTools
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
+        public static void RefreshAndCapture()
+        {
+            Pixel2DSetup.Run();
+            Capture();
+        }
         public static void Capture()
         {
             VerificationSuite.Run();

@@ -12,12 +12,12 @@ namespace TacticsECS
         [SerializeField] private Transform hpDisplayPrefab;
         [SerializeField] private Transform damagePopupPrefab;
         public static readonly Vector2 HpBarSize = new Vector2(.6f,.0625f);
-        public const float HpBarLocalY = .4375f;
-        public const float HpNumberLocalY = .58f;
+        public const float HpBarLocalY = .3125f;
+        public const float HpNumberLocalY = .4375f;
+        private const int EmbarkedRiderX = 3, EmbarkedRiderY = 7;
         private UnitDefinition _definition;
         private GridWorld _grid;
-        private GameObject _model, _boat;
-        private string _boatId;
+        private GameObject _model;
         private Transform _hpGroup, _hpBarFill;
         private TextMesh _hpText;
         private SpriteRenderer _hpFill, _teamBadge, _guardBadge, _statusBadge;
@@ -38,10 +38,10 @@ namespace TacticsECS
             _sorting = GetComponent<SortingGroup>();
             if (_sorting == null) _sorting = gameObject.AddComponent<SortingGroup>();
             _model = PixelSpriteCatalog.Build(_definition.ModelId,transform,order:1);
-            PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.27f),new Vector2(.6f,.15f),new Color(.1f,.14f,.2f,.3f),-1);
-            _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.34f),new Vector2(.5f,.0625f),Color.white,3);
-            _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteCatalog.Get("Icon.guard"),new Vector2(.31f,.28f),Vector2.one*.25f,Color.white,4);
-            _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteCatalog.Get("Icon.freeze"),new Vector2(-.31f,.28f),Vector2.one*.25f,Color.white,4);
+            PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.34375f),new Vector2(.5f,.125f),new Color(.1f,.14f,.2f,.3f),-1);
+            _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.4375f),new Vector2(.5f,.0625f),Color.white,3);
+            _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteComposer.Compose("Icon.guard",half:true),new Vector2(.3125f,.1875f),Vector2.one,Color.white,4);
+            _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteComposer.Compose("Icon.freeze",half:true),new Vector2(-.3125f,.1875f),Vector2.one,Color.white,4);
             BuildHpDisplay();
             transform.position = PixelCoordinates.GridToWorld(grid,world.Get<GridPosition>(id).Value);
             Refresh(world,id);
@@ -76,13 +76,17 @@ namespace TacticsECS
             bool frozen = world.GetOrDefault<Frozen>(id).Value;
             bool hidden = world.GetOrDefault<Hidden>(id).Value;
             _statusBadge.gameObject.SetActive(frozen || hidden);
-            _statusBadge.sprite = PixelSpriteCatalog.Get(frozen ? "Icon.freeze" : "Icon.infiltrate");
+            _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : "Icon.infiltrate",half:true);
             var embarked = world.GetOrDefault<Embarked>(id);
-            SetBoat(embarked.Value ? embarked.NavalUnitId : null);
-            _bodyOrigin = new Vector3(0,embarked.Value ? .16f : 0,0);
+            _bodyOrigin = Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;
-            float scale = embarked.Value ? .7f : 1f;
-            _model.transform.localScale = new Vector3(_model.transform.localScale.x < 0 ? -scale : scale,scale,scale);
+            string visual = PixelSpriteCatalog.Has(_definition.ModelId) ? _definition.ModelId : "UI.Missing";
+            // Embarked: hull first, rider standing in it, baked into one sprite with one outline style.
+            var body = embarked.Value
+                ? PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+embarked.NavalUnitId), new SpritePlacement(visual,EmbarkedRiderX,EmbarkedRiderY) })
+                : PixelSpriteComposer.Compose(visual);
+            _model.GetComponentInChildren<SpriteRenderer>().sprite = body;
+            _model.transform.localScale = new Vector3(_model.transform.localScale.x < 0 ? -1 : 1,1,1);
             var target = PixelCoordinates.GridToWorld(_grid,world.Get<GridPosition>(id).Value);
             if ((target-transform.position).sqrMagnitude > .0001f)
             {
@@ -92,13 +96,6 @@ namespace TacticsECS
             }
             UpdateSort();
             ApplyVisibility();
-        }
-        private void SetBoat(string navalUnitId)
-        {
-            if (_boatId == navalUnitId) return;
-            _boatId = navalUnitId;
-            if (_boat != null) { _boat.SetActive(false); if (Application.isPlaying) Destroy(_boat); else DestroyImmediate(_boat); }
-            _boat = string.IsNullOrEmpty(navalUnitId) ? null : PixelSpriteCatalog.Build("Boat."+navalUnitId,transform,order:0);
         }
         public void SetVisible(bool visible) { _visible = visible; ApplyVisibility(); }
         private void ApplyVisibility() { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = _visible; }

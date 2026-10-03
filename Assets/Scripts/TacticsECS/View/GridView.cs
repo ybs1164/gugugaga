@@ -11,8 +11,13 @@ namespace TacticsECS
         public const float WaterDrop = 0f;
         private GridWorld _grid;
         private TileView[] _tileViews;
-        private GameObject[] _features, _structures, _buildings, _roads, _shores;
-        private bool[] _fogged, _hideStructure, _hideFeature;
+        // One composite per tile (see TileVisuals) plus flat decals and overlays that never cover it.
+        private GameObject[] _objects, _overlays, _roads, _shores;
+        private string[] _objectKeys, _structures;
+        private CityData?[] _cities;
+        private Color[] _teamTints;
+        private int[] _levels;
+        private bool[] _fogged;
         private Tilemap _ground, _fog;
         private readonly Dictionary<string, Tile> _tiles = new Dictionary<string, Tile>();
         private static readonly Vector2Int[] Directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
@@ -23,9 +28,11 @@ namespace TacticsECS
             _grid = grid;
             int count = grid.Width * grid.Height;
             _tileViews = new TileView[count];
-            _features = new GameObject[count]; _structures = new GameObject[count];
-            _buildings = new GameObject[count]; _roads = new GameObject[count]; _shores = new GameObject[count];
-            _fogged = new bool[count]; _hideStructure = new bool[count]; _hideFeature = new bool[count];
+            _objects = new GameObject[count]; _overlays = new GameObject[count];
+            _roads = new GameObject[count]; _shores = new GameObject[count];
+            _objectKeys = new string[count]; _structures = new string[count];
+            _cities = new CityData?[count]; _teamTints = new Color[count]; _levels = new int[count];
+            _fogged = new bool[count];
             var layout = new GameObject("PixelGrid").AddComponent<Grid>();
             layout.transform.SetParent(transform, false);
             layout.transform.position = PixelCoordinates.FromLogical(grid.Origin) - new Vector3(grid.TileSize / 2, grid.TileSize / 2, 0);
@@ -74,9 +81,8 @@ namespace TacticsECS
                     : (PixelSpriteCatalog.Has("Ground." + type) ? type : "Grass");
                 _ground.SetTile(new Vector3Int(x, y, 0), TileFor("Ground." + ground));
                 _tileViews[i].Init(p, grid.GetTerrain(p), type);
-                Replace(ref _features[i], TerrainFeatureView.Create(type, _tileViews[i].transform, p, 0));
                 Replace(ref _shores[i], CreateShore(grid, p, _tileViews[i].transform));
-                ApplyFog(i);
+                RebuildObject(i);
             }
         }
         private static GameObject CreateShore(GridWorld grid, Vector2Int p, Transform parent)
@@ -99,10 +105,8 @@ namespace TacticsECS
             for (int x = 0; x < grid.Width; x++)
             {
                 var p = new Vector2Int(x,y); int i = grid.Index(p); string id = grid.GetStructure(p);
-                bool show = !string.IsNullOrEmpty(id) && !(hiddenStructures != null && hiddenStructures.Contains(id));
-                Replace(ref _structures[i], show ? PixelSpriteCatalog.Build("Structure." + id, _tileViews[i].transform,
-                    order: PixelSpriteCatalog.SortOrder(_tileViews[i].transform.position.y)) : null);
-                ApplyFog(i);
+                _structures[i] = string.IsNullOrEmpty(id) || (hiddenStructures != null && hiddenStructures.Contains(id)) ? null : id;
+                RebuildObject(i);
             }
         }
         public void RefreshEconomy(GridWorld grid, IReadOnlyList<CityData> cities, Color playerColor, Color enemyColor, int currentTurn = 1)
@@ -116,24 +120,48 @@ namespace TacticsECS
                 Color tint = tile.OwnerTeam == (int)Team.Player ? playerColor : tile.OwnerTeam == (int)Team.Enemy ? enemyColor : Color.clear;
                 view.SetTerritory(tint, tile.HasRoad);
                 bool isCity = cityAt.TryGetValue(p, out var city);
-                var marker = isCity ? BuildingMarkerView.CreateCity(city, city.Owner == Team.Player ? playerColor : enemyColor, view.transform, 0)
-                    : BuildingMarkerView.CreateBuilding(tile.BuildingId, view.transform, 0, TileImprovementSystem.DisplayLevel(grid,p,currentTurn),
-                        tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(grid,p), tint.a > 0 ? tint : (Color?)null);
-                _hideStructure[i] = isCity; _hideFeature[i] = !isCity && marker != null;
+                _cities[i] = isCity ? city : (CityData?)null;
+                _teamTints[i] = isCity ? (city.Owner == Team.Player ? playerColor : enemyColor) : tint;
+                _levels[i] = isCity ? city.Level : TileImprovementSystem.DisplayLevel(grid,p,currentTurn);
+                RebuildObject(i);
+                GameObject overlay = null;
+                bool building = !isCity && !string.IsNullOrEmpty(tile.BuildingId);
+                if (isCity || (building && _levels[i] > 1))
+                {
+                    overlay = new GameObject("Overlay"); overlay.transform.SetParent(view.transform, false);
+                    BuildingMarkerView.AddLevelPips(overlay.transform, _levels[i], _teamTints[i].a > 0 ? _teamTints[i] : new Color(.94f,.8f,.42f));
+                }
                 if (tile.OwnerTeam != TileData.NoOwner)
                 {
                     var edges = new List<Vector2Int>();
                     foreach (var d in Directions) { var n = p+d; if (!grid.InBounds(n) || grid.GetTile(n).OwnerTeam != tile.OwnerTeam) edges.Add(d); }
                     if (edges.Count > 0)
                     {
-                        if (marker == null) { marker = new GameObject("Territory"); marker.transform.SetParent(view.transform, false); }
-                        BuildingMarkerView.AddBorders(marker.transform, edges, tint);
+                        if (overlay == null) { overlay = new GameObject("Territory"); overlay.transform.SetParent(view.transform, false); }
+                        BuildingMarkerView.AddBorders(overlay.transform, edges, tint);
                     }
                 }
-                Replace(ref _buildings[i], marker);
+                Replace(ref _overlays[i], overlay);
                 Replace(ref _roads[i], tile.HasRoad && tile.Terrain == TerrainType.Land && !isCity ? CreateRoad(grid,p,view.transform) : null);
                 ApplyFog(i);
             }
+        }
+        /// <summary>Rebuild the tile composite only when what it shows changed.</summary>
+        private void RebuildObject(int i)
+        {
+            var p = new Vector2Int(i % _grid.Width, i / _grid.Width); var tile = _grid.GetTile(p); var view = _tileViews[i];
+            var city = _cities[i];
+            var placements = TileVisuals.For(p, _grid.GetTileType(p), _structures[i], tile.BuildingId, city);
+            int level = city.HasValue || !string.IsNullOrEmpty(tile.BuildingId) ? Mathf.Max(1, _levels[i]) : 1;
+            Color? team = _teamTints[i].a > 0 ? _teamTints[i] : (Color?)null;
+            bool rotate = !city.HasValue && tile.BuildingId == BuildingDefinition.Bridge && !IsHorizontalBridge(_grid,p);
+            string key = placements == null ? "" : string.Join(";", placements.ConvertAll(o => o.VisualId + "@" + o.X + "," + o.Y + o.FlipX))
+                + ":" + level + ":" + team + ":" + rotate;
+            if (_objects[i] != null && key == _objectKeys[i]) return;
+            _objectKeys[i] = key;
+            Replace(ref _objects[i], PixelSpriteCatalog.Build(placements, view.transform, level, team, PixelSpriteCatalog.SortOrder(view.transform.position.y)));
+            if (rotate) _objects[i].transform.localRotation = Quaternion.Euler(0,0,90);
+            ApplyFog(i);
         }
         private static GameObject CreateRoad(GridWorld grid, Vector2Int pos, Transform parent)
         {
@@ -163,9 +191,8 @@ namespace TacticsECS
         private void ApplyFog(int i)
         {
             bool visible = !_fogged[i];
-            if (_features[i] != null) _features[i].SetActive(visible && !_hideFeature[i]);
-            if (_structures[i] != null) _structures[i].SetActive(visible && !_hideStructure[i]);
-            if (_buildings[i] != null) _buildings[i].SetActive(visible);
+            if (_objects[i] != null) _objects[i].SetActive(visible);
+            if (_overlays[i] != null) _overlays[i].SetActive(visible);
             if (_roads[i] != null) _roads[i].SetActive(visible);
             if (_shores[i] != null) _shores[i].SetActive(visible);
         }

@@ -10,7 +10,7 @@
 
 - 무료 CC0 원본: [Kenney Tiny Town](https://kenney.nl/assets/tiny-town), [Tiny Farm](https://kenney.nl/assets/tiny-farm), [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon), [UI Pack - Pixel Adventure](https://kenney.nl/assets/ui-pack-pixel-adventure).
 - 원본·다운로드 출처·LICENSE는 `Assets/Art/Pixel2D/ThirdParty/Kenney/<pack>/`에 보관했다. 실제 런타임은 `Assets/Resources/Pixel2D/Sheets`의 공유 packed sheet 3장과 UI 이미지 3장을 사용한다.
-- 121개 표시 키, 169개 스프라이트 레이어를 `SpriteCatalog.csv`에 등록했다. 평지/숲/산/모래/암석/눈/물/바다, 구조물 12종(구 자원 ID 포함), 현재 건물 21종, 도시 장식, 육상 11종, 함선 6종, 기본 행동·패시브·기술 아이콘을 포함한다.
+- 121개 표시 키, 167개 스프라이트 레이어를 `SpriteCatalog.csv`에 등록했다. 평지/숲/산/모래/암석/눈/물/바다, 구조물 12종(구 자원 ID 포함), 현재 건물 21종, 도시 장식, 육상 11종, 함선 6종, 기본 행동·패시브·기술 아이콘을 포함한다.
 - 기병의 말, 투석기, 선체·돛, 산·바위·물·구름, 물고기·불가사리·등대, 간단한 UI 도형은 새로 작성한 코드 기반 픽셀 패턴으로 보완했다. 완성된 무료 그림의 1:1 대체로 전부 해결한 것은 아니다.
 - 스프라이트의 조합·크기·색·레벨 조건은 CSV에서 수정할 수 있다. 여러 레이어는 별도 행이며 한 칸에는 값 하나만 넣는다. 새 패턴은 `Patterns/<name>.txt`에 팔레트(`문자=색상 HEX`)와 픽셀 행을 작성한다.
 - 이전 3D 모델 원본과 모델 CSV는 비교·기존 문서용으로 보존했다. 활성 유닛·구조물·타일 프리팹의 FBX 참조와 유닛 BodyTexture 참조를 제거했다. 이전 GameIcons는 `LegacyIcons`로 옮겨 Resources 자동 포함을 해제했다.
@@ -51,7 +51,7 @@ Play 모드 검증은 CLI 배치 에디터에서 실제 Start/Update/코루틴�
 최종 실행 기록(2026-10-01):
 
 - 기존 검증 8개 스위트 모두 ALL PASS.
-- 2D 통합 검증 562개 ALL PASS. 최대 30×30 맵 생성·구조물·경제 표시 갱신 124.7ms, 지면 Tile 에셋 2종 공유.
+- 2D 통합 검증 562개 ALL PASS. 최대 30×30 맵 생성·구조물·경제 표시 갱신 135.3ms, 지면 Tile 에셋 2종 공유.
 - 실제 Play 모드에서 시작·맵 생성·전투 시작·적 AI 턴·준비 화면 복귀 ALL PASS.
 - Windows x64 Development 빌드 성공: `Builds/Pixel2D/gugugaga.exe`, 보고된 총 빌드 크기 265,944,185 bytes, 133.4초. 기본 `SandboxUnits.csv`와 CC0 라이선스 원문을 실행 파일 옆에 복사한다.
 - 로그: `Logs/pixel2d_verify_final.log`, `Logs/pixel2d_play_final.log`, `Logs/pixel2d_build.log`. Logs/Builds는 Git 제외 대상이다.
@@ -60,7 +60,11 @@ Play 모드 검증은 CLI 배치 에디터에서 실제 Start/Update/코루틴�
 
 ![자동 생성된 샌드박스 맵](images/pixel2d/SandboxGenerated.png)
 
-## 남아 있는 범위
+## 픽셀 합성
+
+합성·테두리·타일 표시 우선순위 규칙은 [sprites 명세](spec/csv/sprites.md#합성-규칙)에 있다. 원본 CC0 PNG는 수정하지 않는다. 패턴을 고치면 `python scripts/author_pixel_patterns.py` 후 `Pixel2DSetup.Run`으로 프리팹과 파생 Sprite를 갱신한다.
+
+## 추가 미술 작업 범위
 
 - 팩에 없는 항목은 작은 파츠 조합 또는 새 픽셀 패턴이다. 원작 외형의 정확한 재현과 유닛별 4방향 애니메이션은 별도 미술 작업이다.
 - 최대 맵의 생성·갱신 시간은 검증에서 기록하지만 전환 전 버전과 동일 조건의 성능 비교, 장시간 프레임·메모리 측정은 별도로 진행해야 한다.

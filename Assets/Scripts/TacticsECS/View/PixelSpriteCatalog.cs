@@ -8,12 +8,17 @@ namespace TacticsECS
     /// <summary>CC0 sheets and code-native pixel patterns, shared by all 2D views. No gameplay state.</summary>
     public static class PixelSpriteCatalog
     {
-        public const float PixelsPerUnit = 16f;
+        /// <summary>Detail pixels per tile; composites and ground tiles share this grid.</summary>
+        public const float PixelsPerUnit = 32f;
+        /// <summary>Raw sheet cells (16 px) as one-unit sprites, used for rectangles and UI shapes.</summary>
+        public const float SourcePixelsPerUnit = 16f;
         public const int ObjectOrder = 1000;
+        public const int UnitOrder = 12000;
         public const int OverlayOrder = 24000;
         public const int FogOrder = 25000;
         private static readonly Dictionary<string, List<SpritePartInfo>> Parts = new Dictionary<string, List<SpritePartInfo>>();
         private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
+        private static readonly Dictionary<string, Sprite> Grounds = new Dictionary<string, Sprite>();
         private static readonly HashSet<string> Warned = new HashSet<string>();
         private static Material _material;
         private static bool _loaded;
@@ -53,10 +58,10 @@ namespace TacticsECS
                     Row = CsvTableReader.GetInt(table, i, "Row", 0, errors),
                     Width = CsvTableReader.GetInt(table, i, "Width", 16, errors),
                     Height = CsvTableReader.GetInt(table, i, "Height", 16, errors),
-                    X = CsvTableReader.GetFloat(table, i, "X", 0, errors),
-                    Y = CsvTableReader.GetFloat(table, i, "Y", 0, errors),
-                    ScaleX = CsvTableReader.GetFloat(table, i, "ScaleX", 1, errors),
-                    ScaleY = CsvTableReader.GetFloat(table, i, "ScaleY", 1, errors),
+                    X = CsvTableReader.GetInt(table, i, "X", 0, errors),
+                    Y = CsvTableReader.GetInt(table, i, "Y", 0, errors),
+                    Scale = CsvTableReader.GetInt(table, i, "Scale", 1, errors),
+                    FlipX = CsvTableReader.GetInt(table, i, "FlipX", 0, errors) != 0,
                     Layer = CsvTableReader.GetInt(table, i, "Layer", 0, errors),
                     MinLevel = CsvTableReader.GetInt(table, i, "MinLevel", 0, errors),
                     MaxLevel = CsvTableReader.GetInt(table, i, "MaxLevel", int.MaxValue, errors),
@@ -65,6 +70,7 @@ namespace TacticsECS
                 };
                 if (string.IsNullOrEmpty(part.VisualId) || string.IsNullOrEmpty(part.Sheet))
                     throw new InvalidOperationException($"SpriteCatalog.csv line {i + 2}: visual/sheet required");
+                if (part.Scale < 1) throw new InvalidOperationException($"SpriteCatalog.csv line {i + 2}: Scale must be a positive integer");
                 if (!Parts.TryGetValue(part.VisualId, out var list)) Parts[part.VisualId] = list = new List<SpritePartInfo>();
                 list.Add(part);
             }
@@ -93,7 +99,7 @@ namespace TacticsECS
             }
             texture.filterMode = FilterMode.Point;
             texture.wrapMode = TextureWrapMode.Clamp;
-            sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f), PixelsPerUnit, 0, SpriteMeshType.FullRect);
+            sprite = Sprite.Create(texture, rect, new Vector2(0.5f, 0.5f), SourcePixelsPerUnit, 0, SpriteMeshType.FullRect);
             sprite.name = key;
             Sprites[key] = sprite;
             return sprite;
@@ -102,31 +108,67 @@ namespace TacticsECS
         public static Sprite Get(string id)
         {
             Load();
-            if (Parts.TryGetValue(id, out var parts)) return SpriteFor(parts[0]);
+            if (Parts.TryGetValue(id, out var parts))
+            {
+                if (IsGround(id)) return Ground(id, parts[0]);
+                return id.StartsWith("UI.") && id != "UI.Missing" ? SpriteFor(parts[0]) : PixelSpriteComposer.Compose(id);
+            }
+            Diagnose(id);
+            return PixelSpriteComposer.Compose("UI.Missing");
+        }
+
+        public static void Diagnose(string id)
+        {
             if (Warned.Add(id ?? "<null>")) Debug.LogWarning("[Pixel2D] Unmapped custom visual: " + id);
-            return SpriteFor(Parts["UI.Missing"][0]);
+        }
+
+        private static bool IsGround(string id) => id.StartsWith("Ground.") || id == "Terrain.Cloud";
+
+        /// <summary>A 16 px ground cell repeated 2x2, so ground shares the composites' 32 px detail grid.</summary>
+        private static Sprite Ground(string id, SpritePartInfo part)
+        {
+            if (Grounds.TryGetValue(id, out var sprite) && sprite != null) return sprite;
+            var source = SpriteFor(part);
+            int w = (int)source.rect.width, h = (int)source.rect.height;
+            var pixels = source.texture.GetPixels((int)source.rect.x, (int)source.rect.y, w, h);
+            var tint = ParseColor(part.Color);
+            var tiled = new Color[w * h * 4];
+            for (int y = 0; y < h * 2; y++)
+                for (int x = 0; x < w * 2; x++) tiled[y * w * 2 + x] = pixels[(y % h) * w + x % w] * tint;
+            var texture = new Texture2D(w * 2, h * 2, TextureFormat.RGBA32, false)
+                { name = "Ground_" + id, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            texture.SetPixels(tiled);
+            texture.Apply(false, false);
+            sprite = Sprite.Create(texture, new Rect(0, 0, w * 2, h * 2), new Vector2(0.5f, 0.5f), PixelsPerUnit, 0, SpriteMeshType.FullRect);
+            sprite.name = id;
+            Grounds[id] = sprite;
+            return sprite;
         }
 
         public static GameObject Build(string id, Transform parent, int level = 1, Color? teamColor = null, int order = ObjectOrder)
         {
             Load();
             if (string.IsNullOrEmpty(id)) return null;
-            if (!Parts.TryGetValue(id, out var parts))
-            {
-                Get(id); // diagnose once; custom CSV IDs remain usable with a visible 2D placeholder
-                parts = Parts["UI.Missing"];
-            }
-            var root = new GameObject(id);
+            if (IsGround(id)) return Build(id, Get(id), parent, order);
+            if (!Parts.ContainsKey(id)) Diagnose(id); // custom CSV IDs remain usable with a visible 2D placeholder
+            return Build(id, PixelSpriteComposer.Compose(id, level, teamColor), parent, order);
+        }
+
+        /// <summary>One tile composite (see TileVisuals) as a single sorted object.</summary>
+        public static GameObject Build(IReadOnlyList<SpritePlacement> placements, Transform parent, int level, Color? teamColor, int order)
+        {
+            Load();
+            if (placements == null || placements.Count == 0) return null;
+            foreach (var p in placements) if (!Parts.ContainsKey(p.VisualId)) Diagnose(p.VisualId);
+            return Build(placements[0].VisualId, PixelSpriteComposer.Compose(placements, level, teamColor), parent, order);
+        }
+
+        private static GameObject Build(string name, Sprite sprite, Transform parent, int order)
+        {
+            var root = new GameObject(name);
             root.transform.SetParent(parent, false);
             root.AddComponent<SortingGroup>().sortingOrder = order;
-            foreach (var part in parts)
-            {
-                if (level < part.MinLevel || level > part.MaxLevel) continue;
-                var color = part.Color == "Team" ? teamColor ?? Color.white : ParseColor(part.Color);
-                var renderer = Add(root.transform, part.Sheet, SpriteFor(part), new Vector2(part.X, part.Y),
-                    new Vector2(part.ScaleX, part.ScaleY), color, part.Layer);
-                renderer.spriteSortPoint = SpriteSortPoint.Pivot;
-            }
+            Add(root.transform, "Pixels", sprite, Vector2.zero, Vector2.one, Color.white, 0).spriteSortPoint = SpriteSortPoint.Pivot;
             return root;
         }
 
@@ -147,8 +189,9 @@ namespace TacticsECS
         public static SpriteRenderer Rectangle(Transform parent, string name, Vector2 position, Vector2 size, Color color, int order) =>
             Add(parent, name, Get("UI.Solid"), position, size, color, order);
 
+        /// <summary>Lower rows draw in front; units use their own band so no tile object covers them.</summary>
         public static int SortOrder(float worldY, bool unit = false) =>
-            Mathf.Clamp(ObjectOrder + Mathf.RoundToInt(-worldY * 16f), -20000, 20000) + (unit ? 8 : 0);
+            (unit ? UnitOrder : ObjectOrder) + Mathf.Clamp(Mathf.RoundToInt(-worldY * 16f), -5000, 5000);
 
         private static Color ParseColor(string hex)
         {
@@ -178,7 +221,7 @@ namespace TacticsECS
             }
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false) { name = "Pixel_" + name, filterMode = FilterMode.Point };
             texture.SetPixels(pixels);
-            texture.Apply(false, true);
+            texture.Apply(false, false);
             return texture;
         }
     }

@@ -25,6 +25,7 @@ namespace TacticsECS.EditorTools
                 importer.wrapMode = TextureWrapMode.Clamp;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.alphaIsTransparency = true;
+                importer.isReadable = true; // Native 16px composition samples packed CC0 parts once, then caches.
                 if (Path.GetFileNameWithoutExtension(path) == "Panel" || Path.GetFileNameWithoutExtension(path) == "Button")
                     importer.spriteBorder = new Vector4(2,2,2,2);
                 importer.SaveAndReimport();
@@ -44,6 +45,15 @@ namespace TacticsECS.EditorTools
                 string path = "Assets/Art/Pixel2D/Generated/" + sprite.name.Replace('/', '_').Replace(':', '_') + ".asset";
                 AssetDatabase.CreateAsset(sprite, path);
                 if (!AssetDatabase.Contains(sprite.texture)) AssetDatabase.AddObjectToAsset(sprite.texture, sprite);
+            }
+            // Composites and 32px ground tiles referenced by the structure/tile prefabs saved below.
+            foreach (string id in PixelSpriteCatalog.VisualIds)
+            {
+                if (id.StartsWith("UI.") || id == "Terrain.Cloud") continue;
+                var sprite = PixelSpriteCatalog.Get(id);
+                string path = "Assets/Art/Pixel2D/Generated/" + sprite.name.Replace('.', '_') + ".asset";
+                AssetDatabase.CreateAsset(sprite,path);
+                AssetDatabase.AddObjectToAsset(sprite.texture,sprite);
             }
             ConvertHpDisplay();
             foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/Units" }))

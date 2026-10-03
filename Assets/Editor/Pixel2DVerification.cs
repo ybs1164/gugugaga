@@ -66,6 +66,26 @@ namespace TacticsECS.EditorTools
             foreach (var row in GameTables.Units)
                 CheckComposite(PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+boat), new SpritePlacement("Unit."+row.Id,3,7) }),row.Id + " on " + boat);
             Check(PixelSpriteComposer.Clipped.Count == 0,"nothing cut at the canvas edge: " + string.Join(", ",PixelSpriteComposer.Clipped));
+            VerifyWholeSourceCells();
+        }
+        /// <summary>A cell whose top row has some (not all) coloured pixels is the lower half of taller art — e.g. a pine
+        /// whose tip lives in the cell above. Full-width rows are tile pieces (walls, roofs) meant to butt together.</summary>
+        private static void VerifyWholeSourceCells()
+        {
+            foreach (string id in PixelSpriteCatalog.VisualIds)
+            foreach (var part in PixelSpriteCatalog.Layers(id))
+            {
+                if (part.Sheet.StartsWith("Pattern/") || id.StartsWith("Ground.")) continue;
+                var sprite = PixelSpriteCatalog.SpriteFor(part);
+                var top = sprite.texture.GetPixels32();
+                int row = (int)sprite.rect.yMax - 1, coloured = 0;
+                for (int x = (int)sprite.rect.xMin; x < (int)sprite.rect.xMax; x++)
+                {
+                    var c = top[row * sprite.texture.width + x];
+                    if (c.a >= 128 && (.299f * c.r + .587f * c.g + .114f * c.b) / 255f >= .26f) coloured++;
+                }
+                Check(coloured == 0 || coloured >= 12,$"art not cut at the sheet cell top: {id} {part.Sheet} {part.Column},{part.Row}");
+            }
         }
         /// <summary>Detail resolution, and every silhouette edge pixel is the shared thick stroke colour.</summary>
         private static void CheckComposite(Sprite sprite, string label)

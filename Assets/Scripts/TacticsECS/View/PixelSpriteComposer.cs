@@ -7,7 +7,8 @@ namespace TacticsECS
 {
     /// <summary>
     /// Bakes catalog parts into one sprite at native detail resolution (32 px per tile, parts only at integer scale).
-    /// Every part loses its own dark edge ring and gets the same thick stroke, so all art shares one outline style.
+    /// Every part loses its own dark edge ring; the final silhouette gets one thick stroke and a part covering earlier
+    /// art gets one separating line of the same width, so outlines never stack.
     /// Rules: docs/spec/csv/sprites.md
     /// </summary>
     public static class PixelSpriteComposer
@@ -68,6 +69,7 @@ namespace TacticsECS
                 foreach (var l in group)
                     Draw(canvas, width, height, l, centreX + placements[g].X + dx, centreY + placements[g].Y + dy);
             }
+            canvas = OuterStroke(canvas, width, height);
 
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
                 { name = "Composite_" + placements[0].VisualId, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
@@ -117,9 +119,11 @@ namespace TacticsECS
                 {
                     if (!opaque[j * sw + i]) continue;
                     Color32 c = source[((int)rect.y + j) * sprite.texture.width + (int)rect.x + i];
-                    bool edge = i == 0 || j == 0 || i == sw - 1 || j == sh - 1 || !opaque[j * sw + i - 1] || !opaque[j * sw + i + 1]
-                        || !opaque[(j - 1) * sw + i] || !opaque[(j + 1) * sw + i];
-                    if (edge && (.299f * c.r + .587f * c.g + .114f * c.b) / 255f < .26f) continue;
+                    // 8-neighbour test so inner-corner outline pixels go too; otherwise corners end up one pixel thicker.
+                    bool edge = false;
+                    for (int oy = -1; oy <= 1 && !edge; oy++) for (int ox = -1; ox <= 1 && !edge; ox++)
+                        edge = i + ox < 0 || j + oy < 0 || i + ox >= sw || j + oy >= sh || !opaque[(j + oy) * sw + i + ox];
+                    if (edge &&(.299f * c.r + .587f * c.g + .114f * c.b) / 255f < .26f) continue;
                     var tinted = new Color32((byte)(c.r * tint.r), (byte)(c.g * tint.g), (byte)(c.b * tint.b), 255);
                     for (int sy = 0; sy < scale; sy++) for (int sx = 0; sx < scale; sx++)
                         art[(j * scale + sy) * w + (flip ? w - 1 - (i * scale + sx) : i * scale + sx)] = tinted;
@@ -161,8 +165,26 @@ namespace TacticsECS
                 int k = j * l.W + i, x = originX + l.X + i, y = originY + l.Y + j;
                 if (x < 0 || y < 0 || x >= width || y >= height) continue;
                 if (l.Pixels[k].a != 0) canvas[y * width + x] = l.Pixels[k];
-                else if (l.Stroke[k]) canvas[y * width + x] = Outline;
+                // Only where this part covers earlier art: one separating line, never a second outer stroke.
+                else if (l.Stroke[k] && canvas[y * width + x].a != 0) canvas[y * width + x] = Outline;
             }
+        }
+
+        /// <summary>One stroke around the final silhouette, so overlapping parts never stack their outlines.</summary>
+        private static Color32[] OuterStroke(Color32[] canvas, int width, int height)
+        {
+            var result = (Color32[])canvas.Clone();
+            for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+            {
+                if (canvas[y * width + x].a == 0) continue;
+                for (int oy = -Stroke; oy <= Stroke; oy++) for (int ox = -Stroke; ox <= Stroke; ox++)
+                {
+                    int nx = x + ox, ny = y + oy;
+                    if (Mathf.Abs(ox) + Mathf.Abs(oy) > Stroke + 1 || nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                    if (canvas[ny * width + nx].a == 0) result[ny * width + nx] = Outline;
+                }
+            }
+            return result;
         }
 
         private static Color32[] Read(Texture2D texture)

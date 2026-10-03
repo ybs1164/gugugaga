@@ -52,7 +52,7 @@ namespace TacticsECS
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", tier, errors),
                     Unlocks = CsvTableReader.GetList(t, r, UnlockColumn, LegacyUnlocksColumn),
-                    Effect = LocalizationSystem.Desc(ArrayTableCsvSerializer.TechStringTable, id, CsvTableReader.Get(t, r, "Effect")),
+                    Effect = LocalizationSystem.Desc(ArrayTableCsvSerializer.TechStringTable, id, CsvTableReader.Get(t, r, "Effect"), c => CsvTableReader.Get(t, r, c)),
                 });
             }
 

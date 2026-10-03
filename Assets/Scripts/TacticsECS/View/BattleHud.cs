@@ -343,16 +343,8 @@ namespace TacticsECS
             (ActionType.Freeze, "freeze"),
         };
 
-        /// <summary>행동·패시브 툴팁 — 번역 표 "Action.&lt;행동&gt;.Tooltip". 수치는 GameRules에서 채운다.</summary>
-        public static string ActionTooltip(ActionType flag)
-        {
-            switch (flag)
-            {
-                case ActionType.Defend: return LocalizationSystem.F("Action.Defend.Tooltip", GameRules.Combat.GuardDefenseBonus);
-                case ActionType.Wait: return LocalizationSystem.F("Action.Wait.Tooltip", GameRules.Heal.Other, GameRules.Heal.OwnTerritory);
-                default: return LocalizationSystem.T("Action." + flag + ".Tooltip");
-            }
-        }
+        /// <summary>행동·패시브 툴팁 — 번역 표 "Action.&lt;행동&gt;.Tooltip"(수치는 문구 속 {Rule.*} 자리표시자).</summary>
+        public static string ActionTooltip(ActionType flag) => LocalizationSystem.T("Action." + flag + ".Tooltip");
 
         private void WireUnitPanel(Transform canvas)
         {

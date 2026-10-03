@@ -21,56 +21,56 @@ Unit.dinghy.Name,작은 배,Dinghy
 Unit.pirate.Name,해적선,Pirate
 # 건물 (Buildings.csv),,
 Building.LumberHut.Name,벌목장,Lumber Hut
-Building.LumberHut.Desc,인구 +1.,Population +1.
+Building.LumberHut.Desc,인구 +{Population}.,Population +{Population}.
 Building.Farm.Name,농장,Farm
-Building.Farm.Desc,작물 위. 인구 +2.,On crops. Population +2.
+Building.Farm.Desc,작물 위. 인구 +{Population}.,On crops. Population +{Population}.
 Building.Mine.Name,광산,Mine
-Building.Mine.Desc,광물 위. 인구 +2.,On metal. Population +2.
+Building.Mine.Desc,광물 위. 인구 +{Population}.,On metal. Population +{Population}.
 Building.Port.Name,항구,Port
-Building.Port.Desc,"얕은 물. 인구 +1, 들어온 육지 유닛은 뗏목이 된다, 물 5칸 이내 항구와 수도 연결.","Shallow water. Population +1, land units entering become rafts, connects to ports and the capital within 5 water tiles."
+Building.Port.Desc,"얕은 물. 인구 +{Population}, 들어온 육지 유닛은 뗏목이 된다, 물 {Rule.City.MaxPortWaterGap}칸 이내 항구와 수도 연결.","Shallow water. Population +{Population}, land units entering become rafts, connects to ports and the capital within {Rule.City.MaxPortWaterGap} water tiles."
 Building.Sawmill.Name,제재소,Sawmill
-Building.Sawmill.Desc,인접 벌목장 하나당 인구 +1. 도시당 1개.,Population +1 per adjacent Lumber Hut. One per city.
+Building.Sawmill.Desc,인접 벌목장 하나당 인구 +{PopulationPerAdjacent}. 도시마다 하나만.,Population +{PopulationPerAdjacent} per adjacent Lumber Hut. Only one per city.
 Building.Windmill.Name,풍차,Windmill
-Building.Windmill.Desc,인접 농장 하나당 인구 +1. 도시당 1개.,Population +1 per adjacent Farm. One per city.
+Building.Windmill.Desc,인접 농장 하나당 인구 +{PopulationPerAdjacent}. 도시마다 하나만.,Population +{PopulationPerAdjacent} per adjacent Farm. Only one per city.
 Building.Forge.Name,대장간,Forge
-Building.Forge.Desc,인접 광산 하나당 인구 +2. 평지/숲. 도시당 1개.,Population +2 per adjacent Mine. Field/forest. One per city.
+Building.Forge.Desc,인접 광산 하나당 인구 +{PopulationPerAdjacent}. 평지/숲. 도시마다 하나만.,Population +{PopulationPerAdjacent} per adjacent Mine. Field/forest. Only one per city.
 Building.Market.Name,시장,Market
-Building.Market.Desc,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 별 (최대 8).,Stars every turn equal to the total level of adjacent Sawmills/Windmills/Forges (max 8).
+Building.Market.Desc,인접 제재소/풍차/대장간 레벨 합만큼 매 턴 별 (최대 {Rule.City.MarketStarsCap}).,Stars every turn equal to the total level of adjacent Sawmills/Windmills/Forges (max {Rule.City.MarketStarsCap}).
 Building.Temple.Name,신전,Temple
-Building.Temple.Desc,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점).","Population +1. 100 points, levels up every 3 turns (up to level 5, 500 points)."
+Building.Temple.Desc,"인구 +{Population}. 점수 {Rule.Score.TempleBase}, {Rule.Score.TempleTurnsPerLevel}턴마다 레벨 업(레벨당 +{Rule.Score.PerTempleLevelAbove1}점, 최대 {Rule.Score.TempleMaxLevel}레벨).","Population +{Population}. {Rule.Score.TempleBase} points, levels up every {Rule.Score.TempleTurnsPerLevel} turns (+{Rule.Score.PerTempleLevelAbove1} points per level, up to level {Rule.Score.TempleMaxLevel})."
 Building.ForestTemple.Name,숲 신전,Forest Temple
-Building.ForestTemple.Desc,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점).","Population +1. 100 points, levels up every 3 turns (up to level 5, 500 points)."
+Building.ForestTemple.Desc,"인구 +{Population}. 점수 {Rule.Score.TempleBase}, {Rule.Score.TempleTurnsPerLevel}턴마다 레벨 업(레벨당 +{Rule.Score.PerTempleLevelAbove1}점, 최대 {Rule.Score.TempleMaxLevel}레벨).","Population +{Population}. {Rule.Score.TempleBase} points, levels up every {Rule.Score.TempleTurnsPerLevel} turns (+{Rule.Score.PerTempleLevelAbove1} points per level, up to level {Rule.Score.TempleMaxLevel})."
 Building.MountainTemple.Name,산악 신전,Mountain Temple
-Building.MountainTemple.Desc,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점).","Population +1. 100 points, levels up every 3 turns (up to level 5, 500 points)."
+Building.MountainTemple.Desc,"인구 +{Population}. 점수 {Rule.Score.TempleBase}, {Rule.Score.TempleTurnsPerLevel}턴마다 레벨 업(레벨당 +{Rule.Score.PerTempleLevelAbove1}점, 최대 {Rule.Score.TempleMaxLevel}레벨).","Population +{Population}. {Rule.Score.TempleBase} points, levels up every {Rule.Score.TempleTurnsPerLevel} turns (+{Rule.Score.PerTempleLevelAbove1} points per level, up to level {Rule.Score.TempleMaxLevel})."
 Building.WaterTemple.Name,해양 신전,Water Temple
-Building.WaterTemple.Desc,"인구 +1. 점수 100, 3턴마다 레벨 업(최대 5레벨 500점).","Population +1. 100 points, levels up every 3 turns (up to level 5, 500 points)."
+Building.WaterTemple.Desc,"인구 +{Population}. 점수 {Rule.Score.TempleBase}, {Rule.Score.TempleTurnsPerLevel}턴마다 레벨 업(레벨당 +{Rule.Score.PerTempleLevelAbove1}점, 최대 {Rule.Score.TempleMaxLevel}레벨).","Population +{Population}. {Rule.Score.TempleBase} points, levels up every {Rule.Score.TempleTurnsPerLevel} turns (+{Rule.Score.PerTempleLevelAbove1} points per level, up to level {Rule.Score.TempleMaxLevel})."
 Building.Road.Name,도로,Road
-Building.Road.Desc,"도로끼리 이동 비용 0.5, 숲 이동 제한 해제, 수도 연결. 중립 땅에도 건설 가능.","Movement cost 0.5 between roads, removes forest movement penalty, connects to the capital. Can be built on neutral land."
+Building.Road.Desc,"도로끼리 이동 비용 절반, 숲 이동 제한 해제, 수도 연결. 중립 땅에도 건설 가능.","Half movement cost between roads, removes forest movement penalty, connects to the capital. Can be built on neutral land."
 Building.Bridge.Name,다리,Bridge
-Building.Bridge.Desc,양쪽(상하/좌우)이 육지인 물 1칸. 육지 유닛 통행 + 도로 효과 + 수도 연결. 중립 물에도 건설 가능.,One water tile with land on both sides (up/down or left/right). Land units can cross + road effect + capital connection. Can be built on neutral water.
+Building.Bridge.Desc,양쪽(상하/좌우)이 육지인 물 한 칸. 육지 유닛 통행 + 도로 효과 + 수도 연결. 중립 물에도 건설 가능.,A water tile with land on both sides (up/down or left/right). Land units can cross + road effect + capital connection. Can be built on neutral water.
 Building.AltarOfPeace.Name,평화의 제단,Altar of Peace
-Building.AltarOfPeace.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.AltarOfPeace.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.EmperorsTomb.Name,황제의 무덤,Emperor's Tomb
-Building.EmperorsTomb.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.EmperorsTomb.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.EyeOfGod.Name,신의 눈,Eye of God
-Building.EyeOfGod.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.EyeOfGod.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.GateOfPower.Name,힘의 문,Gate of Power
-Building.GateOfPower.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.GateOfPower.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.GrandBazaar.Name,대시장,Grand Bazaar
-Building.GrandBazaar.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.GrandBazaar.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.ParkOfFortune.Name,행운의 공원,Park of Fortune
-Building.ParkOfFortune.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.ParkOfFortune.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 Building.TowerOfWisdom.Name,지혜의 탑,Tower of Wisdom
-Building.TowerOfWisdom.Desc,"기념물. 인구 +3, 점수 400. 팀당 한 번.","Monument. Population +3, 400 points. Once per team."
+Building.TowerOfWisdom.Desc,"기념물. 인구 +{Population}, 점수 {Rule.Score.Monument}. 팀당 한 번.","Monument. Population +{Population}, {Rule.Score.Monument} points. Once per team."
 # 타일 행동 (TileActions.csv),,
 TileAction.HarvestFruit.Name,과일 채집,Harvest Fruit
-TileAction.HarvestFruit.Desc,인구 +1.,Population +1.
+TileAction.HarvestFruit.Desc,인구 +{Population}.,Population +{Population}.
 TileAction.HuntAnimal.Name,사냥,Hunt
-TileAction.HuntAnimal.Desc,인구 +1.,Population +1.
+TileAction.HuntAnimal.Desc,인구 +{Population}.,Population +{Population}.
 TileAction.CatchFish.Name,낚시,Fish
-TileAction.CatchFish.Desc,인구 +1.,Population +1.
+TileAction.CatchFish.Desc,인구 +{Population}.,Population +{Population}.
 TileAction.ClearForest.Name,벌목,Clear Forest
-TileAction.ClearForest.Desc,숲을 평지로. 별 +1.,Turns forest into field. Stars +1.
+TileAction.ClearForest.Desc,숲을 평지로. 별 +{StarsGain}.,Turns forest into field. Stars +{StarsGain}.
 TileAction.BurnForest.Name,화전,Burn Forest
 TileAction.BurnForest.Desc,숲을 작물이 있는 평지로.,Turns forest into field with crops.
 TileAction.GrowForest.Name,숲 조성,Grow Forest
@@ -79,85 +79,85 @@ TileAction.DestroyBuilding.Name,건물/유적 파괴,Destroy Building/Ruin
 TileAction.DestroyBuilding.Desc,건물을 없애고 그 인구를 되돌린다. 영토 안 유적도 없앤다.,Removes a building and returns its population. Also removes ruins in your territory.
 "# 기술 (Techs.csv, TechTree.csv)",,
 Tech.Climbing.Name,등반,Climbing
-Tech.Climbing.Desc,산 타일 진입/이동 가능. 숨겨진 광맥 발견. 산 타일 유닛 방어력 +1.,Units can enter and move on mountains. Reveals hidden metal. Units on mountains get +1 defense.
+Tech.Climbing.Desc,산 타일 진입/이동 가능. 숨겨진 광맥 발견. 산 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Units can enter and move on mountains. Reveals hidden metal. Units on mountains get ×{Rule.Combat.DefenseBonusMultiplier} defense.
 Tech.Meditation.Name,명상,Meditation
-Tech.Meditation.Desc,산악 신전 건설 가능(별 20). 평화주의 과업(5턴 비공격 → 평화의 제단) 개방.,Mountain Temple (20 stars). Unlocks the Pacifist task (no attacks for 5 turns → Altar of Peace).
+Tech.Meditation.Desc,산악 신전 건설 가능(별 {Building.MountainTemple.Cost}). 평화주의 과업({Task.Pacifist.Threshold}턴 비공격 → 평화의 제단) 개방.,Mountain Temple ({Building.MountainTemple.Cost} stars). Unlocks the Pacifist task (no attacks for {Task.Pacifist.Threshold} turns → Altar of Peace).
 Tech.Mining.Name,채광,Mining
-Tech.Mining.Desc,광산 건설 가능(별 5 / 광물 위 / 인구 +2).,Mine (5 stars / on metal / population +2).
+Tech.Mining.Desc,광산 건설 가능(별 {Building.Mine.Cost} / 광물 위 / 인구 +{Building.Mine.Population}).,Mine ({Building.Mine.Cost} stars / on metal / population +{Building.Mine.Population}).
 Tech.Philosophy.Name,철학,Philosophy
-Tech.Philosophy.Desc,모든 기술 개발 비용 33% 감소. 현자(사제) 훈련 가능. 천재 과업(기술 전부 → 지혜의 탑) 개방.,All tech costs -33%. Train Mind Benders. Unlocks the Genius task (all techs → Tower of Wisdom).
+Tech.Philosophy.Desc,모든 기술 개발 비용 1/{Rule.Tech.LiteracyDivisor} 감소. 현자(사제) 훈련 가능. 천재 과업(기술 전부 → 지혜의 탑) 개방.,All tech costs -1/{Rule.Tech.LiteracyDivisor}. Train Mind Benders. Unlocks the Genius task (all techs → Tower of Wisdom).
 Tech.Smithery.Name,제련,Smithery
-Tech.Smithery.Desc,대장간 건설 가능(인접 광산당 인구 +2). 검사(검투사) 훈련 가능.,Forge (population +2 per adjacent Mine). Train Swordsmen.
+Tech.Smithery.Desc,대장간 건설 가능(인접 광산당 인구 +{Building.Forge.PopulationPerAdjacent}). 검사(검투사) 훈련 가능.,Forge (population +{Building.Forge.PopulationPerAdjacent} per adjacent Mine). Train Swordsmen.
 Tech.Organization.Name,조직,Organization
-Tech.Organization.Desc,과일 채집 가능(별 2 / 인구 +1). 숨겨진 농작물 발견.,Harvest fruit (2 stars / population +1). Reveals hidden crops.
+Tech.Organization.Desc,과일 채집 가능(별 {TileAction.HarvestFruit.Cost} / 인구 +{TileAction.HarvestFruit.Population}). 숨겨진 농작물 발견.,Harvest fruit ({TileAction.HarvestFruit.Cost} stars / population +{TileAction.HarvestFruit.Population}). Reveals hidden crops.
 Tech.Strategy.Name,전략,Strategy
 Tech.Strategy.Desc,방패병 훈련 가능. (평화 조약은 외교 시스템이 없어 제외),Train Defenders. (Peace treaties are left out — no diplomacy system.)
 Tech.Farming.Name,농사,Farming
-Tech.Farming.Desc,농장 건설 가능(별 5 / 작물 위 / 인구 +2).,Farm (5 stars / on crops / population +2).
+Tech.Farming.Desc,농장 건설 가능(별 {Building.Farm.Cost} / 작물 위 / 인구 +{Building.Farm.Population}).,Farm ({Building.Farm.Cost} stars / on crops / population +{Building.Farm.Population}).
 Tech.Diplomacy.Name,외교,Diplomacy
 Tech.Diplomacy.Desc,망토(스파이) 훈련 가능. 수도 시야(적 수도 칸이 항상 보임). (대사관은 외교 시스템이 없어 제외),Train Cloaks. Capital vision (enemy capitals are always visible). (Embassies are left out — no diplomacy system.)
 Tech.Construction.Name,건축,Construction
-Tech.Construction.Desc,풍차 건설 가능(인접 농장당 인구 +1). 자기 숲 화전 가능(별 3 / 숲 -> 작물 평지).,Windmill (population +1 per adjacent Farm). Burn your forests (3 stars / forest → field with crops).
+Tech.Construction.Desc,풍차 건설 가능(인접 농장당 인구 +{Building.Windmill.PopulationPerAdjacent}). 자기 숲 화전 가능(별 {TileAction.BurnForest.Cost} / 숲 -> 작물 평지).,Windmill (population +{Building.Windmill.PopulationPerAdjacent} per adjacent Farm). Burn your forests ({TileAction.BurnForest.Cost} stars / forest → field with crops).
 Tech.Riding.Name,기마,Riding
 Tech.Riding.Desc,기마병 훈련 가능.,Train Riders.
 Tech.FreeSpirit.Name,자유 영혼,Free Spirit
-Tech.FreeSpirit.Desc,신전 건설 가능(별 20). 자기 유닛 해산 가능(비용 절반 환급).,Temple (20 stars). Disband your units (half the cost refunded).
+Tech.FreeSpirit.Desc,신전 건설 가능(별 {Building.Temple.Cost}). 자기 유닛 해산 가능(훈련 비용 1/{Rule.Unit.DisbandRefundDivisor} 환급).,Temple ({Building.Temple.Cost} stars). Disband your units (1/{Rule.Unit.DisbandRefundDivisor} of the training cost refunded).
 Tech.Roads.Name,도로,Roads
-Tech.Roads.Desc,"도로(별 3)/다리(별 5) 건설 가능 - 도로끼리 이동 0.5, 수도 연결 시 인구 보너스. 교역망 과업(연결 도시 5 → 대시장) 개방.","Road (3 stars) / Bridge (5 stars) — 0.5 movement between roads, population bonus when connected to the capital. Unlocks the Network task (5 connected cities → Grand Bazaar)."
+Tech.Roads.Desc,"도로(별 {Building.Road.Cost})/다리(별 {Building.Bridge.Cost}) 건설 가능 - 도로끼리 이동 비용 절반, 수도 연결 시 인구 보너스. 교역망 과업(연결 도시 {Task.Network.Threshold} → 대시장) 개방.","Road ({Building.Road.Cost} stars) / Bridge ({Building.Bridge.Cost} stars) — half movement cost between roads, population bonus when connected to the capital. Unlocks the Network task ({Task.Network.Threshold} connected cities → Grand Bazaar)."
 Tech.Chivalry.Name,기사도,Chivalry
 Tech.Chivalry.Desc,기사 훈련 가능. 자기 건물 파괴 가능.,Train Knights. Destroy your own buildings.
 Tech.Trade.Name,교역,Trade
-Tech.Trade.Desc,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 별/턴). 부 과업(별 100 보유 → 황제의 무덤) 개방.,Market (stars per turn equal to adjacent Windmill/Forge/Sawmill levels). Unlocks the Wealth task (hold 100 stars → Emperor's Tomb).
+Tech.Trade.Desc,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 별/턴). 부 과업(별 {Task.Wealth.Threshold} 보유 → 황제의 무덤) 개방.,Market (stars per turn equal to adjacent Windmill/Forge/Sawmill levels). Unlocks the Wealth task (hold {Task.Wealth.Threshold} stars → Emperor's Tomb).
 Tech.Hunting.Name,사냥,Hunting
-Tech.Hunting.Desc,동물 사냥 가능(별 2 / 인구 +1). 숨겨진 동물 발견.,Hunt animals (2 stars / population +1). Reveals hidden animals.
+Tech.Hunting.Desc,동물 사냥 가능(별 {TileAction.HuntAnimal.Cost} / 인구 +{TileAction.HuntAnimal.Population}). 숨겨진 동물 발견.,Hunt animals ({TileAction.HuntAnimal.Cost} stars / population +{TileAction.HuntAnimal.Population}). Reveals hidden animals.
 Tech.Forestry.Name,임업,Forestry
-Tech.Forestry.Desc,벌목장 건설 가능(별 3 / 인구 +1). 자기 숲 벌목 가능(별 +1).,Lumber Hut (3 stars / population +1). Clear your forests (stars +1).
+Tech.Forestry.Desc,벌목장 건설 가능(별 {Building.LumberHut.Cost} / 인구 +{Building.LumberHut.Population}). 자기 숲 벌목 가능(별 +{TileAction.ClearForest.StarsGain}).,Lumber Hut ({Building.LumberHut.Cost} stars / population +{Building.LumberHut.Population}). Clear your forests (stars +{TileAction.ClearForest.StarsGain}).
 Tech.Archery.Name,궁술,Archery
-Tech.Archery.Desc,궁수 훈련 가능. 숲 타일 유닛 방어력 +1.,Train Archers. Units in forests get +1 defense.
+Tech.Archery.Desc,궁수 훈련 가능. 숲 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Train Archers. Units in forests get ×{Rule.Combat.DefenseBonusMultiplier} defense.
 Tech.Mathematics.Name,수학,Mathematics
-Tech.Mathematics.Desc,제재소 건설 가능(인접 벌목장당 인구 +1). 투석기 훈련 가능.,Sawmill (population +1 per adjacent Lumber Hut). Train Catapults.
+Tech.Mathematics.Desc,제재소 건설 가능(인접 벌목장당 인구 +{Building.Sawmill.PopulationPerAdjacent}). 투석기 훈련 가능.,Sawmill (population +{Building.Sawmill.PopulationPerAdjacent} per adjacent Lumber Hut). Train Catapults.
 Tech.Spiritualism.Name,강신술,Spiritualism
-Tech.Spiritualism.Desc,숲 신전 건설 가능(별 15). 자기 평지에 숲 생성 가능(별 5).,Forest Temple (15 stars). Grow forest on your fields (5 stars).
+Tech.Spiritualism.Desc,숲 신전 건설 가능(별 {Building.ForestTemple.Cost}). 자기 평지에 숲 생성 가능(별 {TileAction.GrowForest.Cost}).,Forest Temple ({Building.ForestTemple.Cost} stars). Grow forest on your fields ({TileAction.GrowForest.Cost} stars).
 Tech.Fishing.Name,낚시,Fishing
-Tech.Fishing.Desc,항구 건설 가능(별 7 / 인구 +1 / 들어온 육지 유닛은 뗏목 / 해로 연결). 물고기 낚시 가능. 숨겨진 물고기 발견.,Port (7 stars / population +1 / land units entering become rafts / sea connections). Fish. Reveals hidden fish.
+Tech.Fishing.Desc,항구 건설 가능(별 {Building.Port.Cost} / 인구 +{Building.Port.Population} / 들어온 육지 유닛은 뗏목 / 해로 연결). 물고기 낚시 가능. 숨겨진 물고기 발견.,Port ({Building.Port.Cost} stars / population +{Building.Port.Population} / land units entering become rafts / sea connections). Fish. Reveals hidden fish.
 Tech.Ramming.Name,충파,Ramming
-Tech.Ramming.Desc,"뗏목을 충각선으로 업그레이드 가능(별 5, 자기 영토).","Upgrade rafts to Rammers (5 stars, in your territory)."
+Tech.Ramming.Desc,"뗏목을 충각선으로 업그레이드 가능(별 {Unit.rammer.Cost}, 자기 영토).","Upgrade rafts to Rammers ({Unit.rammer.Cost} stars, in your territory)."
 Tech.Sailing.Name,배 타기,Sailing
-Tech.Sailing.Desc,"원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(별 5, 시야 5x5).","Units can enter and move on ocean. Upgrade rafts to Scouts (5 stars, 5x5 vision)."
+Tech.Sailing.Desc,"원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(별 {Unit.scout.Cost}, 시야 반경 {Rule.Vision.ExtendedSightRadius}).","Units can enter and move on ocean. Upgrade rafts to Scouts ({Unit.scout.Cost} stars, sight radius {Rule.Vision.ExtendedSightRadius})."
 Tech.Aquatism.Name,수생학,Aquatism
-Tech.Aquatism.Desc,해양 신전 건설 가능(별 20). 근해/원양 타일 유닛 방어력 +1.,Water Temple (20 stars). Units on shallow water/ocean get +1 defense.
+Tech.Aquatism.Desc,해양 신전 건설 가능(별 {Building.WaterTemple.Cost}). 근해/원양 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Water Temple ({Building.WaterTemple.Cost} stars). Units on shallow water/ocean get ×{Rule.Combat.DefenseBonusMultiplier} defense.
 Tech.Navigation.Name,항해,Navigation
-Tech.Navigation.Desc,뗏목을 폭격선으로 업그레이드 가능(별 15). 불가사리(유물) 인양 가능(별 +8). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.,Upgrade rafts to Bombers (15 stars). Salvage starfish (stars +8). Reveals hidden starfish. Ports connect across deep ocean.
+Tech.Navigation.Desc,뗏목을 폭격선으로 업그레이드 가능(별 {Unit.bomber.Cost}). 불가사리(유물) 인양 가능(별 +{Rule.Starfish.Stars}). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.,Upgrade rafts to Bombers ({Unit.bomber.Cost} stars). Salvage starfish (stars +{Rule.Starfish.Stars}). Reveals hidden starfish. Ports connect across deep ocean.
 # 과업 (Tasks.csv),,
 Task.Pacifist.Name,평화주의,Pacifist
-Task.Pacifist.Desc,5턴 연속 공격하지 않기(반격은 공격이 아님).,Don't attack for 5 turns in a row (counterattacks don't count).
+Task.Pacifist.Desc,{Threshold}턴 연속 공격하지 않기(반격은 공격이 아님).,Don't attack for {Threshold} turns in a row (counterattacks don't count).
 Task.Wealth.Name,부,Wealth
-Task.Wealth.Desc,별 100을 한 번에 보유.,Hold 100 stars at once.
+Task.Wealth.Desc,별 {Threshold}을 한 번에 보유.,Hold {Threshold} stars at once.
 Task.Explorer.Name,탐험가,Explorer
 Task.Explorer.Desc,맵의 등대를 전부 발견.,Discover every lighthouse on the map.
 Task.Killer.Name,살육자,Killer
-Task.Killer.Desc,적 유닛 10기 처치.,Defeat 10 enemy units.
+Task.Killer.Desc,적 유닛 {Threshold}기 처치.,Defeat {Threshold} enemy units.
 Task.Network.Name,교역망,Network
-Task.Network.Desc,수도와 연결된 도시 5개.,Have 5 cities connected to the capital.
+Task.Network.Desc,수도와 연결된 도시 {Threshold}개.,Have {Threshold} cities connected to the capital.
 Task.Metropolis.Name,대도시,Metropolis
-Task.Metropolis.Desc,레벨 5 이상 도시 보유.,Own a city of level 5 or higher.
+Task.Metropolis.Desc,레벨 {Threshold} 이상 도시 보유.,Own a city of level {Threshold} or higher.
 Task.Genius.Name,천재,Genius
 Task.Genius.Desc,기술 전부 연구.,Research every tech.
 # 도시 보상 (CityRewards.csv),,
 CityReward.Workshop.Name,공방,Workshop
-CityReward.Workshop.Desc,별 수입 +1/턴,Star income +1/turn
+CityReward.Workshop.Desc,별 수입 +{Amount}/턴,Star income +{Amount}/turn
 CityReward.Explorer.Name,탐험가,Explorer
-CityReward.Explorer.Desc,도시에서 출발해 12번 움직이며 가장 가까운 구름을 걷어낸다,"Sets out from the city and moves 12 times, clearing the nearest clouds"
+CityReward.Explorer.Desc,도시에서 출발해 {Rule.Vision.ExplorerMoves}번 움직이며 가장 가까운 구름을 걷어낸다,"Sets out from the city and moves {Rule.Vision.ExplorerMoves} times, clearing the nearest clouds"
 CityReward.CityWall.Name,성벽,City Wall
 CityReward.CityWall.Desc,도시 안 요새화 유닛 방어 강화,Fortified units in the city get stronger defense
 CityReward.Resources.Name,자원,Resources
-CityReward.Resources.Desc,별 +5,Stars +5
+CityReward.Resources.Desc,별 +{Amount},Stars +{Amount}
 CityReward.PopulationGrowth.Name,인구 성장,Population Growth
-CityReward.PopulationGrowth.Desc,인구 +3,Population +3
+CityReward.PopulationGrowth.Desc,인구 +{Amount},Population +{Amount}
 CityReward.BorderGrowth.Name,국경 확장,Border Growth
-CityReward.BorderGrowth.Desc,영토 반경 1 -> 2,Territory radius 1 -> 2
+CityReward.BorderGrowth.Desc,영토 반경 {Rule.City.DefaultBorderRadius} -> {Amount},Territory radius {Rule.City.DefaultBorderRadius} -> {Amount}
 CityReward.Park.Name,공원,Park
-CityReward.Park.Desc,별 수입 +1/턴,Star income +1/turn
+CityReward.Park.Desc,별 수입 +{Amount}/턴,Star income +{Amount}/turn
 CityReward.SuperUnit.Name,슈퍼 유닛,Super Unit
 CityReward.SuperUnit.Desc,최대 체력이 가장 높은 유닛을 무료 소환,Summons the unit with the highest max HP for free
 # 종족 (Tribes.csv),,
@@ -174,7 +174,7 @@ Tribe.Kickoo.Desc,흰 모래 해변과 야자수 — 과일과 물고기가 풍�
 Tribe.Hoodrick.Name,후드릭,Hoodrick
 Tribe.Hoodrick.Desc,노란 가을 숲에 숨어 사는 버섯 요리의 부족. 궁수로 시작한다.,A mushroom-cooking tribe hiding in yellow autumn forests. Starts with an Archer.
 Tribe.Luxidoor.Name,룩시도르,Luxidoor
-Tribe.Luxidoor.Desc,값비싼 것을 사랑하는 부족 — 시작 기술 없이 별 2로 시작한다.,A tribe that loves expensive things — starts with no tech and 2 stars.
+Tribe.Luxidoor.Desc,값비싼 것을 사랑하는 부족 — 시작 기술 없이 별 {StartStars}로 시작한다.,A tribe that loves expensive things — starts with no tech and {StartStars} stars.
 Tribe.Vengir.Name,벵기르,Vengir
 Tribe.Vengir.Desc,황무지로 밀려난 부족. 검사로 시작한다.,A tribe pushed out to the wastelands. Starts with a Swordsman.
 Tribe.Zebasi.Name,제바시,Zebasi
@@ -189,7 +189,7 @@ Tribe.Yadakk.Desc,초원의 유목민에서 교역의 부족이 되었다.,Nomad
 StartCondition.None.Name,기본,Default
 StartCondition.None.Desc,수도 주변 추가 규칙 없음,No extra rules around the capital
 StartCondition.DrylandsCoast.Name,건조지대 해안 수도,Drylands Coastal Capital
-StartCondition.DrylandsCoast.Desc,Drylands 맵에서 수도 옆에 물 2칸 + 각 칸에 물고기,"On Drylands maps, 2 water tiles next to the capital, each with fish"
+StartCondition.DrylandsCoast.Desc,Drylands 맵에서 수도 옆에 물 {StartRule.DrylandsWater.Count}칸 + 각 칸에 물고기,"On Drylands maps, {StartRule.DrylandsWater.Count} water tiles next to the capital, each with fish"
 # 바이옴 (Biomes.csv),,
 Biome.Grassland.Name,평원,Grassland
 Biome.Desert.Name,사막,Desert
@@ -345,7 +345,7 @@ UI.UnitMenu.StarfishDetail,이 유닛의 턴을 쓴다.,Uses this unit's turn.
 UI.UnitMenu.Upgrade,{0}(으)로 업그레이드 (별 {1}),Upgrade to {0} ({1} stars)
 UI.UnitMenu.UpgradeDetail,공격 {0} · 방어 {1} · 이동 {2} · 사거리 {3},Attack {0} · Defense {1} · Move {2} · Range {3}
 UI.UnitMenu.Disband,해산 (별 +{0}),Disband (stars +{0})
-UI.UnitMenu.DisbandDetail,유닛을 없애고 훈련 비용 절반을 돌려받는다.,Removes the unit and refunds half its training cost.
+UI.UnitMenu.DisbandDetail,유닛을 없애고 훈련 비용 1/{Rule.Unit.DisbandRefundDivisor}을 돌려받는다.,Removes the unit and refunds 1/{Rule.Unit.DisbandRefundDivisor} of its training cost.
 UI.UnitMenu.ManageCity,도시 관리,Manage city
 UI.UnitMenu.Home,소속: {0},Home: {0}
 UI.UnitMenu.NoHome,소속 도시 없음,No home city
@@ -397,20 +397,20 @@ UI.Battle.Victory,승리!,Victory!
 UI.Battle.Defeat,패배...,Defeat...
 UI.Battle.LanguageTooltip,언어 바꾸기(화면을 다시 엽니다),Change language (reloads the screen)
 # Action,,
-Action.Defend.Tooltip,방어 태세: 받는 피해를 줄입니다. (방어력 +{0}),Defend: take less damage. (defense +{0})
+Action.Defend.Tooltip,방어 태세: 받는 피해를 줄입니다. (방어력 +{Rule.Combat.GuardDefenseBonus}),Defend: take less damage. (defense +{Rule.Combat.GuardDefenseBonus})
 Action.Heal.Tooltip,치유: 사거리 내의 모든 아군 유닛(자신 제외)의 체력을 회복시킵니다.,Heal: restores HP to every allied unit in range (not itself).
-Action.SelfDestruct.Tooltip,자폭: 스스로를 희생해 주위 1칸의 모든 적에게 남은 체력만큼 피해를 입힙니다.,Self-destruct: sacrifices itself to deal its remaining HP as damage to every adjacent enemy.
-Action.Wait.Tooltip,대기: 이번 턴 행동을 종료하고 체력을 {0}(자기 영토 {1}) 회복합니다.,Wait: ends this unit's turn and restores {0} HP ({1} in your territory).
+Action.SelfDestruct.Tooltip,자폭: 스스로를 희생해 인접한 모든 적에게 남은 체력만큼 피해를 입힙니다.,Self-destruct: sacrifices itself to deal its remaining HP as damage to every adjacent enemy.
+Action.Wait.Tooltip,대기: 이번 턴 행동을 종료하고 체력을 {Rule.Heal.Other}(자기 영토 {Rule.Heal.OwnTerritory}) 회복합니다.,Wait: ends this unit's turn and restores {Rule.Heal.Other} HP ({Rule.Heal.OwnTerritory} in your territory).
 Action.Counter.Tooltip,반격(패시브): 공격을 받으면 자동으로 공격한 대상에게 피해를 되돌려줍니다.,Counter (passive): automatically strikes back at attackers.
 Action.Charge.Tooltip,돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다.,Dash (passive): can attack after moving this turn.
 Action.Retreat.Tooltip,대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다.,Escape (passive): can move after attacking this turn.
 Action.Ambush.Tooltip,기습(패시브): 공격 시 대상의 반격을 발동시키지 않습니다.,Surprise (passive): attacks don't trigger counterattacks.
 Action.Infiltrate.Tooltip,잠입(패시브): 적 유닛에 의한 이동 방해 페널티가 없습니다.,Creep (passive): ignores movement blocking by enemy units.
-Action.Herd.Tooltip,"무리(패시브): 주변 1블록 내 아군에게 가속을 부여합니다(이동 거리 +1, 피격 시 해제).","Herd (passive): speeds up allies within 1 tile (move +1, lost when hit)."
+Action.Herd.Tooltip,"무리(패시브): 인접한 아군에게 가속을 부여합니다(이동력 +1, 피격 시 해제).","Herd (passive): speeds up adjacent allies (move +1, lost when hit)."
 Action.Convert.Tooltip,전향(패시브): 공격한 적 유닛을 아군으로 전환합니다.,Convert (passive): turns attacked enemy units into allies.
 Action.Combo.Tooltip,연타(패시브): 적을 처치하면 같은 턴에 추가로 공격할 수 있습니다.,Persist (passive): can attack again in the same turn after a kill.
-Action.Scout.Tooltip,정찰(패시브): 시야 +1.,Scout (passive): vision +1.
-Action.Splash.Tooltip,스플래시(패시브): 공격한 대상 주변 1블록 내 적 유닛들에게도 광역 피해를 입힙니다.,Splash (passive): also damages enemy units within 1 tile of the target.
+Action.Scout.Tooltip,정찰(패시브): 시야 반경 {Rule.Vision.ExtendedSightRadius}.,Scout (passive): sight radius {Rule.Vision.ExtendedSightRadius}.
+Action.Splash.Tooltip,스플래시(패시브): 공격한 대상에 인접한 적 유닛들에게도 광역 피해를 입힙니다.,Splash (passive): also damages enemy units adjacent to the target.
 Action.Stiff.Tooltip,뻣뻣함(패시브): 공격받으면 반격을 갖고 있어도 발동시키지 않습니다.,"Stiff (passive): never counterattacks, even with Counter."
 Action.Freeze.Tooltip,빙결(패시브): 공격 시 대상을 다음 턴 동안 행동불능으로 만듭니다.,Freeze (passive): attacked targets can't act next turn.
 # 화면 문구 — City,,

@@ -78,7 +78,7 @@ namespace TacticsECS
                     ProducesStarsFromAdjacent = flags.Contains(GameTableCsvSerializer.FlagStarsFromAdjacent),
                     OnePerCity = flags.Contains(GameTableCsvSerializer.FlagOnePerCity),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
-                    Description = LocalizationSystem.Desc(BuildingStringTable, id),
+                    Description = LocalizationSystem.Desc(BuildingStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                 };
                 if (rows[r].Terrain == TileClass.None) CsvTableReader.Report(t, r, "Terrain", "지을 수 있는 지형이 없음", errors);
             }
@@ -150,7 +150,7 @@ namespace TacticsECS
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", 0, errors),
                     Unlocks = GetIndexList(t, r, "Unlock", errors),
-                    Description = LocalizationSystem.Desc(TechStringTable, id),
+                    Description = LocalizationSystem.Desc(TechStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                 };
             }
             return rows;
@@ -219,7 +219,7 @@ namespace TacticsECS
                     Index = r,
                     Id = id,
                     Name = LocalizationSystem.Name(TribeStringTable, id),
-                    Description = LocalizationSystem.Desc(TribeStringTable, id),
+                    Description = LocalizationSystem.Desc(TribeStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                     BiomeIndex = CsvTableReader.GetInt(t, r, "BiomeIndex", -1, errors),
                     TechGroupIndex = CsvTableReader.GetInt(t, r, "TechGroupIndex", -1, errors),
                     StartTechs = GetIndexList(t, r, "StartTech", errors),
@@ -243,7 +243,7 @@ namespace TacticsECS
                     Index = r,
                     Id = id,
                     Name = LocalizationSystem.Name(StartConditionStringTable, id),
-                    Description = LocalizationSystem.Desc(StartConditionStringTable, id),
+                    Description = LocalizationSystem.Desc(StartConditionStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                     Rules = GetIndexList(t, r, "Rule", errors),
                 };
             }

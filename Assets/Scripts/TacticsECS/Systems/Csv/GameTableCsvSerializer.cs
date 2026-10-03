@@ -55,7 +55,7 @@ namespace TacticsECS
                     RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
                     StarsGain = CsvTableReader.GetInt(t, r, "StarsGain", 0, errors),
-                    Description = LocalizationSystem.Desc("TileAction", id),
+                    Description = LocalizationSystem.Desc("TileAction", id, null, c => CsvTableReader.Get(t, r, c)),
                 });
             }
             return list.ToArray();
@@ -77,7 +77,7 @@ namespace TacticsECS
                     Type = type,
                     Name = LocalizationSystem.Name("CityReward", type.ToString()),
                     Amount = CsvTableReader.GetInt(t, r, "Amount", 0, errors),
-                    Description = LocalizationSystem.Desc("CityReward", type.ToString()),
+                    Description = LocalizationSystem.Desc("CityReward", type.ToString(), null, c => CsvTableReader.Get(t, r, c)),
                 });
             }
             return list.ToArray();
@@ -101,7 +101,7 @@ namespace TacticsECS
                     Kind = CsvTableReader.GetEnum(t, r, "Kind", TaskKind.Kills, errors),
                     Threshold = CsvTableReader.GetInt(t, r, "Threshold", 0, errors),
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
-                    Description = LocalizationSystem.Desc("Task", id),
+                    Description = LocalizationSystem.Desc("Task", id, null, c => CsvTableReader.Get(t, r, c)),
                 });
             }
             return list.ToArray();

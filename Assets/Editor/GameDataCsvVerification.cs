@@ -29,6 +29,7 @@ namespace TacticsECS.EditorTools
             VerifyUnitsAndCombat();
             VerifyModels();
             VerifyTableFolder();
+            VerifyPlaceholders();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
         }
@@ -38,6 +39,30 @@ namespace TacticsECS.EditorTools
             if (condition) return;
             _ok = false;
             Debug.LogError("[GameDataCsvVerification] FAIL: " + message);
+        }
+
+        /// <summary>번역 문구 자리표시자(docs/spec/csv/strings.md#자리표시자): 모든 설명이 다 채워지고, CSV 값을 바꾸면 문구도 바뀐다.</summary>
+        private static void VerifyPlaceholders()
+        {
+            GameDataLoader.LoadAll();
+            var texts = BuildingDefinition.All.Select(b => b.Description)
+                .Concat(TileActionDefinition.All.Select(a => a.Description)).Concat(TaskDefinition.All.Select(t => t.Description))
+                .Concat(CityRewardDefinition.All.Select(r => r.Description)).Concat(GameTables.Techs.Select(t => t.Description))
+                .Concat(GameTables.Tribes.Select(t => t.Description)).Concat(GameTables.StartConditions.Select(c => c.Description))
+                .Concat(GameDataLoader.LoadTechNodes().Select(n => n.Effect))
+                .Concat(new[] { BattleHud.ActionTooltip(ActionType.Wait), BattleHud.ActionTooltip(ActionType.Defend) }).ToList();
+            var unfilled = texts.Where(s => s != null && s.Contains("{")).ToList();
+            Check(unfilled.Count == 0, "every description placeholder is filled: " + string.Join(" | ", unfilled));
+
+            var mine = BuildingDefinition.All.First(b => b.Id == "Mine");
+            var mining = GameTables.Techs.First(t => t.Id == "Mining").Description;
+            Check(mine.Description.Contains("+" + mine.Population) && mining.Contains(mine.Cost.ToString()), "own {Population} and cross {Building.Mine.Cost} are filled");
+
+            // 규칙 값을 바꾸면 설명도 바뀐다(다음 LoadAll이 원래 값으로 되돌린다).
+            int monument = GameRules.Score.Monument;
+            GameRules.Score.Monument = 777;
+            Check(LocalizationSystem.Desc("Building", "AltarOfPeace").Contains("777"), "{Rule.*} follows the current rule value");
+            GameRules.Score.Monument = monument;
         }
 
         /// <summary>샌드박스 표 폴더(docs/spec/csv-common.md#파일): 내보내기 → 값 고치기 → 폴더 불러오기, 평평한 폴더, 기본 표로 되돌리기.</summary>

@@ -151,6 +151,71 @@ def check_string_keys():
     expected += [f"Action.{flag}.Tooltip" for flag in re.findall(r'\(ActionType\.(\w+), "\w+"\)', hud)]
     for key in sorted(set(expected) - keys):
         errors.append(f"Strings.csv: 데이터 표 행의 이름 키 '{key}'이(가) 없음")
+    check_placeholders(rows, langs)
+
+
+def check_placeholders(rows, langs):
+    """csv/strings.md#자리표시자: {Rule.키}, {표.Id.컬럼}, {컬럼}(그 행의 CSV 칸)이 실제로 있는지, 언어마다 같은 자리표시자를 쓰는지."""
+    import csv
+    res = ROOT / "Assets" / "Resources"
+    tables = res / "Tables"
+
+    def load(path, id_col="Id"):
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            reader = csv.DictReader(f)
+            data = {r[id_col]: r for r in reader if r.get(id_col) and not r[id_col].startswith("#")}
+            return data, reader.fieldnames or []
+
+    def merged(*parts):
+        out, cols = {}, []
+        for d, c in parts:
+            out.update(d)
+            cols += c
+        return out, cols
+
+    # 표 이름 -> (행들, 헤더, TextPlaceholderSystem.CrossValue가 아는 컬럼)
+    unit_cols = ["Cost", "MaxHp", "Defense", "Move.Range", "Attack.Attack", "Attack.Range"]
+    sources = {
+        "Building": (*load(tables / "Buildings.csv"), ["Cost", "Population", "PopulationPerAdjacent"]),
+        "TileAction": (*load(res / "TileActions.csv"), ["Cost", "Population", "StarsGain"]),
+        "Task": (*load(res / "Tasks.csv"), ["Threshold"]),
+        "CityReward": (*load(res / "CityRewards.csv", "Reward"), ["Amount"]),
+        "Unit": (*merged(load(tables / "Units.csv"), load(tables / "Boats.csv")), unit_cols),
+        "Tech": (*load(tables / "Techs.csv"), ["CostBase", "CostPerCity"]),
+        "Tribe": (*load(tables / "Tribes.csv"), ["StartStars"]),
+        "StartRule": (*load(tables / "StartConditionRules.csv"), ["Count", "MinDistance", "MaxDistance"]),
+        "StartCondition": (*load(tables / "StartConditions.csv"), []),
+    }
+    rules, _ = load(res / "GameRules.csv", "Key")
+    token = re.compile(r"\{([A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)*)\}")
+
+    for r in rows:
+        key = r["Key"]
+        per_lang = {lang: sorted(set(token.findall(r.get(lang) or ""))) for lang in langs}
+        if len({tuple(v) for v in per_lang.values()}) > 1:
+            errors.append(f"Strings.csv: '{key}'의 언어별 자리표시자가 다름 {per_lang}")
+        own_table, _, rest = key.partition(".")
+        own_id = rest.rsplit(".", 1)[0] if rest.count(".") >= 1 else ""
+        for name in per_lang.get(langs[0], []) if langs else []:
+            head, _, tail = name.partition(".")
+            if head == "Rule":
+                if tail not in rules:
+                    errors.append(f"Strings.csv: '{key}'의 {{{name}}} — GameRules.csv에 없는 규칙")
+                continue
+            if head in sources and tail.count(".") >= 1:
+                rid, _, col = tail.partition(".")
+                data, _, cross_cols = sources[head]
+                if rid not in data:
+                    errors.append(f"Strings.csv: '{key}'의 {{{name}}} — {head} 표에 없는 Id '{rid}'")
+                elif col not in cross_cols:
+                    errors.append(f"Strings.csv: '{key}'의 {{{name}}} — {head}에서 쓸 수 없는 컬럼 '{col}'(쓸 수 있는 것: {cross_cols})")
+                continue
+            # {컬럼}: 그 키가 설명하는 행(<표>.<Id>.Desc)의 CSV 칸
+            data, header, _ = sources.get(own_table, ({}, [], []))
+            if not key.endswith(".Desc") or own_id not in data or name not in header:
+                errors.append(f"Strings.csv: '{key}'의 {{{name}}} — 채울 수 없는 자리표시자")
+            elif not (data[own_id].get(name) or "").strip():
+                errors.append(f"Strings.csv: '{key}'의 {{{name}}} — 그 행의 '{name}' 칸이 비어 있음")
 
 
 check_links()

@@ -32,11 +32,12 @@ namespace TacticsECS
         public static List<string> LoadAll(TableSource source)
         {
             var errors = new List<string>();
-            LoadStrings(errors, source); // 다른 표의 이름/설명이 번역 표를 조회하므로 가장 먼저
+            // 순서: 번역 표(다른 표의 이름/설명이 조회) → 규칙({Rule.*}) → 키형 표 → 배열형 표. 설명 속 {표.Id.컬럼}은 먼저 읽은 표만 볼 수 있다.
+            LoadStrings(errors, source);
+            GameRulesCsvSerializer.Apply(Read(GameRulesCsvResourcePath, errors, source), errors);
             TileActionDefinition.All = GameTableCsvSerializer.ParseTileActions(Read(TileActionDefinition.CsvResourcePath, errors, source), errors);
             CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors, source), errors);
             TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors, source), errors);
-            GameRulesCsvSerializer.Apply(Read(GameRulesCsvResourcePath, errors, source), errors);
             LoadModels(errors);
             LoadArrayTables(errors, source);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
@@ -62,8 +63,8 @@ namespace TacticsECS
             GameTables.TechTreeLayout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors, source), errors);
             GameTables.TechGroups = ArrayTableCsvSerializer.ParseTechGroups(Read(GameTables.TechGroupsPath, errors, source), errors);
             GameTables.Tribes = ArrayTableCsvSerializer.ParseTribes(Read(GameTables.TribesPath, errors, source), errors);
-            GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
+            GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
             errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(biomeCount: LoadDefaultBiomes(source).Count));
         }
 

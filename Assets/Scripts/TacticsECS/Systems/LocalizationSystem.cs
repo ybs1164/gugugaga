@@ -9,10 +9,10 @@ namespace TacticsECS
     /// </summary>
     public static class LocalizationSystem
     {
-        /// <summary>지금 언어의 문자열. 키가 없거나 칸이 비면 fallback(null이면 키).</summary>
+        /// <summary>지금 언어의 문자열. 키가 없거나 칸이 비면 fallback(null이면 키). {Rule.*}, {표.Id.컬럼} 자리표시자는 채운다(TextPlaceholderSystem).</summary>
         public static string T(string key, string fallback = null)
         {
-            if (!string.IsNullOrEmpty(key) && StringTable.Current.TryGetValue(key, out var value) && value.Length > 0) return value;
+            if (!string.IsNullOrEmpty(key) && StringTable.Current.TryGetValue(key, out var value) && value.Length > 0) return TextPlaceholderSystem.Fill(value);
             return fallback ?? key;
         }
 
@@ -34,9 +34,10 @@ namespace TacticsECS
         public static string Name(string table, string id, string fallback = null) =>
             T(table + "." + id + ".Name", string.IsNullOrEmpty(fallback) ? id : fallback);
 
-        /// <summary>데이터 표 행의 설명: "&lt;table&gt;.&lt;id&gt;.Desc". 번역이 없으면 fallback(없으면 빈 문자열).</summary>
-        public static string Desc(string table, string id, string fallback = null) =>
-            T(table + "." + id + ".Desc", fallback ?? string.Empty);
+        /// <summary>데이터 표 행의 설명: "&lt;table&gt;.&lt;id&gt;.Desc". 번역이 없으면 fallback(없으면 빈 문자열).
+        /// self는 그 행의 CSV 칸(컬럼 이름 -&gt; 값) — 설명 속 {컬럼} 자리표시자를 채운다.</summary>
+        public static string Desc(string table, string id, string fallback = null, Func<string, string> self = null) =>
+            TextPlaceholderSystem.Fill(T(table + "." + id + ".Desc", fallback ?? string.Empty), self);
 
         /// <summary>언어 열 이름(ko/en ...)의 표시 이름 — 그 언어 열의 StringTable.LanguageNameKey 칸. 없으면 열 이름.</summary>
         public static string LanguageName(string language) =>

@@ -241,7 +241,7 @@ UI.MapSize.Large,큼,Large
 UI.MapSize.Huge,아주 큼,Huge
 UI.MapSize.Massive,거대함,Massive
 # 화면 문구 — Sandbox,,
-UI.Sandbox.StartHint,"""불러오기""로 CSV 파일을 선택해 배치를 시작하세요.","Pick a CSV file with ""Load"" to start placing units."
+UI.Sandbox.StartHint,"팔레트에서 유닛을 골라 빈 칸을 클릭하세요. 표를 고치려면 ""표 내보내기"" → 편집 → ""표 불러오기""(고친 뒤엔 ""다시 읽기"").","Pick a unit from the palette and click an empty tile. To edit tables: ""Export Tables"" → edit → ""Load Tables"" (then ""Reload"" after each edit)."
 UI.Sandbox.MapTypeOption,{0} ({1}%),{0} ({1}%)
 UI.Sandbox.WetnessLabel,{0} 물 {1}%,{0} water {1}%
 UI.Sandbox.TribeInfoLine,{0} {1},{0} {1}
@@ -249,17 +249,17 @@ UI.Sandbox.TribeInfoEmpty,"종족을 고르면 시작 별/기술/유닛, 종족 
 UI.Sandbox.BiomeOnly,"바이옴 '{0}'만으로 채웁니다. ""지형 생성""을 누르세요(1차 지형이 있으면 그 모양 그대로).","Fills the map with biome '{0}' only. Press ""Generate Terrain"" (keeps the current outline if there is one)."
 UI.Sandbox.BiomeAuto,자동: 전체 바이옴(종족이 있으면 종족 바이옴)으로 채웁니다.,Auto: fills with all biomes (tribe biomes if tribes are picked).
 UI.Sandbox.OutlineDone,"1차 지형: 물 {0}% (목표 {1}%, {2}), 수도 {3}, 사전 마을 {4}. ""지형 생성""으로 바이옴을 채우세요.","Outline: water {0}% (target {1}%, {2}), capitals {3}, planned villages {4}. Fill it with biomes via ""Generate Terrain""."
-UI.Sandbox.UnitsLoaded,{0}개 유닛을 불러왔습니다. 팔레트에서 골라 빈 칸을 클릭하세요.,Loaded {0} units. Pick one from the palette and click an empty tile.
+UI.Sandbox.UnitsLoaded,옛 형식 유닛 파일에서 {0}개 유닛을 불러왔습니다(팔레트만 바뀜).,Loaded {0} units from an old-format unit file (palette only).
 UI.Sandbox.LoadFailed,불러오기 실패: {0},Load failed: {0}
-UI.Sandbox.UnitsExported,{0}개 유닛을 {1}에 내보냈습니다.,Exported {0} units to {1}.
 UI.Sandbox.ExportFailed,내보내기 실패: {0},Export failed: {0}
 UI.Sandbox.TechLoadNoRows,기술트리 불러오기 실패: 기술 행이 없습니다.,Tech tree load failed: no tech rows.
-UI.Sandbox.TechLoaded,기술 {0}개를 불러왔습니다.,Loaded {0} techs.
-UI.Sandbox.TechLoadWarnings,경고 {0}개(콘솔).,{0} warnings (console).
+UI.Sandbox.TechLoaded,옛 형식 기술트리에서 기술 {0}개를 불러왔습니다.,Loaded {0} techs from an old-format tech tree file.
+UI.Sandbox.Warnings,경고 {0}개(콘솔).,{0} warnings (console).
+UI.Sandbox.TablesLoaded,표 {0}개를 {1}에서 읽었습니다(나머지는 기본 표).,Read {0} tables from {1} (the rest are defaults).
+UI.Sandbox.TablesDefault,기본 표를 다시 읽었습니다.,Reloaded the default tables.
+UI.Sandbox.TablesExported,표 {0}개를 {1}에 내보냈습니다.,Exported {0} tables to {1}.
 UI.Sandbox.TechLoadLocked,잠긴 채 남는 해금 {0}개.,{0} unlocks stay locked.
 UI.Sandbox.TechLoadFailed,기술트리 불러오기 실패: {0},Tech tree load failed: {0}
-UI.Sandbox.TechExported,기술 {0}개를 {1}에 내보냈습니다.,Exported {0} techs to {1}.
-UI.Sandbox.TechExportFailed,기술트리 내보내기 실패: {0},Tech tree export failed: {0}
 UI.Sandbox.BiomeLoadNoRows,바이옴 불러오기 실패: Biome 행이 없습니다.,Biome load failed: no Biome rows.
 UI.Sandbox.BiomesLoaded,{0}개 바이옴을 불러왔습니다. 습도 탭의 바이옴 목록에서 하나를 골라 규칙을 확인할 수 있습니다.,Loaded {0} biomes. Pick one from the biome list in the wetness tab to check its rules.
 UI.Sandbox.BiomeTribeWarnings,종족 바이옴 참조 경고 {0}개(콘솔).,{0} tribe biome reference warnings (console).
@@ -352,13 +352,13 @@ UI.UnitMenu.NoHome,소속 도시 없음,No home city
 UI.UnitMenu.Veteran,베테랑,Veteran
 UI.UnitMenu.Kills,처치 {0}/{1},Kills {0}/{1}
 # 화면 문구 — SandboxHud,,
-UI.SandboxHud.Load,불러오기,Load
-UI.SandboxHud.Export,내보내기,Export
+UI.SandboxHud.Load,표 불러오기,Load Tables
+UI.SandboxHud.Export,표 내보내기,Export Tables
 UI.SandboxHud.Player,플레이어,Player
 UI.SandboxHud.Enemy,적,Enemy
 UI.SandboxHud.LoadBiomes,바이옴 불러오기,Load Biomes
-UI.SandboxHud.LoadTech,기술 불러오기,Load Techs
-UI.SandboxHud.ExportTech,기술 내보내기,Export Techs
+UI.SandboxHud.Reload,다시 읽기,Reload
+UI.SandboxHud.ResetTables,기본 표,Defaults
 UI.SandboxHud.GenerateTerrain,지형 생성,Generate Terrain
 UI.SandboxHud.MapSize,크기: {0} ({1}x{1}),Size: {0} ({1}x{1})
 UI.SandboxHud.Wetness,습도 탭: {0},Wetness tab: {0}
@@ -371,11 +371,9 @@ UI.SandboxHud.PlayerTribe,종족(아군),Tribe (ally)
 UI.SandboxHud.EnemyTribe,종족(적),Tribe (enemy)
 UI.SandboxHud.BiomeAuto,자동 (전체 / 종족 바이옴),Auto (all / tribe biomes)
 UI.SandboxHud.NoTribe,종족 없음 (기본 규칙),No tribe (default rules)
-UI.SandboxHud.PickTechCsv,불러올 기술트리 CSV 선택,Choose a tech tree CSV to load
-UI.SandboxHud.ExportTechCsv,기술트리 CSV로 내보내기,Export tech tree as CSV
 UI.SandboxHud.PickBiomeCsv,불러올 바이옴 CSV 선택,Choose a biome CSV to load
-UI.SandboxHud.PickUnitCsv,불러올 CSV 선택,Choose a CSV to load
-UI.SandboxHud.ExportUnitCsv,CSV로 내보내기,Export as CSV
+UI.SandboxHud.PickTableCsv,표 폴더의 CSV 하나 선택 (옛 유닛·기술트리 파일도 가능),Choose any CSV in a table folder (old unit/tech tree files work too)
+UI.SandboxHud.PickExportFolder,표를 내보낼 폴더 선택,Choose a folder to export the tables to
 UI.SandboxHud.PaletteRow,{0} (HP{1}/{2}),{0} (HP{1}/{2})
 UI.SandboxHud.StartBattle,전투 시작,Start Battle
 # 화면 문구 — TechTree,,

@@ -37,6 +37,19 @@ namespace TacticsECS
 #endif
         }
 
+        /// <summary>폴더 하나를 고른다(샌드박스 "표 내보내기"). 취소하면 빈 문자열.</summary>
+        public static string OpenFolderPanel(string title)
+        {
+#if UNITY_EDITOR
+            return UnityEditor.EditorUtility.OpenFolderPanel(title, "", "");
+#elif UNITY_STANDALONE_WIN
+            return OpenFolderPanelWin32(title);
+#else
+            Debug.LogWarning("[StandaloneFileDialog] 이 플랫폼에서는 파일 대화상자를 지원하지 않습니다.");
+            return string.Empty;
+#endif
+        }
+
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         private const int OFN_EXPLORER = 0x00080000;
         private const int OFN_FILEMUSTEXIST = 0x00001000;
@@ -81,6 +94,56 @@ namespace TacticsECS
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetActiveWindow();
+
+        private const uint BIF_RETURNONLYFSDIRS = 0x0001;
+        private const uint BIF_EDITBOX = 0x0010;
+        private const uint BIF_NEWDIALOGSTYLE = 0x0040;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct BrowseInfo
+        {
+            public IntPtr owner;
+            public IntPtr root;
+            public IntPtr displayName;
+            public string title;
+            public uint flags;
+            public IntPtr callback;
+            public IntPtr param;
+            public int image;
+        }
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SHBrowseForFolder(ref BrowseInfo info);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern bool SHGetPathFromIDList(IntPtr idList, StringBuilder path);
+
+        [DllImport("ole32.dll")]
+        private static extern void CoTaskMemFree(IntPtr ptr);
+
+        public static string OpenFolderPanelWin32(string title)
+        {
+            IntPtr displayName = Marshal.AllocHGlobal(MaxPathLength * sizeof(char));
+            try
+            {
+                var info = new BrowseInfo
+                {
+                    owner = GetActiveWindow(),
+                    displayName = displayName,
+                    title = title,
+                    flags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX,
+                };
+                IntPtr idList = SHBrowseForFolder(ref info);
+                if (idList == IntPtr.Zero) return string.Empty;
+                try
+                {
+                    var path = new StringBuilder(MaxPathLength);
+                    return SHGetPathFromIDList(idList, path) ? path.ToString().Replace('\\', '/') : string.Empty;
+                }
+                finally { CoTaskMemFree(idList); }
+            }
+            finally { Marshal.FreeHGlobal(displayName); }
+        }
 
         public static string OpenFilePanelWin32(string title, string directory, string extension)
         {

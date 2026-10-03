@@ -27,7 +27,8 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 - 우상단 언어 버튼: 한국어 ↔ English(화면을 다시 연다) — [번역 표](docs/spec/csv/strings.md).
 
 ## 샌드박스
-1. **불러오기 / 내보내기**: [샌드박스 유닛 CSV](docs/spec/csv/units.md#샌드박스-유닛-csv)(불러오지 않으면 기본 [Units.csv](docs/spec/csv/units.md#unitscsv--육지-유닛)). **바이옴 불러오기**: [바이옴 CSV](docs/spec/csv/biomes.md). **기술 불러오기·내보내기**: [기술 단일 파일](docs/spec/csv/tech.md#techtreecsv--샌드박스-단일-파일-형식).
+1. 표 고치기: **표 내보내기**(폴더 선택 — 지금 표를 `Assets/Resources`와 같은 구조로 씀) → CSV 편집 → **표 불러오기**(그 폴더의 CSV 아무거나 선택 — [표 폴더](docs/spec/csv-common.md#파일)) → 고칠 때마다 **다시 읽기**. **기본 표**로 되돌린다. 불러온 폴더는 언어를 바꿔도 유지된다.
+   - 표 이름이 아닌 파일은 옛 형식으로 읽는다: [유닛 파일](docs/spec/csv/units.md#샌드박스-유닛-csv-옛-형식-읽기만), [기술 단일 파일](docs/spec/csv/tech.md#techtreecsv--샌드박스-단일-파일-형식-옛-형식-읽기만), 바이옴 파일. **바이옴 불러오기**: [바이옴 CSV](docs/spec/csv/biomes.md) 하나만.
 2. **맵 크기**, **습도 탭**: 맵 타입·물 비율 → 1차 지형 생성 → 바이옴·종족(아군/적) 선택 → **지형 생성**. 같은 땅 모양에 바이옴만 바꿔 다시 채울 수 있다.
 3. 팔레트에서 유닛·팀을 골라 칸 클릭으로 배치(다시 클릭하면 제거) → **전투 시작** → **다시 시작**으로 복귀.
 

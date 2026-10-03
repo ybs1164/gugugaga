@@ -28,6 +28,7 @@ namespace TacticsECS.EditorTools
             VerifyRewardsAndTasks();
             VerifyUnitsAndCombat();
             VerifyModels();
+            VerifyTableFolder();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
         }
@@ -37,6 +38,50 @@ namespace TacticsECS.EditorTools
             if (condition) return;
             _ok = false;
             Debug.LogError("[GameDataCsvVerification] FAIL: " + message);
+        }
+
+        /// <summary>샌드박스 표 폴더(docs/spec/csv-common.md#파일): 내보내기 → 값 고치기 → 폴더 불러오기, 평평한 폴더, 기본 표로 되돌리기.</summary>
+        private static void VerifyTableFolder()
+        {
+            var root = System.IO.Path.GetFullPath("Temp/TableFolderVerification");
+            if (System.IO.Directory.Exists(root)) System.IO.Directory.Delete(root, true);
+            int exported = GameDataLoader.ExportTables(TableSource.Resources, root);
+            Check(exported == GameDataLoader.TableCsvPaths.Length, $"export writes every table ({exported}/{GameDataLoader.TableCsvPaths.Length})");
+            var unitsFile = System.IO.Path.Combine(root, GameTables.UnitsPath + ".csv");
+            Check(System.IO.File.Exists(unitsFile) && System.IO.File.Exists(System.IO.Path.Combine(root, "Strings.csv")), "export keeps the Resources layout (Tables/ + root files)");
+            Check(GameDataLoader.TableFolderOf(unitsFile) == root && GameDataLoader.TableFolderOf(System.IO.Path.Combine(root, "Strings.csv")) == root,
+                "picking any table file resolves the folder root");
+            Check(GameDataLoader.TableFolderOf(System.IO.Path.Combine(root, "SandboxUnits.csv")) == null, "non-table file names are legacy single files");
+
+            // 보병 비용을 99로 고친 폴더를 읽으면 그 값, 나머지 표는 그대로.
+            var lines = System.IO.File.ReadAllLines(unitsFile);
+            var header = lines[0].Split(',');
+            int idCol = System.Array.IndexOf(header, "Id"), costCol = System.Array.IndexOf(header, "Cost");
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cells = lines[i].Split(',');
+                if (cells.Length > costCol && cells[idCol] == "infantry") { cells[costCol] = "99"; lines[i] = string.Join(",", cells); }
+            }
+            System.IO.File.WriteAllLines(unitsFile, lines);
+            var source = TableSource.FromPath(root);
+            var errors = GameDataLoader.LoadAll(source);
+            Check(errors.Count == 0 && source.FromFolder.Count == GameDataLoader.TableCsvPaths.Length, $"folder load reads every table without errors ({source.FromFolder.Count}): " + string.Join(" | ", errors));
+            Check(GameTables.Units.First(u => u.Id == "infantry").Cost == 99, "edited folder value is used");
+            Check(GameTables.Units.First(u => u.Id == "spy").Boat == "dinghy" && BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge",
+                "links are rebuilt from the folder tables");
+
+            // 평평한 폴더(Units.csv 하나만): 그 표만 덮어쓰고 나머지는 기본 표.
+            var flat = System.IO.Path.Combine(root, "flat");
+            System.IO.Directory.CreateDirectory(flat);
+            System.IO.File.Copy(unitsFile, System.IO.Path.Combine(flat, "Units.csv"));
+            var flatSource = TableSource.FromPath(GameDataLoader.TableFolderOf(System.IO.Path.Combine(flat, "Units.csv")));
+            GameDataLoader.LoadAll(flatSource);
+            Check(flatSource.FromFolder.Count == 1 && GameTables.Units.First(u => u.Id == "infantry").Cost == 99 && BuildingDefinition.All.Length > 0,
+                "flat folder overrides only the tables it has");
+
+            GameDataLoader.LoadAll(TableSource.Resources);
+            Check(GameTables.Units.First(u => u.Id == "infantry").Cost != 99, "default tables come back after a Resources load");
+            System.IO.Directory.Delete(root, true);
         }
 
         private static void VerifyReader()

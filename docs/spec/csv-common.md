@@ -5,6 +5,7 @@
 
 ## 파일
 - 위치는 `Assets/Resources/`. 예외 위치는 각 `csv/*.md`의 머리에 적는다.
+- 표 폴더(샌드박스 "표 불러오기"): 게임 데이터 표(`GameDataLoader.TableCsvPaths` — 번역·규칙·타일 행동·과업·도시 보상·`Tables/` 전부)를 `Assets/Resources`와 같은 구조(`<폴더>/Tables/Units.csv`) 또는 평평하게(`<폴더>/Units.csv`) 둔 폴더. 폴더에 있는 표만 덮어쓰고 없는 표는 기본 표를 쓴다. 모델 CSV(`Models/`)는 덮어쓰지 않는다. 조작은 [README](../../README.md#샌드박스).
 - UTF-8(BOM 있어도 됨). 스프레드시트에서는 "CSV UTF-8"로 저장한다.
 - 값은 CSV에만 둔다. 코드에는 기본 표를 두지 않는다(로드 실패 시 빈 표).
 

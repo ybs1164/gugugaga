@@ -22,7 +22,7 @@ namespace TacticsECS.EditorTools
             if(report.summary.result!=BuildResult.Succeeded)
                 throw new InvalidOperationException("[Pixel2DBuild] " + report.summary.result);
             GameDataLoader.LoadAll();
-            File.WriteAllText("Builds/Pixel2D/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units)); // 샌드박스 "불러오기"용 기본 유닛 사본
+            GameDataLoader.ExportTables(TableSource.Resources,"Builds/Pixel2D/SandboxTables"); // 샌드박스 "표 불러오기"로 고쳐 읽을 기본 표 사본
             Directory.CreateDirectory("Builds/Pixel2D/Licenses");
             foreach(string pack in new[]{"tiny-town","tiny-farm","tiny-dungeon","ui-pack-pixel-adventure"})
                 File.Copy("Assets/Art/Pixel2D/ThirdParty/Kenney/"+pack+"/License.txt","Builds/Pixel2D/Licenses/"+pack+".txt",true);

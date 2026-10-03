@@ -650,8 +650,8 @@ namespace TacticsECS.EditorTools
             CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", Src("UI.SandboxHud.LoadBiomes"), new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "맵크기", "", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "습도", "", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.LoadTech"), new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ExportTech"), new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.Reload"), new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ResetTables"), new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -188f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);

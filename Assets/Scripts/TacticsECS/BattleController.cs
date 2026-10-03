@@ -129,9 +129,15 @@ namespace TacticsECS
         private bool _placementActive;
         private List<BiomeCsvRow> _loadedBiomes;
 
-        /// <summary>샌드박스 "기술 불러오기"로 읽은 커스텀 기술트리. null이면 기본 Assets/Resources/TechTree.csv.
+        /// <summary>샌드박스 "표 불러오기"로 옛 단일 파일 기술트리(TechTree.csv 형식)를 읽었을 때만 채워진다. null이면 지금 표(기술 표들).
         /// 유닛/바이옴과 달리 "다시 시작"(HandleReturnToSetup)해도 유지한다 — 같은 트리로 여러 판을 시험하기 위함.</summary>
         private List<TechNodeData> _customTechNodes;
+
+        /// <summary>샌드박스 "표 불러오기"로 고른 표 폴더(null = Assets/Resources 기본 표). 언어 버튼이 씬을 다시 열어도 유지되도록
+        /// 정적으로 둔다(같은 실행 안에서만). 데모 씬은 쓰지 않는다.</summary>
+        private static string s_tableFolder;
+
+        private static TableSource SandboxTables => TableSource.FromPath(s_tableFolder);
 
         /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
         /// (docs/reference/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
@@ -210,7 +216,7 @@ namespace TacticsECS
         {
             // 건물/타일 행동 등 게임 규칙 표(Assets/Resources/*.csv)를 Data 표에 채운다. 번역 표는 저장된 언어로.
             LanguagePreference.Apply();
-            GameDataLoader.LoadAll();
+            GameDataLoader.LoadAll(sandboxMode ? SandboxTables : TableSource.Resources);
             _cam = Camera.main;
             if (_cam == null)
             {
@@ -364,8 +370,8 @@ namespace TacticsECS
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
-            _sandboxHud.OnLoadTechClicked += HandleTechLoad;
-            _sandboxHud.OnExportTechClicked += HandleTechExport;
+            _sandboxHud.OnReloadTablesClicked += () => ApplyTables(s_tableFolder);
+            _sandboxHud.OnResetTablesClicked += () => ApplyTables(null);
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
@@ -385,12 +391,13 @@ namespace TacticsECS
             RefreshWetnessLabel();
             RefreshBiomeOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
+            SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
             RefreshTribeInfo();
         }
 
         // ---------- Sandbox: 습도 탭(1차 지형 · 바이옴 선택 · 종족) ----------
 
-        private List<BiomeCsvRow> ActiveBiomes() => _loadedBiomes ?? (_defaultBiomes ??= GameDataLoader.LoadDefaultBiomes());
+        private List<BiomeCsvRow> ActiveBiomes() => _loadedBiomes ?? (_defaultBiomes ??= GameDataLoader.LoadDefaultBiomes(SandboxTables));
 
         private TribeRow? TribeOf(Team team) =>
             _tribeByTeam.TryGetValue(team, out int i) && TribeSystem.IsValid(i) ? GameTables.Tribes[i] : (TribeRow?)null;
@@ -539,17 +546,19 @@ namespace TacticsECS
             _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), preset.Size);
         }
 
+        /// <summary>"표 불러오기": 고른 파일이 표 이름(Units.csv, Strings.csv …)이면 그 파일이 든 표 폴더 전체를 읽고(ApplyTables),
+        /// 아니면 옛 단일 파일로 보고 헤더로 종류를 가른다 — 기술트리(Branch/Tier 칸), 바이옴(Kind+Biome), 그 밖은 키형 유닛 CSV.</summary>
         private void HandleSandboxLoad(string path)
         {
+            string folder = GameDataLoader.TableFolderOf(path);
+            if (folder != null) { ApplyTables(folder); return; }
             try
             {
-                var csvText = System.IO.File.ReadAllText(path);
-                var rows = UnitCsvSerializer.Parse(csvText);
-                _placementController.SetRows(rows);
-                _sandboxHud.SetPalette(rows);
-                _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsLoaded", rows.Count));
-                RefreshTribeInfo(); // 종족 시작 유닛을 이 표에서 Id로 찾는다
+                var header = CsvTableReader.Parse(System.IO.Path.GetFileName(path), System.IO.File.ReadAllText(path)).Header ?? new string[0];
+                bool Has(string column) => System.Array.Exists(header, h => string.Equals(h, column, System.StringComparison.OrdinalIgnoreCase));
+                if (Has("Branch") || Has("Tier")) HandleTechLoad(path);
+                else if (Has("Kind") && Has("Biome")) HandleBiomeLoad(path);
+                else LoadLegacyUnits(path);
             }
             catch (System.Exception e)
             {
@@ -557,13 +566,45 @@ namespace TacticsECS
             }
         }
 
-        private void HandleSandboxExport(string path)
+        /// <summary>표 폴더(null = 기본 표)를 읽어 전부 다시 올린다 — 폴더에 없는 표는 기본 표. 연결·검증 경고는 콘솔에, 개수는 상태 줄에.
+        /// 팔레트(Units.csv)·종족·바이옴·기술트리 패널을 새 표로 다시 그린다. 이미 배치한 유닛은 그대로 둔다.</summary>
+        private void ApplyTables(string folder)
+        {
+            var source = TableSource.FromPath(folder);
+            if (source.Folder != null && !System.IO.Directory.Exists(source.Folder))
+            {
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", source.Folder));
+                return;
+            }
+            s_tableFolder = source.Folder;
+            var errors = GameDataLoader.LoadAll(source);
+            _customTechNodes = null;
+            _defaultBiomes = null;
+            _loadedBiomes = null;
+            _biomeChoice = 0;
+            foreach (var team in CitySystem.Teams)
+                if (!TribeSystem.IsValid(_tribeByTeam[team])) _tribeByTeam[team] = -1;
+
+            _sandboxHud.RefreshLabels();
+            SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
+            RefreshBiomeOptions();
+            _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
+            RefreshTribeInfo();
+            if (_techTreeHud != null) _techTreeHud.SetNodes(CurrentTechNodes());
+
+            string status = source.Folder == null ? LocalizationSystem.T("UI.Sandbox.TablesDefault")
+                : LocalizationSystem.F("UI.Sandbox.TablesLoaded", source.FromFolder.Count, source.Folder);
+            if (errors.Count > 0) status += " " + LocalizationSystem.F("UI.Sandbox.Warnings", errors.Count);
+            _sandboxHud.SetStatus(status);
+        }
+
+        /// <summary>"표 내보내기": 지금 쓰는 표 전부를 Resources와 같은 구조로 그 폴더에 쓴다 — 고친 뒤 "표 불러오기"로 다시 읽는다.</summary>
+        private void HandleSandboxExport(string folder)
         {
             try
             {
-                var csvText = UnitCsvSerializer.Write(_placementController.Rows);
-                System.IO.File.WriteAllText(path, csvText);
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsExported", _placementController.Rows.Count, path));
+                int count = GameDataLoader.ExportTables(SandboxTables, folder);
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TablesExported", count, folder));
             }
             catch (System.Exception e)
             {
@@ -571,9 +612,25 @@ namespace TacticsECS
             }
         }
 
-        private List<TechNodeData> CurrentTechNodes() => _customTechNodes ?? GameDataLoader.LoadTechNodes();
+        private void SetPaletteRows(List<UnitCsvRow> rows)
+        {
+            _placementController.SetRows(rows);
+            _sandboxHud.SetPalette(rows);
+            _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
+        }
 
-        /// <summary>기술트리 CSV(TechTree.csv와 같은 형식)를 불러와 이후 전투의 기술트리로 쓴다. 기술트리 패널도 바로 다시 그려
+        /// <summary>옛 형식(키형) 유닛 CSV — 읽기만 한다. 팔레트만 이 파일로 바꾸고, 종족 시작 유닛은 이 표에서 Id로 찾는다.</summary>
+        private void LoadLegacyUnits(string path)
+        {
+            var rows = UnitCsvSerializer.Parse(System.IO.File.ReadAllText(path));
+            SetPaletteRows(rows);
+            _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsLoaded", rows.Count));
+            RefreshTribeInfo();
+        }
+
+        private List<TechNodeData> CurrentTechNodes() => _customTechNodes ?? GameDataLoader.LoadTechNodes(SandboxTables);
+
+        /// <summary>옛 형식 기술트리 CSV(TechTree.csv와 같은 한 파일 형식, 읽기만)를 불러와 이후 전투의 기술트리로 쓴다. 기술트리 패널도 바로 다시 그려
         /// 배치 단계에서 모양을 확인할 수 있다. 형식 오류(TechCsvSerializer)와 참조 오류(TechTreeValidationSystem)는 콘솔에
         /// 경고로 남기고, 상태 줄에는 개수만 보인다 — 경고가 있어도 읽을 수 있는 만큼은 적용한다.</summary>
         private void HandleTechLoad(string path)
@@ -599,26 +656,12 @@ namespace TacticsECS
                 _customTechNodes = nodes;
                 if (_techTreeHud != null) _techTreeHud.SetNodes(nodes);
                 _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoaded", nodes.Count) +
-                                      (errors.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.TechLoadWarnings", errors.Count) : string.Empty) +
+                                      (errors.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.Warnings", errors.Count) : string.Empty) +
                                       (missing.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.TechLoadLocked", missing.Count) : string.Empty));
             }
             catch (System.Exception e)
             {
                 _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoadFailed", e.Message));
-            }
-        }
-
-        private void HandleTechExport(string path)
-        {
-            try
-            {
-                var nodes = CurrentTechNodes();
-                System.IO.File.WriteAllText(path, TechCsvSerializer.Write(nodes), new System.Text.UTF8Encoding(true));
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechExported", nodes.Count, path));
-            }
-            catch (System.Exception e)
-            {
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechExportFailed", e.Message));
             }
         }
 

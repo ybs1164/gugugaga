@@ -51,9 +51,9 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 | `Upgrade` | 뗏목에서 업그레이드하는 배. 여는 기술은 TechUnlocks의 `BoatIndex`(없으면 기술 없이 가능) |
 | `Special` | 유닛 `BoatIndex`가 가리키는 전용 배. 업그레이드 불가 |
 
-## 샌드박스 유닛 CSV
+## 샌드박스 유닛 CSV (옛 형식, 읽기만)
 파일: `docs/sample_units.csv`
-샌드박스 "불러오기/내보내기"용 한 파일 형식(예시가 위 파일). 키형(`Id`) — `Index`가 없고, 배는 `BoatIndex` 대신 배 `Id`를 직접 적는다.
+샌드박스 "표 불러오기"에서 표 이름이 아닌 파일을 고르면 이 형식으로 읽는다(예시가 위 파일) — 팔레트만 바뀐다. 내보내기는 없다(표 폴더로 내보낸다). 키형(`Id`) — `Index`가 없고, 배는 `BoatIndex` 대신 배 `Id`를 직접 적는다.
 컬럼은 [Units.csv](#unitscsv--육지-유닛)의 `Index`·`BoatIndex`를 뺀 나머지 + 아래 컬럼. 이 형식은 모르는 컬럼을 경고하지 않는다(오타 주의). 옛 한 칸 목록 `Actions`(`Move;Attack`)도 읽는다.
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |

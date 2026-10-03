@@ -19,14 +19,18 @@ namespace TacticsECS
     /// </summary>
     public class SandboxHud : MonoBehaviour
     {
+        /// <summary>"표 불러오기" — 고른 CSV 파일 경로. 표 폴더 안의 파일이면 그 폴더 전체, 옛 단일 파일이면 그 파일만(BattleController가 가른다).</summary>
         public event Action<string> OnLoadClicked;
+        /// <summary>"표 내보내기" — 고른 폴더 경로.</summary>
         public event Action<string> OnExportClicked;
         public event Action<int> OnUnitSelected;
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
         public event Action<string> OnLoadBiomeClicked;
-        public event Action<string> OnLoadTechClicked;
-        public event Action<string> OnExportTechClicked;
+        /// <summary>"다시 읽기" — 지금 표 폴더(없으면 기본 표)를 다시 읽는다.</summary>
+        public event Action OnReloadTablesClicked;
+        /// <summary>"기본 표" — 표 폴더를 버리고 Assets/Resources의 기본 표로 돌아간다.</summary>
+        public event Action OnResetTablesClicked;
         public event Action OnGenerateTerrainClicked;
         public event Action OnMapSizeCycleClicked;
         public event Action OnWetnessCycleClicked;
@@ -48,6 +52,7 @@ namespace TacticsECS
         private static readonly Color PlayerAccent = new Color(0.30f, 0.55f, 0.95f);
         private static readonly Color EnemyAccent = new Color(0.90f, 0.35f, 0.30f);
 
+        private Transform _canvas;
         private Text _statusText;
         private Text _mapSizeLabel;
         private Text _wetnessLabel;
@@ -113,25 +118,18 @@ namespace TacticsECS
             WirePalette(canvas);
             WireStructurePanel(canvas);
             WireStartButton(canvas);
+            _canvas = canvas;
+            RefreshLabels();
 
             HideStructurePanel();
             PixelUISkin.Apply(gameObject);
         }
 
-        // ---------- 툴바: 불러오기/내보내기(둘 다 OS 파일 탐색기) + 상태 텍스트 ----------
+        // ---------- 툴바: 표 불러오기/내보내기(OS 탐색기) · 다시 읽기 · 기본 표 + 상태 텍스트 ----------
 
         private void WireToolbar(Transform canvas)
         {
             var panel = canvas.Find("Toolbar");
-            // 버튼 이름(…Button)은 프리팹 계층 이름일 뿐 — 보이는 글자는 번역 표 키로 채운다.
-            SetLabel(panel, "불러오기Button", "UI.SandboxHud.Load");
-            SetLabel(panel, "내보내기Button", "UI.SandboxHud.Export");
-            SetLabel(panel, "플레이어Button", "UI.SandboxHud.Player");
-            SetLabel(panel, "적Button", "UI.SandboxHud.Enemy");
-            SetLabel(panel, "바이옴불러오기Button", "UI.SandboxHud.LoadBiomes");
-            SetLabel(panel, "기술불러오기Button", "UI.SandboxHud.LoadTech");
-            SetLabel(panel, "기술내보내기Button", "UI.SandboxHud.ExportTech");
-            SetLabel(panel, "지형생성Button", "UI.SandboxHud.GenerateTerrain");
             panel.Find("불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadClicked);
             panel.Find("내보내기Button").GetComponent<Button>().onClick.AddListener(HandleExportClicked);
 
@@ -146,8 +144,8 @@ namespace TacticsECS
             _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
 
             panel.Find("바이옴불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadBiomeClicked);
-            WireOptionalButton(panel, "기술불러오기Button", HandleLoadTechClicked);
-            WireOptionalButton(panel, "기술내보내기Button", HandleExportTechClicked);
+            WireOptionalButton(panel, "기술불러오기Button", () => OnReloadTablesClicked?.Invoke());
+            WireOptionalButton(panel, "기술내보내기Button", () => OnResetTablesClicked?.Invoke());
 
             var mapSizeButtonTransform = panel.Find("맵크기Button");
             mapSizeButtonTransform.GetComponent<Button>().onClick.AddListener(() => OnMapSizeCycleClicked?.Invoke());
@@ -175,6 +173,34 @@ namespace TacticsECS
         /// 클릭마다 호출).</summary>
         public void SetWetnessLabel(string name) => _wetnessLabel.text = LocalizationSystem.F("UI.SandboxHud.Wetness", name);
 
+        /// <summary>프리팹에 구운 글자(버튼·라벨)를 번역 표의 지금 언어로 다시 채운다 — Init과, 표 폴더가 자기 Strings.csv를 가져왔을 때(BattleController.ApplyTables).
+        /// 버튼 이름(…Button)은 프리팹 계층 이름일 뿐이다. 옛 기술 불러오기/내보내기 버튼 자리는 다시 읽기/기본 표로 쓴다.</summary>
+        public void RefreshLabels()
+        {
+            if (_canvas == null) return;
+            var toolbar = _canvas.Find("Toolbar");
+            SetLabel(toolbar, "불러오기Button", "UI.SandboxHud.Load");
+            SetLabel(toolbar, "내보내기Button", "UI.SandboxHud.Export");
+            SetLabel(toolbar, "플레이어Button", "UI.SandboxHud.Player");
+            SetLabel(toolbar, "적Button", "UI.SandboxHud.Enemy");
+            SetLabel(toolbar, "바이옴불러오기Button", "UI.SandboxHud.LoadBiomes");
+            SetLabel(toolbar, "기술불러오기Button", "UI.SandboxHud.Reload");
+            SetLabel(toolbar, "기술내보내기Button", "UI.SandboxHud.ResetTables");
+            SetLabel(toolbar, "지형생성Button", "UI.SandboxHud.GenerateTerrain");
+            var tab = _canvas.Find("GenerationTab");
+            if (tab != null)
+            {
+                SetLabel(tab, "Title", "UI.SandboxHud.TabTitle");
+                SetLabel(tab, "MapTypeLabel", "UI.SandboxHud.MapType");
+                SetLabel(tab, "WaterLabel", "UI.SandboxHud.Water");
+                SetLabel(tab, "1차지형생성Button", "UI.SandboxHud.GenerateOutline");
+                SetLabel(tab, "BiomeLabel", "UI.SandboxHud.Biome");
+                SetLabel(tab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
+                SetLabel(tab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
+            }
+            SetLabel(_canvas, "StartBattleButton", "UI.SandboxHud.StartBattle");
+        }
+
         /// <summary>parent/child 이름의 Label(또는 그 자신의 Text)에 번역 표 문자열을 넣는다. 옛 프리팹에 없는 자식은 건너뛴다.</summary>
         private static void SetLabel(Transform parent, string child, string key)
         {
@@ -199,13 +225,6 @@ namespace TacticsECS
             _playerTribeDropdown = tab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
             _enemyTribeDropdown = tab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
             _tribeInfoText = tab.Find("TribeInfo").GetComponent<Text>();
-            SetLabel(tab, "Title", "UI.SandboxHud.TabTitle");
-            SetLabel(tab, "MapTypeLabel", "UI.SandboxHud.MapType");
-            SetLabel(tab, "WaterLabel", "UI.SandboxHud.Water");
-            SetLabel(tab, "1차지형생성Button", "UI.SandboxHud.GenerateOutline");
-            SetLabel(tab, "BiomeLabel", "UI.SandboxHud.Biome");
-            SetLabel(tab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
-            SetLabel(tab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
 
             _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
             _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });
@@ -268,22 +287,6 @@ namespace TacticsECS
             t.GetComponent<Button>().onClick.AddListener(onClick);
         }
 
-        /// <summary>OS 파일 탐색기로 불러올 기술트리 CSV(TechTree.csv 형식)를 고른다. 취소하면 아무 일도 없다.</summary>
-        private void HandleLoadTechClicked()
-        {
-            var path = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.T("UI.SandboxHud.PickTechCsv"), "", "csv");
-            if (string.IsNullOrEmpty(path)) return;
-            OnLoadTechClicked?.Invoke(path);
-        }
-
-        /// <summary>지금 쓰는 기술트리(기본 TechTree.csv 또는 불러온 파일)를 CSV로 내보낸다 — 편집용 템플릿.</summary>
-        private void HandleExportTechClicked()
-        {
-            var path = StandaloneFileDialog.SaveFilePanel(LocalizationSystem.T("UI.SandboxHud.ExportTechCsv"), "", TechTreeDefinition.SandboxFileName, "csv");
-            if (string.IsNullOrEmpty(path)) return;
-            OnExportTechClicked?.Invoke(path);
-        }
-
         /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
         /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>
         private void HandleLoadBiomeClicked()
@@ -293,20 +296,19 @@ namespace TacticsECS
             OnLoadBiomeClicked?.Invoke(path);
         }
 
-        /// <summary>OS 파일 탐색기(열기 대화상자)로 불러올 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다.
+        /// <summary>OS 파일 탐색기(열기 대화상자)로 표 폴더 안의 CSV 하나(또는 옛 유닛·기술 파일)를 고른다. 취소하면 아무 일도 없다.
         /// 에디터와 스탠드얼론 빌드(Windows) 양쪽에서 동작한다.</summary>
         private void HandleLoadClicked()
         {
-            var path = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.T("UI.SandboxHud.PickUnitCsv"), "", "csv");
+            var path = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.T("UI.SandboxHud.PickTableCsv"), "", "csv");
             if (string.IsNullOrEmpty(path)) return;
             OnLoadClicked?.Invoke(path);
         }
 
-        /// <summary>OS 파일 탐색기(저장 대화상자)로 내보낼 CSV 경로를 고른다.
-        /// 에디터와 스탠드얼론 빌드(Windows) 양쪽에서 동작한다.</summary>
+        /// <summary>OS 폴더 선택 대화상자로 표를 내보낼 폴더를 고른다.</summary>
         private void HandleExportClicked()
         {
-            var path = StandaloneFileDialog.SaveFilePanel(LocalizationSystem.T("UI.SandboxHud.ExportUnitCsv"), "", "SandboxUnits", "csv");
+            var path = StandaloneFileDialog.OpenFolderPanel(LocalizationSystem.T("UI.SandboxHud.PickExportFolder"));
             if (string.IsNullOrEmpty(path)) return;
             OnExportClicked?.Invoke(path);
         }
@@ -405,7 +407,6 @@ namespace TacticsECS
 
         private void WireStartButton(Transform canvas)
         {
-            SetLabel(canvas, "StartBattleButton", "UI.SandboxHud.StartBattle");
             canvas.Find("StartBattleButton").GetComponent<Button>().onClick.AddListener(() => OnStartBattleClicked?.Invoke());
         }
     }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -29,8 +29,8 @@ namespace TacticsECS
         private static readonly Color HubColor = new Color(1f, 1f, 1f, 0.9f);
 
         // 방사형 배치 수치(예전 UIPrefabSetup의 값 그대로).
-        private const float HubDiameter = 110f;
-        private static readonly float[] TierDiameter = { 80f, 70f, 64f };
+        private const float HubDiameter = 56f;
+        private static readonly float[] TierDiameter = { 48f, 44f, 40f }; // frames hug the native-pixel icon (PixelUIScaler)
         private static readonly float[] TierRadius = { 115f, 205f, 315f };
         private const float TierRadiusStep = 100f; // 4티어 이상이 생기면 이 간격으로 더 바깥에.
         private const float BranchSpreadDeg = 20f;
@@ -178,7 +178,7 @@ namespace TacticsECS
             rect.anchoredPosition = pos;
             rect.sizeDelta = new Vector2(diameter, diameter);
             var bg = rect.gameObject.AddComponent<Image>();
-            bg.sprite = RuntimeSprite.CreateCircle();
+            bg.sprite = PixelUISkin.Badge; bg.type = Image.Type.Sliced;
 
             float inset = diameter * (1f - IconInsetRatio) * 0.5f;
             var iconRect = NewRect("Icon", rect);

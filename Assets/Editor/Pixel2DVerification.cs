@@ -8,6 +8,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
 
 namespace TacticsECS.EditorTools
 {
@@ -93,7 +94,7 @@ namespace TacticsECS.EditorTools
         private static void CheckComposite(Sprite sprite, string label)
         {
             Check(sprite.pixelsPerUnit == PixelSpriteCatalog.PixelsPerUnit,"detail pixel grid: " + label);
-            int w = (int)sprite.rect.width, h = (int)sprite.rect.height;
+            int w = sprite.texture.width, h = sprite.texture.height; // icons are cropped rects of the full canvas
             var pixels = sprite.texture.GetPixels32();
             bool uniform = true, any = false;
             for (int y=0;y<h;y++) for (int x=0;x<w;x++)
@@ -291,12 +292,22 @@ namespace TacticsECS.EditorTools
                 Call(controller,"Awake"); Call(controller,"SetupBattle");
                 foreach(var hud in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUISkin.Apply(hud.gameObject);
                 CaptureCamera(Camera.main,"docs/images/pixel2d/"+name+".png",1920,1080,true);
+                if(name=="SampleScene")
+                {
+                    var unit=controller.GetComponentsInChildren<UnitView>().First();
+                    typeof(BattleController).GetMethod("FocusUnit",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{unit.UnitId});
+                    CaptureCamera(Camera.main,"docs/images/pixel2d/UnitSelected.png",1920,1080,true);
+                }
                 if(name=="Sandbox")
                 {
                     File.WriteAllText("Temp/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units));
                     typeof(BattleController).GetMethod("HandleSandboxLoad",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{Path.GetFullPath("Temp/SandboxUnits.csv")});
                     Call(controller,"HandleGenerateTerrain");
                     CaptureCamera(Camera.main,"docs/images/pixel2d/SandboxGenerated.png",1920,1080,true);
+                    var tech=controller.GetComponentInChildren<TechTreeHud>(true);
+                    Check(tech!=null,"sandbox has a tech tree");
+                    tech.transform.Find("Canvas/Panel").gameObject.SetActive(true);
+                    CaptureCamera(Camera.main,"docs/images/pixel2d/TechTree.png",1920,1080,true);
                 }
                 Check(controller.GetComponentsInChildren<UnitView>().Length > 0 || name=="Sandbox","scene startup");
             }
@@ -328,6 +339,29 @@ namespace TacticsECS.EditorTools
             camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.12f,.17f,.23f);
             CaptureCamera(camera,"docs/images/pixel2d/catalog.png",1920,1080,false);
         }
+        /// <summary>Every pixel-art Image shows one art pixel as exactly PixelUIScaler.TexelSize screen pixels.</summary>
+        private static void CheckUiTexels(Canvas canvas)
+        {
+            int texel = PixelUIScaler.TexelSize(canvas.pixelRect.height);
+            float scale = canvas.scaleFactor;
+            foreach (var image in canvas.GetComponentsInChildren<Image>(true))
+            {
+                var sprite = image.sprite;
+                if (sprite == null || sprite.texture == null || sprite.texture.filterMode != FilterMode.Point) continue;
+                string label = canvas.name + "/" + image.name;
+                if (image.type == Image.Type.Sliced)
+                {
+                    float screenPerTexel = scale * canvas.referencePixelsPerUnit / (sprite.pixelsPerUnit * image.pixelsPerUnitMultiplier);
+                    Check(Mathf.Abs(screenPerTexel - texel) < .01f,$"UI frame texel {screenPerTexel:F2}px != {texel}px: {label}");
+                }
+                else
+                {
+                    var screen = image.rectTransform.rect.size * scale;
+                    Check(Mathf.Abs(screen.x - sprite.rect.width * texel) < .5f && Mathf.Abs(screen.y - sprite.rect.height * texel) < .5f,
+                        $"UI icon {screen} != native x{texel}: {label}");
+                }
+            }
+        }
         private static void CaptureCamera(Camera camera,string path,int width,int height,bool ui)
         {
             var rt=new RenderTexture(width,height,24);
@@ -342,6 +376,9 @@ namespace TacticsECS.EditorTools
                     canvas.renderMode=RenderMode.ScreenSpaceCamera; canvas.worldCamera=camera; canvas.planeDistance=1;
                 }
                 Canvas.ForceUpdateCanvases();
+                foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) PixelUIScaler.Apply(canvas);
+                Canvas.ForceUpdateCanvases();
+                foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) CheckUiTexels(canvas);
             }
             camera.Render();
             var previous=RenderTexture.active; RenderTexture.active=rt;

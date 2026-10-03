@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -187,9 +187,9 @@ namespace TacticsECS
         /// <summary>패널 Content가 최소한 이 높이는 유지하게 한다(스크롤 시작 전 빈 여백 방지). 프리팹
         /// 생성 쪽 값(UIPrefabSetup.RosterPanelHeight)과 같아야 한다.</summary>
         private const float RosterContentMinHeight = 140f;
-        private const float RosterRowHeight = 20f;
+        private const float RosterRowHeight = 24f;
         private const float RosterRowGap = 2f;
-        private const float RosterIconSize = 14f;
+        private const float RosterIconSize = 22f; // native pixel heart (PixelUIScaler) at 1080p
 
         private RectTransform _rosterContent;
         private readonly List<GameObject> _rosterRows = new List<GameObject>();
@@ -388,7 +388,7 @@ namespace TacticsECS
 
         private void WirePassiveBadge(Transform badge, string iconName, string tooltip)
         {
-            badge.GetComponent<Image>().sprite = RuntimeSprite.CreateCircle();
+            var frame = badge.GetComponent<Image>(); frame.sprite = PixelUISkin.Badge; frame.type = Image.Type.Sliced;
             badge.Find("Icon").GetComponent<Image>().sprite = IconLibrary.Get(iconName);
 
             var trigger = badge.GetComponent<TooltipTrigger>();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -57,12 +57,14 @@ namespace TacticsECS
             _panel.anchorMin = _panel.anchorMax = new Vector2(1f, 0.5f);
             _panel.pivot = new Vector2(1f, 0.5f);
             _panel.anchoredPosition = new Vector2(-12f, -20f);
-            _panel.gameObject.AddComponent<Image>().color = PanelColor;
+            var panelImage = _panel.gameObject.AddComponent<Image>();
+            panelImage.color = PanelColor; panelImage.sprite = PixelUISkin.Panel; panelImage.type = Image.Type.Sliced;
 
             _title = NewText("Title", _panel, 17, TextAnchor.UpperLeft);
             _body = NewText("Body", _panel, 13, TextAnchor.UpperLeft);
             _body.color = new Color(0.85f, 0.87f, 0.9f);
             _panel.gameObject.SetActive(false);
+            PixelUIScaler.Attach(canvasGo);
         }
 
         public void Hide()
@@ -90,6 +92,7 @@ namespace TacticsECS
                     Place(row, ref y, RowHeight);
                     var img = row.gameObject.AddComponent<Image>();
                     img.color = option.Enabled ? ButtonColor : DisabledColor;
+                    img.sprite = PixelUISkin.Button; img.type = Image.Type.Sliced;
                     var button = row.gameObject.AddComponent<Button>();
                     button.targetGraphic = img;
                     button.interactable = option.Enabled;

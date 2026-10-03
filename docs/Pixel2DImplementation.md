@@ -9,7 +9,7 @@
 ![전체 픽셀 표시 카탈로그](images/pixel2d/catalog.png)
 
 - 무료 CC0 원본: [Kenney Tiny Town](https://kenney.nl/assets/tiny-town), [Tiny Farm](https://kenney.nl/assets/tiny-farm), [Tiny Dungeon](https://kenney.nl/assets/tiny-dungeon), [UI Pack - Pixel Adventure](https://kenney.nl/assets/ui-pack-pixel-adventure).
-- 원본·다운로드 출처·LICENSE는 `Assets/Art/Pixel2D/ThirdParty/Kenney/<pack>/`에 보관했다. 실제 런타임은 `Assets/Resources/Pixel2D/Sheets`의 공유 packed sheet 3장과 UI 이미지 3장을 사용한다.
+- 원본·다운로드 출처·LICENSE는 `Assets/Art/Pixel2D/ThirdParty/Kenney/<pack>/`에 보관했다. 실제 런타임은 `Assets/Resources/Pixel2D/Sheets`의 공유 packed sheet 3장과, `scripts/author_pixel_ui.py`로 만든 UI 틀 3장(Panel·Button·Badge)을 사용한다.
 - 121개 표시 키, 167개 스프라이트 레이어를 `SpriteCatalog.csv`에 등록했다. 평지/숲/산/모래/암석/눈/물/바다, 구조물 12종(구 자원 ID 포함), 현재 건물 21종, 도시 장식, 육상 11종, 함선 6종, 기본 행동·패시브·기술 아이콘을 포함한다.
 - 기병의 말, 투석기, 선체·돛, 산·바위·물·구름, 물고기·불가사리·등대, 간단한 UI 도형은 새로 작성한 코드 기반 픽셀 패턴으로 보완했다. 완성된 무료 그림의 1:1 대체로 전부 해결한 것은 아니다.
 - 스프라이트의 조합·크기·색·레벨 조건은 CSV에서 수정할 수 있다. 여러 레이어는 별도 행이며 한 칸에는 값 하나만 넣는다. 새 패턴은 `Patterns/<name>.txt`에 팔레트(`문자=색상 HEX`)와 픽셀 행을 작성한다.

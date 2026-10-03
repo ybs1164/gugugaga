@@ -56,6 +56,13 @@
 - 그리는 층(아래→위): 지면 → 해안선·도로 → 타일 합성(아래 줄이 앞) → 유닛(항상 모든 타일 합성보다 위) → 영토 경계·레벨 눈금 → 이동·공격 범위 → 구름.
 - 배에 탄 유닛은 `Boat.<배 Id>` 위에 유닛을 올린 합성 한 장이다.
 
+## UI 해상도
+코드: `View/PixelUIScaler`, `View/PixelUISkin`. 그림 생성: `scripts/author_pixel_ui.py`.
+- 모든 UI 픽셀 그림은 화면에서 한 픽셀이 `PixelUIScaler.TexelSize`(화면 높이 ÷ `PixelUIScaler.ReferenceHeight`, 반올림, 최소 1) 화면 픽셀이다 — 기본 줌의 월드 픽셀과 같은 크기. 캔버스 배율(`CanvasScaler`)이 정수가 아니어도 그렇다.
+- 틀(`Sheets/Panel`, `Button`, `Badge`)은 9-slice(`Image.Type.Sliced`, 테두리 `PixelUIScaler.FrameBorder`)로 늘리고, 테두리는 월드와 같은 색·두께(`PixelSpriteComposer.Outline`, `Stroke`)다. 그림은 회색조라 `Image.color`로 칠한다.
+- 아이콘(`Icon.*`)은 `Scale` 1로 합성하고 그린 픽셀만 남겨 자른 뒤, UI에서는 원래 픽셀 크기 그대로 놓는다(배치된 자리의 가운데 기준). 늘리거나 줄이지 않으므로 아이콘을 놓는 자리는 그 크기를 감안해 잡는다.
+- 글자(Jua 폰트)는 픽셀 그림이 아니라 이 규칙 밖이다.
+
 ## 픽셀 패턴
 새 그림은 `Assets/Resources/Pixel2D/Patterns/<이름>.txt`에 팔레트(`문자=RRGGBB`)와 픽셀 행으로 쓴다. 생성 도구: `scripts/author_pixel_patterns.py`, `Assets/Editor/Pixel2DSetup.cs`.
 에셋 출처: [Pixel2DImplementation](../../Pixel2DImplementation.md).

@@ -77,8 +77,18 @@ namespace TacticsECS
                 { name = "Composite_" + placements[0].VisualId, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             texture.SetPixels32(canvas);
             texture.Apply(false, false);
-            var sprite = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(centreX / (float)width, centreY / (float)height),
-                PixelSpriteCatalog.PixelsPerUnit, 0, SpriteMeshType.FullRect);
+            var area = new Rect(0, 0, width, height);
+            var pivot = new Vector2(centreX / (float)width, centreY / (float)height);
+            if (icon)
+            {
+                // UI shows icons at native texels (PixelUIScaler), so the sprite is cropped to its drawn pixels.
+                int minX = width, minY = height, maxX = -1, maxY = -1;
+                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++)
+                    if (canvas[y * width + x].a != 0) { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); minY = Mathf.Min(minY, y); maxY = Mathf.Max(maxY, y); }
+                if (maxX >= 0) area = new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
+                pivot = new Vector2(.5f, .5f);
+            }
+            var sprite = Sprite.Create(texture, area, pivot, PixelSpriteCatalog.PixelsPerUnit, 0, SpriteMeshType.FullRect);
             sprite.name = "Composite_" + placements[0].VisualId.Replace('.', '_') + "_" + level + (placements.Count > 1 ? "_" + (uint)key.GetHashCode() : "");
             Cache[key] = sprite;
             return sprite;

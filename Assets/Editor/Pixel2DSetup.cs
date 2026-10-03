@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -26,8 +26,9 @@ namespace TacticsECS.EditorTools
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.alphaIsTransparency = true;
                 importer.isReadable = true; // Native 16px composition samples packed CC0 parts once, then caches.
-                if (Path.GetFileNameWithoutExtension(path) == "Panel" || Path.GetFileNameWithoutExtension(path) == "Button")
-                    importer.spriteBorder = new Vector4(2,2,2,2);
+                string sheet = Path.GetFileNameWithoutExtension(path);
+                if (sheet == "Panel" || sheet == "Button" || sheet == "Badge")
+                    importer.spriteBorder = Vector4.one * PixelUIScaler.FrameBorder; // scripts/author_pixel_ui.py
                 importer.SaveAndReimport();
             }
             string materialPath = "Assets/Resources/Pixel2D/PixelUnlit.mat";

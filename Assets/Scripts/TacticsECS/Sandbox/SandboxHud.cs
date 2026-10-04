@@ -290,12 +290,12 @@ namespace TacticsECS
         private const int BiomeOptionOffset = 2;
 
         /// <summary>바이옴 드롭다운(여러 개 선택): 0번은 지금 선택 요약(늘 선택된 값), 1번은 자동으로 되돌리기, 그 뒤로 바이옴마다 켜짐/꺼짐 표시가 붙은 줄.
-        /// selected가 비어 있으면 자동.</summary>
-        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, ICollection<int> selected)
+        /// 요약 줄은 칸이 좁아 짧은 이름(shortNames)만 쓴다. selected가 비어 있으면 자동.</summary>
+        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, IReadOnlyList<string> shortNames, ICollection<int> selected)
         {
             var picked = new List<string>();
-            for (int i = 0; i < biomeNames.Count; i++)
-                if (selected.Contains(i)) picked.Add(biomeNames[i]);
+            for (int i = 0; i < shortNames.Count; i++)
+                if (selected.Contains(i)) picked.Add(shortNames[i]);
             var options = new List<string>
             {
                 picked.Count > 0 ? LocalizationSystem.F("UI.SandboxHud.BiomeSelected", picked.Count, string.Join(", ", picked)) : LocalizationSystem.T("UI.SandboxHud.BiomeAuto"),

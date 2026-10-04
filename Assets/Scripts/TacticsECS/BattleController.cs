@@ -456,7 +456,7 @@ namespace TacticsECS
         {
             var biomes = ActiveBiomes();
             _biomeSelection.RemoveWhere(i => i >= biomes.Count);
-            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), _biomeSelection);
+            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), biomes.Select(b => b.Name).ToList(), _biomeSelection);
         }
 
         private void RefreshTribeInfo()

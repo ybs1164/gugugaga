@@ -23,6 +23,18 @@
 
 물 깊이: 상하좌우에 육지가 있는 물 = 얕은 물, 없으면 깊은 바다 — [map](map.md).
 
+## 표시 순서
+한 칸의 그림은 아래에서 위로 이 순서로 겹친다(앞 단계가 뒤에 깔린다):
+1. 평지 — 바닥 타일(육지·물·해안), 도로
+2. 숲·산 — `TileTypeId` = `Forest`/`Mountain`
+3. 자원 — `Resource_*` 구조물
+4. 건물 — `BuildingId`, 도시(`Capital`/`Village`)
+5. 유닛
+6. UI — 영토 경계, 레벨 눈금, 선택·이동 표시, HP 막대
+7. 안개 — 구름·시야 밖 — [vision](vision.md)
+
+같은 단계끼리는 화면 아래쪽(월드 y가 작은) 칸이 앞에 온다. 정렬값: `PixelSpriteCatalog`의 `*Order` 상수, `SortOrder`.
+
 ## 구조물
 이름·설명 표는 코드 `Data/StructureDefinition.All`(CSV 아님). 배치는 [map](map.md).
 | StructureId | 쓰임 |

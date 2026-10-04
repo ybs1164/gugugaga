@@ -62,6 +62,7 @@
 - 틀(`Sheets/Panel`, `Button`, `Badge`)은 9-slice(`Image.Type.Sliced`, 테두리 `PixelUIScaler.FrameBorder`)로 늘리고, 테두리는 월드와 같은 색·두께(`PixelSpriteComposer.Outline`, `Stroke`)다. 그림은 회색조라 `Image.color`로 칠한다.
 - 아이콘(`Icon.*`)은 `Scale` 1로 합성하고 그린 픽셀만 남겨 자른 뒤, UI에서는 원래 픽셀 크기 그대로 놓는다(배치된 자리의 가운데 기준). 늘리거나 줄이지 않으므로 아이콘을 놓는 자리는 그 크기를 감안해 잡는다.
 - 글자(Jua 폰트)는 픽셀 그림이 아니라 이 규칙 밖이다.
+- 기술트리 열기 버튼은 자원 바 오른쪽에 놓아 점수 줄과 겹치지 않는다. 기술트리 배경은 뒤쪽 맵이 희미하게만 보이도록 표시하고, 상세 설명은 줄바꿈과 내용에 따른 높이 확장으로 해금 상태·버튼 위에 표시한다.
 
 ## 픽셀 패턴
 새 그림은 `Assets/Resources/Pixel2D/Patterns/<이름>.txt`에 팔레트(`문자=RRGGBB`)와 픽셀 행으로 쓴다. 생성 도구: `scripts/author_pixel_patterns.py`, `Assets/Editor/Pixel2DSetup.cs`.

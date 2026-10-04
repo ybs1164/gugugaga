@@ -270,6 +270,11 @@ namespace TacticsECS
             int cost = TechSystem.Cost(_nodes, _tech, node, _cityCount);
             _detailName.text = LocalizationSystem.F("UI.TechTree.Title", node.Name, node.Tier);
             _detailEffect.text = node.Effect;
+            // Keep translated or custom-table descriptions above the status/button row.
+            float effectHeight = Mathf.Max(76f, _detailEffect.preferredHeight);
+            _detailEffect.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, effectHeight);
+            ((RectTransform)_detailEffect.transform.parent).SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical, effectHeight + 84f);
             _unlockLabel.text = LocalizationSystem.F("UI.TechTree.UnlockCost", cost);
 
             if (TechSystem.IsUnlocked(_tech, node.Id))

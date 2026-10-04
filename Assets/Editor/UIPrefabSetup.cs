@@ -984,9 +984,9 @@ namespace TacticsECS.EditorTools
         // 노드 배치(중앙 허브 + 갈래별 방사형)는 TechTreeHud.Init이 CSV 노드 목록으로 런타임에 만든다. 이 패널만
         // 기준 해상도를 세로로 더 키운다 — 25개 노드 + 라벨이 겹치지 않을 공간이 1280x720으로는 부족해서다.
         private static readonly Vector2 TechCanvasReferenceResolution = new Vector2(1280f, 950f);
-        private const float TechTreeCenterY = 40f; // Detail 패널 공간을 아래에 남기기 위해 위로.
-        private const float TechDetailWidth = 420f;
-        private const float TechDetailHeight = 130f;
+        private const float TechTreeCenterY = 100f; // Detail 패널 공간을 아래에 남기기 위해 위로.
+        private const float TechDetailWidth = 620f;
+        private const float TechDetailHeight = 160f;
         /// <summary>전체 화면을 덮는 모달이라 다른 HUD 캔버스(모두 0, ActionMenuHud 5)보다 위에 그린다 —
         /// 같은 0이면 BattleHud의 행동 로그(우상단)가 닫기 버튼을 가린다.</summary>
         private const int TechCanvasSortingOrder = 10;
@@ -1020,7 +1020,7 @@ namespace TacticsECS.EditorTools
             var rect = CreateRect("ToggleButton", root);
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -64f); // CityResourceBar(높이 40, y -16~-56) 바로 아래
+            rect.anchoredPosition = new Vector2(300f, -16f); // 자원 바 오른쪽: 점수 줄과 별도 영역
             rect.sizeDelta = new Vector2(96f, 30f);
 
             var bg = CreatePanelImage(rect, ButtonIdle);
@@ -1047,7 +1047,7 @@ namespace TacticsECS.EditorTools
             panel.anchorMax = Vector2.one;
             panel.offsetMin = Vector2.zero;
             panel.offsetMax = Vector2.zero;
-            CreatePanelImage(panel, new Color(0f, 0f, 0f, 0.55f));
+            CreatePanelImage(panel, new Color(0.12f, 0.13f, 0.15f, 0.94f));
 
             var closeRect = CreateRect("CloseButton", panel);
             closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
@@ -1109,7 +1109,7 @@ namespace TacticsECS.EditorTools
             effect.anchorMin = effect.anchorMax = new Vector2(0f, 1f);
             effect.pivot = new Vector2(0f, 1f);
             effect.anchoredPosition = new Vector2(14f, -40f);
-            effect.sizeDelta = new Vector2(TechDetailWidth - 28f, 48f);
+            effect.sizeDelta = new Vector2(TechDetailWidth - 28f, 76f);
             var effectText = effect.gameObject.AddComponent<Text>();
             effectText.font = font;
             effectText.fontSize = 13;

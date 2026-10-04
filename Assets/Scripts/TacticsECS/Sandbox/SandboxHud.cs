@@ -38,8 +38,8 @@ namespace TacticsECS
         public event Action<int> OnMapTypeSelected;
         public event Action<float> OnWaterRatioChanged;
         public event Action OnGenerateOutlineClicked;
-        /// <summary>0 = 자동(전체 바이옴 또는 종족 바이옴), k = 불러온 바이옴 목록의 k-1번째 하나만.</summary>
-        public event Action<int> OnBiomeChoiceSelected;
+        /// <summary>바이옴 드롭다운에서 바이옴 하나를 켜거나 끈다 — 바이옴 목록 Index. -1 = 선택을 모두 지우고 자동으로.</summary>
+        public event Action<int> OnBiomeToggled;
         /// <summary>종족 Index(Tribes.csv), -1 = 종족 없음.</summary>
         public event Action<Team, int> OnTribeSelected;
 
@@ -161,7 +161,7 @@ namespace TacticsECS
                 var row = content.Find(key.Replace('/', '_'));
                 row.Find("PickButton").GetComponent<Button>().onClick.AddListener(() =>
                 {
-                    var file = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.F("UI.SandboxHud.PickCsv", key + ".csv"), "", "csv");
+                    var file = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.F("UI.SandboxHud.PickCsv", CsvFileName(key)), "", "csv");
                     if (!string.IsNullOrEmpty(file)) OnCsvSelected?.Invoke(key, file);
                 });
                 row.Find("ResetButton").GetComponent<Button>().onClick.AddListener(() => OnCsvSelected?.Invoke(key, null));
@@ -177,12 +177,16 @@ namespace TacticsECS
             {
                 var row = content.Find(key.Replace('/', '_'));
                 bool custom = files.TryGetValue(key, out var file);
-                row.Find("Path").GetComponent<Text>().text = custom ? file : LocalizationSystem.F("UI.SandboxHud.DefaultCsv", key + ".csv");
+                // 경로는 보이지 않는다 — 고른 파일이면 그 파일 이름만, 기본이면 비운다.
+                row.Find("Path").GetComponent<Text>().text = custom ? LocalizationSystem.F("UI.SandboxHud.CustomCsv", System.IO.Path.GetFileName(file)) : string.Empty;
                 row.Find("PickButton/Label").GetComponent<Text>().text = LocalizationSystem.T("UI.SandboxHud.SelectCsv");
                 row.Find("ResetButton/Label").GetComponent<Text>().text = LocalizationSystem.T("UI.SandboxHud.Default");
-                row.Find("Name").GetComponent<Text>().text = key + ".csv";
+                row.Find("Name").GetComponent<Text>().text = CsvFileName(key);
             }
         }
+
+        /// <summary>표 키(Tables/Biomes)의 파일 이름만(Biomes.csv) — 폴더는 보이지 않는다.</summary>
+        private static string CsvFileName(string key) => System.IO.Path.GetFileName(key) + ".csv";
 
         /// <summary>"맵 크기" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleMapSizeCycle이
         /// 클릭마다 호출).</summary>
@@ -249,7 +253,13 @@ namespace TacticsECS
             _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
             _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });
             tab.Find("1차지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateOutlineClicked?.Invoke());
-            _biomeDropdown.onValueChanged.AddListener(i => OnBiomeChoiceSelected?.Invoke(i));
+            // 0번(요약 줄)은 늘 선택된 값으로 두어, 같은 바이옴을 다시 눌러도 onValueChanged가 오게 한다(SetBiomeOptions).
+            _biomeDropdown.onValueChanged.AddListener(i =>
+            {
+                _biomeDropdown.SetValueWithoutNotify(0);
+                if (i == 1) OnBiomeToggled?.Invoke(-1);
+                else if (i >= BiomeOptionOffset) OnBiomeToggled?.Invoke(i - BiomeOptionOffset);
+            });
             _playerTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Player, i - 1));
             _enemyTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Enemy, i - 1));
         }
@@ -276,12 +286,24 @@ namespace TacticsECS
             _waterValueText.text = Percent(value);
         }
 
-        /// <summary>바이옴 드롭다운: 0번은 "자동", 그 뒤로 바이옴 이름들.</summary>
-        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, int selected)
+        /// <summary>바이옴 드롭다운의 바이옴 줄이 시작하는 Index — 0번은 지금 선택 요약, 1번은 "자동으로 되돌리기".</summary>
+        private const int BiomeOptionOffset = 2;
+
+        /// <summary>바이옴 드롭다운(여러 개 선택): 0번은 지금 선택 요약(늘 선택된 값), 1번은 자동으로 되돌리기, 그 뒤로 바이옴마다 켜짐/꺼짐 표시가 붙은 줄.
+        /// selected가 비어 있으면 자동.</summary>
+        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, ICollection<int> selected)
         {
-            var options = new List<string> { LocalizationSystem.T("UI.SandboxHud.BiomeAuto") };
-            options.AddRange(biomeNames);
-            SetOptions(_biomeDropdown, options, selected);
+            var picked = new List<string>();
+            for (int i = 0; i < biomeNames.Count; i++)
+                if (selected.Contains(i)) picked.Add(biomeNames[i]);
+            var options = new List<string>
+            {
+                picked.Count > 0 ? LocalizationSystem.F("UI.SandboxHud.BiomeSelected", picked.Count, string.Join(", ", picked)) : LocalizationSystem.T("UI.SandboxHud.BiomeAuto"),
+                LocalizationSystem.T("UI.SandboxHud.BiomeClear"),
+            };
+            for (int i = 0; i < biomeNames.Count; i++)
+                options.Add(LocalizationSystem.F(selected.Contains(i) ? "UI.SandboxHud.BiomeOptionOn" : "UI.SandboxHud.BiomeOptionOff", biomeNames[i]));
+            SetOptions(_biomeDropdown, options, 0);
         }
 
         /// <summary>종족 드롭다운 두 개: 0번은 "종족 없음", 그 뒤로 종족 이름들. selected는 종족 Index(-1 = 없음).</summary>

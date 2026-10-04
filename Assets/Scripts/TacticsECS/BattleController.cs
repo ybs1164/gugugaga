@@ -161,8 +161,8 @@ namespace TacticsECS
         /// <summary>습도 탭 슬라이더 — 1차 지형(아웃라인)의 목표 물 비율. 맵 타입을 고르면 그 타입의 대표값으로 돌아간다.</summary>
         private float _waterRatio = WetnessPresets[WetnessBaselineIndex].Wetness;
 
-        /// <summary>습도 탭 바이옴 드롭다운: 0 = 자동(전체 바이옴, 종족이 있으면 종족 바이옴), k = 바이옴 목록의 k-1번째 하나만.</summary>
-        private int _biomeChoice;
+        /// <summary>습도 탭 바이옴 드롭다운에서 고른 바이옴(바이옴 목록 Index, 오름차순). 비어 있으면 자동(전체 바이옴, 종족이 있으면 종족 바이옴).</summary>
+        private readonly SortedSet<int> _biomeSelection = new SortedSet<int>();
 
         /// <summary>습도 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
         private readonly Dictionary<Team, int> _tribeByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
@@ -380,7 +380,7 @@ namespace TacticsECS
             _sandboxHud.OnMapTypeSelected += HandleMapTypeSelected;
             _sandboxHud.OnWaterRatioChanged += HandleWaterRatioChanged;
             _sandboxHud.OnGenerateOutlineClicked += HandleGenerateOutline;
-            _sandboxHud.OnBiomeChoiceSelected += HandleBiomeChoiceSelected;
+            _sandboxHud.OnBiomeToggled += HandleBiomeToggled;
             _sandboxHud.OnTribeSelected += HandleTribeSelected;
 
             InitMapSizeSelection();
@@ -455,8 +455,8 @@ namespace TacticsECS
         private void RefreshBiomeOptions()
         {
             var biomes = ActiveBiomes();
-            if (_biomeChoice > biomes.Count) _biomeChoice = 0;
-            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), _biomeChoice);
+            _biomeSelection.RemoveWhere(i => i >= biomes.Count);
+            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), _biomeSelection);
         }
 
         private void RefreshTribeInfo()
@@ -490,13 +490,24 @@ namespace TacticsECS
             RefreshWetnessLabel();
         }
 
-        private void HandleBiomeChoiceSelected(int choice)
+        /// <summary>바이옴 하나를 선택에 넣거나 뺀다(-1 = 모두 빼고 자동).</summary>
+        private void HandleBiomeToggled(int index)
         {
-            _biomeChoice = choice;
             var biomes = ActiveBiomes();
-            _sandboxHud.SetStatus(choice > 0 && choice <= biomes.Count
-                ? LocalizationSystem.F("UI.Sandbox.BiomeOnly", biomes[choice - 1].Name)
+            if (index < 0) _biomeSelection.Clear();
+            else if (index < biomes.Count && !_biomeSelection.Remove(index)) _biomeSelection.Add(index);
+            RefreshBiomeOptions();
+            var selected = SelectedBiomes();
+            _sandboxHud.SetStatus(selected.Count > 0
+                ? LocalizationSystem.F("UI.Sandbox.BiomeOnly", string.Join(", ", selected.Select(b => b.Name)))
                 : LocalizationSystem.T("UI.Sandbox.BiomeAuto"));
+        }
+
+        /// <summary>드롭다운에서 고른 바이옴들(목록 순서). 비어 있으면 자동.</summary>
+        private List<BiomeCsvRow> SelectedBiomes()
+        {
+            var biomes = ActiveBiomes();
+            return _biomeSelection.Where(i => i < biomes.Count).Select(i => biomes[i]).ToList();
         }
 
         private void HandleTribeSelected(Team team, int tribeIndex)
@@ -505,16 +516,18 @@ namespace TacticsECS
             RefreshTribeInfo();
         }
 
-        /// <summary>종족이 하나라도 있으면 팀마다 영역 하나(종족 바이옴 — 바이옴을 하나 골랐으면 그 바이옴), 없으면 바이옴 하나를 골랐을 때
-        /// 그 바이옴 영역 2개(수도 2개), 자동이면 불러온 바이옴 전부(바이옴마다 수도 하나 — 예전 동작).</summary>
+        /// <summary>종족이 하나라도 있으면 팀마다 영역 하나(종족 바이옴 — 바이옴을 골랐으면 고른 바이옴을 팀 순서대로 돌려 씀).
+        /// 종족이 없으면 고른 바이옴마다 영역 하나(하나만 골랐으면 그 바이옴 영역 2개 — 수도 2개), 자동이면 불러온 바이옴 전부(바이옴마다 수도 하나).</summary>
         private List<BiomeCsvRow> ResolveRegionBiomes(out bool perTeam)
         {
             var biomes = ActiveBiomes();
+            var selected = SelectedBiomes();
             perTeam = AnyTribe();
-            var single = _biomeChoice > 0 && _biomeChoice <= biomes.Count ? biomes[_biomeChoice - 1] : null;
             if (perTeam)
-                return CitySystem.Teams.Select(team => single ?? (TribeOf(team) is TribeRow t ? TribeSystem.RegionBiome(t, biomes) : biomes[0])).ToList();
-            if (single != null) return new List<BiomeCsvRow> { single, single };
+                return CitySystem.Teams.Select((team, i) => selected.Count > 0 ? selected[i % selected.Count]
+                    : TribeOf(team) is TribeRow t ? TribeSystem.RegionBiome(t, biomes) : biomes[0]).ToList();
+            if (selected.Count == 1) return new List<BiomeCsvRow> { selected[0], selected[0] };
+            if (selected.Count > 1) return selected;
             return new List<BiomeCsvRow>(biomes);
         }
 
@@ -600,7 +613,7 @@ namespace TacticsECS
             var errors = GameDataLoader.LoadAll(source);
             _defaultBiomes = null;
             _loadedBiomes = null;
-            _biomeChoice = 0;
+            _biomeSelection.Clear();
             foreach (var team in CitySystem.Teams)
                 if (!TribeSystem.IsValid(_tribeByTeam[team])) _tribeByTeam[team] = -1;
 
@@ -612,7 +625,7 @@ namespace TacticsECS
             if (_techTreeHud != null) _techTreeHud.SetNodes(CurrentTechNodes());
 
             string status = source.Folder == null ? LocalizationSystem.F("UI.Sandbox.CsvActive", s_csvFiles.Count)
-                : LocalizationSystem.F("UI.Sandbox.TablesLoaded", source.FromFolder.Count, source.Folder);
+                : LocalizationSystem.F("UI.Sandbox.TablesLoaded", source.FromFolder.Count, System.IO.Path.GetFileName(source.Folder.TrimEnd('/', '\\')));
             if (errors.Count > 0) status += " " + LocalizationSystem.F("UI.Sandbox.Warnings", errors.Count);
             _sandboxHud.SetStatus(status);
             _sandboxHud.SetCsvSources(s_csvFiles);
@@ -652,7 +665,7 @@ namespace TacticsECS
                     return;
                 }
                 _loadedBiomes = biomes;
-                _biomeChoice = 0;
+                _biomeSelection.Clear();
                 RefreshBiomeOptions();
                 RefreshTribeInfo();
                 var tribeWarnings = ArrayTableValidationSystem.ValidateLoaded(biomeCount: biomes.Count).Where(w => w.Contains("BiomeIndex")).ToList();
@@ -713,7 +726,7 @@ namespace TacticsECS
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
             string regionText = perTeam ? LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", regions.Select(b => b.Name)))
-                : _biomeChoice > 0 ? LocalizationSystem.F("UI.Sandbox.RegionSingle", regions[0].Name) : LocalizationSystem.F("UI.Sandbox.RegionCount", regions.Count);
+                : _biomeSelection.Count > 0 ? LocalizationSystem.F("UI.Sandbox.RegionSingle", string.Join(", ", SelectedBiomes().Select(b => b.Name))) : LocalizationSystem.F("UI.Sandbox.RegionCount", regions.Count);
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TerrainDone", regionText, _grid.Width, _grid.Height, MapTypeName(mapTypeName),
                 Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T("UI.Sandbox.OutlineNew"),
                 startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));

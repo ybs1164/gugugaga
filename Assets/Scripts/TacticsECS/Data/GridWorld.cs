@@ -18,6 +18,7 @@ namespace TacticsECS
         /// <summary>시야(구름) 규칙을 켤지. 경제가 켜진 전투(샌드박스)에서만 true — false면 모든 칸이 모든 팀에게
         /// 탐험된 것으로 취급된다(TileData.ExploredMask 무시, VisionSystem.IsExplored 참고).</summary>
         public bool FogEnabled;
+        public EconomyWorld Economy;
 
         /// <summary>칸 데이터. 인덱스 = y * Width + x (GridQueries.Index).</summary>
         public readonly TileData[] Tiles;

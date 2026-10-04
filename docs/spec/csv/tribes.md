@@ -18,6 +18,7 @@ StartConditions     ◄── Tribes.StartConditionIndex
 | `TechGroupIndex` | [TechGroups](tech.md#techgroupscsv--종족별-기술-묶음) Index | | -1 | 연구 가능한 기술 묶음 |
 | `StartTech{n}` | [Techs](tech.md#techscsv--기술) Index | | 없음 | 처음부터 해금된 기술 |
 | `StartStars` | 정수 | | `GameRules.csv` `Economy.StartingStars` | 시작 별 |
+| `StartCapitalLevel` | 정수 | | 1 | 시작 수도 레벨(1 이상). 시작 레벨까지의 보상은 지급하지 않음 |
 | `StartUnit{n}` | [Units](units.md#unitscsv--육지-유닛) Index | | 없음 | 수도에 받는 시작 유닛 |
 | `StartConditionIndex` | StartConditions Index | | -1 | 수도 주변 시작 조건. -1 = 없음 |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |

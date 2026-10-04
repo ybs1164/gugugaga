@@ -13,6 +13,7 @@ namespace TacticsECS
         public Vector2Int Position;
         public Team Owner;
         public bool IsCapital;
+        public Team OriginalOwner;
 
         /// <summary>1부터 시작. 레벨 L에서 L+1로 오르려면 인구 L+1이 필요하다(폴리토피아 규칙).</summary>
         public int Level;
@@ -26,6 +27,7 @@ namespace TacticsECS
 
         public bool HasWorkshop;
         public bool HasWall;
+        public bool HasEmbassy;
         public int ParkCount;
 
         /// <summary>아직 고르지 않은 레벨업 보상 개수. 가장 낮은 미선택 레벨의 선택지부터 차례로 고른다

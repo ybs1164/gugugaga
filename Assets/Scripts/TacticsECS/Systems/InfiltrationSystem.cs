@@ -31,6 +31,7 @@ namespace TacticsECS
             if (city < 0) return false;
             var c = econ.Cities[city];
             if (c.Owner == world.Get<Team>(unitId) || c.Infiltrated) return false;
+            if (DiplomacySystem.HasPeaceTreaty(econ, c.Owner, world.Get<Team>(unitId))) return false;
             if (CitySystem.IsBesieged(grid, world, c)) return false;
             return true;
         }

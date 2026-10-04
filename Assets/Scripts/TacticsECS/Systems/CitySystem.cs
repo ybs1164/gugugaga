@@ -147,13 +147,15 @@ namespace TacticsECS
 
         public static int FoundCity(GridWorld grid, EconomyWorld econ, Vector2Int pos, Team owner, bool isCapital, string name)
         {
+            grid.Economy = econ;
             econ.Cities.Add(new CityData
             {
                 Name = name,
                 Position = pos,
                 Owner = owner,
+                OriginalOwner = owner,
                 IsCapital = isCapital,
-                Level = 1,
+                Level = isCapital && econ.StartCapitalLevels.TryGetValue(owner, out int startLevel) ? Mathf.Max(1, startLevel) : 1,
                 Population = 0,
                 BorderRadius = GameRules.City.DefaultBorderRadius,
             });
@@ -255,6 +257,7 @@ namespace TacticsECS
             var pos = world.Get<GridPosition>(unitId).Value;
             if (!IsSettlementTile(grid, pos)) return false;
             int city = FindCityAt(econ, pos);
+            if (city >= 0 && DiplomacySystem.HasPeaceTreaty(econ, world.Get<Team>(unitId), econ.Cities[city].Owner)) return false;
             return city < 0 || econ.Cities[city].Owner != world.Get<Team>(unitId);
         }
 
@@ -276,7 +279,10 @@ namespace TacticsECS
                     if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) != team && HomeOf(world, i) == index)
                         world.Set(i, new HomeCity());
                 var city = econ.Cities[index];
+                DiplomacySystem.DeclareWar(econ, team, city.Owner);
+                econ.Embassies.RemoveAll(e => e.CityIndex == index);
                 city.Owner = team;
+                city.HasEmbassy = false;
                 city.IsCapital = false; // 피점령 수도는 일반 도시 취급
                 city.ConnectedToCapital = false;
                 econ.Cities[index] = city;
@@ -455,7 +461,7 @@ namespace TacticsECS
             int total = 0;
             foreach (var city in econ.Cities)
                 if (city.Owner == team) total += CityStarsIncome(grid, world, city);
-            return total + TileImprovementSystem.MarketIncome(grid, team);
+            return total + TileImprovementSystem.MarketIncome(grid, team) + DiplomacySystem.Income(econ, team);
         }
 
         // ---------- 수도 연결 ----------

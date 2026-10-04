@@ -1,0 +1,6 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Key,문자열,O,,,문자열 키. 아래 규칙
+ko,문자열,O,,,원문(한국어). 프리팹에 굽는 글자도 이 열
+en,문자열,,ko,,영어. 비면 원문
+Note,메모,,,,로더 무시
+<언어코드>,문자열,선택,ko,,Key와 Note 이외의 열은 언어; Language.Name 행으로 언어 이름 지정

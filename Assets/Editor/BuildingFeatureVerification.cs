@@ -288,7 +288,7 @@ namespace TacticsECS.EditorTools
         {
             Check(ScoreSystem.TempleLevel(1, 1) == 1 && ScoreSystem.TempleLevel(3, 1) == 1 && ScoreSystem.TempleLevel(4, 1) == 2 && ScoreSystem.TempleLevel(13, 1) == 5 && ScoreSystem.TempleLevel(40, 1) == 5,
                 "temple level every 3 turns (0-2 L1 ... 12+ L5)");
-            Check(ScoreSystem.TemplePoints(1) == 100 && ScoreSystem.TemplePoints(5) == 500, "temple points 100..500");
+            Check(ScoreSystem.TemplePoints(1) == 100 && ScoreSystem.TemplePoints(5) == 300, "temple points 100..300");
 
             var grid = NewGrid(9, 9);
             var world = new EntityWorld();
@@ -308,7 +308,7 @@ namespace TacticsECS.EditorTools
             Check(TileImprovementSystem.Execute(grid, econ, p, new Vector2Int(3, 3), "Temple", log), "build temple");
             Check(ScoreSystem.ComputeBreakdown(grid, world, econ, p).Temples == 100, "new temple 100 points");
             econ.Turn = 13;
-            Check(ScoreSystem.ComputeBreakdown(grid, world, econ, p).Temples == 500, "level-5 temple 500 points");
+            Check(ScoreSystem.ComputeBreakdown(grid, world, econ, p).Temples == 300, "level-5 temple 300 points");
         }
 
         private static void VerifyMonuments()

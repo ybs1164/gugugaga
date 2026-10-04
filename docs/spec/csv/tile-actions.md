@@ -15,7 +15,6 @@
 | `StarsGain` | 정수 | | 0 | 즉시 얻는 별 |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |
 
-옛 한 칸 목록 `RequiredStructures`도 읽는다.
 
 ## Kind
 | 값 | 효과 |

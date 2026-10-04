@@ -22,6 +22,12 @@ namespace TacticsECS
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
         private static readonly Dictionary<Texture2D, Color32[]> SourcePixels = new Dictionary<Texture2D, Color32[]>();
 
+        public static void Invalidate()
+        {
+            Cache.Clear();
+            Clipped.Clear();
+        }
+
         private struct Layer { public int X, Y, W, H; public Color32[] Pixels; public bool[] Stroke; }
 
         public static Sprite Compose(string id, int level = 1, Color? team = null, bool half = false) =>

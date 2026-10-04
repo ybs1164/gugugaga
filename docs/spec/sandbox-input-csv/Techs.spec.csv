@@ -1,0 +1,8 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,O,,,기술 이름표
+Icon,문자열,,,,아이콘 이름 — sprites의 Icon.<Icon>
+CostBase,정수,O,GameRules.csv Tech.DefaultCostBase,,비용 고정분
+CostPerCity,정수,O,0,,보유 도시 하나당 비용 증가분
+Unlock{n},TechUnlocks Index,,,,이 기술이 여는 해금 내역
+Note,메모,,,,로더 무시

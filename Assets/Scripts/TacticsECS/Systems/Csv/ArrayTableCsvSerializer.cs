@@ -77,6 +77,7 @@ namespace TacticsECS
                     IsTemple = flags.Contains(GameTableCsvSerializer.FlagTemple),
                     ProducesStarsFromAdjacent = flags.Contains(GameTableCsvSerializer.FlagStarsFromAdjacent),
                     OnePerCity = flags.Contains(GameTableCsvSerializer.FlagOnePerCity),
+                    IsEmbassy = flags.Contains(GameTableCsvSerializer.FlagEmbassy),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
                     Description = LocalizationSystem.Desc(BuildingStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                 };
@@ -208,7 +209,7 @@ namespace TacticsECS
         public static TribeRow[] ParseTribes(string text, List<string> errors = null)
         {
             var t = Begin("Tribes.csv", text, new[] { "Index", "Id" },
-                new[] { "BiomeIndex", "TechGroupIndex", "StartStars", "StartConditionIndex", "Wiki", "Note" },
+                new[] { "BiomeIndex", "TechGroupIndex", "StartStars", "StartCapitalLevel", "StartConditionIndex", "Wiki", "Note" },
                 new[] { "StartTech", "StartUnit" }, errors);
             var rows = new TribeRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
@@ -224,6 +225,7 @@ namespace TacticsECS
                     TechGroupIndex = CsvTableReader.GetInt(t, r, "TechGroupIndex", -1, errors),
                     StartTechs = GetIndexList(t, r, "StartTech", errors),
                     StartStars = CsvTableReader.GetInt(t, r, "StartStars", GameRules.Economy.StartingStars, errors),
+                    StartCapitalLevel = CsvTableReader.GetInt(t, r, "StartCapitalLevel", 1, errors),
                     StartUnits = GetIndexList(t, r, "StartUnit", errors),
                     StartConditionIndex = CsvTableReader.GetInt(t, r, "StartConditionIndex", -1, errors),
                 };
@@ -329,13 +331,14 @@ namespace TacticsECS
             int unitCount = CsvTableReader.MaxCount(rows, r => r.StartUnits?.Length ?? 0);
             var sb = new StringBuilder();
             sb.AppendLine(string.Join(",", new[] { "Index", "Id", "BiomeIndex", "TechGroupIndex" }
-                .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartStars")
+                .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartStars").Append("StartCapitalLevel")
                 .Concat(CsvTableReader.ListHeader("StartUnit", unitCount)).Append("StartConditionIndex")));
             foreach (var r in rows)
             {
                 var cells = new List<string> { I(r.Index), Q(r.Id), I(r.BiomeIndex), I(r.TechGroupIndex) };
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartTechs), techCount));
                 cells.Add(I(r.StartStars));
+                cells.Add(I(r.StartCapitalLevel));
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartUnits), unitCount));
                 cells.Add(I(r.StartConditionIndex));
                 sb.AppendLine(string.Join(",", cells));

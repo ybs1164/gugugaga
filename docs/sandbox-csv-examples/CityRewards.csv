@@ -1,0 +1,9 @@
+﻿Level,Reward,Amount,Note
+2,Workshop,1,Amount = 별/턴
+2,Explorer,0,걸음 수는 GameRules.csv Vision.ExplorerMoves
+3,CityWall,0,방어 수치는 GameRules.csv Combat.WallDefenseMultiplier
+3,Resources,5,Amount = 별
+4,PopulationGrowth,3,Amount = 인구
+4,BorderGrowth,2,Amount = 새 영토 반경
+5,Park,1,Amount = 별/턴. 가장 높은 Level 행이 그 이상 레벨에서도 반복된다(위키 Lv5+)
+5,SuperUnit,0,

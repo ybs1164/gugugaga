@@ -1,0 +1,201 @@
+﻿Format,Column,Type,Required,Default,AppliesTo,Description,Source
+Table.Biomes,Kind,Biome/Tile/Structure,선택,Biome,전부,행 종류,docs/spec/csv/biomes.md
+Table.Biomes,Biome,문자열,필수,(필수),전부,소속 바이옴 Id. Biome 행이 없으면 기본값 바이옴이 만들어진다,docs/spec/csv/biomes.md
+Table.Biomes,Name,문자열,선택,Biome,Biome,표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 번역 표 Biome.<Biome>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다),docs/spec/csv/biomes.md
+Table.Biomes,NoiseType,문자열,선택,Perlin,Biome,노이즈 종류. Perlin만 지원,docs/spec/csv/biomes.md
+Table.Biomes,Frequency,실수,선택,0,Biome,노이즈 주파수,docs/spec/csv/biomes.md
+Table.Biomes,Octaves,정수,선택,0,Biome,노이즈 옥타브,docs/spec/csv/biomes.md
+Table.Biomes,SeedOffset,정수,선택,0,Biome,이 바이옴 노이즈장의 시드 오프셋,docs/spec/csv/biomes.md
+Table.Biomes,InnerRadius,정수,선택,0,Biome,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용),docs/spec/csv/biomes.md
+Table.Biomes,MountainRate,실수,선택,0,Biome,산 레이어 배수. 0이면 산 없음,docs/spec/csv/biomes.md
+Table.Biomes,ForestRate,실수,선택,0,Biome,숲 레이어 배수. 0이면 숲 레이어 없음,docs/spec/csv/biomes.md
+Table.Biomes,Entry,문자열,선택,,"Tile, Structure",Tile: TileTypeId / Structure: StructureId,docs/spec/csv/biomes.md
+Table.Biomes,TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형,docs/spec/csv/biomes.md
+Table.Biomes,InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정),docs/spec/csv/biomes.md
+Table.Biomes,OuterWeight,실수,선택,0,Tile,Outer 영역 가중치,docs/spec/csv/biomes.md
+Table.Biomes,Weight,실수,선택,0,Structure,개수 기반 구조물끼리 같은 칸을 다툴 때 가중치,docs/spec/csv/biomes.md
+Table.Biomes,MinCount,정수,선택,0,"Tile, Structure",최소 개수,docs/spec/csv/biomes.md
+Table.Biomes,CountPerTiles,실수,선택,0,"Tile, Structure",>0이면 (해당 칸 수 ÷ 이 값)개까지 최소 개수를 늘린다. MinCount와 큰 쪽,docs/spec/csv/biomes.md
+Table.Biomes,MinDistance,정수,선택,0,"Tile, Structure",같은 Id끼리 최소 체비쇼프 거리. 0 = 제약 없음,docs/spec/csv/biomes.md
+Table.Biomes,EdgeMargin,정수,선택,0,"Tile, Structure",맵 가장자리에서 최소 거리,docs/spec/csv/biomes.md
+Table.Biomes,MaxDistanceFromCity,정수,선택,0,Structure,>0이면 가장 가까운 도시에서 이 거리 이내만,docs/spec/csv/biomes.md
+Table.Biomes,MaxWaterFractionOnLakes,실수,선택,없음,Structure,Lakes 맵에서 물 위에 놓일 수 있는 비율 상한(0~1). 비우면 제약 없음,docs/spec/csv/biomes.md
+Table.Biomes,FillRemaining,불리언,선택,false,Structure,개수 무시하고 자리가 없을 때까지 놓는다,docs/spec/csv/biomes.md
+Table.Biomes,InnerRate,실수,선택,0,Structure,>0이면 자원 — 도시 거리 1 칸 중 이 비율을 채운다,docs/spec/csv/biomes.md
+Table.Biomes,OuterRate,실수,선택,0,Structure,자원 — 도시 거리 2 칸 중 이 비율,docs/spec/csv/biomes.md
+Table.Biomes,AllowedTile{n},TileTypeId,선택,없음,Structure,놓일 수 있는 타일. 비우면 어디에도 안 놓인다. 깊은 바다는 Ocean,docs/spec/csv/biomes.md
+Table.Biomes,Exclude{n},Id,선택,없음,"Tile, Structure",Tile: 상하좌우로 붙을 수 없는 TileTypeId / Structure: 8방향으로 붙을 수 없는 StructureId,docs/spec/csv/biomes.md
+Table.Buildings,Index,정수,O,,,배열 위치. TechUnlocks BuildingIndex가 가리킨다,docs/spec/csv/buildings.md
+Table.Buildings,Id,문자열,O,,,타일에 저장되는 건물 키. 코드가 특별 취급하는 Id는 바꾸지 않는다: Farm Mine LumberHut Windmill Forge Sawmill Market Port Road Bridge,docs/spec/csv/buildings.md
+Table.Buildings,Cost,정수,,0,,별,docs/spec/csv/buildings.md
+Table.Buildings,Population,정수,,0,,지을 때 주인 도시에 더하는 인구,docs/spec/csv/buildings.md
+Table.Buildings,Terrain{n},TileClass,O(1개 이상),,,지을 수 있는 지형,docs/spec/csv/buildings.md
+Table.Buildings,RequiredStructure{n},StructureId,,없음,,"이 구조물 중 하나 위에만 지을 수 있고, 지으면 소모",docs/spec/csv/buildings.md
+Table.Buildings,AdjacentBuildingIndex{n},Buildings Index,,없음,,8방향 같은 팀 영토에 이 건물 중 하나가 있어야 함,docs/spec/csv/buildings.md
+Table.Buildings,PopulationPerAdjacent,정수,,0,,인접한 AdjacentBuildingIndex 건물 하나당 인구,docs/spec/csv/buildings.md
+Table.Buildings,Flag{n},태그,,없음,,아래 태그,docs/spec/csv/buildings.md
+Table.Buildings,Task,과업 Id,,없음,,기념물이면 과업 Id,docs/spec/csv/buildings.md
+Table.Buildings,Wiki,메모,,,,로더 무시,docs/spec/csv/buildings.md
+Table.Buildings,Note,메모,,,,로더 무시,docs/spec/csv/buildings.md
+Table.CityRewards,Level,정수,O,2,,이 레벨에 도달하면 고를 수 있음,docs/spec/csv/city-rewards.md
+Table.CityRewards,Reward,아래 표,O,Resources,,보상 종류(효과는 코드 CitySystem.ApplyReward),docs/spec/csv/city-rewards.md
+Table.CityRewards,Amount,정수,,0,,보상 크기 — 뜻은 종류마다 아래 표,docs/spec/csv/city-rewards.md
+Table.CityRewards,Wiki,메모,,,,로더 무시,docs/spec/csv/city-rewards.md
+Table.CityRewards,Note,메모,,,,로더 무시,docs/spec/csv/city-rewards.md
+Table.GameRules,Key,도메인.이름,O,,,GameRules의 중첩 클래스(도메인)와 필드(이름),docs/spec/csv/game-rules.md
+Table.GameRules,Value,필드 타입,O,,,정수/실수/불리언/문자열/열거형,docs/spec/csv/game-rules.md
+Table.GameRules,Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고유 규칙,docs/spec/csv/game-rules.md
+Table.GameRules,Description,문자열,,,,규칙 설명(단일 출처),docs/spec/csv/game-rules.md
+Table.GameRules,Note,문자열,△,,,Value≠Wiki이거나 Wiki가 비었으면 필수 — 원문과 다른 이유,docs/spec/csv/game-rules.md
+Table.Strings,Key,문자열,O,,,문자열 키. 아래 규칙,docs/spec/csv/strings.md
+Table.Strings,ko,문자열,O,,,원문(한국어). 프리팹에 굽는 글자도 이 열,docs/spec/csv/strings.md
+Table.Strings,en,문자열,,ko,,영어. 비면 원문,docs/spec/csv/strings.md
+Table.Strings,Note,메모,,,,로더 무시,docs/spec/csv/strings.md
+Table.Strings,<언어코드>,문자열,선택,ko,,Key와 Note 이외의 열은 언어; Language.Name 행으로 언어 이름 지정,docs/spec/csv/strings.md
+Table.Tasks,Id,문자열,O,,,과업 키. 건물 CSV Task가 가리킨다,docs/spec/csv/tasks.md
+Table.Tasks,Kind,아래 표,O,Kills,,달성 판정 방식(판정은 코드 TaskSystem.IsMet),docs/spec/csv/tasks.md
+Table.Tasks,Threshold,정수,,0,,판정 기준값 — 뜻은 Kind마다,docs/spec/csv/tasks.md
+Table.Tasks,Unlock,해금 키,,없음,,이 키를 가진 기술이 있어야 과업이 열린다,docs/spec/csv/tasks.md
+Table.Tasks,Wiki,메모,,,,로더 무시,docs/spec/csv/tasks.md
+Table.Tasks,Note,메모,,,,로더 무시,docs/spec/csv/tasks.md
+Table.TechUnlocks,Index,정수,O,,,배열 위치,docs/spec/csv/tech.md
+Table.TechUnlocks,Kind,Passive/Active/UnitProduction/BuildingConstruction/Quest,O,Passive,,분류(표시용),docs/spec/csv/tech.md
+Table.TechUnlocks,Category,문자열,O,,,해금 키 앞부분,docs/spec/csv/tech.md
+Table.TechUnlocks,Target,문자열,,,,해금 키 뒷부분. 비우면 Category가 곧 키. Build/Unit은 비우고 아래 Index로 가리킨다,docs/spec/csv/tech.md
+Table.TechUnlocks,BuildingIndex,Buildings Index,Build일 때 O,-1,,여는 건물. 키 뒷부분 = 그 건물 Id,docs/spec/csv/tech.md
+Table.TechUnlocks,UnitIndex,Units Index,Unit일 때 이것이나 BoatIndex,-1,,훈련을 여는 육지 유닛,docs/spec/csv/tech.md
+Table.TechUnlocks,BoatIndex,Boats Index,Unit일 때 이것이나 UnitIndex,-1,,뗏목 업그레이드를 여는 배(Kind Upgrade),docs/spec/csv/tech.md
+Table.TechUnlocks,Name,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음),docs/spec/csv/tech.md
+Table.TechUnlocks,Description,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음),docs/spec/csv/tech.md
+Table.TechUnlocks,Note,메모,,,,로더 무시,docs/spec/csv/tech.md
+Table.Techs,Index,정수,O,,,배열 위치,docs/spec/csv/tech.md
+Table.Techs,Id,문자열,O,,,기술 이름표,docs/spec/csv/tech.md
+Table.Techs,Icon,문자열,,,,아이콘 이름 — sprites의 Icon.<Icon>,docs/spec/csv/tech.md
+Table.Techs,CostBase,정수,O,GameRules.csv Tech.DefaultCostBase,,비용 고정분,docs/spec/csv/tech.md
+Table.Techs,CostPerCity,정수,O,0,,보유 도시 하나당 비용 증가분,docs/spec/csv/tech.md
+Table.Techs,Unlock{n},TechUnlocks Index,,,,이 기술이 여는 해금 내역,docs/spec/csv/tech.md
+Table.Techs,Note,메모,,,,로더 무시,docs/spec/csv/tech.md
+Table.TechSlots,Index,정수,O,,,배열 위치. 행 순서 = UI 갈래 순서,docs/spec/csv/tech.md
+Table.TechSlots,Id,문자열,O,,,슬롯 이름표(기술 이름과 무관),docs/spec/csv/tech.md
+Table.TechSlots,ParentIndex,TechSlots Index,O,-1,,선행 슬롯. -1 = 루트,docs/spec/csv/tech.md
+Table.TechSlots,Tier,정수,O,1,,바깥으로 갈수록 큰 원,docs/spec/csv/tech.md
+Table.TechSlots,Slot,정수,O,0,,"갈래 안 좌우 위치(0 = 시계방향 쪽, 1 = 반시계방향 쪽)",docs/spec/csv/tech.md
+Table.TechSlots,Note,메모,,,,로더 무시,docs/spec/csv/tech.md
+Table.TechTreeLayout,Index,정수,O,,,배열 위치(배치 순서와 무관),docs/spec/csv/tech.md
+Table.TechTreeLayout,SlotIndex,TechSlots Index,O,-1,,슬롯,docs/spec/csv/tech.md
+Table.TechTreeLayout,TechIndex,Techs Index,O,-1,,놓을 기술,docs/spec/csv/tech.md
+Table.TechTreeLayout,Note,메모,,,,로더 무시,docs/spec/csv/tech.md
+Table.TechGroups,Index,정수,O,,,배열 위치,docs/spec/csv/tech.md
+Table.TechGroups,Id,문자열,O,,,그룹 이름표,docs/spec/csv/tech.md
+Table.TechGroups,Name,메모,,,,설계용 메모(화면에 나오지 않는다),docs/spec/csv/tech.md
+Table.TechGroups,Description,메모,,,,설계용 메모(화면에 나오지 않는다),docs/spec/csv/tech.md
+Table.TechGroups,Tech{n},Techs Index,,,,연구 가능한 기술,docs/spec/csv/tech.md
+Table.TechGroups,Note,메모,,,,로더 무시,docs/spec/csv/tech.md
+Table.TileActions,Id,문자열,O,,,행동 키,docs/spec/csv/tile-actions.md
+Table.TileActions,Kind,아래 표,O,Harvest,,효과 종류(효과 자체는 코드),docs/spec/csv/tile-actions.md
+Table.TileActions,Unlock,해금 키,,없음,,tech,docs/spec/csv/tile-actions.md
+Table.TileActions,Cost,정수,,0,,별,docs/spec/csv/tile-actions.md
+Table.TileActions,Terrain{n},TileClass,O,,,할 수 있는 지형,docs/spec/csv/tile-actions.md
+Table.TileActions,RequiredStructure{n},StructureId,,없음,,Harvest는 이 중 하나가 칸에 있어야 하고 소모한다,docs/spec/csv/tile-actions.md
+Table.TileActions,Population,정수,,0,,주인 도시 인구 증가,docs/spec/csv/tile-actions.md
+Table.TileActions,StarsGain,정수,,0,,즉시 얻는 별,docs/spec/csv/tile-actions.md
+Table.TileActions,Wiki,메모,,,,로더 무시,docs/spec/csv/tile-actions.md
+Table.TileActions,Note,메모,,,,로더 무시,docs/spec/csv/tile-actions.md
+Table.TileActions,RequiredStructures,문자열 목록,선택,없음,호환 읽기만,RequiredStructure{n}의 호환용 세미콜론 목록,Assets/Scripts/TacticsECS/Systems/Csv
+Table.Tribes,Index,정수,O,,,배열 위치,docs/spec/csv/tribes.md
+Table.Tribes,Id,문자열,O,,,종족 이름표. 이름·설명은 번역 표 Tribe.<Id>.Name/.Desc,docs/spec/csv/tribes.md
+Table.Tribes,BiomeIndex,바이옴 Index,,-1,,종족 영역을 채울 바이옴(biomes의 Biome 행 순서). 범위 밖이면 0번,docs/spec/csv/tribes.md
+Table.Tribes,TechGroupIndex,TechGroups Index,,-1,,연구 가능한 기술 묶음,docs/spec/csv/tribes.md
+Table.Tribes,StartTech{n},Techs Index,,없음,,처음부터 해금된 기술,docs/spec/csv/tribes.md
+Table.Tribes,StartStars,정수,,GameRules.csv Economy.StartingStars,,시작 별,docs/spec/csv/tribes.md
+Table.Tribes,StartUnit{n},Units Index,,없음,,수도에 받는 시작 유닛,docs/spec/csv/tribes.md
+Table.Tribes,StartConditionIndex,StartConditions Index,,-1,,수도 주변 시작 조건. -1 = 없음,docs/spec/csv/tribes.md
+Table.Tribes,Wiki,메모,,,,로더 무시,docs/spec/csv/tribes.md
+Table.Tribes,Note,메모,,,,로더 무시,docs/spec/csv/tribes.md
+Table.StartConditions,Index,정수,O,,,배열 위치,docs/spec/csv/tribes.md
+Table.StartConditions,Id,문자열,O,,,이름표. 이름·설명은 번역 표 StartCondition.<Id>.Name/.Desc,docs/spec/csv/tribes.md
+Table.StartConditions,Rule{n},StartConditionRules Index,,,,적힌 순서대로 적용할 규칙,docs/spec/csv/tribes.md
+Table.StartConditions,Note,메모,,,,로더 무시,docs/spec/csv/tribes.md
+Table.StartConditionRules,Index,정수,O,,,배열 위치,docs/spec/csv/tribes.md
+Table.StartConditionRules,Id,문자열,,,,이름표,docs/spec/csv/tribes.md
+Table.StartConditionRules,Kind,Tile/Structure,O,Tile,,Tile = 칸의 TileTypeId를 바꿈 / Structure = 칸 위에 구조물,docs/spec/csv/tribes.md
+Table.StartConditionRules,Target,TileTypeId 또는 StructureId,O,,,보장할 대상,docs/spec/csv/tribes.md
+Table.StartConditionRules,TerrainType,TerrainType,,Land,,Tile: 바뀐 칸의 이동 지형 / Structure: AllowedTile이 비었을 때 놓일 수 있는 지형,docs/spec/csv/tribes.md
+Table.StartConditionRules,Count,정수,,1,,최소 개수,docs/spec/csv/tribes.md
+Table.StartConditionRules,MinDistance,정수,,1,,수도에서 체비쇼프 거리 하한(1 = 바로 옆 8칸),docs/spec/csv/tribes.md
+Table.StartConditionRules,MaxDistance,정수,,1,,거리 상한,docs/spec/csv/tribes.md
+Table.StartConditionRules,MapType,맵 타입 이름,,항상,,이 맵 타입에서만 적용 — map,docs/spec/csv/tribes.md
+Table.StartConditionRules,AllowedTile{n},TileTypeId,,,,Tile: 바꿔도 되는 원래 타일(비우면 도시가 아닌 아무 육지) / Structure: 놓일 수 있는 타일,docs/spec/csv/tribes.md
+Table.StartConditionRules,Description,메모,,,,설계용 설명(화면에 나오지 않는다),docs/spec/csv/tribes.md
+Table.StartConditionRules,Note,메모,,,,로더 무시,docs/spec/csv/tribes.md
+Table.Units,Index,정수,O,,,배열 위치,docs/spec/csv/units.md
+Table.Units,Id,문자열,O,,,"유닛 종류 키. 해금 키 Unit.<Id>, GameRules.csv의 *UnitId, 스프라이트 Unit.<Id>가 가리킨다",docs/spec/csv/units.md
+Table.Units,MaxHp,정수,O,0,,최대 체력,docs/spec/csv/units.md
+Table.Units,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로),docs/spec/csv/units.md
+Table.Units,BaseVisual,문자열,O,,,스폰 프리팹 Assets/Prefabs/Units/Unit_<BaseVisual>. 스프라이트에 Unit.<Id>가 없으면 이 외형을 빌린다,docs/spec/csv/units.md
+Table.Units,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit. 옛 이름 Stealth는 Hide로 읽는다,docs/spec/csv/units.md
+Table.Units,Domain,TerrainType,,Land,,들어갈 수 있는 지형,docs/spec/csv/units.md
+Table.Units,Move.Range,정수,,0,,이동력(Move가 있을 때),docs/spec/csv/units.md
+Table.Units,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)",docs/spec/csv/units.md
+Table.Units,Attack.Range,정수,,0,,공격 사거리. 1 = 근접,docs/spec/csv/units.md
+Table.Units,Heal.Amount,정수,,0,,치유량(Heal이 있을 때),docs/spec/csv/units.md
+Table.Units,Heal.Range,정수,,0,,치유 사거리,docs/spec/csv/units.md
+Table.Units,Cost,정수,,2,,훈련 비용(별),docs/spec/csv/units.md
+Table.Units,Trainable,불리언,,true,,false면 도시에서 훈련 불가(보상·침투로만 등장),docs/spec/csv/units.md
+Table.Units,BoatIndex,Boats Index,,-1,,자기 항구에 들어가면 바뀌는 배. -1 = 뗏목,docs/spec/csv/units.md
+Table.Units,Note,메모,,,,로더 무시,docs/spec/csv/units.md
+Table.Units,Actions,문자열 목록,선택,없음,호환 읽기만,Action{n}의 호환용 세미콜론 목록,Assets/Scripts/TacticsECS/Systems/Csv
+Table.Boats,Index,정수,O,,,배열 위치,docs/spec/csv/units.md
+Table.Boats,Id,문자열,O,,,"배 키. 해금 키 Unit.<Id>, 스프라이트 Boat.<Id>가 가리킨다",docs/spec/csv/units.md
+Table.Boats,Kind,Raft/Upgrade/Special,O,Special,,아래 표,docs/spec/csv/units.md
+Table.Boats,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로),docs/spec/csv/units.md
+Table.Boats,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit. 옛 이름 Stealth는 Hide로 읽는다,docs/spec/csv/units.md
+Table.Boats,Move.Range,정수,,0,,이동력(Move가 있을 때),docs/spec/csv/units.md
+Table.Boats,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)",docs/spec/csv/units.md
+Table.Boats,Attack.Range,정수,,0,,공격 사거리. 1 = 근접,docs/spec/csv/units.md
+Table.Boats,Heal.Amount,정수,,0,,치유량(Heal이 있을 때),docs/spec/csv/units.md
+Table.Boats,Heal.Range,정수,,0,,치유 사거리,docs/spec/csv/units.md
+Table.Boats,Cost,정수,,2,,훈련 비용(별),docs/spec/csv/units.md
+Table.Boats,Note,메모,,,,로더 무시,docs/spec/csv/units.md
+Table.Boats,Actions,문자열 목록,선택,없음,호환 읽기만,Action{n}의 호환용 세미콜론 목록,Assets/Scripts/TacticsECS/Systems/Csv
+Single.Units,Id,문자열,O,,,"유닛 종류 키. 해금 키 Unit.<Id>, GameRules.csv의 *UnitId, 스프라이트 Unit.<Id>가 가리킨다",docs/spec/csv/units.md
+Single.Units,MaxHp,정수,O,0,,최대 체력,docs/spec/csv/units.md
+Single.Units,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로),docs/spec/csv/units.md
+Single.Units,BaseVisual,문자열,O,,,스폰 프리팹 Assets/Prefabs/Units/Unit_<BaseVisual>. 스프라이트에 Unit.<Id>가 없으면 이 외형을 빌린다,docs/spec/csv/units.md
+Single.Units,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit. 옛 이름 Stealth는 Hide로 읽는다,docs/spec/csv/units.md
+Single.Units,Domain,TerrainType,,Land,,들어갈 수 있는 지형,docs/spec/csv/units.md
+Single.Units,Move.Range,정수,,0,,이동력(Move가 있을 때),docs/spec/csv/units.md
+Single.Units,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)",docs/spec/csv/units.md
+Single.Units,Attack.Range,정수,,0,,공격 사거리. 1 = 근접,docs/spec/csv/units.md
+Single.Units,Heal.Amount,정수,,0,,치유량(Heal이 있을 때),docs/spec/csv/units.md
+Single.Units,Heal.Range,정수,,0,,치유 사거리,docs/spec/csv/units.md
+Single.Units,Cost,정수,,2,,훈련 비용(별),docs/spec/csv/units.md
+Single.Units,Trainable,불리언,,true,,false면 도시에서 훈련 불가(보상·침투로만 등장),docs/spec/csv/units.md
+Single.Units,Name,문자열,,Id,,표시 이름. Unit.<Id>.Name 번역이 있으면 그쪽이 앞선다,docs/spec/csv/units.md
+Single.Units,Boat,배 Id,,뗏목,,자기 항구에 들어가면 바뀌는 배(Boats.csv의 Special 행 Id),docs/spec/csv/units.md
+Single.Units,Actions,문자열 목록,선택,없음,호환 읽기만,Action{n}의 호환용 세미콜론 목록,Assets/Scripts/TacticsECS/Systems/Csv
+Single.TechTree,Id,string,필수,,,,docs/tech_tree_csv_spec.csv
+Single.TechTree,Name,string,선택,Id,,,docs/tech_tree_csv_spec.csv
+Single.TechTree,Branch,string,선택,루트는 자기 Id / 그 외 부모 Branch,,갈래의 루트 기술 Id. 갈래는 CSV에서 처음 등장하는 순서대로 12시 방향부터 시계방향으로 배치됩니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Parent,string,선택,선행 기술 없음,,선행 기술 Id. 루트는 비웁니다. 같은 파일에 존재해야 하며 자기 참조나 순환을 만들면 안 됩니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Tier,integer,선택,1,,1~3티어입니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Slot,integer,선택,0,,0은 시계방향 1은 반시계방향. 자식이 두 개일 때 사용,docs/tech_tree_csv_spec.csv
+Single.TechTree,Icon,string,선택,빈 값,,프로젝트에 등록된 아이콘 이름. 예시 파일의 아이콘 값을 참고합니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,CostBase,integer,선택,GameRules.Tech.DefaultCostBase,,연구 비용.,docs/tech_tree_csv_spec.csv
+Single.TechTree,CostPerCity,integer,선택,Tier,,보유 도시 수에 따라 연구 비용에 더하는 값.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Unlock{n},string,선택,해금 없음,,해금 키 하나를 입력합니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,UnlockN,column pattern,선택,해금 없음,,,docs/tech_tree_csv_spec.csv
+Single.TechTree,Effect,string,선택,빈 설명,,기술 상세 패널의 설명. 실제 효과는 Unlock 컬럼의 키가 결정합니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Note,string,선택,,,기획 메모. 게임 로직에는 사용하지 않습니다.,docs/tech_tree_csv_spec.csv
+Single.TechTree,Unlocks,문자열 목록,선택,없음,호환 읽기만,Unlock{n}의 호환용 세미콜론 목록,Assets/Scripts/TacticsECS/Systems/Csv
+Single.LegacyBiomes,Id,문자열,필수,,고정 위치 1번째 열,바이옴 Id,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Single.LegacyBiomes,Name,문자열,선택,Biome,고정 위치 2번째 열,표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 번역 표 Biome.<Biome>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다),docs/spec/csv/biomes.md
+Single.LegacyBiomes,NoiseType,문자열,선택,Perlin,고정 위치 3번째 열,노이즈 종류. Perlin만 지원,docs/spec/csv/biomes.md
+Single.LegacyBiomes,Frequency,실수,선택,0,고정 위치 4번째 열,노이즈 주파수,docs/spec/csv/biomes.md
+Single.LegacyBiomes,Octaves,정수,선택,0,고정 위치 5번째 열,노이즈 옥타브,docs/spec/csv/biomes.md
+Single.LegacyBiomes,SeedOffset,정수,선택,0,고정 위치 6번째 열,이 바이옴 노이즈장의 시드 오프셋,docs/spec/csv/biomes.md
+Single.LegacyBiomes,InnerRadius,정수,선택,0,고정 위치 7번째 열,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용),docs/spec/csv/biomes.md
+Single.LegacyBiomes,Tiles,문자열,,,고정 위치 8번째 열,호환용 묶음 필드; 엔트리 구분 ; / 필드 구분 : / 목록 구분 |; 필드 순서는 rules.csv 참고,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Single.LegacyBiomes,Structures,문자열,,,고정 위치 9번째 열,호환용 묶음 필드; 엔트리 구분 ; / 필드 구분 : / 목록 구분 |; 필드 순서는 rules.csv 참고,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Single.LegacyBiomes,MountainRate,실수,선택,0,고정 위치 10번째 열,산 레이어 배수. 0이면 산 없음,docs/spec/csv/biomes.md
+Single.LegacyBiomes,ForestRate,실수,선택,0,고정 위치 11번째 열,숲 레이어 배수. 0이면 숲 레이어 없음,docs/spec/csv/biomes.md

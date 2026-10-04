@@ -19,7 +19,7 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 | `MaxHp` | 정수 | O | 0 | 최대 체력 |
 | `Defense` | 실수 | O | 0 | 방어력(소수 허용 — 위키 원값 그대로) |
 | `BaseVisual` | 문자열 | O | | 스폰 프리팹 `Assets/Prefabs/Units/Unit_<BaseVisual>`. 스프라이트에 `Unit.<Id>`가 없으면 이 외형을 빌린다 |
-| `Action{n}` | 행동 이름 | O | | 행동·패시브 하나씩 — 목록은 [unit](../game/unit.md#행동과-패시브). 옛 이름 `Stealth`는 `Hide`로 읽는다 |
+| `Action{n}` | 행동 이름 | O | | 행동·패시브 하나씩 — 목록은 [unit](../game/unit.md#행동과-패시브) |
 | `Domain` | `TerrainType` | | `Land` | 들어갈 수 있는 지형 |
 | `Move.Range` | 정수 | | 0 | 이동력(`Move`가 있을 때) |
 | `Attack.Attack` | 실수 | | 0 | 공격력(`Attack`이 있을 때, 소수 허용) |
@@ -50,16 +50,3 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 | `Raft` | 뗏목 — 항구에 들어간 육지 유닛이 기본으로 바뀌는 배. 정확히 한 행, `Id`는 `raft`. 없으면 코드 기본 뗏목 + 경고 |
 | `Upgrade` | 뗏목에서 업그레이드하는 배. 여는 기술은 TechUnlocks의 `BoatIndex`(없으면 기술 없이 가능) |
 | `Special` | 유닛 `BoatIndex`가 가리키는 전용 배. 업그레이드 불가 |
-
-## 샌드박스 유닛 CSV (옛 형식, 읽기만)
-파일: `docs/sample_units.csv`
-샌드박스 "표 불러오기"에서 표 이름이 아닌 파일을 고르면 이 형식으로 읽는다(예시가 위 파일) — 팔레트만 바뀐다. 내보내기는 없다(표 폴더로 내보낸다). 키형(`Id`) — `Index`가 없고, 배는 `BoatIndex` 대신 배 `Id`를 직접 적는다.
-컬럼은 [Units.csv](#unitscsv--육지-유닛)의 `Index`·`BoatIndex`를 뺀 나머지 + 아래 컬럼. 이 형식은 모르는 컬럼을 경고하지 않는다(오타 주의). 옛 한 칸 목록 `Actions`(`Move;Attack`)도 읽는다.
-
-| 컬럼 | 타입 | 필수 | 기본 | 뜻 |
-|---|---|---|---|---|
-| `Id`, `MaxHp`, `Defense`, `BaseVisual`, `Action{n}`, `Domain`, `Move.Range`, `Attack.Attack`, `Attack.Range`, `Heal.Amount`, `Heal.Range`, `Cost`, `Trainable` | | | | Units.csv와 같음 |
-| `Name` | 문자열 | | `Id` | 표시 이름. `Unit.<Id>.Name` 번역이 있으면 그쪽이 앞선다 |
-| `Boat` | 배 Id | | 뗏목 | 자기 항구에 들어가면 바뀌는 배(`Boats.csv`의 `Special` 행 Id) |
-
-불러온 표에서도 종족 시작 유닛은 `Units.csv`의 그 Index 행과 같은 `Id`로 찾는다(없으면 빠진다).

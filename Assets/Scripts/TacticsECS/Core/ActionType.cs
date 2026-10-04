@@ -96,5 +96,6 @@ namespace TacticsECS
         /// <summary>잠행(위키 Unit Skills "Creep"): 산을 뺀 지형의 이동 제한(숲에서 멈춤)을 무시하고, 도로 보너스도 받지 않는다.
         /// 값을 갖지 않는 순수 마커 — Actions/CreepAction.cs 참고.</summary>
         Creep = 1 << 28,
+        Stomp = 1 << 29,
     }
 }

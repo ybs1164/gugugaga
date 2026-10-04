@@ -10,6 +10,8 @@ namespace TacticsECS
     public struct TableSource
     {
         public string Folder;
+        /// <summary>표별 개별 파일 선택(Resources 경로 → 외부 파일 경로). Folder보다 우선한다.</summary>
+        public Dictionary<string, string> Files;
 
         /// <summary>폴더에서 실제로 읽은 표의 Resources 경로(예: "Tables/Units"). GameDataLoader가 채운다(null이면 기록하지 않음).</summary>
         public List<string> FromFolder;

@@ -7,8 +7,7 @@ namespace TacticsECS
     /// BuildingIndex가 가리키고, 로드 후 TableLinkSystem이 BuildingInfo.UnlockKey("Build.Farm" 등)를 채운다.
     ///
     /// 원문과 다른 점: 대장간(Forge)은 위키 표에 "Field, Forest adjacent to a Lumber Hut"로 적혀 있지만 효과
-    /// 설명("인접 광산 하나당 인구 2")과 맞지 않는 오기라 광산 인접으로 옮겼다. 대사관(Embassy)은 평화 조약이 맺어진
-    /// 부족의 수도에만 지을 수 있는데, 이 프로젝트는 두 팀이 항상 전쟁 중이라(외교 시스템 없음) 넣지 않았다.
+    /// 설명("인접 광산 하나당 인구 2")과 맞지 않는 오기라 광산 인접으로 옮겼다.
     /// 얼음 신전/Cymanti·Aquarion 전용 건물은 해당 지형/부족이 없어 제외했다.
     /// </summary>
     public static class BuildingDefinition

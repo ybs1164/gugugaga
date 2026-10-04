@@ -1,0 +1,5 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,O,,,이름표. 이름·설명은 번역 표 StartCondition.<Id>.Name/.Desc
+Rule{n},StartConditionRules Index,,,,적힌 순서대로 적용할 규칙
+Note,메모,,,,로더 무시

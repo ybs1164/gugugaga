@@ -1,0 +1,7 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,O,,,그룹 이름표
+Name,메모,,,,설계용 메모(화면에 나오지 않는다)
+Description,메모,,,,설계용 메모(화면에 나오지 않는다)
+Tech{n},Techs Index,,,,연구 가능한 기술
+Note,메모,,,,로더 무시

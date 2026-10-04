@@ -1,0 +1,11 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Kind,Passive/Active/UnitProduction/BuildingConstruction/Quest,O,Passive,,분류(표시용)
+Category,문자열,O,,,해금 키 앞부분
+Target,문자열,,,,해금 키 뒷부분. 비우면 Category가 곧 키. Build/Unit은 비우고 아래 Index로 가리킨다
+BuildingIndex,Buildings Index,Build일 때 O,-1,,여는 건물. 키 뒷부분 = 그 건물 Id
+UnitIndex,Units Index,Unit일 때 이것이나 BoatIndex,-1,,훈련을 여는 육지 유닛
+BoatIndex,Boats Index,Unit일 때 이것이나 UnitIndex,-1,,뗏목 업그레이드를 여는 배(Kind Upgrade)
+Name,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음)
+Description,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음)
+Note,메모,,,,로더 무시

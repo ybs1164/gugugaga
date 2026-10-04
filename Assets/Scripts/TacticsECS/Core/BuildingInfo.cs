@@ -59,6 +59,7 @@ namespace TacticsECS
 
         /// <summary>한 도시(영토)에 하나만 지을 수 있다(위키 Sawmill/Windmill/Forge: "only one can be built per city").</summary>
         public bool OnePerCity;
+        public bool IsEmbassy;
 
         public string Description;
     }

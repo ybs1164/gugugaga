@@ -32,6 +32,8 @@ namespace TacticsECS
                 actions.Add(new IndependentAction());
             if ((row.Actions & ActionType.Static) != 0)
                 actions.Add(new StaticAction());
+            if ((row.Actions & ActionType.Stomp) != 0)
+                actions.Add(new StompAction());
             if ((row.Actions & ActionType.Retreat) != 0)
                 actions.Add(new RetreatAction());
             if ((row.Actions & ActionType.Ambush) != 0)

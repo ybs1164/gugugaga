@@ -61,9 +61,9 @@ namespace TacticsECS.EditorTools
                 var placements = TileVisuals.For(Vector2Int.zero,feature,structure.Id,null,null);
                 CheckComposite(PixelSpriteComposer.Compose(placements),feature + "+" + structure.Id);
             }
-            var city = new CityData { Level = 8, IsCapital = true, HasWall = true, HasWorkshop = true, ParkCount = 1 };
+            var city = new CityData { Level = 8, IsCapital = true, HasWall = true, HasWorkshop = true, HasEmbassy = true, ParkCount = 1 };
             CheckComposite(PixelSpriteComposer.Compose(TileVisuals.City(city),8,Blue),"full city");
-            foreach (string boat in new[] { "raft","scout","rammer","bomber","dinghy","pirate" })
+            foreach (string boat in GameTables.Boats.Select(b => b.Unit.Id))
             foreach (var row in GameTables.Units)
                 CheckComposite(PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+boat), new SpritePlacement("Unit."+row.Id,3,7) }),row.Id + " on " + boat);
             Check(PixelSpriteComposer.Clipped.Count == 0,"nothing cut at the canvas edge: " + string.Join(", ",PixelSpriteComposer.Clipped));

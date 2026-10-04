@@ -1,0 +1,8 @@
+﻿Id,Kind,Unlock,Cost,Terrain1,Terrain2,Terrain3,Terrain4,Terrain5,RequiredStructure1,RequiredStructure2,Population,StarsGain,Note
+HarvestFruit,Harvest,Harvest.Fruit,2,Field,,,,,Resource_Fruit,Resource_Food,1,0,
+HuntAnimal,Harvest,Harvest.Animal,2,Forest,,,,,Resource_Animal,,1,0,
+CatchFish,Harvest,Harvest.Fish,2,ShallowWater,Ocean,,,,Resource_Fish,,1,0,
+ClearForest,ClearForest,Ability.ClearForest,0,Forest,,,,,,,0,1,
+BurnForest,BurnForest,Ability.BurnForest,3,Forest,,,,,,,0,0,
+GrowForest,GrowForest,Ability.GrowForest,5,Field,,,,,,,0,0,
+DestroyBuilding,Destroy,Ability.Destroy,0,Field,Forest,Mountain,ShallowWater,Ocean,,,0,0,위키 Destroy

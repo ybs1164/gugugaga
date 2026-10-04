@@ -18,7 +18,6 @@ namespace TacticsECS
     /// 여러 값(ExcludeAdjacent/AllowedTileTypes)은 번호 붙은 반복 컬럼으로 나열한다. 필드 의미는 BiomeCsvRow.cs 주석 참고.
     ///
     /// 옛 형식(Tiles/Structures 한 칸에 ";" 엔트리, ":" 필드, "|" 목록을 묶은 한 행 = 한 바이옴)도 헤더에 Tiles 컬럼이 있으면
-    /// 호환용으로 그대로 읽는다(ParseLegacy). 작성기는 항상 새 형식으로 쓴다.
     /// </summary>
     public static class BiomeCsvSerializer
     {
@@ -26,9 +25,6 @@ namespace TacticsECS
         public const string KindTile = "Tile";
         public const string KindStructure = "Structure";
 
-        private const char TileEntrySeparator = ';';
-        private const char TileFieldSeparator = ':';
-        private const char ExcludeSeparator = '|';
 
         private static readonly string[] FixedHeader =
         {
@@ -44,7 +40,7 @@ namespace TacticsECS
         {
             if (string.IsNullOrWhiteSpace(csvText)) return new List<BiomeCsvRow>();
             var t = CsvTableReader.Parse(name, csvText);
-            if (CsvTableReader.HasColumn(t, "Tiles")) return ParseLegacy(csvText);
+            CsvTableReader.CheckColumns(t, new[] { "Kind", "Biome" }, FixedHeader, errors, new[] { "AllowedTile", "Exclude" });
 
             var rows = new List<BiomeCsvRow>();
             BiomeCsvRow Find(string id)
@@ -164,115 +160,5 @@ namespace TacticsECS
         private static string F(float v) => v.ToString(CultureInfo.InvariantCulture);
         private static string I(int v) => v.ToString(CultureInfo.InvariantCulture);
 
-        // ---------- 옛 형식(한 행 = 한 바이옴, Tiles/Structures 칸에 묶음) 읽기 — 호환용 ----------
-
-        /// <summary>옛 형식: Id,Name,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,Tiles,Structures,MountainRate,ForestRate.
-        /// 타일 엔트리 TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:ExcludeAdjacent(파이프),
-        /// 구조물 엔트리 StructureId:AllowedTileTypes(파이프):Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:MaxDistanceFromCity:
-        /// MaxWaterFractionOnLakes:FillRemaining:ExcludeAdjacentStructures(파이프):InnerRate:OuterRate.</summary>
-        public static List<BiomeCsvRow> ParseLegacy(string csvText)
-        {
-            var rows = new List<BiomeCsvRow>();
-            if (string.IsNullOrWhiteSpace(csvText)) return rows;
-
-            var lines = csvText.TrimStart('﻿').Replace("\r\n", "\n").Split('\n');
-            for (int i = 1; i < lines.Length; i++) // 0번째 줄은 헤더
-            {
-                var line = lines[i].Trim();
-                if (line.Length == 0) continue;
-                rows.Add(ParseRow(line.Split(',')));
-            }
-            return rows;
-        }
-
-        private static BiomeCsvRow ParseRow(string[] c) => new BiomeCsvRow
-        {
-            Id = Col(c, 0),
-            Name = Col(c, 1),
-            NoiseType = string.IsNullOrEmpty(Col(c, 2)) ? "Perlin" : Col(c, 2),
-            Frequency = ParseFloat(Col(c, 3)),
-            Octaves = ParseInt(Col(c, 4)),
-            SeedOffset = ParseInt(Col(c, 5)),
-            InnerRadius = ParseInt(Col(c, 6)),
-            Tiles = ParseTiles(Col(c, 7)),
-            Structures = ParseStructures(Col(c, 8)),
-            MountainRate = ParseFloat(Col(c, 9)),
-            ForestRate = ParseFloat(Col(c, 10))
-        };
-
-        private static List<BiomeTileEntry> ParseTiles(string s)
-        {
-            var result = new List<BiomeTileEntry>();
-            if (string.IsNullOrEmpty(s)) return result;
-
-            foreach (var token in s.Split(TileEntrySeparator))
-            {
-                var entry = token.Trim();
-                if (entry.Length == 0) continue;
-
-                var f = entry.Split(TileFieldSeparator);
-                result.Add(new BiomeTileEntry
-                {
-                    TileId = FieldCol(f, 0),
-                    TerrainType = ParseTerrainType(FieldCol(f, 1)),
-                    InnerWeight = ParseFloat(FieldCol(f, 2)),
-                    OuterWeight = ParseFloat(FieldCol(f, 3)),
-                    MinCount = ParseInt(FieldCol(f, 4)),
-                    CountPerTiles = ParseFloat(FieldCol(f, 5)),
-                    MinDistance = ParseInt(FieldCol(f, 6)),
-                    EdgeMargin = ParseInt(FieldCol(f, 7)),
-                    ExcludeAdjacent = ParseExclude(FieldCol(f, 8))
-                });
-            }
-            return result;
-        }
-
-        private static List<BiomeStructureEntry> ParseStructures(string s)
-        {
-            var result = new List<BiomeStructureEntry>();
-            if (string.IsNullOrEmpty(s)) return result;
-
-            foreach (var token in s.Split(TileEntrySeparator))
-            {
-                var entry = token.Trim();
-                if (entry.Length == 0) continue;
-
-                var f = entry.Split(TileFieldSeparator);
-                result.Add(new BiomeStructureEntry
-                {
-                    StructureId = FieldCol(f, 0),
-                    AllowedTileTypes = ParseExclude(FieldCol(f, 1)),
-                    Weight = ParseFloat(FieldCol(f, 2)),
-                    MinCount = ParseInt(FieldCol(f, 3)),
-                    CountPerTiles = ParseFloat(FieldCol(f, 4)),
-                    MinDistance = ParseInt(FieldCol(f, 5)),
-                    EdgeMargin = ParseInt(FieldCol(f, 6)),
-                    MaxDistanceFromCity = ParseInt(FieldCol(f, 7)),
-                    MaxWaterFractionOnLakes = ParseFloatOrNull(FieldCol(f, 8)),
-                    FillRemaining = ParseInt(FieldCol(f, 9)) != 0,
-                    ExcludeAdjacentStructures = ParseExclude(FieldCol(f, 10)),
-                    InnerRate = ParseFloat(FieldCol(f, 11)),
-                    OuterRate = ParseFloat(FieldCol(f, 12))
-                });
-            }
-            return result;
-        }
-
-        private static string[] ParseExclude(string s) =>
-            string.IsNullOrEmpty(s) ? Array.Empty<string>() : s.Split(ExcludeSeparator);
-
-        private static TerrainType ParseTerrainType(string s) =>
-            Enum.TryParse<TerrainType>(s, true, out var v) ? v : TerrainType.Land;
-
-        private static string Col(string[] cols, int index) => index < cols.Length ? cols[index].Trim() : string.Empty;
-        private static string FieldCol(string[] fields, int index) => index < fields.Length ? fields[index].Trim() : string.Empty;
-
-        private static int ParseInt(string s) => int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : 0;
-        private static float ParseFloat(string s) => float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0f;
-
-        /// <summary>MaxWaterFractionOnLakes처럼 "비워두면 제약 없음"을 null로 표현하는 필드용 — 빈 문자열이면
-        /// null, 숫자면 그 값을 쓴다.</summary>
-        private static float? ParseFloatOrNull(string s) =>
-            string.IsNullOrEmpty(s) ? (float?)null : ParseFloat(s);
     }
 }

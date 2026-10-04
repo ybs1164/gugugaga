@@ -20,6 +20,7 @@ namespace TacticsECS.EditorTools
             Step("StructureGenerationVerification", StructureGenerationVerification.Run);
             Step("UIVerification", UIVerification.Run);
             Step("ArrayTableVerification", ArrayTableVerification.Run);
+            Step("WikiParityVerification", WikiParityVerification.Run);
             Debug.Log("[VerificationSuite] DONE");
         }
 

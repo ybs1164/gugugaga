@@ -41,11 +41,13 @@ namespace TacticsECS
                 });
                 // 위키: 보통 유닛은 뗏목, Cloak은 Dinghy, Dagger는 Pirate가 된다(유닛 CSV Boat 칸 — PortBoat 컴포넌트).
                 ApplyNaval(world, unitId, FindNavalRow(world.GetOrDefault<PortBoat>(unitId).NavalUnitId) ?? NavalUnitDefinition.Raft);
+                if (UnitActionQueries.Find<StompAction>(world, unitId) != null) StompSystem.Apply(grid, world, unitId);
                 EndTurn(world, unitId);
                 return true;
             }
 
             if (tile.Terrain == TerrainType.Water) return false;
+            if (UnitActionQueries.Find<StompAction>(world, unitId) != null) StompSystem.Apply(grid, world, unitId);
             var land = world.Get<LandForm>(unitId);
             world.Set(unitId, new Attack { Value = land.Attack });
             world.Set(unitId, new Defense { Value = land.Defense });

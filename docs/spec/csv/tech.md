@@ -108,10 +108,3 @@ Buildings / Units / Boats ◄── TechUnlocks.BuildingIndex / UnitIndex / Boat
 | 종족 시작 기술 | [tribes](tribes.md) `StartTech{n}` |
 
 진행 중인 전투에는 반영되지 않는다(다음 전투부터).
-
-## TechTree.csv — 샌드박스 단일 파일 형식 (옛 형식, 읽기만)
-파일: `Assets/Resources/TechTree.csv`
-샌드박스 "표 불러오기"에서 `Branch`/`Tier` 칸이 있는 파일을 고르면 이 형식으로 읽는 한 파일 형식의 예제(내보내기는 없다 — 표 폴더로 내보낸다). **이 파일을 고쳐도 기본 전투 기술은 바뀌지 않는다.** 로더: `TechCsvSerializer.Parse`.
-위 배열형 표와 달리 기술이 자기 위치·선행 관계(`Branch`, `Parent`, `Tier`, `Slot`)를 직접 갖고, `Unlock{n}`에 해금 키 문자열을 직접 적는다.
-이름·설명은 [번역 표](strings.md#키-규칙) `Tech.<Id>.Name`/`.Desc`가 있으면 그쪽이 `Name`·`Effect` 칸보다 앞선다 — 이 예제 파일에는 두 칸이 없다.
-컬럼 명세(단일 출처): [`docs/tech_tree_csv_spec.csv`](../../tech_tree_csv_spec.csv). 예시: [`docs/sample_tech_tree.csv`](../../sample_tech_tree.csv).

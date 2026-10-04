@@ -339,6 +339,7 @@ namespace TacticsECS
             (ActionType.Combo, "combo"),
             (ActionType.Scout, "scout"),
             (ActionType.Splash, "splash"),
+            (ActionType.Stomp, "splash"),
             (ActionType.Stiff, "stiff"),
             (ActionType.Freeze, "freeze"),
         };

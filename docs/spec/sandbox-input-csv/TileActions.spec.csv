@@ -1,0 +1,11 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Id,문자열,O,,,행동 키
+Kind,아래 표,O,Harvest,,효과 종류(효과 자체는 코드)
+Unlock,해금 키,,없음,,tech
+Cost,정수,,0,,별
+Terrain{n},TileClass,O,,,할 수 있는 지형
+RequiredStructure{n},StructureId,,없음,,
+Population,정수,,0,,주인 도시 인구 증가
+StarsGain,정수,,0,,즉시 얻는 별
+Wiki,메모,,,,로더 무시
+Note,메모,,,,로더 무시

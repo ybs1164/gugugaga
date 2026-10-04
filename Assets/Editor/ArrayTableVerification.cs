@@ -47,12 +47,12 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyTableShapes()
         {
-            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 51, $"25 techs / 51 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
+            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 52, $"25 techs / 52 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
             Check(GameTables.Tribes.Length == 12 && GameTables.TechGroups.Length == 12, "12 regular tribes, one tech group each");
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
             var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count);
             Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
-            Check(GameTables.Units.Length == 11 && GameTables.Boats.Length == 6 && BuildingDefinition.All.Length == 21, "units 11 / boats 6 / buildings 21");
+            Check(GameTables.Units.Length == 11 && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 22, "units 11 / boats 7 / buildings 22");
             Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
                   BuildingDefinition.All.First(b => b.Id == "Farm").UnlockKey == "Build.Farm" &&
                   string.IsNullOrEmpty(BuildingDefinition.All.First(b => b.Id == "AltarOfPeace").UnlockKey), "building unlock keys come from TechUnlocks.BuildingIndex");
@@ -99,16 +99,14 @@ namespace TacticsECS.EditorTools
         /// <summary>기존 트리의 고정 구조는 유지한다. 기술 내용/비용은 이 비교에 넣지 않아 밸런스 변경을 허용한다.</summary>
         private static void VerifyTechLayout()
         {
-            var legacy = TechCsvSerializer.Parse(Resources.Load<TextAsset>(TechTreeDefinition.CsvResourcePath).text);
             var built = TechGroupSystem.BuildTechNodes();
             Check(GameTables.TechSlots.Length == 25 && built.Count == 25, "fixed tree has 25 occupied slots");
-            for (int i = 0; i < Mathf.Min(legacy.Count, built.Count); i++)
+            for (int i = 0; i < built.Count; i++)
             {
-                var a = legacy[i];
                 var b = built[i];
-                int oldParent = legacy.FindIndex(n => n.Id == a.ParentId);
-                Check(GameTables.TechSlots[i].ParentIndex == oldParent && a.Tier == b.Tier && a.Slot == b.Slot,
-                      $"slot {i} retains original position and prerequisite slot");
+                var placement = GameTables.TechTreeLayout.First(p => p.TechIndex == GameTables.Techs.First(t => t.Id == b.Id).Index);
+                var slot = GameTables.TechSlots[placement.SlotIndex];
+                Check(slot.Tier == b.Tier && slot.Slot == b.Slot, $"slot {i} matches the configured layout");
             }
             var loaded = GameDataLoader.LoadTechNodes();
             Check(TechCsvSerializer.Write(loaded) == TechCsvSerializer.Write(built), "default loader and tribe tree use the same separated tables");
@@ -345,6 +343,17 @@ namespace TacticsECS.EditorTools
         private static void VerifySandboxHudPrefab()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/SandboxHud.prefab");
+            var csvContent = prefab != null ? prefab.transform.Find("Canvas/CsvFiles/Viewport/Content") : null;
+            Check(csvContent != null, "SandboxHud has per-file CSV list");
+            if (csvContent != null)
+                foreach (var key in GameDataLoader.SandboxCsvPaths)
+                {
+                    var row = csvContent.Find(key.Replace('/', '_'));
+                    Check(row?.Find("PickButton")?.GetComponent<Button>() != null && row?.Find("ResetButton")?.GetComponent<Button>() != null,
+                        key + " has file picker and default reset");
+                }
+            Check(prefab.transform.Find("Canvas/Palette") == null && prefab.transform.Find("Canvas/Toolbar/플레이어Button") == null &&
+                prefab.transform.Find("Canvas/Toolbar/적Button") == null, "manual unit placement UI removed");
             var tab = prefab != null ? prefab.transform.Find("Canvas/GenerationTab") : null;
             Check(tab != null, "SandboxHud prefab has GenerationTab (습도 탭)");
             if (tab == null) return;

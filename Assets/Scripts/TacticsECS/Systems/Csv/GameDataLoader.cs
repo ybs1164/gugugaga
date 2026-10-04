@@ -27,6 +27,11 @@ namespace TacticsECS
             GameTables.TribesPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.DefaultBiomesPath,
         };
 
+        public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
+        {
+            "Pixel2D/SpriteCatalog"
+        }.ToArray();
+
         public static List<string> LoadAll() => LoadAll(TableSource.Resources);
 
         public static List<string> LoadAll(TableSource source)
@@ -38,8 +43,8 @@ namespace TacticsECS
             TileActionDefinition.All = GameTableCsvSerializer.ParseTileActions(Read(TileActionDefinition.CsvResourcePath, errors, source), errors);
             CityRewardDefinition.All = GameTableCsvSerializer.ParseCityRewards(Read(CityRewardDefinition.CsvResourcePath, errors, source), errors);
             TaskDefinition.All = GameTableCsvSerializer.ParseTasks(Read(TaskDefinition.CsvResourcePath, errors, source), errors);
-            LoadModels(errors);
             LoadArrayTables(errors, source);
+            PixelSpriteCatalog.SetSource(source);
             foreach (var e in errors) Debug.LogWarning("[GameData] " + e);
             return errors;
         }
@@ -97,20 +102,7 @@ namespace TacticsECS
 
         /// <summary>모델 팔레트 + 파츠 CSV(Assets/Resources/Models) -&gt; ModelDefinition. 파일이 없으면 그 모델들만 비어 있다
         /// (그리는 쪽이 옛 표시로 대체한다). 표 폴더로 덮어쓰지 않는다.</summary>
-        private static void LoadModels(List<string> errors)
-        {
-            ModelDefinition.Palette = ModelCsvSerializer.ParsePalette(Read(ModelDefinition.PaletteResourcePath, errors, TableSource.Resources), errors);
-            var models = new Dictionary<string, List<ModelPartInfo>>();
-            foreach (var path in ModelDefinition.CsvResourcePaths)
-            {
-                var asset = Resources.Load<TextAsset>(path);
-                if (asset != null) ModelCsvSerializer.ParseInto(asset.text, ModelDefinition.Palette, models, errors, Path.GetFileName(path) + ".csv");
-            }
-            var result = new Dictionary<string, ModelPartInfo[]>();
-            foreach (var kv in models) result[kv.Key] = kv.Value.ToArray();
-            ModelDefinition.Models = result;
-            ModelDefinition.Version++;
-        }
+
 
         /// <summary>슬롯 구조 + 기술 배치 + 기술/해금 표를 조합한다. 매번 CSV를 다시 읽으므로 비용 수정도 반영된다.
         /// 해금 내역의 건물/유닛/배 Index는 LoadAll이 올린 표로 푼다.</summary>
@@ -164,9 +156,15 @@ namespace TacticsECS
             return count;
         }
 
-        /// <summary>표 하나의 텍스트: source.Folder에 그 표 파일(뿌리/경로.csv 또는 뿌리/파일이름.csv)이 있으면 그것, 없으면 Resources.</summary>
-        private static string Read(string resourcePath, List<string> errors, TableSource source)
+        /// <summary>개별 선택 파일 → 호환용 표 폴더 → Resources 순서로 텍스트를 읽는다.</summary>
+        public static string Read(string resourcePath, List<string> errors, TableSource source)
         {
+            if (source.Files != null && source.Files.TryGetValue(resourcePath, out var selected))
+            {
+                try { return File.ReadAllText(selected); }
+                catch (System.Exception e) when (e is IOException || e is System.UnauthorizedAccessException)
+                { errors?.Add($"{selected}: {e.Message} — 기본 표를 씁니다."); }
+            }
             if (!string.IsNullOrEmpty(source.Folder))
             {
                 foreach (var file in new[] { Path.Combine(source.Folder, resourcePath + ".csv"), Path.Combine(source.Folder, Path.GetFileName(resourcePath) + ".csv") })

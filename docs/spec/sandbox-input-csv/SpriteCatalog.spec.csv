@@ -1,0 +1,16 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
+Sheet,문자열,O,,,"Assets/Resources/Pixel2D/Sheets/<이름>.png, 또는 Pattern/<이름>(아래 픽셀 패턴)"
+Column,정수,,0,,시트의 16px 격자 좌표
+Row,정수,,0,,시트의 16px 격자 좌표
+Width,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)
+Height,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)
+X,정수,,0,,"타일 중심에서 레이어 중심까지의 오프셋(디테일 픽셀, 위·오른쪽이 +)"
+Y,정수,,0,,"타일 중심에서 레이어 중심까지의 오프셋(디테일 픽셀, 위·오른쪽이 +)"
+Scale,정수,,1,,원본 1픽셀을 디테일 픽셀 몇 칸으로 그릴지. 1 이상 정수만 — 소수 배율은 없다
+FlipX,0/1,,0,,좌우 반전
+Layer,정수,,0,,같은 VisualId 안에서 그리는 순서(작은 값이 뒤)
+Color,RRGGBB 또는 Team,,FFFFFF,,곱할 색. Team은 팀 색
+MinLevel,정수,,"0, 최대",,이 레벨 범위일 때만 그림(건물·도시 레벨)
+MaxLevel,정수,,"0, 최대",,이 레벨 범위일 때만 그림(건물·도시 레벨)
+Note,메모,,,,출처 등

@@ -1,0 +1,87 @@
+﻿Source,Section,Value,Description
+docs/spec/csv/buildings.md,Flag 태그,Road,건물이 아니라 타일 개량(도로) — 다른 건물과 한 칸에 공존
+docs/spec/csv/buildings.md,Flag 태그,Neutral,중립 땅·물에도 지을 수 있음
+docs/spec/csv/buildings.md,Flag 태그,OppositeLand,상하 또는 좌우 양쪽 이웃이 육지여야 함(다리)
+docs/spec/csv/buildings.md,Flag 태그,ActsAsRoad,수도 연결에서 도로로 취급
+docs/spec/csv/buildings.md,Flag 태그,Temple,신전 — 지은 턴부터 레벨이 오른다(점수)
+docs/spec/csv/buildings.md,Flag 태그,StarsFromAdjacent,인접 가공 건물의 인구 합만큼 별/턴(시장)
+docs/spec/csv/buildings.md,Flag 태그,OnePerCity,도시 영토당 하나
+docs/spec/csv/city-rewards.md,Reward,Workshop,별 수입 증가 / 별/턴
+docs/spec/csv/city-rewards.md,Reward,Explorer,탐험가 출발 — vision / 안 씀
+docs/spec/csv/city-rewards.md,Reward,CityWall,성벽 — 요새화 방어 배수 강화(combat) / 안 씀
+docs/spec/csv/city-rewards.md,Reward,Resources,즉시 별 / 별
+docs/spec/csv/city-rewards.md,Reward,PopulationGrowth,즉시 인구 / 인구
+docs/spec/csv/city-rewards.md,Reward,BorderGrowth,영토 반경 확장 / 새 반경
+docs/spec/csv/city-rewards.md,Reward,Park,별 수입 증가 + 점수 / 별/턴
+docs/spec/csv/city-rewards.md,Reward,SuperUnit,슈퍼 유닛 무료 소환(GameRules.csv City.SuperUnitId) / 안 씀
+docs/spec/csv/sprites.md,VisualId 접두사,Ground.,"지면 타일 / Ground.<TileTypeId>, 없으면 Ground.Grass"
+docs/spec/csv/sprites.md,VisualId 접두사,Terrain.,숲·산·바위·구름 오버레이 / Terrain.Cloud(시야) 등
+docs/spec/csv/sprites.md,VisualId 접두사,Structure.,구조물 / Structure.<StructureId>
+docs/spec/csv/sprites.md,VisualId 접두사,Building.,건물 / Building.<건물 Id>
+docs/spec/csv/sprites.md,VisualId 접두사,City.,"도시 장식 / City.Houses, City.Capital, City.Wall, City.Workshop, City.Park, City.Flag"
+docs/spec/csv/sprites.md,VisualId 접두사,Unit.,"육지 유닛 / Unit.<유닛 Id>, 없으면 BaseVisual의 외형"
+docs/spec/csv/sprites.md,VisualId 접두사,Boat.,배 / Boat.<배 Id>
+docs/spec/csv/sprites.md,VisualId 접두사,Icon.,"아이콘 / Icon.<이름>(기술 Icon, 행동 배지)"
+docs/spec/csv/sprites.md,VisualId 접두사,UI.,"UI 도형 / UI.Missing(없는 키 대체), UI.Solid, UI.Shadow"
+docs/spec/csv/strings.md,키 규칙,Language.Name,언어 선택 버튼에 보이는 그 언어의 이름
+docs/spec/csv/strings.md,키 규칙,Unit.<Id>.Name,Units·Boats 행 이름. 샌드박스 유닛 파일의 Name보다 앞선다
+docs/spec/csv/strings.md,키 규칙,Biome.<Biome>.Name,Biomes Biome 행. 불러온 바이옴 파일의 Name보다 앞선다
+docs/spec/csv/strings.md,키 규칙,UI.<화면>.<이름>,화면 문구(버튼·안내·로그). <화면>은 그 문구를 쓰는 View/System
+docs/spec/csv/strings.md,자리표시자,{컬럼},그 문구가 설명하는 행(<표>.<Id>.Desc)의 CSV 칸 — 컬럼 이름 그대로 / Building.Farm.Desc의 {Population}
+docs/spec/csv/strings.md,자리표시자,{표.Id.컬럼},"다른 표의 행. 표: Building(Cost Population PopulationPerAdjacent), TileAction(Cost Population StarsGain), Task(Threshold), CityReward(Amount), Unit — 유닛·배(Cost MaxHp Defense Move.Range Attack.Attack Attack.Range), Tech(CostBase CostPerCity), Tribe(StartStars), StartRule — 시작 조건 규칙 Id(Count MinDistance MaxDistance) / {Building.Mine.Cost}"
+docs/spec/csv/strings.md,자리표시자,{Rule.키},GameRules.csv의 Key / {Rule.Score.Monument}
+docs/spec/csv/tasks.md,Kind,TurnsWithoutAttack,Threshold 턴 연속 공격하지 않음(반격은 공격 아님)
+docs/spec/csv/tasks.md,Kind,StarsHeld,별 Threshold 이상을 한 번에 보유
+docs/spec/csv/tasks.md,Kind,AllLighthouses,맵의 등대 전부 발견
+docs/spec/csv/tasks.md,Kind,Kills,적 유닛 Threshold 기 처치
+docs/spec/csv/tasks.md,Kind,ConnectedCities,수도와 연결된 도시 Threshold 개
+docs/spec/csv/tasks.md,Kind,CityLevel,레벨 Threshold 이상 도시 보유
+docs/spec/csv/tasks.md,Kind,AllTech,기술 전부 연구
+docs/spec/csv/tech.md,해금 키,Build,(BuildingIndex) / 그 건물 건설 / buildings — 키는 Build.<건물 Id>
+docs/spec/csv/tech.md,해금 키,Harvest,행동 이름 / 그 타일 행동 / tile-actions Unlock. Harvest.Starfish는 배의 불가사리 인양
+docs/spec/csv/tech.md,해금 키,Ability,"행동 이름 / 타일 행동, 또는 Ability.Disband(유닛 해산) / tile-actions Unlock, 코드"
+docs/spec/csv/tech.md,해금 키,Unit,(UnitIndex / BoatIndex) / 그 유닛 훈련 / 뗏목 업그레이드 / units — 키는 Unit.<유닛·배 Id>
+docs/spec/csv/tech.md,해금 키,Task,과업 Id / 그 과업 / tasks Unlock
+docs/spec/csv/tech.md,해금 키,Reveal,StructureId / 연구 전에는 그 구조물이 보이지 않음 / 코드
+docs/spec/csv/tech.md,해금 키,Move,Mountain / Ocean / 산 / 깊은 바다 진입 / 코드
+docs/spec/csv/tech.md,해금 키,Defense,Mountain / Forest / Water / 그 지형에서 방어 보너스 / 코드
+docs/spec/csv/tech.md,해금 키,Connect,Ocean / 깊은 바다를 건너는 항구 연결 / 코드
+docs/spec/csv/tech.md,해금 키,Vision,Capital / 다른 팀 수도 칸이 항상 보임 / 코드
+docs/spec/csv/tech.md,해금 키,Literacy,(비움) / 연구 비용 할인 / 코드
+docs/spec/csv/tile-actions.md,Kind,Harvest,구조물을 소모하고 인구·별을 얻는다
+docs/spec/csv/tile-actions.md,Kind,ClearForest,"숲 → 평지, 별 획득"
+docs/spec/csv/tile-actions.md,Kind,BurnForest,숲 → 작물이 있는 평지
+docs/spec/csv/tile-actions.md,Kind,GrowForest,평지 → 숲
+docs/spec/csv/tile-actions.md,Kind,Destroy,"자기 건물 제거, 그 건물이 준 인구도 되돌린다"
+docs/spec/csv/units.md,Boats.csv — 배,Kind,뜻
+docs/spec/csv/units.md,Boats.csv — 배,Raft,"뗏목 — 항구에 들어간 육지 유닛이 기본으로 바뀌는 배. 정확히 한 행, Id는 raft. 없으면 코드 기본 뗏목 + 경고"
+docs/spec/csv/units.md,Boats.csv — 배,Upgrade,뗏목에서 업그레이드하는 배. 여는 기술은 TechUnlocks의 BoatIndex(없으면 기술 없이 가능)
+docs/spec/csv/units.md,Boats.csv — 배,Special,유닛 BoatIndex가 가리키는 전용 배. 업그레이드 불가
+docs/spec/game/unit.md,행동과 패시브,Move,액티브 / 이동 — movement
+docs/spec/game/unit.md,행동과 패시브,Attack,액티브 / 공격 — combat
+docs/spec/game/unit.md,행동과 패시브,Defend,액티브 / 다음 자기 턴까지 방어 +Combat.GuardDefenseBonus
+docs/spec/game/unit.md,행동과 패시브,Heal,액티브 / 맨해튼 Heal.Range 이내 다른 아군 전부 +Heal.Amount(최대 체력까지)
+docs/spec/game/unit.md,행동과 패시브,SelfDestruct,"액티브 / 맨해튼 1 이내 적 전부에게 자기 남은 체력만큼 피해, 자신은 사망"
+docs/spec/game/unit.md,행동과 패시브,Wait,액티브 / 대기·회복 — 회복
+docs/spec/game/unit.md,행동과 패시브,Counter,패시브 / 반격
+docs/spec/game/unit.md,행동과 패시브,Charge,패시브 / 이동 후에도 공격 가능
+docs/spec/game/unit.md,행동과 패시브,Retreat,패시브 / 공격 후에도 이동 가능
+docs/spec/game/unit.md,행동과 패시브,Ambush,패시브 / 내 공격에 대상이 반격하지 않음
+docs/spec/game/unit.md,행동과 패시브,Stiff,패시브 / 나는 반격하지 않음
+docs/spec/game/unit.md,행동과 패시브,Splash,패시브 / 대상 주변 적에게 나눈 피해
+docs/spec/game/unit.md,행동과 패시브,Combo,패시브 / 처치하면 한 번 더 공격
+docs/spec/game/unit.md,행동과 패시브,Convert,패시브 / 살아남은 대상을 내 팀으로
+docs/spec/game/unit.md,행동과 패시브,Freeze,패시브 / 살아남은 대상은 다음 자기 턴 행동 불가
+docs/spec/game/unit.md,행동과 패시브,Herd,패시브 / 맨해튼 1 이내 다른 아군에게 가속(이동력 +1). 가속은 피격될 때까지 유지
+docs/spec/game/unit.md,행동과 패시브,Fortify,패시브 / 자기 도시 칸 방어 보너스 — combat
+docs/spec/game/unit.md,행동과 패시브,Scout,패시브 / 넓은 시야 — vision
+docs/spec/game/unit.md,행동과 패시브,Hide,패시브 / 은신 — vision
+docs/spec/game/unit.md,행동과 패시브,Infiltrate,"패시브 / 유닛 공격 불가, 대신 적 도시 침투 — vision"
+docs/spec/game/unit.md,행동과 패시브,Creep,"패시브 / 숲에서 멈추지 않음, 도로 보너스 없음"
+docs/spec/game/unit.md,행동과 패시브,IgnoreTerrain,패시브 / 지형·장애물 무시 이동
+docs/spec/game/unit.md,행동과 패시브,IgnoreUnitBlocking,패시브 / 모든 유닛을 지나가고 그 칸에 멈출 수 있음
+docs/spec/game/unit.md,행동과 패시브,AllowDiagonal,패시브 / 8방향 이동
+docs/spec/game/unit.md,행동과 패시브,Independent,패시브 / 도시 수용량을 차지하지 않음
+docs/spec/game/unit.md,행동과 패시브,Static,패시브 / 베테랑 승급 불가
+docs/spec/csv-common.md,공통 값,TerrainType,"Land, Water / 이동 판정용 지형. 유닛 Domain과 같아야 들어간다"
+docs/spec/csv-common.md,공통 값,TileClass,"Field, Forest, Mountain, ShallowWater, Ocean / 건설·행동 배치 조건용 지형. 타일에서 계산된다(저장 안 함) — tile"

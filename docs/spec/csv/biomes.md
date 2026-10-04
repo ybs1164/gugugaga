@@ -1,7 +1,7 @@
 # 바이옴 CSV
 
 파일: `Assets/Resources/Tables/Biomes.csv`
-샌드박스 "바이옴 불러오기"로 다른 파일을 고르면 그 파일이 대신 쓰인다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md).
+Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면 그 파일이 대신 쓰인다. 실제 지형 반영은 지형 생성 버튼으로 수행한다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md).
 
 롱 포맷: 한 행이 바이옴 하나, 또는 그 바이옴의 타일 엔트리 하나, 또는 구조물 엔트리 하나다. 행 종류마다 안 쓰는 칸은 비운다.
 `Biome` 행 순서가 바이옴 Index — [tribes](tribes.md)의 `BiomeIndex`가 가리킨다.
@@ -35,7 +35,7 @@
 | `AllowedTile{n}` | TileTypeId | 없음 | Structure | 놓일 수 있는 타일. **비우면 어디에도 안 놓인다**. 깊은 바다는 `Ocean` |
 | `Exclude{n}` | Id | 없음 | Tile, Structure | Tile: 상하좌우로 붙을 수 없는 TileTypeId / Structure: 8방향으로 붙을 수 없는 StructureId |
 
-옛 형식(헤더에 `Tiles` 컬럼, 한 행 = 한 바이옴)은 읽기만 호환한다.
+입력은 위 롱 포맷만 사용한다.
 
 ## CSV에 적지 않는 것
 자동으로 만들어진다: 수도(`Capital`), 등대(`Lighthouse`), 숲·산 타일(`Forest`/`Mountain` — `MountainRate`/`ForestRate`로 조절), 깊은 바다(`Ocean`), 맵 타입 전용 마을. [map](../game/map.md) 참고.

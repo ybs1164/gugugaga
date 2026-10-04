@@ -1,0 +1,19 @@
+﻿Format,ResourceRelativePath,DefaultCsvPath,InputRoute,Detection,RowStructure,Notes
+Table.Biomes,Tables/Biomes.csv,Assets/Resources/Tables/Biomes.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 바이옴/타일/구조물,미선택 시 기본 파일
+Table.Buildings,Tables/Buildings.csv,Assets/Resources/Tables/Buildings.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.CityRewards,CityRewards.csv,Assets/Resources/CityRewards.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.GameRules,GameRules.csv,Assets/Resources/GameRules.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.SpriteCatalog,Pixel2D/SpriteCatalog.csv,Assets/Resources/Pixel2D/SpriteCatalog.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Strings,Strings.csv,Assets/Resources/Strings.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Tasks,Tasks.csv,Assets/Resources/Tasks.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.TechUnlocks,Tables/TechUnlocks.csv,Assets/Resources/Tables/TechUnlocks.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Techs,Tables/Techs.csv,Assets/Resources/Tables/Techs.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.TechSlots,Tables/TechSlots.csv,Assets/Resources/Tables/TechSlots.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.TechTreeLayout,Tables/TechTreeLayout.csv,Assets/Resources/Tables/TechTreeLayout.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.TechGroups,Tables/TechGroups.csv,Assets/Resources/Tables/TechGroups.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.TileActions,TileActions.csv,Assets/Resources/TileActions.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Tribes,Tables/Tribes.csv,Assets/Resources/Tables/Tribes.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.StartConditions,Tables/StartConditions.csv,Assets/Resources/Tables/StartConditions.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.StartConditionRules,Tables/StartConditionRules.csv,Assets/Resources/Tables/StartConditionRules.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Units,Tables/Units.csv,Assets/Resources/Tables/Units.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
+Table.Boats,Tables/Boats.csv,Assets/Resources/Tables/Boats.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일

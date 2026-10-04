@@ -110,6 +110,14 @@ namespace TacticsECS.EditorTools
             Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud/CityResourceBar/TechTreePanel prefabs created under " + UiFolderPath);
         }
 
+        public static void GenerateSandboxOnly()
+        {
+            GameDataLoader.LoadAll();
+            GenerateSandboxHud(AssetDatabase.LoadAssetAtPath<GameObject>(UiFolderPath + "/PaletteButton.prefab"), LoadUiFont());
+            AssetDatabase.SaveAssets();
+            Debug.Log("[UIPrefabSetup] Sandbox CSV panel generated");
+        }
+
         /// <summary>모든 UI Text/TextMesh가 공유하는 폰트. 텍스처 임포트 설정처럼 에디터를 직접 열어
         /// 건드릴 필요가 없다 — TTF는 Assets에 두기만 하면 Unity가 알아서 Font 에셋으로 가져온다.</summary>
         private static Font LoadUiFont()
@@ -607,7 +615,7 @@ namespace TacticsECS.EditorTools
 
         // ---------- SandboxHud ----------
 
-        private const float SandboxPanelWidth = 220f;
+        private const float SandboxPanelWidth = 360f;
         private const float SandboxPaletteHeight = 300f;
         private const float SandboxScrollbarWidth = 6f;
 
@@ -619,7 +627,7 @@ namespace TacticsECS.EditorTools
             var canvasRoot = CreateCanvas(root.transform);
             BuildSandboxToolbar(font, canvasRoot);
             BuildGenerationTab(font, canvasRoot);
-            BuildSandboxPalette(canvasRoot);
+            BuildSandboxCsvFiles(font, canvasRoot);
             BuildStructurePanel(font, canvasRoot);
             BuildSandboxStartButton(font, canvasRoot);
 
@@ -638,27 +646,23 @@ namespace TacticsECS.EditorTools
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(SandboxPanelWidth, 240f);
+            panel.sizeDelta = new Vector2(SandboxPanelWidth, 190f);
             CreatePanelImage(panel, SandboxPanelBackground);
 
             float halfWidth = (SandboxPanelWidth - 24f) / 2f;
             // 첫 인자는 계층 이름(SandboxHud가 이 이름 + "Button"으로 찾는다 — 바꾸지 않는다), 둘째는 구울 글자.
-            CreateTextButtonPlaceholder(font, panel, "불러오기", Src("UI.SandboxHud.Load"), new Vector2(8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "내보내기", Src("UI.SandboxHud.Export"), new Vector2(8f + halfWidth + 8f, -8f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "플레이어", Src("UI.SandboxHud.Player"), new Vector2(8f, -44f), new Vector2(halfWidth, 28f), PlayerAccent);
-            CreateTextButtonPlaceholder(font, panel, "적", Src("UI.SandboxHud.Enemy"), new Vector2(8f + halfWidth + 8f, -44f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "바이옴불러오기", Src("UI.SandboxHud.LoadBiomes"), new Vector2(8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "맵크기", "", new Vector2(8f + halfWidth + 8f, -80f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "습도", "", new Vector2(8f, -116f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.Reload"), new Vector2(8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ResetTables"), new Vector2(8f + halfWidth + 8f, -152f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -188f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateLabel(font, panel, "Title", Src("UI.SandboxHud.CsvTitle"), new Vector2(8f, -8f), new Vector2(SandboxPanelWidth - 16f, 20f), 16);
+            CreateTextButtonPlaceholder(font, panel, "맵크기", "", new Vector2(8f, -36f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "습도", "", new Vector2(8f + halfWidth + 8f, -36f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.Reload"), new Vector2(8f, -72f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ResetTables"), new Vector2(8f + halfWidth + 8f, -72f), new Vector2(halfWidth, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -108f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
             statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -222f);
-            statusRect.sizeDelta = new Vector2(SandboxPanelWidth - 16f, 18f);
+            statusRect.anchoredPosition = new Vector2(8f, -144f);
+            statusRect.sizeDelta = new Vector2(SandboxPanelWidth - 16f, 42f);
             var status = statusRect.gameObject.AddComponent<Text>();
             status.font = font;
             status.fontSize = 13;
@@ -814,6 +818,26 @@ namespace TacticsECS.EditorTools
         /// <summary>목록이 패널 높이를 넘으면 ScrollRect로 스크롤하는 뼈대. BattleHud의 유닛 로스터
         /// (BuildUnitRoster)도 이 구조를 그대로 재사용한다 — SandboxHud.SetPalette/BattleHud.SetRoster
         /// 둘 다 행 수가 계속 바뀌는 진짜 동적 데이터라 Content에 자기 행을 직접 채워 넣는다.</summary>
+        private static void BuildSandboxCsvFiles(Font font, Transform root)
+        {
+            BuildScrollPanel("CsvFiles", root, new Vector2(0f, 1f), new Vector2(0f, 1f),
+                new Vector2(16f, -214f), new Vector2(SandboxPanelWidth, 380f), SandboxPanelBackground, SandboxScrollbarWidth);
+            var content = (RectTransform)root.Find("CsvFiles/Viewport/Content");
+            var paths = GameDataLoader.SandboxCsvPaths;
+            content.sizeDelta = new Vector2(0f, paths.Length * 84f + 8f);
+            for (int i = 0; i < paths.Length; i++)
+            {
+                var row = CreateRect(paths[i].Replace('/', '_'), content);
+                row.anchorMin = row.anchorMax = row.pivot = new Vector2(0f, 1f);
+                row.anchoredPosition = new Vector2(8f, -8f - i * 84f);
+                row.sizeDelta = new Vector2(SandboxPanelWidth - 24f, 78f);
+                CreateLabel(font, row, "Name", paths[i] + ".csv", Vector2.zero, new Vector2(326f, 20f), 14);
+                CreateLabel(font, row, "Path", "", new Vector2(0f, -22f), new Vector2(326f, 22f), 11);
+                CreateTextButtonPlaceholder(font, row, "Pick", Src("UI.SandboxHud.SelectCsv"), new Vector2(0f, -46f), new Vector2(158f, 26f), ButtonIdle);
+                CreateTextButtonPlaceholder(font, row, "Reset", Src("UI.SandboxHud.Default"), new Vector2(166f, -46f), new Vector2(158f, 26f), ButtonIdle);
+            }
+        }
+
         private static void BuildSandboxPalette(Transform root)
         {
             BuildScrollPanel("Palette", root,

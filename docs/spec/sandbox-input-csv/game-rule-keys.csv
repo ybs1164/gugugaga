@@ -1,0 +1,80 @@
+﻿Key,ValueType,Description
+Economy.StartingStars,int,시작 별(위키: 별)
+City.StarsPerLevel,int,도시 레벨당 별/턴
+City.CapitalStars,int,수도 추가 별/턴(위키: 사람 플레이어 수도)
+City.DefaultBorderRadius,int,새 도시 영토 반경(1 = 3x3)
+City.UnitCapacityBase,int,도시 하나가 지원하는 유닛 수 = 레벨 + 이 값(도시별 — 유닛 소속 도시 HomeCity)
+City.MarketStarsPerLevel,int,시장: 인접 가공 건물 레벨 하나당 별/턴
+City.MarketStarsCap,int,시장 별 상한(위키: 최대 레벨 8)
+City.MaxPortWaterGap,int,항구 연결: 항구 사이 물 칸 최대 수(City Connections)
+City.SuperUnitId,string,슈퍼 유닛(도시 레벨 5+ 보상)으로 소환할 유닛 CSV Id — 도시에서 훈련할 수는 없다
+Heal.OwnTerritory,int,자기 영토에서 쉬면 회복량
+Heal.Other,int,중립/적 영토에서 쉬면 회복량
+Unit.DisbandRefundDivisor,int,해산 환급 = 훈련 비용 / 이 값(내림)
+Ruin.Stars,int,유적 보상: 별
+Ruin.Population,int,유적 보상: 인구(수도)
+Ruin.NewFriendsUnitId,string,"유적 보상 ""New Friends"": 육지 유적에서 베테랑으로 나오는 유닛 CSV Id(위키: 베테랑 검사)"
+Ruin.SeaUnitId,string,물 위 유적 보상: 배에 태워 나오는 유닛 CSV Id(위키: 전사를 태운 베테랑 충각선)
+Ruin.SeaBoatId,string,물 위 유적 보상: 그 유닛이 타고 나오는 배(NavalUnits.csv Id)
+Infiltration.MaxDaggers,int,침투 시 소환하는 Dagger 수 = 도시 레벨(최대 N)
+Infiltration.DaggerUnitId,string,침투로 소환하는 유닛 CSV Id(위키 Dagger — 물 위면 Boat 칸의 배 = Pirate)
+Veteran.KillsRequired,int,이만큼 처치(공격/반격)하면 승급 가능
+Veteran.MaxHpBonus,int,승급 시 최대 체력 +N 후 완전 회복
+Starfish.Stars,int,불가사리 인양 별(위키 Starfish — 배가 그 칸에서 턴을 시작하면 인양)
+Tech.DefaultCostBase,int,TechTree.csv CostBase를 비웠을 때 값(비용 = 티어 x 도시 수 + 4)
+Tech.LiteracyDivisor,int,Literacy: 비용에서 1/N을 뺀다(= 2/3 올림 — 위키 비용 표와 일치)
+Combat.DamageCoefficient,float,피해 = 힘의 비율 x 공격(또는 방어) x 이 계수
+Combat.DefenseBonusMultiplier,float,지형 방어 기술(숲/산/물)·요새화 유닛의 도시 방어 배수 (겹치지 않음)
+Combat.WallDefenseMultiplier,float,성벽 도시의 요새화 유닛 방어 배수
+Combat.SplashDivisor,int,스플래시 피해 = 그 대상에게 계산한 공격 피해 / N
+Combat.MeleeAdvanceOnKill,bool,근접(사거리 1) 유닛이 인접한 적을 처치하면 그 칸으로 전진
+Combat.GuardDefenseBonus,float,방어 태세(Defend 행동) 방어 스탯 +N
+Score.PerUnitCostStar,int,유닛 비용 1당 점수
+Score.SuperUnit,int,슈퍼 유닛 점수
+Score.PerTerritoryTile,int,영토 칸당 점수
+Score.PerExploredTile,int,탐험한 칸당 점수
+Score.CityBase,int,도시 기본 점수
+Score.PerCityLevelAbove1,int,도시 레벨(1 초과)당 점수
+Score.PerPopulation,int,인구당 점수
+Score.Park,int,공원 점수
+Score.Monument,int,기념물 점수
+Score.TempleBase,int,신전 기본 점수
+Score.PerTempleLevelAbove1,int,신전 레벨(1 초과)당 점수
+Score.TempleMaxLevel,int,신전 최대 레벨
+Score.TempleTurnsPerLevel,int,신전이 레벨 업하는 간격(턴)
+Score.PerTechTier,int,기술 티어당 점수
+Vision.BaseSightRadius,int,유닛 시야 반경(1 = 3x3)
+Vision.ExtendedSightRadius,int,산 위/정찰 시야 반경(2 = 5x5)
+Vision.StartRevealRadius,int,시작 시 수도 주변 밝히는 반경
+Vision.ExplorerMoves,int,탐험가 이동 횟수(2026-02 패치로 15 -> 12)
+Vision.ExplorerScanRange,int,탐험가가 한 걸음에 세는 구름 칸 상한
+Vision.LighthousePopulation,int,등대를 처음 밝히면 수도 인구 +N
+Map.MountainFraction,float,육지 중 산 비율(바이옴 MountainRate를 곱함)
+Map.ForestFraction,float,육지 중 숲 비율(바이옴 ForestRate를 곱함)
+Map.CapitalEdgeMargin,int,수도는 맵 가장자리로부터 최소 N칸
+Map.CapitalLandRadius,int,수도 주변 N칸(체비쇼프)은 육지로 강제
+Map.MinCapitalLandmassSize,int,Pangea/Continents에서 수도가 설 수 있는 육지 덩어리(4방향 연결) 최소 칸 수
+Map.CapitalMinDistance,int,수도끼리 최소 거리(체비쇼프)
+Map.CityMinDistance,int,수도·Suburb·Pre-terrain 마을끼리 최소 거리(체비쇼프; 2 = 바로 인접 금지)
+Map.SuburbRadius,int,Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프)
+Map.SuburbsPerCapital,int,수도마다 시도하는 Suburb 수(자리가 없을 때만 줄어듦)
+Map.PreTerrainDensity,float,Pre-terrain 마을 수 공식의 밀도 계수(Lakes/Archipelago)
+Map.PreTerrainDensityWaterworld,float,Pre-terrain 마을 수 공식의 밀도 계수(Waterworld)
+Map.PreTerrainEdgeMargin,int,Pre-terrain 마을은 맵 가장자리로부터 최소 N칸
+Map.PostTerrainCityMinDistance,int,"Post-terrain 마을의 다른 도시와 최소 거리(체비쇼프; 원문 ""2칸 이내 금지"")"
+Map.PostTerrainEdgeMargin,int,Post-terrain 마을은 맵 가장자리로부터 최소 N칸(자리가 없으면 줄여 가며 다시 찾음)
+Map.ContinentMinSize,int,Continents 대륙 한 덩어리 최소 칸 수
+Map.ContinentMaxSize,int,Continents 대륙 한 덩어리 최대 칸 수
+Map.LakesRequiredVillages,int,Lakes: 수도마다 육로로 닿아야 하는 마을 수
+Map.LakesMaxBridgesPerCapital,int,Lakes: 위 조건을 맞추려 수도마다 놓는 육지 다리 최대 개수
+Map.ResourceCityRadius,int,자원은 도시·마을로부터 이 거리(체비쇼프) 이내에만 생성(1 = Inner; 그 밖 = Outer)
+Map.TinyIslandEdgeMargin,int,외딴 섬 마을은 맵 가장자리로부터 최소 N칸
+Map.TinyIslandTilesPerVillage,int,맵 크기 표에 없는 크기의 외딴 섬 마을 수 = 칸 수 / N(내림)
+Map.RuinTilesPerRuin,int,맵 크기 표에 없는 크기의 유적 수 = 칸 수 / N(반올림; 최소 1)
+AI.MaxImprovementsPerTurn,int,경제 AI가 한 턴에 하는 건설/채집 최대 횟수
+AI.ThreatRadius,int,경제 AI: 자기 영토 N칸 안의 적 유닛을 위협으로 센다
+AI.MaxConnectionBudget,int,경제 AI: 도시 연결 계획 최대 별
+AI.DefendRadius,int,군사 AI: 적이 도시 N칸 안이면 가장 가까운 유닛이 복귀
+Diplomacy.EmbassyIncome,int,대사관 하나가 양쪽 부족에 주는 별/턴
+Diplomacy.PeaceTreatyIncomeMultiplier,int,평화 조약 상태의 대사관 수입 배수
+Diplomacy.EmbassySightRadius,int,대사관 건설 시 상대 수도 주변 공개 반경

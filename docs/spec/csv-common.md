@@ -5,7 +5,9 @@
 
 ## 파일
 - 위치는 `Assets/Resources/`. 예외 위치는 각 `csv/*.md`의 머리에 적는다.
-- 표 폴더(샌드박스 "표 불러오기"): 게임 데이터 표(`GameDataLoader.TableCsvPaths` — 번역·규칙·타일 행동·과업·도시 보상·`Tables/` 전부)를 `Assets/Resources`와 같은 구조(`<폴더>/Tables/Units.csv`) 또는 평평하게(`<폴더>/Units.csv`) 둔 폴더. 폴더에 있는 표만 덮어쓰고 없는 표는 기본 표를 쓴다. 모델 CSV(`Models/`)는 덮어쓰지 않는다. 조작은 [README](../../README.md#샌드박스).
+- Sandbox의 CSV 목록(`GameDataLoader.SandboxCsvPaths`)에서 각 파일을 탐색기로 선택한다. 파일명·폴더 구조와 무관하게 선택한 항목에만 적용하며, 미선택 항목은 기본 Resources CSV를 쓴다. 게임 데이터 표와 스프라이트 표만 입력으로 받는다. 조작은 [README](../../README.md#샌드박스).
+- 개별 선택(`TableSource.Files`) → 호환용 폴더(`TableSource.Folder`) → Resources 순서로 읽는다. 폴더 읽기·내보내기는 로더 호환 기능으로 유지하지만 Sandbox UI에서는 사용하지 않는다.
+- 기술 트리는 `Tables/` 기술 표들을 조합한다. 파일의 미선택 기본 경로는 [입력 목록](sandbox-input-csv/formats.csv)에 있다.
 - UTF-8(BOM 있어도 됨). 스프레드시트에서는 "CSV UTF-8"로 저장한다.
 - 값은 CSV에만 둔다. 코드에는 기본 표를 두지 않는다(로드 실패 시 빈 표).
 
@@ -25,12 +27,11 @@
 ## 한 칸에 한 값 (반복 컬럼)
 여러 값은 번호 붙은 컬럼에 하나씩 나열한다(`CLAUDE.md` 규칙 6). 컬럼 표에는 `Name{n}`으로 적는다.
 - `Terrain1`, `Terrain2` … 처럼 필요한 만큼 늘리고, 빈 칸은 건너뛴다.
-- 일부 표는 옛 한 칸 목록 컬럼(`a;b`)도 읽기만 호환한다. 새로 쓰지 않는다.
 
 ## 표 형식 두 가지
 | 형식 | 행을 가리키는 방법 | 사용 표 |
 |---|---|---|
-| 키형 | 문자열 `Id`(중복 금지) | 타일 행동, 과업, 바이옴, 규칙(`Key`), 샌드박스 유닛·기술 파일 |
+| 키형 | 문자열 `Id`(중복 금지) | 타일 행동, 과업, 바이옴, 규칙(`Key`) |
 | 배열형 | 정수 `Index` | `Assets/Resources/Tables/` 중 바이옴 표를 뺀 전부 |
 
 배열형 규칙:

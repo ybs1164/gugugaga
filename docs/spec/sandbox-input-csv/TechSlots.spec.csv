@@ -1,0 +1,7 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. 행 순서 = UI 갈래 순서
+Id,문자열,O,,,슬롯 이름표(기술 이름과 무관)
+ParentIndex,TechSlots Index,O,-1,,선행 슬롯. -1 = 루트
+Tier,정수,O,1,,바깥으로 갈수록 큰 원
+Slot,정수,O,0,,"갈래 안 좌우 위치(0 = 시계방향 쪽, 1 = 반시계방향 쪽)"
+Note,메모,,,,로더 무시

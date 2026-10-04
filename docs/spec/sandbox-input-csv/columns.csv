@@ -1,0 +1,173 @@
+﻿Format,Column,Type,Required,Default,AppliesTo,Description
+Table.Biomes,Kind,Biome/Tile/Structure,선택,Biome,전부,행 종류
+Table.Biomes,Biome,문자열,필수,(필수),전부,소속 바이옴 Id. Biome 행이 없으면 기본값 바이옴이 만들어진다
+Table.Biomes,Name,문자열,선택,Biome,Biome,표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 번역 표 Biome.<Biome>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다)
+Table.Biomes,NoiseType,문자열,선택,Perlin,Biome,노이즈 종류. Perlin만 지원
+Table.Biomes,Frequency,실수,선택,0,Biome,노이즈 주파수
+Table.Biomes,Octaves,정수,선택,0,Biome,노이즈 옥타브
+Table.Biomes,SeedOffset,정수,선택,0,Biome,이 바이옴 노이즈장의 시드 오프셋
+Table.Biomes,InnerRadius,정수,선택,0,Biome,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용)
+Table.Biomes,MountainRate,실수,선택,0,Biome,산 레이어 배수. 0이면 산 없음
+Table.Biomes,ForestRate,실수,선택,0,Biome,숲 레이어 배수. 0이면 숲 레이어 없음
+Table.Biomes,Entry,문자열,선택,,"Tile, Structure",
+Table.Biomes,TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형
+Table.Biomes,InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정)
+Table.Biomes,OuterWeight,실수,선택,0,Tile,Outer 영역 가중치
+Table.Biomes,Weight,실수,선택,0,Structure,
+Table.Biomes,MinCount,정수,선택,0,"Tile, Structure",
+Table.Biomes,CountPerTiles,실수,선택,0,"Tile, Structure",
+Table.Biomes,MinDistance,정수,선택,0,"Tile, Structure",
+Table.Biomes,EdgeMargin,정수,선택,0,"Tile, Structure",
+Table.Biomes,MaxDistanceFromCity,정수,선택,0,Structure,
+Table.Biomes,MaxWaterFractionOnLakes,실수,선택,없음,Structure,
+Table.Biomes,FillRemaining,불리언,선택,false,Structure,
+Table.Biomes,InnerRate,실수,선택,0,Structure,
+Table.Biomes,OuterRate,실수,선택,0,Structure,
+Table.Biomes,AllowedTile{n},TileTypeId,선택,없음,Structure,
+Table.Biomes,Exclude{n},Id,선택,없음,"Tile, Structure",
+Table.Buildings,Index,정수,O,,,배열 위치. TechUnlocks BuildingIndex가 가리킨다
+Table.Buildings,Id,문자열,O,,,타일에 저장되는 건물 키. 코드가 특별 취급하는 Id는 바꾸지 않는다: Farm Mine LumberHut Windmill Forge Sawmill Market Port Road Bridge
+Table.Buildings,Cost,정수,,0,,별
+Table.Buildings,Population,정수,,0,,지을 때 주인 도시에 더하는 인구
+Table.Buildings,Terrain{n},TileClass,O(1개 이상),,,지을 수 있는 지형
+Table.Buildings,RequiredStructure{n},StructureId,,없음,,
+Table.Buildings,AdjacentBuildingIndex{n},Buildings Index,,없음,,8방향 같은 팀 영토에 이 건물 중 하나가 있어야 함
+Table.Buildings,PopulationPerAdjacent,정수,,0,,인접한 AdjacentBuildingIndex 건물 하나당 인구
+Table.Buildings,Flag{n},태그,,없음,,아래 태그
+Table.Buildings,Task,과업 Id,,없음,,기념물이면 과업 Id
+Table.Buildings,Wiki,메모,,,,로더 무시
+Table.Buildings,Note,메모,,,,로더 무시
+Table.CityRewards,Level,정수,O,2,,이 레벨에 도달하면 고를 수 있음
+Table.CityRewards,Reward,아래 표,O,Resources,,보상 종류(효과는 코드 CitySystem.ApplyReward)
+Table.CityRewards,Amount,정수,,0,,보상 크기 — 뜻은 종류마다 아래 표
+Table.CityRewards,Wiki,메모,,,,로더 무시
+Table.CityRewards,Note,메모,,,,로더 무시
+Table.GameRules,Key,도메인.이름,O,,,GameRules의 중첩 클래스(도메인)와 필드(이름)
+Table.GameRules,Value,필드 타입,O,,,정수/실수/불리언/문자열/열거형
+Table.GameRules,Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고유 규칙
+Table.GameRules,Description,문자열,,,,규칙 설명(단일 출처)
+Table.GameRules,Note,문자열,△,,,Value≠Wiki이거나 Wiki가 비었으면 필수 — 원문과 다른 이유
+Table.SpriteCatalog,VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
+Table.SpriteCatalog,Sheet,문자열,O,,,"Assets/Resources/Pixel2D/Sheets/<이름>.png, 또는 Pattern/<이름>(아래 픽셀 패턴)"
+Table.SpriteCatalog,Column,정수,,0,,시트의 16px 격자 좌표
+Table.SpriteCatalog,Row,정수,,0,,시트의 16px 격자 좌표
+Table.SpriteCatalog,Width,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)
+Table.SpriteCatalog,Height,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)
+Table.SpriteCatalog,X,정수,,0,,"타일 중심에서 레이어 중심까지의 오프셋(디테일 픽셀, 위·오른쪽이 +)"
+Table.SpriteCatalog,Y,정수,,0,,"타일 중심에서 레이어 중심까지의 오프셋(디테일 픽셀, 위·오른쪽이 +)"
+Table.SpriteCatalog,Scale,정수,,1,,원본 1픽셀을 디테일 픽셀 몇 칸으로 그릴지. 1 이상 정수만 — 소수 배율은 없다
+Table.SpriteCatalog,FlipX,0/1,,0,,좌우 반전
+Table.SpriteCatalog,Layer,정수,,0,,같은 VisualId 안에서 그리는 순서(작은 값이 뒤)
+Table.SpriteCatalog,Color,RRGGBB 또는 Team,,FFFFFF,,곱할 색. Team은 팀 색
+Table.SpriteCatalog,MinLevel,정수,,"0, 최대",,이 레벨 범위일 때만 그림(건물·도시 레벨)
+Table.SpriteCatalog,MaxLevel,정수,,"0, 최대",,이 레벨 범위일 때만 그림(건물·도시 레벨)
+Table.SpriteCatalog,Note,메모,,,,출처 등
+Table.Strings,Key,문자열,O,,,문자열 키. 아래 규칙
+Table.Strings,ko,문자열,O,,,원문(한국어). 프리팹에 굽는 글자도 이 열
+Table.Strings,en,문자열,,ko,,영어. 비면 원문
+Table.Strings,Note,메모,,,,로더 무시
+Table.Strings,<언어코드>,문자열,선택,ko,,Key와 Note 이외의 열은 언어; Language.Name 행으로 언어 이름 지정
+Table.Tasks,Id,문자열,O,,,과업 키. 건물 CSV Task가 가리킨다
+Table.Tasks,Kind,아래 표,O,Kills,,달성 판정 방식(판정은 코드 TaskSystem.IsMet)
+Table.Tasks,Threshold,정수,,0,,판정 기준값 — 뜻은 Kind마다
+Table.Tasks,Unlock,해금 키,,없음,,이 키를 가진 기술이 있어야 과업이 열린다
+Table.Tasks,Wiki,메모,,,,로더 무시
+Table.Tasks,Note,메모,,,,로더 무시
+Table.TechUnlocks,Index,정수,O,,,배열 위치
+Table.TechUnlocks,Kind,Passive/Active/UnitProduction/BuildingConstruction/Quest,O,Passive,,분류(표시용)
+Table.TechUnlocks,Category,문자열,O,,,해금 키 앞부분
+Table.TechUnlocks,Target,문자열,,,,해금 키 뒷부분. 비우면 Category가 곧 키. Build/Unit은 비우고 아래 Index로 가리킨다
+Table.TechUnlocks,BuildingIndex,Buildings Index,Build일 때 O,-1,,여는 건물. 키 뒷부분 = 그 건물 Id
+Table.TechUnlocks,UnitIndex,Units Index,Unit일 때 이것이나 BoatIndex,-1,,훈련을 여는 육지 유닛
+Table.TechUnlocks,BoatIndex,Boats Index,Unit일 때 이것이나 UnitIndex,-1,,뗏목 업그레이드를 여는 배(Kind Upgrade)
+Table.TechUnlocks,Name,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음)
+Table.TechUnlocks,Description,메모,,,,설계용 메모(화면에 나오지 않는다 — 번역하지 않음)
+Table.TechUnlocks,Note,메모,,,,로더 무시
+Table.Techs,Index,정수,O,,,배열 위치
+Table.Techs,Id,문자열,O,,,기술 이름표
+Table.Techs,Icon,문자열,,,,아이콘 이름 — sprites의 Icon.<Icon>
+Table.Techs,CostBase,정수,O,GameRules.csv Tech.DefaultCostBase,,비용 고정분
+Table.Techs,CostPerCity,정수,O,0,,보유 도시 하나당 비용 증가분
+Table.Techs,Unlock{n},TechUnlocks Index,,,,이 기술이 여는 해금 내역
+Table.Techs,Note,메모,,,,로더 무시
+Table.TechSlots,Index,정수,O,,,배열 위치. 행 순서 = UI 갈래 순서
+Table.TechSlots,Id,문자열,O,,,슬롯 이름표(기술 이름과 무관)
+Table.TechSlots,ParentIndex,TechSlots Index,O,-1,,선행 슬롯. -1 = 루트
+Table.TechSlots,Tier,정수,O,1,,바깥으로 갈수록 큰 원
+Table.TechSlots,Slot,정수,O,0,,"갈래 안 좌우 위치(0 = 시계방향 쪽, 1 = 반시계방향 쪽)"
+Table.TechSlots,Note,메모,,,,로더 무시
+Table.TechTreeLayout,Index,정수,O,,,배열 위치(배치 순서와 무관)
+Table.TechTreeLayout,SlotIndex,TechSlots Index,O,-1,,슬롯
+Table.TechTreeLayout,TechIndex,Techs Index,O,-1,,놓을 기술
+Table.TechTreeLayout,Note,메모,,,,로더 무시
+Table.TechGroups,Index,정수,O,,,배열 위치
+Table.TechGroups,Id,문자열,O,,,그룹 이름표
+Table.TechGroups,Name,메모,,,,설계용 메모(화면에 나오지 않는다)
+Table.TechGroups,Description,메모,,,,설계용 메모(화면에 나오지 않는다)
+Table.TechGroups,Tech{n},Techs Index,,,,연구 가능한 기술
+Table.TechGroups,Note,메모,,,,로더 무시
+Table.TileActions,Id,문자열,O,,,행동 키
+Table.TileActions,Kind,아래 표,O,Harvest,,효과 종류(효과 자체는 코드)
+Table.TileActions,Unlock,해금 키,,없음,,tech
+Table.TileActions,Cost,정수,,0,,별
+Table.TileActions,Terrain{n},TileClass,O,,,할 수 있는 지형
+Table.TileActions,RequiredStructure{n},StructureId,,없음,,
+Table.TileActions,Population,정수,,0,,주인 도시 인구 증가
+Table.TileActions,StarsGain,정수,,0,,즉시 얻는 별
+Table.TileActions,Wiki,메모,,,,로더 무시
+Table.TileActions,Note,메모,,,,로더 무시
+Table.Tribes,Index,정수,O,,,배열 위치
+Table.Tribes,Id,문자열,O,,,종족 이름표. 이름·설명은 번역 표 Tribe.<Id>.Name/.Desc
+Table.Tribes,BiomeIndex,바이옴 Index,,-1,,종족 영역을 채울 바이옴(biomes의 Biome 행 순서). 범위 밖이면 0번
+Table.Tribes,TechGroupIndex,TechGroups Index,,-1,,연구 가능한 기술 묶음
+Table.Tribes,StartTech{n},Techs Index,,없음,,처음부터 해금된 기술
+Table.Tribes,StartStars,정수,,GameRules.csv Economy.StartingStars,,시작 별
+Table.Tribes,StartCapitalLevel,정수,,1,,시작 수도 레벨(1 이상). 시작 레벨까지의 보상은 지급하지 않음
+Table.Tribes,StartUnit{n},Units Index,,없음,,수도에 받는 시작 유닛
+Table.Tribes,StartConditionIndex,StartConditions Index,,-1,,수도 주변 시작 조건. -1 = 없음
+Table.Tribes,Wiki,메모,,,,로더 무시
+Table.Tribes,Note,메모,,,,로더 무시
+Table.StartConditions,Index,정수,O,,,배열 위치
+Table.StartConditions,Id,문자열,O,,,이름표. 이름·설명은 번역 표 StartCondition.<Id>.Name/.Desc
+Table.StartConditions,Rule{n},StartConditionRules Index,,,,적힌 순서대로 적용할 규칙
+Table.StartConditions,Note,메모,,,,로더 무시
+Table.StartConditionRules,Index,정수,O,,,배열 위치
+Table.StartConditionRules,Id,문자열,,,,이름표
+Table.StartConditionRules,Kind,Tile/Structure,O,Tile,,
+Table.StartConditionRules,Target,TileTypeId 또는 StructureId,O,,,보장할 대상
+Table.StartConditionRules,TerrainType,TerrainType,,Land,,Tile: 바뀐 칸의 이동 지형 / Structure: AllowedTile이 비었을 때 놓일 수 있는 지형
+Table.StartConditionRules,Count,정수,,1,,최소 개수
+Table.StartConditionRules,MinDistance,정수,,1,,수도에서 체비쇼프 거리 하한(1 = 바로 옆 8칸)
+Table.StartConditionRules,MaxDistance,정수,,1,,거리 상한
+Table.StartConditionRules,MapType,맵 타입 이름,,항상,,이 맵 타입에서만 적용 — map
+Table.StartConditionRules,AllowedTile{n},TileTypeId,,,,Tile: 바꿔도 되는 원래 타일(비우면 도시가 아닌 아무 육지) / Structure: 놓일 수 있는 타일
+Table.StartConditionRules,Description,메모,,,,설계용 설명(화면에 나오지 않는다)
+Table.StartConditionRules,Note,메모,,,,로더 무시
+Table.Units,Index,정수,O,,,배열 위치
+Table.Units,Id,문자열,O,,,"유닛 종류 키. 해금 키 Unit.<Id>, GameRules.csv의 *UnitId, 스프라이트 Unit.<Id>가 가리킨다"
+Table.Units,MaxHp,정수,O,0,,최대 체력
+Table.Units,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로)
+Table.Units,BaseVisual,문자열,O,,,스폰 프리팹 Assets/Prefabs/Units/Unit_<BaseVisual>. 스프라이트에 Unit.<Id>가 없으면 이 외형을 빌린다
+Table.Units,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit
+Table.Units,Domain,TerrainType,,Land,,들어갈 수 있는 지형
+Table.Units,Move.Range,정수,,0,,이동력(Move가 있을 때)
+Table.Units,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)"
+Table.Units,Attack.Range,정수,,0,,공격 사거리. 1 = 근접
+Table.Units,Heal.Amount,정수,,0,,치유량(Heal이 있을 때)
+Table.Units,Heal.Range,정수,,0,,치유 사거리
+Table.Units,Cost,정수,,2,,훈련 비용(별)
+Table.Units,Trainable,불리언,,true,,false면 도시에서 훈련 불가(보상·침투로만 등장)
+Table.Units,BoatIndex,Boats Index,,-1,,자기 항구에 들어가면 바뀌는 배. -1 = 뗏목
+Table.Units,Note,메모,,,,로더 무시
+Table.Boats,Index,정수,O,,,배열 위치
+Table.Boats,Id,문자열,O,,,"배 키. 해금 키 Unit.<Id>, 스프라이트 Boat.<Id>가 가리킨다"
+Table.Boats,Kind,Raft/Upgrade/Special,O,Special,,아래 표
+Table.Boats,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로)
+Table.Boats,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit
+Table.Boats,Move.Range,정수,,0,,이동력(Move가 있을 때)
+Table.Boats,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)"
+Table.Boats,Attack.Range,정수,,0,,공격 사거리. 1 = 근접
+Table.Boats,Heal.Amount,정수,,0,,치유량(Heal이 있을 때)
+Table.Boats,Heal.Range,정수,,0,,치유 사거리
+Table.Boats,Cost,정수,,2,,훈련 비용(별)
+Table.Boats,Note,메모,,,,로더 무시

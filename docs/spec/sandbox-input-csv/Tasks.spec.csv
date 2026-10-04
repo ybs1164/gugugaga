@@ -1,0 +1,7 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Id,문자열,O,,,과업 키. 건물 CSV Task가 가리킨다
+Kind,아래 표,O,Kills,,달성 판정 방식(판정은 코드 TaskSystem.IsMet)
+Threshold,정수,,0,,판정 기준값 — 뜻은 Kind마다
+Unlock,해금 키,,없음,,이 키를 가진 기술이 있어야 과업이 열린다
+Wiki,메모,,,,로더 무시
+Note,메모,,,,로더 무시

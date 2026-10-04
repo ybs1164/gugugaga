@@ -1,0 +1,13 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,O,,,"배 키. 해금 키 Unit.<Id>, 스프라이트 Boat.<Id>가 가리킨다"
+Kind,Raft/Upgrade/Special,O,Special,,아래 표
+Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로)
+Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit
+Move.Range,정수,,0,,이동력(Move가 있을 때)
+Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)"
+Attack.Range,정수,,0,,공격 사거리. 1 = 근접
+Heal.Amount,정수,,0,,치유량(Heal이 있을 때)
+Heal.Range,정수,,0,,치유 사거리
+Cost,정수,,2,,훈련 비용(별)
+Note,메모,,,,로더 무시

@@ -1,0 +1,6 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Key,도메인.이름,O,,,GameRules의 중첩 클래스(도메인)와 필드(이름)
+Value,필드 타입,O,,,정수/실수/불리언/문자열/열거형
+Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고유 규칙
+Description,문자열,,,,규칙 설명(단일 출처)
+Note,문자열,△,,,Value≠Wiki이거나 Wiki가 비었으면 필수 — 원문과 다른 이유

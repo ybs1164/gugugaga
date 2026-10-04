@@ -30,6 +30,11 @@ namespace TacticsECS
 
         /// <summary>종족이 정해진 팀의 시작 유닛(유닛 CSV Id 목록, Tribes.csv StartUnit*). 없는 팀은 기본 규칙(CitySystem.StartingUnitId).</summary>
         public readonly Dictionary<Team, string[]> StartUnitIds = new Dictionary<Team, string[]>();
+        public readonly Dictionary<Team, int> StartCapitalLevels = new Dictionary<Team, int>();
+
+        public readonly List<EmbassyData> Embassies = new List<EmbassyData>();
+        public readonly HashSet<(Team, Team)> Wars = new HashSet<(Team, Team)>();
+        public readonly HashSet<(Team, Team)> PeaceTreaties = new HashSet<(Team, Team)>();
 
         /// <summary>팀별 과업(기념물) 진행.</summary>
         public readonly Dictionary<Team, TaskProgressData> Tasks = new Dictionary<Team, TaskProgressData>();

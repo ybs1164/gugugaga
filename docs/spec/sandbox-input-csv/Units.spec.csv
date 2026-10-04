@@ -1,0 +1,17 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,O,,,"유닛 종류 키. 해금 키 Unit.<Id>, GameRules.csv의 *UnitId, 스프라이트 Unit.<Id>가 가리킨다"
+MaxHp,정수,O,0,,최대 체력
+Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로)
+BaseVisual,문자열,O,,,스폰 프리팹 Assets/Prefabs/Units/Unit_<BaseVisual>. 스프라이트에 Unit.<Id>가 없으면 이 외형을 빌린다
+Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit
+Domain,TerrainType,,Land,,들어갈 수 있는 지형
+Move.Range,정수,,0,,이동력(Move가 있을 때)
+Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)"
+Attack.Range,정수,,0,,공격 사거리. 1 = 근접
+Heal.Amount,정수,,0,,치유량(Heal이 있을 때)
+Heal.Range,정수,,0,,치유 사거리
+Cost,정수,,2,,훈련 비용(별)
+Trainable,불리언,,true,,false면 도시에서 훈련 불가(보상·침투로만 등장)
+BoatIndex,Boats Index,,-1,,자기 항구에 들어가면 바뀌는 배. -1 = 뗏목
+Note,메모,,,,로더 무시

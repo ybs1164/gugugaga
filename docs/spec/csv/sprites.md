@@ -2,7 +2,7 @@
 
 파일: `Assets/Resources/Pixel2D/SpriteCatalog.csv`
 한 행 = 스프라이트 레이어 하나. 같은 `VisualId`의 행들이 아래에서 위로 겹쳐 한 표시가 된다. 로더: `View/PixelSpriteCatalog`(View 계층 — `GameDataLoader`가 아님).
-형식이 틀리면 경고가 아니라 **예외**가 난다(필수 칸, 색).
+Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 수 있다. 선택 파일은 실제 파싱하고, 오류가 나면 이전 선택으로 복원한다. 월드 표시는 지형을 다시 생성할 때 갱신된다. 시트·패턴 이미지 자체는 프로젝트 Resources를 사용한다. 형식이 틀리면 경고가 아니라 **예외**가 난다(필수 칸, 색).
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
@@ -69,9 +69,4 @@
 에셋 출처: [Pixel2DImplementation](../../Pixel2DImplementation.md).
 
 ## 레거시 3D 모델
-파일: `Assets/Resources/Models/ModelPalette.csv`
-파일: `Assets/Resources/Models/BuildingModels.csv`
-파일: `Assets/Resources/Models/TerrainModels.csv`
-파일: `Assets/Resources/Models/UnitModels.csv`
-
-`GameDataLoader`가 아직 읽지만 **현재 화면에서는 쓰지 않는다**(2D 전환 전 로우폴리 모델). 형식은 `ModelCsvSerializer` 주석, 배경은 [history/ModelingPlan](../../history/ModelingPlan.md).
+[보관된 모델 형식](models.md). 현재 게임 로더와 Sandbox에서는 읽지 않는다. 배경은 [history/ModelingPlan](../../history/ModelingPlan.md).

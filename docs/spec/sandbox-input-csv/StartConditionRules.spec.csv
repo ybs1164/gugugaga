@@ -1,0 +1,13 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치
+Id,문자열,,,,이름표
+Kind,Tile/Structure,O,Tile,,
+Target,TileTypeId 또는 StructureId,O,,,보장할 대상
+TerrainType,TerrainType,,Land,,Tile: 바뀐 칸의 이동 지형 / Structure: AllowedTile이 비었을 때 놓일 수 있는 지형
+Count,정수,,1,,최소 개수
+MinDistance,정수,,1,,수도에서 체비쇼프 거리 하한(1 = 바로 옆 8칸)
+MaxDistance,정수,,1,,거리 상한
+MapType,맵 타입 이름,,항상,,이 맵 타입에서만 적용 — map
+AllowedTile{n},TileTypeId,,,,Tile: 바꿔도 되는 원래 타일(비우면 도시가 아닌 아무 육지) / Structure: 놓일 수 있는 타일
+Description,메모,,,,설계용 설명(화면에 나오지 않는다)
+Note,메모,,,,로더 무시

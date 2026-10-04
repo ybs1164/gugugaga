@@ -106,6 +106,7 @@ namespace TacticsECS
         /// <summary>처음부터 해금된 기술(Techs Index 목록).</summary>
         public int[] StartTechs;
         public int StartStars;
+        public int StartCapitalLevel;
 
         /// <summary>수도에 받는 시작 유닛 — Units Index 목록. 샌드박스에서 다른 유닛 CSV를 불러오면 그 표에서 같은 Id를 찾는다.</summary>
         public int[] StartUnits;

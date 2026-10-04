@@ -41,6 +41,7 @@ namespace TacticsECS
             if (city.HasWall) list.Add(new SpritePlacement("City.Wall"));
             if (city.HasWorkshop) list.Add(new SpritePlacement("City.Workshop"));
             if (city.ParkCount > 0) list.Add(new SpritePlacement("City.Park"));
+            if (city.HasEmbassy) list.Add(new SpritePlacement("City.Embassy"));
             list.Add(new SpritePlacement("City.Flag"));
             return list;
         }

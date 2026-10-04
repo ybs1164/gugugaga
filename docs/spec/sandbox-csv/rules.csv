@@ -1,0 +1,44 @@
+﻿AppliesTo,Rule,Source
+공통/관련 표,위치는 Assets/Resources/. 예외 위치는 각 csv/*.md의 머리에 적는다.,docs/spec/csv-common.md
+공통/관련 표,"표 폴더(샌드박스 ""표 불러오기""): 게임 데이터 표(GameDataLoader.TableCsvPaths — 번역·규칙·타일 행동·과업·도시 보상·Tables/ 전부)를 Assets/Resources와 같은 구조(<폴더>/Tables/Units.csv) 또는 평평하게(<폴더>/Units.csv) 둔 폴더. 폴더에 있는 표만 덮어쓰고 없는 표는 기본 표를 쓴다. 모델 CSV(Models/)는 덮어쓰지 않는다. 조작은 README.",docs/spec/csv-common.md
+공통/관련 표,"UTF-8(BOM 있어도 됨). 스프레드시트에서는 ""CSV UTF-8""로 저장한다.",docs/spec/csv-common.md
+공통/관련 표,값은 CSV에만 둔다. 코드에는 기본 표를 두지 않는다(로드 실패 시 빈 표).,docs/spec/csv-common.md
+헤더,"첫 줄. 컬럼은 이름으로 찾는다(순서 무관, 대소문자 무시)",docs/spec/csv-common.md
+빈 칸,그 컬럼의 기본값,docs/spec/csv-common.md
+주석 행,"첫 칸이 #인 행, 빈 행 무시. 첫 칸이 빈 행도 무시(모델 CSV는 예외 — sprites)",docs/spec/csv-common.md
+인용,"""쉼표, 포함"", """" = 따옴표 한 개",docs/spec/csv-common.md
+불리언,1/0/true/false/yes/no,docs/spec/csv-common.md
+메모 컬럼,"Note, Wiki는 로더가 읽지 않는다(허용된 표에서만 — 각 csv/*.md의 컬럼 표에 적힘)",docs/spec/csv-common.md
+모르는 컬럼,경고 후 무시,docs/spec/csv-common.md
+헤더보다 많은 칸,경고 후 무시 — 대개 인용하지 않은 쉼표가 값을 끊은 것,docs/spec/csv-common.md
+잘못된 값,[GameData] 파일:줄 컬럼: 내용 경고 후 그 칸만 기본값. 게임은 멈추지 않는다,docs/spec/csv-common.md
+공통/관련 표,"Terrain1, Terrain2 … 처럼 필요한 만큼 늘리고, 빈 칸은 건너뛴다.",docs/spec/csv-common.md
+공통/관련 표,일부 표는 옛 한 칸 목록 컬럼(a;b)도 읽기만 호환한다. 새로 쓰지 않는다.,docs/spec/csv-common.md
+키형,"문자열 Id(중복 금지) / 타일 행동, 과업, 바이옴, 규칙(Key), 샌드박스 유닛·기술 파일",docs/spec/csv-common.md
+배열형,정수 Index / Assets/Resources/Tables/ 중 바이옴 표를 뺀 전부,docs/spec/csv-common.md
+공통/관련 표,배열형 규칙:,docs/spec/csv-common.md
+공통/관련 표,첫 컬럼 Index는 0부터 1씩 빈틈없이 — 행 순서와 같아야 한다(다르면 오류).,docs/spec/csv-common.md
+공통/관련 표,"다른 표 참조는 그 표의 Index(컬럼 이름 …Index), -1 또는 빈 칸 = 없음.",docs/spec/csv-common.md
+공통/관련 표,참조 범위는 ArrayTableValidationSystem이 로드 시 검사한다.,docs/spec/csv-common.md
+공통/관련 표,행을 지우거나 끼우면 뒤 Index가 모두 바뀐다 — 참조하는 표도 같이 고친다. 보통은 끝에 추가한다.,docs/spec/csv-common.md
+TerrainType,"Land, Water / 이동 판정용 지형. 유닛 Domain과 같아야 들어간다",docs/spec/csv-common.md
+TileClass,"Field, Forest, Mountain, ShallowWater, Ocean / 건설·행동 배치 조건용 지형. 타일에서 계산된다(저장 안 함) — tile",docs/spec/csv-common.md
+해금 키,Category.Target 문자열 / 기술이 여는 것. 형식과 Category 목록은 tech,docs/spec/csv-common.md
+StructureId,"Capital, Village, Ruin, Resource_*, Lighthouse, Starfish / 타일 위 구조물 — tile",docs/spec/csv-common.md
+TileTypeId,바이옴 CSV의 Entry + Ocean / 세부 타일 종류 — biomes,docs/spec/csv-common.md
+공통/관련 표,Key·Note가 아닌 열이 전부 언어 열이다. 언어를 더하려면 열(예: ja)을 추가하고 Language.Name 행에 그 언어 이름을 적는다 — 언어 버튼이 헤더 순서대로 돈다.,docs/spec/csv/strings.md
+공통/관련 표,"칸 안의 \n은 줄바꿈. {0}, {1} …은 코드가 채우는 값(string.Format) — 번역문에서도 같은 번호를 쓴다.",docs/spec/csv/strings.md
+공통/관련 표,문구에 수치를 옮겨 적지 않는다 — 자리표시자로 CSV 값을 가리킨다.,docs/spec/csv/strings.md
+공통/관련 표,없는 키는 화면에 키 그대로 나온다(데이터 표 이름은 Id).,docs/spec/csv/strings.md
+공통/관련 표,#로 시작하는 행은 구역 제목(주석).,docs/spec/csv/strings.md
+공통/관련 표,다른 표 값은 먼저 읽힌 표만 볼 수 있다: 번역 → 규칙 → 타일 행동·도시 보상·과업 → 배·유닛·건물·해금 내역·기술·종족·시작 조건 규칙·시작 조건.,docs/spec/csv/strings.md
+공통/관련 표,못 채운 자리표시자는 화면에 그대로 보인다. scripts/check_spec.py가 없는 규칙·Id·컬럼과 언어마다 다른 자리표시자를 잡는다.,docs/spec/csv/strings.md
+공통/관련 표,"코드에만 있는 상수(예: Herd의 이동력 +1)와 구조적인 수(1/, ""1차"")는 문구에 그대로 둔다.",docs/spec/csv/strings.md
+공통/관련 표,"처음 실행: 시스템 언어가 한국어면 ko, 아니면 en. 언어 버튼(화면 오른쪽 위)을 누르면 다음 언어로 바꾸고 저장한 뒤 씬을 다시 연다(진행 중인 전투는 처음부터).",docs/spec/csv/strings.md
+Single.LegacyBiomes,고정 열 위치로 읽음; 헤더 순서 변경 금지; 단순 쉼표/줄바꿈 분리라 CSV 인용 및 셀 내 쉼표 미지원,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Single.LegacyBiomes.Tiles,TileId:TerrainType:InnerWeight:OuterWeight:MinCount:CountPerTiles:MinDistance:EdgeMargin:ExcludeAdjacent,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Single.LegacyBiomes.Structures,StructureId:AllowedTileTypes:Weight:MinCount:CountPerTiles:MinDistance:EdgeMargin:MaxDistanceFromCity:MaxWaterFractionOnLakes:FillRemaining:ExcludeAdjacentStructures:InnerRate:OuterRate,Assets/Scripts/TacticsECS/Systems/Csv/BiomeCsvSerializer.cs
+Sandbox,표 폴더 판별이 개별 헤더 판별보다 우선; TechTree.csv는 폴더 표 이름 목록에 없음,Assets/Scripts/TacticsECS/BattleController.cs
+Sandbox,Models/*.csv 및 Pixel2D/SpriteCatalog.csv는 Sandbox 외부 CSV 입력 대상이 아님,Assets/Scripts/TacticsECS/Systems/Csv/GameDataLoader.cs
+명세,Required는 문서상의 작성 요구이며 모든 파서가 누락을 거부한다는 의미는 아님; 공란 기본값은 미기재,docs/spec/csv
+생성,이 파일들은 기존 명세와 코드에서 생성한 스냅샷; python scripts/export_sandbox_csv_spec.py로 갱신,scripts/export_sandbox_csv_spec.py

@@ -1,0 +1,21 @@
+﻿Format,FolderPath,SourceOrExample,InputRoute,Detection,RowStructure,Notes
+Table.Biomes,Tables/Biomes.csv,Assets/Resources/Tables/Biomes.csv,표 폴더: 표 불러오기 / 바이옴 불러오기 / 이름 변경 시 개별 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더; 개별 판별은 Kind+Biome,한 행 = 바이옴/타일/구조물,폴더에서 누락한 표는 기본 표 사용
+Table.Buildings,Tables/Buildings.csv,Assets/Resources/Tables/Buildings.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.CityRewards,CityRewards.csv,Assets/Resources/CityRewards.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.GameRules,GameRules.csv,Assets/Resources/GameRules.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Strings,Strings.csv,Assets/Resources/Strings.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Tasks,Tasks.csv,Assets/Resources/Tasks.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.TechUnlocks,Tables/TechUnlocks.csv,Assets/Resources/Tables/TechUnlocks.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Techs,Tables/Techs.csv,Assets/Resources/Tables/Techs.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.TechSlots,Tables/TechSlots.csv,Assets/Resources/Tables/TechSlots.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.TechTreeLayout,Tables/TechTreeLayout.csv,Assets/Resources/Tables/TechTreeLayout.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.TechGroups,Tables/TechGroups.csv,Assets/Resources/Tables/TechGroups.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.TileActions,TileActions.csv,Assets/Resources/TileActions.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Tribes,Tables/Tribes.csv,Assets/Resources/Tables/Tribes.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.StartConditions,Tables/StartConditions.csv,Assets/Resources/Tables/StartConditions.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.StartConditionRules,Tables/StartConditionRules.csv,Assets/Resources/Tables/StartConditionRules.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Units,Tables/Units.csv,Assets/Resources/Tables/Units.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Table.Boats,Tables/Boats.csv,Assets/Resources/Tables/Boats.csv,표 폴더: 표 불러오기,표 파일명으로 폴더 판별; Resources 구조 또는 평평한 폴더,한 행 = 데이터 항목,폴더에서 누락한 표는 기본 표 사용
+Single.Units,,docs/sample_units.csv,개별 파일: 표 불러오기,표 파일명 이외의 이름; Branch/Tier 없음; Kind+Biome 없음,한 행 = 데이터 항목,호환 형식; 읽기 지원
+Single.TechTree,,Assets/Resources/TechTree.csv,개별 파일: 표 불러오기,표 파일명 이외의 이름; 헤더에 Branch 또는 Tier,한 행 = 데이터 항목,호환 형식; 읽기 지원
+Single.LegacyBiomes,,LegacyBiomes.csv,바이옴 불러오기,헤더에 Tiles; 표 불러오기는 추가로 Kind+Biome 필요,고정 위치; 한 행 = 바이옴,호환 형식; 읽기 지원

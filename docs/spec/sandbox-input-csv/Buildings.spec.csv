@@ -1,0 +1,13 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. TechUnlocks BuildingIndex가 가리킨다
+Id,문자열,O,,,타일에 저장되는 건물 키. 코드가 특별 취급하는 Id는 바꾸지 않는다: Farm Mine LumberHut Windmill Forge Sawmill Market Port Road Bridge
+Cost,정수,,0,,별
+Population,정수,,0,,지을 때 주인 도시에 더하는 인구
+Terrain{n},TileClass,O(1개 이상),,,지을 수 있는 지형
+RequiredStructure{n},StructureId,,없음,,
+AdjacentBuildingIndex{n},Buildings Index,,없음,,8방향 같은 팀 영토에 이 건물 중 하나가 있어야 함
+PopulationPerAdjacent,정수,,0,,인접한 AdjacentBuildingIndex 건물 하나당 인구
+Flag{n},태그,,없음,,아래 태그
+Task,과업 Id,,없음,,기념물이면 과업 Id
+Wiki,메모,,,,로더 무시
+Note,메모,,,,로더 무시

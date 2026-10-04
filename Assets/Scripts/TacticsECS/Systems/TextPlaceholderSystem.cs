@@ -95,6 +95,7 @@ namespace TacticsECS
                 case "Tribe":
                     foreach (var t in GameTables.Tribes)
                         if (t.Id == id && column == "StartStars") return Text(t.StartStars);
+                        else if (t.Id == id && column == "StartCapitalLevel") return Text(t.StartCapitalLevel);
                     return null;
                 case "StartRule":
                     foreach (var r in GameTables.StartConditionRules)

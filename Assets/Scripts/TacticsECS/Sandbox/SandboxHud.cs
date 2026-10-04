@@ -19,10 +19,9 @@ namespace TacticsECS
     /// </summary>
     public class SandboxHud : MonoBehaviour
     {
+        public event Action<string, string> OnCsvSelected;
         /// <summary>"표 불러오기" — 고른 CSV 파일 경로. 표 폴더 안의 파일이면 그 폴더 전체, 옛 단일 파일이면 그 파일만(BattleController가 가른다).</summary>
-        public event Action<string> OnLoadClicked;
         /// <summary>"표 내보내기" — 고른 폴더 경로.</summary>
-        public event Action<string> OnExportClicked;
         public event Action<int> OnUnitSelected;
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
@@ -116,6 +115,7 @@ namespace TacticsECS
             WireToolbar(canvas);
             WireGenerationTab(canvas);
             WirePalette(canvas);
+            WireCsvFiles(canvas);
             WireStructurePanel(canvas);
             WireStartButton(canvas);
             _canvas = canvas;
@@ -130,20 +130,6 @@ namespace TacticsECS
         private void WireToolbar(Transform canvas)
         {
             var panel = canvas.Find("Toolbar");
-            panel.Find("불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadClicked);
-            panel.Find("내보내기Button").GetComponent<Button>().onClick.AddListener(HandleExportClicked);
-
-            var playerButtonTransform = panel.Find("플레이어Button");
-            _playerButton = playerButtonTransform.GetComponent<Button>();
-            _playerButtonBg = playerButtonTransform.GetComponent<Image>();
-            _playerButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Player));
-
-            var enemyButtonTransform = panel.Find("적Button");
-            _enemyButton = enemyButtonTransform.GetComponent<Button>();
-            _enemyButtonBg = enemyButtonTransform.GetComponent<Image>();
-            _enemyButton.onClick.AddListener(() => OnTeamSelected?.Invoke(Team.Enemy));
-
-            panel.Find("바이옴불러오기Button").GetComponent<Button>().onClick.AddListener(HandleLoadBiomeClicked);
             WireOptionalButton(panel, "기술불러오기Button", () => OnReloadTablesClicked?.Invoke());
             WireOptionalButton(panel, "기술내보내기Button", () => OnResetTablesClicked?.Invoke());
 
@@ -165,6 +151,39 @@ namespace TacticsECS
             _statusText = panel.Find("Status").GetComponent<Text>();
         }
 
+        private void WireCsvFiles(Transform canvas)
+        {
+            var content = canvas.Find("CsvFiles/Viewport/Content");
+            if (content == null) return;
+            foreach (var resourcePath in GameDataLoader.SandboxCsvPaths)
+            {
+                string key = resourcePath;
+                var row = content.Find(key.Replace('/', '_'));
+                row.Find("PickButton").GetComponent<Button>().onClick.AddListener(() =>
+                {
+                    var file = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.F("UI.SandboxHud.PickCsv", key + ".csv"), "", "csv");
+                    if (!string.IsNullOrEmpty(file)) OnCsvSelected?.Invoke(key, file);
+                });
+                row.Find("ResetButton").GetComponent<Button>().onClick.AddListener(() => OnCsvSelected?.Invoke(key, null));
+            }
+        }
+
+        public void SetCsvSources(IReadOnlyDictionary<string, string> files)
+        {
+            if (_canvas == null) return;
+            var content = _canvas.Find("CsvFiles/Viewport/Content");
+            if (content == null) return;
+            foreach (var key in GameDataLoader.SandboxCsvPaths)
+            {
+                var row = content.Find(key.Replace('/', '_'));
+                bool custom = files.TryGetValue(key, out var file);
+                row.Find("Path").GetComponent<Text>().text = custom ? file : LocalizationSystem.F("UI.SandboxHud.DefaultCsv", key + ".csv");
+                row.Find("PickButton/Label").GetComponent<Text>().text = LocalizationSystem.T("UI.SandboxHud.SelectCsv");
+                row.Find("ResetButton/Label").GetComponent<Text>().text = LocalizationSystem.T("UI.SandboxHud.Default");
+                row.Find("Name").GetComponent<Text>().text = key + ".csv";
+            }
+        }
+
         /// <summary>"맵 크기" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleMapSizeCycle이
         /// 클릭마다 호출).</summary>
         public void SetMapSizeLabel(string name, int size) => _mapSizeLabel.text = LocalizationSystem.F("UI.SandboxHud.MapSize", name, size);
@@ -179,6 +198,7 @@ namespace TacticsECS
         {
             if (_canvas == null) return;
             var toolbar = _canvas.Find("Toolbar");
+            SetLabel(toolbar, "Title", "UI.SandboxHud.CsvTitle");
             SetLabel(toolbar, "불러오기Button", "UI.SandboxHud.Load");
             SetLabel(toolbar, "내보내기Button", "UI.SandboxHud.Export");
             SetLabel(toolbar, "플레이어Button", "UI.SandboxHud.Player");
@@ -287,37 +307,11 @@ namespace TacticsECS
             t.GetComponent<Button>().onClick.AddListener(onClick);
         }
 
-        /// <summary>OS 파일 탐색기로 불러올 바이옴 CSV를 고른다. 취소하면 아무 일도 일어나지 않는다 —
-        /// HandleLoadClicked(유닛 CSV)와 같은 패턴.</summary>
-        private void HandleLoadBiomeClicked()
-        {
-            var path = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.T("UI.SandboxHud.PickBiomeCsv"), "", "csv");
-            if (string.IsNullOrEmpty(path)) return;
-            OnLoadBiomeClicked?.Invoke(path);
-        }
-
-        /// <summary>OS 파일 탐색기(열기 대화상자)로 표 폴더 안의 CSV 하나(또는 옛 유닛·기술 파일)를 고른다. 취소하면 아무 일도 없다.
-        /// 에디터와 스탠드얼론 빌드(Windows) 양쪽에서 동작한다.</summary>
-        private void HandleLoadClicked()
-        {
-            var path = StandaloneFileDialog.OpenFilePanel(LocalizationSystem.T("UI.SandboxHud.PickTableCsv"), "", "csv");
-            if (string.IsNullOrEmpty(path)) return;
-            OnLoadClicked?.Invoke(path);
-        }
-
-        /// <summary>OS 폴더 선택 대화상자로 표를 내보낼 폴더를 고른다.</summary>
-        private void HandleExportClicked()
-        {
-            var path = StandaloneFileDialog.OpenFolderPanel(LocalizationSystem.T("UI.SandboxHud.PickExportFolder"));
-            if (string.IsNullOrEmpty(path)) return;
-            OnExportClicked?.Invoke(path);
-        }
-
         /// <summary>어느 팀에 배치할지 강조 표시만 바꾼다(선택 자체는 BattleController 쪽 상태가 갖고 있음).</summary>
         public void SetSelectedTeam(Team team)
         {
-            _playerButtonBg.color = team == Team.Player ? PlayerAccent : ButtonIdle;
-            _enemyButtonBg.color = team == Team.Enemy ? EnemyAccent : ButtonIdle;
+            if (_playerButtonBg != null) _playerButtonBg.color = team == Team.Player ? PlayerAccent : ButtonIdle;
+            if (_enemyButtonBg != null) _enemyButtonBg.color = team == Team.Enemy ? EnemyAccent : ButtonIdle;
         }
 
         public void SetStatus(string text) => _statusText.text = text;
@@ -327,6 +321,7 @@ namespace TacticsECS
         private void WirePalette(Transform canvas)
         {
             var panel = canvas.Find("Palette");
+            if (panel == null) return;
             _paletteRoot = (RectTransform)panel;
             _paletteContent = (RectTransform)panel.Find("Viewport/Content");
             _paletteScrollRect = panel.GetComponent<ScrollRect>();
@@ -337,6 +332,7 @@ namespace TacticsECS
         /// 행 수에 맞게 늘려 패널 높이를 넘으면 ScrollRect로 스크롤해서 볼 수 있게 한다.</summary>
         public void SetPalette(IReadOnlyList<UnitCsvRow> rows)
         {
+            if (_paletteContent == null) return;
             foreach (var (button, _) in _paletteButtons) Destroy(button.gameObject);
             _paletteButtons.Clear();
 

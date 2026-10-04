@@ -33,6 +33,13 @@ namespace TacticsECS
             public static int Other = 2;
         }
 
+        public static class Diplomacy
+        {
+            public static int EmbassyIncome = 2;
+            public static int PeaceTreatyIncomeMultiplier = 2;
+            public static int EmbassySightRadius = 1;
+        }
+
         public static class Unit
         {
             public static int DisbandRefundDivisor = 2;
@@ -97,7 +104,7 @@ namespace TacticsECS
             public static int Park = 250;
             public static int Monument = 400;
             public static int TempleBase = 100;
-            public static int PerTempleLevelAbove1 = 100;
+            public static int PerTempleLevelAbove1 = 50;
             public static int TempleMaxLevel = 5;
             public static int TempleTurnsPerLevel = 3;
             public static int PerTechTier = 100;

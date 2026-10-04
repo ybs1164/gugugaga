@@ -8,7 +8,6 @@ namespace TacticsECS
     /// 지형 쪽(종족 바이옴 / 수도 주변 시작 조건)은 BattleController가 RegionBiome/StartCondition으로 꺼내 지형 생성에 넘긴다.
     /// 자체 상태는 없다 — 결과는 EconomyWorld(Resources/Tech/StartUnitIds)에만 남는다.
     ///
-    /// 원문과 다른 점(위키 Tribes): Luxidoor의 "레벨 3 수도로 시작"은 도시 레벨 시작값이 표에 없어 아직 반영하지 않았다(별 2만 적용).
     /// 종족 고유 지형 배수는 바이옴(BiomeIndex)으로 근사한다 — 기본 바이옴 표에는 평원/사막/고지대 3개뿐이라 여러 종족이 같은 바이옴을 쓴다.
     /// </summary>
     public static class TribeSystem
@@ -31,6 +30,7 @@ namespace TacticsECS
             econ.Tech[team] = tech;
 
             econ.StartUnitIds[team] = StartUnitIds(tribe, unitRows);
+            econ.StartCapitalLevels[team] = System.Math.Max(1, tribe.StartCapitalLevel);
         }
 
         public static string[] StartUnitIds(TribeRow tribe, IReadOnlyList<UnitCsvRow> unitRows)

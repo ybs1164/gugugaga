@@ -1,0 +1,27 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Kind,Biome/Tile/Structure,선택,Biome,전부,행 종류
+Biome,문자열,필수,(필수),전부,소속 바이옴 Id. Biome 행이 없으면 기본값 바이옴이 만들어진다
+Name,문자열,선택,Biome,Biome,표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 번역 표 Biome.<Biome>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다)
+NoiseType,문자열,선택,Perlin,Biome,노이즈 종류. Perlin만 지원
+Frequency,실수,선택,0,Biome,노이즈 주파수
+Octaves,정수,선택,0,Biome,노이즈 옥타브
+SeedOffset,정수,선택,0,Biome,이 바이옴 노이즈장의 시드 오프셋
+InnerRadius,정수,선택,0,Biome,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용)
+MountainRate,실수,선택,0,Biome,산 레이어 배수. 0이면 산 없음
+ForestRate,실수,선택,0,Biome,숲 레이어 배수. 0이면 숲 레이어 없음
+Entry,문자열,선택,,"Tile, Structure",
+TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형
+InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정)
+OuterWeight,실수,선택,0,Tile,Outer 영역 가중치
+Weight,실수,선택,0,Structure,
+MinCount,정수,선택,0,"Tile, Structure",
+CountPerTiles,실수,선택,0,"Tile, Structure",
+MinDistance,정수,선택,0,"Tile, Structure",
+EdgeMargin,정수,선택,0,"Tile, Structure",
+MaxDistanceFromCity,정수,선택,0,Structure,
+MaxWaterFractionOnLakes,실수,선택,없음,Structure,
+FillRemaining,불리언,선택,false,Structure,
+InnerRate,실수,선택,0,Structure,
+OuterRate,실수,선택,0,Structure,
+AllowedTile{n},TileTypeId,선택,없음,Structure,
+Exclude{n},Id,선택,없음,"Tile, Structure",

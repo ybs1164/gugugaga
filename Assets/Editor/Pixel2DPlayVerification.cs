@@ -50,8 +50,26 @@ namespace TacticsECS.EditorTools
                 switch(_phase)
                 {
                     case 0:
-                        File.WriteAllText("Temp/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units));
-                        Call(controller,"HandleSandboxLoad",Path.GetFullPath("Temp/SandboxUnits.csv"));
+                        WikiParityVerification.Verify();
+                        foreach (var key in GameDataLoader.SandboxCsvPaths)
+                        {
+                            var selected = Path.GetFullPath("Temp/Selected_" + key.Replace('/', '_') + ".csv");
+                            File.WriteAllText(selected, GameDataLoader.Read(key, null, TableSource.Resources));
+                            Call(controller,"HandleSandboxCsvSelected", key, selected);
+                        }
+                        var hud = controller.GetComponentInChildren<SandboxHud>();
+                        if(hud.transform.Find("Canvas/Palette") != null) throw new Exception("placement palette still exists");
+                        if(hud.transform.Find("Canvas/CsvFiles/Viewport/Content").childCount != GameDataLoader.SandboxCsvPaths.Length)
+                            throw new Exception("CSV selector count mismatch");
+                        var invalid = Path.GetFullPath("Temp/InvalidSpriteCatalog.csv");
+                        File.WriteAllText(invalid,"VisualId,Sheet,Scale\nBroken,Pattern/Solid,0\n");
+                        Call(controller,"HandleSandboxCsvSelected","Pixel2D/SpriteCatalog",invalid);
+                        PixelSpriteCatalog.Validate(); // 실패한 선택 뒤 이전 유효한 카탈로그가 유지되어야 한다.
+                        var changed = Path.GetFullPath("Temp/Selected_Pixel2D_SpriteCatalog.csv");
+                        File.WriteAllText(changed,"VisualId,Sheet,Scale\nBroken,Pattern/Solid,0\n");
+                        Call(controller,"ReloadSandboxCsv");
+                        PixelSpriteCatalog.Validate(); // 다시 읽기 중 잘못된 카탈로그는 기본 파일로 복구한다.
+                        Call(controller,"HandleTribeSelected",Team.Player,6);
                         Call(controller,"HandleGenerateTerrain");
                         _nextTime=EditorApplication.timeSinceStartup+.5; _phase++;
                         break;
@@ -62,6 +80,19 @@ namespace TacticsECS.EditorTools
                     case 2:
                         if(controller.GetComponentsInChildren<UnitView>().Length<2) throw new Exception("starting units missing");
                         if(Field<EconomyWorld>(controller,"_econ")==null) throw new Exception("economy missing");
+                        var econ = Field<EconomyWorld>(controller,"_econ");
+                        var grid = Field<GridWorld>(controller,"_grid");
+                        int capital = CitySystem.FindCapital(econ,Team.Player);
+                        if(capital < 0 || econ.Cities[capital].Level != 3 || econ.Cities[capital].HasWorkshop || econ.Cities[capital].HasWall)
+                            throw new Exception("Luxidoor play-mode starting capital mismatch");
+                        econ.Tech[Team.Player].Unlocked.Add("Diplomacy");
+                        var resources = econ.Resources[Team.Player]; resources.Stars += 10; econ.Resources[Team.Player] = resources;
+                        int foreign = CitySystem.FindCapital(econ,Team.Enemy);
+                        if(foreign < 0) throw new Exception("foreign capital missing");
+                        VisionSystem.Reveal(grid,Team.Player,econ.Cities[foreign].Position,0);
+                        Call(controller,"HandleTileOption",econ.Cities[foreign].Position,"Embassy");
+                        if(!econ.Cities[foreign].HasEmbassy || econ.Embassies.Count != 1) throw new Exception("embassy controller/UI path failed");
+                        Debug.Log("[Pixel2DPlayVerification] Luxidoor capital and Embassy controller path PASS");
                         Call(controller,"EndTurn");
                         _nextTime=EditorApplication.timeSinceStartup+4; _phase++;
                         break;

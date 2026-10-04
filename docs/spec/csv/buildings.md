@@ -30,3 +30,4 @@
 | `Temple` | 신전 — 지은 턴부터 레벨이 오른다(점수) |
 | `StarsFromAdjacent` | 인접 가공 건물의 인구 합만큼 별/턴(시장) |
 | `OnePerCity` | 도시 영토당 하나 |
+| `Embassy` | 영토·도시 타일 제한 대신 [대사관 규칙](../game/building.md#대사관)을 사용하는 건물 |

@@ -131,13 +131,13 @@ namespace TacticsECS
 
         /// <summary>샌드박스 "표 불러오기"로 옛 단일 파일 기술트리(TechTree.csv 형식)를 읽었을 때만 채워진다. null이면 지금 표(기술 표들).
         /// 유닛/바이옴과 달리 "다시 시작"(HandleReturnToSetup)해도 유지한다 — 같은 트리로 여러 판을 시험하기 위함.</summary>
-        private List<TechNodeData> _customTechNodes;
 
         /// <summary>샌드박스 "표 불러오기"로 고른 표 폴더(null = Assets/Resources 기본 표). 언어 버튼이 씬을 다시 열어도 유지되도록
         /// 정적으로 둔다(같은 실행 안에서만). 데모 씬은 쓰지 않는다.</summary>
         private static string s_tableFolder;
 
-        private static TableSource SandboxTables => TableSource.FromPath(s_tableFolder);
+        private static readonly Dictionary<string, string> s_csvFiles = new Dictionary<string, string>();
+        private static TableSource SandboxTables => new TableSource { Folder = s_tableFolder, Files = s_csvFiles, FromFolder = new List<string>() };
 
         /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
         /// (docs/reference/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
@@ -364,14 +364,13 @@ namespace TacticsECS
             _sandboxHud = Instantiate(sandboxHudPrefab, transform);
             _sandboxHud.name = "SandboxHud";
             _sandboxHud.Init();
-            _sandboxHud.OnLoadClicked += HandleSandboxLoad;
-            _sandboxHud.OnExportClicked += HandleSandboxExport;
+            _sandboxHud.OnCsvSelected += HandleSandboxCsvSelected;
             _sandboxHud.OnUnitSelected += HandleSandboxUnitSelected;
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
-            _sandboxHud.OnReloadTablesClicked += () => ApplyTables(s_tableFolder);
-            _sandboxHud.OnResetTablesClicked += () => ApplyTables(null);
+            _sandboxHud.OnReloadTablesClicked += ReloadSandboxCsv;
+            _sandboxHud.OnResetTablesClicked += () => { s_csvFiles.Clear(); ApplyTables(null); };
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
@@ -393,6 +392,47 @@ namespace TacticsECS
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
             RefreshTribeInfo();
+            _sandboxHud.SetCsvSources(s_csvFiles);
+        }
+
+        private void ReloadSandboxCsv()
+        {
+            try { ApplyTables(s_tableFolder); PixelSpriteCatalog.Validate(); }
+            catch (System.Exception e)
+            {
+                // 선택 뒤 외부에서 카탈로그를 잘못 편집한 경우 기본 표시로 복구한다.
+                s_csvFiles.Remove("Pixel2D/SpriteCatalog");
+                ApplyTables(s_tableFolder);
+                PixelSpriteCatalog.Validate();
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", e.Message));
+            }
+        }
+
+        private void HandleSandboxCsvSelected(string resourcePath, string file)
+        {
+            if (!System.Array.Exists(GameDataLoader.SandboxCsvPaths, p => p == resourcePath)) return;
+            bool hadPrevious = s_csvFiles.TryGetValue(resourcePath, out var previous);
+            try
+            {
+                if (string.IsNullOrEmpty(file)) s_csvFiles.Remove(resourcePath);
+                else
+                {
+                    System.IO.File.ReadAllText(file);
+                    s_csvFiles[resourcePath] = System.IO.Path.GetFullPath(file);
+                }
+                ApplyTables(null);
+                // SpriteCatalog은 화면을 갱신하기 전에 실제로 파싱해 오류를 확인한다.
+                PixelSpriteCatalog.Validate();
+                _sandboxHud.SetCsvSources(s_csvFiles);
+            }
+            catch (System.Exception e)
+            {
+                if (hadPrevious) s_csvFiles[resourcePath] = previous;
+                else s_csvFiles.Remove(resourcePath);
+                ApplyTables(null);
+                _sandboxHud.SetCsvSources(s_csvFiles);
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", e.Message));
+            }
         }
 
         // ---------- Sandbox: 습도 탭(1차 지형 · 바이옴 선택 · 종족) ----------
@@ -487,12 +527,8 @@ namespace TacticsECS
             return true;
         }
 
-        private bool OutlineMatches(int regionCount, TerrainGenerationSystem.MapShapeMode mode) =>
-            _outline is TerrainOutlineData o && o.Width == _grid.Width && o.Height == _grid.Height && o.Anchors.Length == regionCount &&
-            o.ShapeMode == mode && Mathf.Abs(o.WaterFraction - _waterRatio) < 0.001f;
-
         /// <summary>습도 탭 "1차 지형 생성": 선택한 맵 타입 + 물 비율로 육지/물 모양과 수도/사전 마을 자리만 먼저 만든다(바이옴 없음 —
-        /// 회색 육지/파란 물). 이어서 "지형 생성"을 누르면 이 모양 그대로 바이옴을 채운다.</summary>
+        /// 회색 육지/파란 물). "지형 생성"은 별도로 새 모양을 생성하고 바이옴을 채운다.</summary>
         private void HandleGenerateOutline()
         {
             if (!EnsureGridSize()) return;
@@ -548,29 +584,13 @@ namespace TacticsECS
 
         /// <summary>"표 불러오기": 고른 파일이 표 이름(Units.csv, Strings.csv …)이면 그 파일이 든 표 폴더 전체를 읽고(ApplyTables),
         /// 아니면 옛 단일 파일로 보고 헤더로 종류를 가른다 — 기술트리(Branch/Tier 칸), 바이옴(Kind+Biome), 그 밖은 키형 유닛 CSV.</summary>
-        private void HandleSandboxLoad(string path)
-        {
-            string folder = GameDataLoader.TableFolderOf(path);
-            if (folder != null) { ApplyTables(folder); return; }
-            try
-            {
-                var header = CsvTableReader.Parse(System.IO.Path.GetFileName(path), System.IO.File.ReadAllText(path)).Header ?? new string[0];
-                bool Has(string column) => System.Array.Exists(header, h => string.Equals(h, column, System.StringComparison.OrdinalIgnoreCase));
-                if (Has("Branch") || Has("Tier")) HandleTechLoad(path);
-                else if (Has("Kind") && Has("Biome")) HandleBiomeLoad(path);
-                else LoadLegacyUnits(path);
-            }
-            catch (System.Exception e)
-            {
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", e.Message));
-            }
-        }
+
 
         /// <summary>표 폴더(null = 기본 표)를 읽어 전부 다시 올린다 — 폴더에 없는 표는 기본 표. 연결·검증 경고는 콘솔에, 개수는 상태 줄에.
         /// 팔레트(Units.csv)·종족·바이옴·기술트리 패널을 새 표로 다시 그린다. 이미 배치한 유닛은 그대로 둔다.</summary>
         private void ApplyTables(string folder)
         {
-            var source = TableSource.FromPath(folder);
+            var source = new TableSource { Folder = folder, Files = s_csvFiles, FromFolder = new List<string>() };
             if (source.Folder != null && !System.IO.Directory.Exists(source.Folder))
             {
                 _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", source.Folder));
@@ -578,7 +598,6 @@ namespace TacticsECS
             }
             s_tableFolder = source.Folder;
             var errors = GameDataLoader.LoadAll(source);
-            _customTechNodes = null;
             _defaultBiomes = null;
             _loadedBiomes = null;
             _biomeChoice = 0;
@@ -592,25 +611,15 @@ namespace TacticsECS
             RefreshTribeInfo();
             if (_techTreeHud != null) _techTreeHud.SetNodes(CurrentTechNodes());
 
-            string status = source.Folder == null ? LocalizationSystem.T("UI.Sandbox.TablesDefault")
+            string status = source.Folder == null ? LocalizationSystem.F("UI.Sandbox.CsvActive", s_csvFiles.Count)
                 : LocalizationSystem.F("UI.Sandbox.TablesLoaded", source.FromFolder.Count, source.Folder);
             if (errors.Count > 0) status += " " + LocalizationSystem.F("UI.Sandbox.Warnings", errors.Count);
             _sandboxHud.SetStatus(status);
+            _sandboxHud.SetCsvSources(s_csvFiles);
         }
 
         /// <summary>"표 내보내기": 지금 쓰는 표 전부를 Resources와 같은 구조로 그 폴더에 쓴다 — 고친 뒤 "표 불러오기"로 다시 읽는다.</summary>
-        private void HandleSandboxExport(string folder)
-        {
-            try
-            {
-                int count = GameDataLoader.ExportTables(SandboxTables, folder);
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TablesExported", count, folder));
-            }
-            catch (System.Exception e)
-            {
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.ExportFailed", e.Message));
-            }
-        }
+
 
         private void SetPaletteRows(List<UnitCsvRow> rows)
         {
@@ -620,50 +629,14 @@ namespace TacticsECS
         }
 
         /// <summary>옛 형식(키형) 유닛 CSV — 읽기만 한다. 팔레트만 이 파일로 바꾸고, 종족 시작 유닛은 이 표에서 Id로 찾는다.</summary>
-        private void LoadLegacyUnits(string path)
-        {
-            var rows = UnitCsvSerializer.Parse(System.IO.File.ReadAllText(path));
-            SetPaletteRows(rows);
-            _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.UnitsLoaded", rows.Count));
-            RefreshTribeInfo();
-        }
 
-        private List<TechNodeData> CurrentTechNodes() => _customTechNodes ?? GameDataLoader.LoadTechNodes(SandboxTables);
+
+        private List<TechNodeData> CurrentTechNodes() => GameDataLoader.LoadTechNodes(SandboxTables);
 
         /// <summary>옛 형식 기술트리 CSV(TechTree.csv와 같은 한 파일 형식, 읽기만)를 불러와 이후 전투의 기술트리로 쓴다. 기술트리 패널도 바로 다시 그려
         /// 배치 단계에서 모양을 확인할 수 있다. 형식 오류(TechCsvSerializer)와 참조 오류(TechTreeValidationSystem)는 콘솔에
         /// 경고로 남기고, 상태 줄에는 개수만 보인다 — 경고가 있어도 읽을 수 있는 만큼은 적용한다.</summary>
-        private void HandleTechLoad(string path)
-        {
-            try
-            {
-                var errors = new List<string>();
-                var nodes = TechCsvSerializer.Parse(System.IO.File.ReadAllText(path), errors);
-                if (nodes.Count == 0)
-                {
-                    _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.TechLoadNoRows"));
-                    return;
-                }
-                // 전투에 쓰일 유닛 목록과 같은 기준(InitEconomy): 불러온 유닛 CSV, 없으면 기본 유닛 표.
-                var unitRows = _placementController != null && _placementController.Rows.Count > 0
-                    ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
-                var unitIds = unitRows.Count > 0 ? unitRows.Select(r => r.Id) : null;
-                errors.AddRange(TechTreeValidationSystem.Validate(nodes, unitIds));
-                var missing = TechTreeValidationSystem.MissingContentKeys(nodes);
-                foreach (var e in errors) Debug.LogWarning("[TechTree] " + e);
-                if (missing.Count > 0) Debug.Log("[TechTree] 트리에 없어 쓸 수 없게 된 해금 키: " + string.Join(", ", missing));
 
-                _customTechNodes = nodes;
-                if (_techTreeHud != null) _techTreeHud.SetNodes(nodes);
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoaded", nodes.Count) +
-                                      (errors.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.Warnings", errors.Count) : string.Empty) +
-                                      (missing.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.TechLoadLocked", missing.Count) : string.Empty));
-            }
-            catch (System.Exception e)
-            {
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TechLoadFailed", e.Message));
-            }
-        }
 
         /// <summary>바이옴 CSV를 불러오기만 한다 — 실제 지형 생성은 "지형 생성" 버튼(HandleGenerateTerrain)을
         /// 눌러야 실행된다(불러오기와 생성을 분리해, 같은 바이옴 목록으로 여러 번 재생성해볼 수 있게).</summary>
@@ -695,9 +668,9 @@ namespace TacticsECS
 
         /// <summary>바이옴으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와 다르면 먼저 그리드 자체를 다시 만든다
         /// (RebuildGridForSize). 이미 유닛이 놓인 칸은 생성 시스템이 건드리지 않으므로 배치 중에 눌러도 안전하다.
-        /// 2단계 생성(습도 탭): 1차 지형(아웃라인 — 수도/사전 마을 자리 + 육지/물 모양)이 지금 설정(맵 크기/수도 수/맵 타입/물 비율)과
-        /// 맞으면 그 모양 그대로, 아니면 새 아웃라인을 만든 뒤 영역별 바이옴(ResolveRegionBiomes — 자동/단일 바이옴/종족 바이옴)으로
-        /// 채운다(채우기 시드는 매번 새로). 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지
+        /// 매번 새 시드로 수도/사전 마을 자리와 육지/물 모양을 생성한 뒤 영역별 바이옴
+        /// (ResolveRegionBiomes — 자동/단일 바이옴/종족 바이옴)으로 채운다.
+        /// 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지
         /// 적용한다. 바이옴 CSV를 불러오지 않았으면 기본 바이옴 표(Resources/Tables/Biomes.csv)를 쓴다.</summary>
         private void HandleGenerateTerrain()
         {
@@ -711,12 +684,9 @@ namespace TacticsECS
             var mapTypeName = WetnessPresets[_selectedWetnessIndex].Name;
             var shapeMode = ResolveShapeMode(mapTypeName);
             var regions = ResolveRegionBiomes(out bool perTeam);
-            bool reusedOutline = OutlineMatches(regions.Count, shapeMode);
-            if (!reusedOutline)
-                _outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, System.Environment.TickCount, shapeMode, _waterRatio);
-            var outline = _outline.Value;
-
-            int seed = System.Environment.TickCount;
+            int seed = System.Guid.NewGuid().GetHashCode();
+            var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, shapeMode, _waterRatio);
+            _outline = outline;
             var anchors = TerrainGenerationSystem.GenerateFromOutline(_grid, regions, outline, seed);
             StructureGenerationSystem.Generate(_grid, regions, anchors, seed, outline.Suburbs, outline.PlannedVillages, shapeMode);
 
@@ -745,7 +715,7 @@ namespace TacticsECS
             string regionText = perTeam ? LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", regions.Select(b => b.Name)))
                 : _biomeChoice > 0 ? LocalizationSystem.F("UI.Sandbox.RegionSingle", regions[0].Name) : LocalizationSystem.F("UI.Sandbox.RegionCount", regions.Count);
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TerrainDone", regionText, _grid.Width, _grid.Height, MapTypeName(mapTypeName),
-                Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T(reusedOutline ? "UI.Sandbox.OutlineKept" : "UI.Sandbox.OutlineNew"),
+                Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T("UI.Sandbox.OutlineNew"),
                 startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));
         }
 
@@ -1173,8 +1143,6 @@ namespace TacticsECS
 
             if (_placementActive)
             {
-                if (Mouse.current.leftButton.wasPressedThisFrame && TryScreenToGridPos(Mouse.current.position.ReadValue(), out var placePos))
-                    _placementController.HandleGridClick(_grid, placePos);
                 UpdateStructureHover();
                 return;
             }
@@ -1504,6 +1472,9 @@ namespace TacticsECS
                 if (city.HasWorkshop) traits.Add(LocalizationSystem.T("UI.CityMenu.Workshop"));
                 if (city.HasWall) traits.Add(LocalizationSystem.T("UI.CityMenu.Wall"));
                 if (city.ParkCount > 0) traits.Add(LocalizationSystem.F("UI.CityMenu.Parks", city.ParkCount));
+                if (city.HasEmbassy) traits.Add(LocalizationSystem.F("UI.CityMenu.Embassy", string.Join(" / ",
+                    _econ.Embassies.Where(e => e.CityIndex == cityIndex).Select(e =>
+                        LocalizationSystem.T(e.Sender == Team.Player ? "UI.CityMenu.AllyCity" : "UI.CityMenu.EnemyCity")))));
                 body.Append(string.Join(" · ", traits));
 
                 if (city.Owner == Team.Player && city.IsCapital)
@@ -1813,7 +1784,14 @@ namespace TacticsECS
 
         private void MoveSelectedUnit(Vector2Int pos)
         {
+            var hpBefore = SnapshotHp();
             if (!MovementSystem.TryMove(_grid, _world, _selectedUnitId, pos)) return;
+            foreach (var entry in hpBefore)
+                if (_viewsById.TryGetValue(entry.Key, out var view) && _world.Get<Hp>(entry.Key).Value < entry.Value)
+                    view.ShowDamagePopup(entry.Value - _world.Get<Hp>(entry.Key).Value);
+            RefreshAllViews();
+            RefreshRoster();
+            CheckBattleEnd();
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);

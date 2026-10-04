@@ -12,10 +12,14 @@ namespace TacticsECS
         public static bool TryMove(GridWorld grid, EntityWorld world, int unitId, Vector2Int destination)
         {
             var move = UnitActionQueries.Find<MoveAction>(world, unitId);
+            bool stomp = UnitActionQueries.Find<StompAction>(world, unitId) != null;
+            var aliveBefore = grid.Economy != null ? TaskSystem.SnapshotAlive(world) : null;
             if (move == null || !move.Execute(grid, world, unitId, destination)) return false;
 
             // 항구에 들어간 육지 유닛은 뗏목이 되고, 육지에 닿은 배는 원래 유닛으로 내린다(위키 Port/Carry).
-            EmbarkSystem.ApplyAfterMove(grid, world, unitId);
+            bool changedForm = EmbarkSystem.ApplyAfterMove(grid, world, unitId);
+            if (!changedForm && stomp) StompSystem.Apply(grid, world, unitId);
+            TaskSystem.RecordDeaths(grid.Economy, world, aliveBefore);
 
             // 은신: 움직이면 숨는다(위키 Hide).
             StealthSystem.OnMoved(world, unitId);

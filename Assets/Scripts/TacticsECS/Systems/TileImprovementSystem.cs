@@ -170,6 +170,15 @@ namespace TacticsECS
             {
                 if (!string.IsNullOrEmpty(b.UnlockKey) && !TechSystem.HasUnlock(econ.TechNodes, tech, b.UnlockKey)) continue;
                 if (!string.IsNullOrEmpty(b.TaskId) && !TaskSystem.CanBuildMonument(econ, team, b.TaskId)) continue;
+                if (b.IsEmbassy)
+                {
+                    int capital = CitySystem.FindCityAt(econ, pos);
+                    if (!DiplomacySystem.CanBuild(econ, team, capital)) continue;
+                    string embassyReason = stars < b.Cost ? LocalizationSystem.F("UI.Reason.NotEnoughStars", stars, b.Cost) : null;
+                    options.Add(new TileOption { Id = b.Id, IsBuilding = true, Name = b.Name, Cost = b.Cost,
+                        Enabled = embassyReason == null, Detail = embassyReason ?? b.Description });
+                    continue;
+                }
                 if ((b.Terrain & cls) == 0) continue;
                 if (!(own || (b.AllowNeutral && neutral)) || HasBlockingStructure(grid, pos)) continue;
                 if (b.IsRoad)
@@ -276,6 +285,11 @@ namespace TacticsECS
 
         private static void Build(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos, BuildingInfo b, List<EconomyLogEntry> log)
         {
+            if (b.IsEmbassy)
+            {
+                DiplomacySystem.Build(grid, econ, team, CitySystem.FindCityAt(econ, pos));
+                return;
+            }
             var t = grid.GetTile(pos);
             if (b.IsRoad)
             {

@@ -39,6 +39,7 @@ namespace TacticsECS
             foreach (var tr in tribes)
             {
                 string who = $"Tribes[{tr.Index}] {tr.Id}";
+                if (tr.StartCapitalLevel < 1) w.Add($"{who}: StartCapitalLevel은 1 이상이어야 함");
                 if (biomeCount >= 0 && !InRange(tr.BiomeIndex, biomeCount)) w.Add($"{who}: BiomeIndex {tr.BiomeIndex}이(가) 바이옴 {biomeCount}개 범위 밖");
                 bool groupOk = InRange(tr.TechGroupIndex, groups.Length);
                 if (!groupOk) w.Add($"{who}: TechGroupIndex {tr.TechGroupIndex} 범위 밖");

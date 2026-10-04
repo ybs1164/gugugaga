@@ -23,6 +23,20 @@ namespace TacticsECS
         private static Material _material;
         private static bool _loaded;
 
+        public static void SetSource(TableSource source)
+        {
+            var text = GameDataLoader.Read("Pixel2D/SpriteCatalog", null, source);
+            if (text == _sourceText) return;
+            _sourceText = text;
+            _loaded = false;
+            Parts.Clear();
+            Grounds.Clear();
+            Warned.Clear();
+            PixelSpriteComposer.Invalidate();
+        }
+
+        private static string _sourceText;
+
         public static Material Material
         {
             get
@@ -41,12 +55,23 @@ namespace TacticsECS
             return Parts.TryGetValue(id, out var parts) ? parts : Array.Empty<SpritePartInfo>();
         }
 
+        public static void Validate()
+        {
+            Load();
+            foreach (var parts in Parts.Values)
+                foreach (var part in parts)
+                {
+                    if (part.Color != "Team") ParseColor(part.Color);
+                    SpriteFor(part);
+                }
+        }
+
         private static void Load()
         {
             if (_loaded) return;
-            var asset = Resources.Load<TextAsset>("Pixel2D/SpriteCatalog");
-            if (asset == null) throw new InvalidOperationException("Pixel2D/SpriteCatalog.csv is missing");
-            var table = CsvTableReader.Parse("SpriteCatalog.csv", asset.text);
+            var text = _sourceText ?? GameDataLoader.Read("Pixel2D/SpriteCatalog", null, TableSource.Resources);
+            if (string.IsNullOrEmpty(text)) throw new InvalidOperationException("Pixel2D/SpriteCatalog.csv is missing");
+            var table = CsvTableReader.Parse("SpriteCatalog.csv", text);
             var errors = new List<string>();
             for (int i = 0; i < table.Rows.Count; i++)
             {

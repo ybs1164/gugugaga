@@ -25,14 +25,15 @@ namespace TacticsECS
         public const string FlagTemple = "Temple";
         public const string FlagStarsFromAdjacent = "StarsFromAdjacent";
         public const string FlagOnePerCity = "OnePerCity";
+        public const string FlagEmbassy = "Embassy";
 
-        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagStarsFromAdjacent, FlagOnePerCity };
+        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagStarsFromAdjacent, FlagOnePerCity, FlagEmbassy };
 
         // ---------- 타일 행동 (TileActions.csv) ----------
 
         private static readonly string[] TileActionRequired = { "Id", "Kind", "Terrain" };
         private static readonly string[] TileActionOptional =
-            { "Unlock", "Cost", "RequiredStructure", "Population", "StarsGain", "Wiki", "Note", "RequiredStructures" };
+            { "Unlock", "Cost", "RequiredStructure", "Population", "StarsGain", "Wiki", "Note" };
         private static readonly string[] TileActionLists = { "Terrain", "RequiredStructure" };
 
         public static TileActionInfo[] ParseTileActions(string csvText, List<string> errors, string name = "TileActions.csv")
@@ -52,7 +53,7 @@ namespace TacticsECS
                     UnlockKey = CsvTableReader.Get(t, r, "Unlock"),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
-                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure", "RequiredStructures"),
+                    RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure"),
                     Population = CsvTableReader.GetInt(t, r, "Population", 0, errors),
                     StarsGain = CsvTableReader.GetInt(t, r, "StarsGain", 0, errors),
                     Description = LocalizationSystem.Desc("TileAction", id, null, c => CsvTableReader.Get(t, r, c)),

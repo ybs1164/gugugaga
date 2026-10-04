@@ -48,4 +48,8 @@
 
 ## 검증
 
+Sandbox 입력용 CSV 명세 스냅샷: [형식 목록](sandbox-input-csv/formats.csv), [컬럼 명세](sandbox-input-csv/columns.csv), [허용값](sandbox-input-csv/values.csv), [공통·입력 규칙](sandbox-input-csv/rules.csv), [게임 규칙 키](sandbox-input-csv/game-rule-keys.csv). 각 파일의 독립 명세는 같은 폴더의 `<파일명>.spec.csv`다. 출처 컬럼과 Structures 관련 설명은 생략하며, 실제 입력 컬럼·조건은 유지한다. 기존 명세·코드에서 생성한 조회용 자료이며, `python scripts/export_sandbox_csv_spec.py`로 갱신한다.
+
+Sandbox CSV 예시 파일: [`../sandbox-csv-examples/`](../sandbox-csv-examples/) — Sandbox가 다루는 표 전부(`GameDataLoader.SandboxCsvPaths`)를 `Assets/Resources`와 같은 구조로 복사한 스냅샷이다. 원본은 `Assets/Resources`이고 이 폴더는 값의 출처가 아니다. 폴더 그대로 "표 불러오기"로 읽을 수 있다.
+
 CSV를 고친 뒤에는 전체 검증을 돌린다 — 명령은 [README](../../README.md#실행).

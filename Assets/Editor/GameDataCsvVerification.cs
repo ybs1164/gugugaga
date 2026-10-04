@@ -27,11 +27,43 @@ namespace TacticsECS.EditorTools
             VerifyGameRules();
             VerifyRewardsAndTasks();
             VerifyUnitsAndCombat();
-            VerifyModels();
             VerifyTableFolder();
+            VerifyIndividualFiles();
             VerifyPlaceholders();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
+        }
+
+        private static void VerifyIndividualFiles()
+        {
+            var root = System.IO.Path.GetFullPath("Temp/IndividualCsvVerification");
+            System.IO.Directory.CreateDirectory(root);
+            foreach (var key in GameDataLoader.SandboxCsvPaths)
+            {
+                // 임의 파일명과 위치라도 선택한 표 하나만 대체해야 한다.
+                var file = System.IO.Path.Combine(root, "selected.csv");
+                System.IO.File.WriteAllText(file, GameDataLoader.Read(key, null, TableSource.Resources));
+                var source = new TableSource { Files = new Dictionary<string, string> { [key] = file } };
+                var errors = GameDataLoader.LoadAll(source);
+                Check(errors.Count == 0, key + " individual selection: " + string.Join(" | ", errors));
+                Check(GameDataLoader.LoadTechNodes(source).Count > 0, key + " retains a working tech tree");
+                PixelSpriteCatalog.Validate();
+            }
+            var unitsFile = System.IO.Path.Combine(root, "renamed-units.csv");
+            var lines = System.IO.File.ReadAllLines("Assets/Resources/Tables/Units.csv");
+            var header = lines[0].Split(',');
+            int cost = System.Array.IndexOf(header, "Cost"), id = System.Array.IndexOf(header, "Id");
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var cells = lines[i].Split(',');
+                if (cells.Length > cost && cells[id] == "infantry") { cells[cost] = "99"; lines[i] = string.Join(",", cells); }
+            }
+            System.IO.File.WriteAllLines(unitsFile, lines);
+            GameDataLoader.LoadAll(new TableSource { Files = new Dictionary<string, string> { ["Tables/Units"] = unitsFile } });
+            Check(GameTables.Units.First(u => u.Id == "infantry").Cost == 99, "individual selected units file changes cost");
+            Check(GameTables.Techs.Length == 25 && BuildingDefinition.All.Length == 22, "unselected tables keep defaults");
+            GameDataLoader.LoadAll();
+            Check(GameTables.Units.First(u => u.Id == "infantry").Cost != 99, "clearing individual selection restores default");
         }
 
         private static void Check(bool condition, string message)
@@ -169,7 +201,7 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyBuildingsAndActions()
         {
-            Check(BuildingDefinition.All.Length == 21, $"21 buildings (14 + 7 monuments), got {BuildingDefinition.All.Length}");
+            Check(BuildingDefinition.All.Length == 22, $"22 buildings (15 + 7 monuments), got {BuildingDefinition.All.Length}");
             Check(TileActionDefinition.All.Length == 7, $"7 tile actions (starfish is a ship action since 2026-09-29), got {TileActionDefinition.All.Length}");
             var bridge = TileImprovementSystem.FindBuilding(BuildingDefinition.Bridge);
             Check(bridge != null && bridge.Value.AllowNeutral && bridge.Value.RequiresOppositeLand && bridge.Value.ActsAsRoad && !bridge.Value.IsRoad, "bridge flags from CSV");

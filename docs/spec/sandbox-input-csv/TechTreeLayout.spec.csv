@@ -1,0 +1,5 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치(배치 순서와 무관)
+SlotIndex,TechSlots Index,O,-1,,슬롯
+TechIndex,Techs Index,O,-1,,놓을 기술
+Note,메모,,,,로더 무시

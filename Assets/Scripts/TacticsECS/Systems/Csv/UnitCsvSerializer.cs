@@ -21,7 +21,6 @@ namespace TacticsECS
 
         /// <summary>유닛·배 이름의 번역 키 앞부분: "Unit.&lt;Id&gt;.Name". 번역이 있으면 Name 칸보다 앞선다(샌드박스 파일의 Name은 번역이 없을 때만).</summary>
         public const string UnitStringTable = "Unit";
-        private const string LegacyActionsColumn = "Actions";
 
         private static readonly string[] HeaderAfterActions =
         {
@@ -32,9 +31,6 @@ namespace TacticsECS
             "Cost", "Trainable", "Boat"
         };
 
-        /// <summary>옛 행동 이름 -> 지금 이름(CSV 호환). Stealth(은신 플레이스홀더)는 위키 이름 Hide로 바뀌었다.</summary>
-        private static readonly System.Collections.Generic.Dictionary<string, string> LegacyActionNames =
-            new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase) { ["Stealth"] = "Hide" };
 
 
         /// <summary>헤더 이름으로 컬럼을 찾아(CsvTableReader — 순서 무관, 메모 컬럼/`#` 주석 행 허용) 한 행씩 파싱한다.
@@ -104,9 +100,8 @@ namespace TacticsECS
         private static ActionType ParseActions(CsvTable t, int row, List<string> errors)
         {
             var result = ActionType.None;
-            foreach (var raw in CsvTableReader.GetList(t, row, ActionColumn, LegacyActionsColumn))
+            foreach (var name in CsvTableReader.GetList(t, row, ActionColumn))
             {
-                var name = LegacyActionNames.TryGetValue(raw, out var renamed) ? renamed : raw;
                 if (Enum.TryParse<ActionType>(name, true, out var flag) && Enum.IsDefined(typeof(ActionType), flag)) result |= flag;
                 else CsvTableReader.Report(t, row, ActionColumn, $"알 수 없는 행동 '{name}'", errors);
             }

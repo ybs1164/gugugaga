@@ -370,7 +370,9 @@ UI.SandboxHud.ResetTables,기본 표,Defaults
 UI.SandboxHud.GenerateTerrain,지형 생성,Generate Terrain
 UI.SandboxHud.MapSize,크기: {0} ({1}x{1}),Size: {0} ({1}x{1})
 UI.SandboxHud.Wetness,습도 탭: {0},Wetness tab: {0}
-UI.SandboxHud.TabTitle,습도 탭 — 1차 지형 · 바이옴 · 종족,Wetness tab — outline · biomes · tribes
+UI.SandboxHud.TabTitle,습도 탭 — 맵 타입 · 1차 지형,Wetness tab — map type · outline
+UI.SandboxHud.BiomeTabButton,바이옴 · 종족,Biomes · tribes
+UI.SandboxHud.BiomeTabTitle,바이옴 · 종족 선택,Pick biomes · tribes
 UI.SandboxHud.MapType,맵 타입,Map type
 UI.SandboxHud.Water,물 비율,Water ratio
 UI.SandboxHud.GenerateOutline,1차 지형 생성 (육지/물 아웃라인),Generate outline (land/water)

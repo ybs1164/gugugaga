@@ -20,8 +20,8 @@ namespace TacticsECS.EditorTools
             Invoke(controller, "Awake");
             Invoke(controller, "Start");
             var hud = controller.GetComponentInChildren<SandboxHud>(true);
-            hud.transform.Find("Canvas/GenerationTab").gameObject.SetActive(true);
-            var dropdown = hud.transform.Find("Canvas/GenerationTab/BiomeDropdown").GetComponent<Dropdown>();
+            hud.transform.Find("Canvas/Toolbar/바이옴종족Button").GetComponent<Button>().onClick.Invoke();
+            var dropdown = hud.transform.Find("Canvas/BiomeTab/BiomeDropdown").GetComponent<Dropdown>();
             var biomes = (List<BiomeCsvRow>)Invoke(controller, "ActiveBiomes");
             Check(biomes.Count >= 3, "need 3+ biomes");
             Check(dropdown.options.Count == biomes.Count + 2, "dropdown rows = biomes + 2");

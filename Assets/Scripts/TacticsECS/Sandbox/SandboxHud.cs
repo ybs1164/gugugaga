@@ -34,7 +34,7 @@ namespace TacticsECS
         public event Action OnMapSizeCycleClicked;
         public event Action OnWetnessCycleClicked;
 
-        // 습도 탭(GenerationTab): 맵 타입/물 비율/1차 지형/바이옴 선택/팀별 종족.
+        // 습도 탭(GenerationTab): 맵 타입/물 비율/1차 지형. 바이옴·종족 탭(BiomeTab): 바이옴 선택/팀별 종족.
         public event Action<int> OnMapTypeSelected;
         public event Action<float> OnWaterRatioChanged;
         public event Action OnGenerateOutlineClicked;
@@ -56,6 +56,7 @@ namespace TacticsECS
         private Text _mapSizeLabel;
         private Text _wetnessLabel;
         private GameObject _generationTab;
+        private GameObject _biomeTab;
         private Dropdown _mapTypeDropdown;
         private Slider _waterSlider;
         private Text _waterValueText;
@@ -141,10 +142,11 @@ namespace TacticsECS
             // 습도 탭이 있으면 버튼은 탭을 열고 닫는다. 옛 프리팹(탭 없음)이면 예전처럼 맵 타입을 순환한다.
             wetnessButtonTransform.GetComponent<Button>().onClick.AddListener(() =>
             {
-                if (_generationTab != null) _generationTab.SetActive(!_generationTab.activeSelf);
+                if (_generationTab != null) ToggleTab(_generationTab);
                 else OnWetnessCycleClicked?.Invoke();
             });
             _wetnessLabel = wetnessButtonTransform.Find("Label").GetComponent<Text>();
+            WireOptionalButton(panel, "바이옴종족Button", () => { if (_biomeTab != null) ToggleTab(_biomeTab); });
 
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
 
@@ -211,6 +213,7 @@ namespace TacticsECS
             SetLabel(toolbar, "기술불러오기Button", "UI.SandboxHud.Reload");
             SetLabel(toolbar, "기술내보내기Button", "UI.SandboxHud.ResetTables");
             SetLabel(toolbar, "지형생성Button", "UI.SandboxHud.GenerateTerrain");
+            SetLabel(toolbar, "바이옴종족Button", "UI.SandboxHud.BiomeTabButton");
             var tab = _canvas.Find("GenerationTab");
             if (tab != null)
             {
@@ -218,9 +221,14 @@ namespace TacticsECS
                 SetLabel(tab, "MapTypeLabel", "UI.SandboxHud.MapType");
                 SetLabel(tab, "WaterLabel", "UI.SandboxHud.Water");
                 SetLabel(tab, "1차지형생성Button", "UI.SandboxHud.GenerateOutline");
-                SetLabel(tab, "BiomeLabel", "UI.SandboxHud.Biome");
-                SetLabel(tab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
-                SetLabel(tab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
+            }
+            var biomeTab = _canvas.Find("BiomeTab");
+            if (biomeTab != null)
+            {
+                SetLabel(biomeTab, "Title", "UI.SandboxHud.BiomeTabTitle");
+                SetLabel(biomeTab, "BiomeLabel", "UI.SandboxHud.Biome");
+                SetLabel(biomeTab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
+                SetLabel(biomeTab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
             }
             SetLabel(_canvas, "StartBattleButton", "UI.SandboxHud.StartBattle");
         }
@@ -235,20 +243,31 @@ namespace TacticsECS
             if (text != null) text.text = LocalizationSystem.T(key);
         }
 
-        // ---------- 습도 탭 ----------
+        // ---------- 습도 탭 / 바이옴·종족 탭 (툴바 오른쪽 같은 자리, 한 번에 하나만 열림) ----------
+
+        /// <summary>tab을 열고 닫는다. 열 때는 다른 탭을 닫는다 — 두 탭은 같은 자리에 뜬다.</summary>
+        private void ToggleTab(GameObject tab)
+        {
+            bool open = !tab.activeSelf;
+            if (_generationTab != null) _generationTab.SetActive(false);
+            if (_biomeTab != null) _biomeTab.SetActive(false);
+            tab.SetActive(open);
+        }
 
         private void WireGenerationTab(Transform canvas)
         {
             var tab = canvas.Find("GenerationTab");
-            if (tab == null) { Debug.LogWarning("[SandboxHud] GenerationTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            var biomeTab = canvas.Find("BiomeTab");
+            if (tab == null || biomeTab == null) { Debug.LogWarning("[SandboxHud] GenerationTab/BiomeTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
             _generationTab = tab.gameObject;
+            _biomeTab = biomeTab.gameObject;
             _mapTypeDropdown = tab.Find("MapTypeDropdown").GetComponent<Dropdown>();
             _waterSlider = tab.Find("WaterSlider").GetComponent<Slider>();
             _waterValueText = tab.Find("WaterValue").GetComponent<Text>();
-            _biomeDropdown = tab.Find("BiomeDropdown").GetComponent<Dropdown>();
-            _playerTribeDropdown = tab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
-            _enemyTribeDropdown = tab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
-            _tribeInfoText = tab.Find("TribeInfo").GetComponent<Text>();
+            _biomeDropdown = biomeTab.Find("BiomeDropdown").GetComponent<Dropdown>();
+            _playerTribeDropdown = biomeTab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
+            _enemyTribeDropdown = biomeTab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
+            _tribeInfoText = biomeTab.Find("TribeInfo").GetComponent<Text>();
 
             _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
             _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });

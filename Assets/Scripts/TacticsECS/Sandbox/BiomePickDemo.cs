@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace TacticsECS
 {
     /// <summary>
-    /// 빌드 실행 인자 <c>-biomeDemo &lt;폴더&gt;</c>로만 켜지는 Sandbox 바이옴 선택 시연. 습도 탭 버튼 → 바이옴 드롭다운을 열고 목록 줄(Toggle)을
+    /// 빌드 실행 인자 <c>-biomeDemo &lt;폴더&gt;</c>로만 켜지는 Sandbox 바이옴 선택 시연. 바이옴·종족 버튼 → 바이옴 드롭다운을 열고 목록 줄(Toggle)을
     /// 사람이 누르는 것과 같은 경로로 눌러 바이옴 두 개를 고른 뒤 "지형 생성"을 누르고, 단계마다 화면을 PNG로 남기고 끝낸다.
     /// 인자가 없으면 아무것도 만들지 않는다.
     /// </summary>
@@ -35,8 +35,8 @@ namespace TacticsECS
             yield return new WaitForSeconds(1f);
 
             var canvas = hud.transform.Find("Canvas");
-            var tab = canvas.Find("GenerationTab").gameObject;
-            if (!tab.activeSelf) canvas.Find("Toolbar/습도Button").GetComponent<Button>().onClick.Invoke();
+            var tab = canvas.Find("BiomeTab").gameObject;
+            if (!tab.activeSelf) canvas.Find("Toolbar/바이옴종족Button").GetComponent<Button>().onClick.Invoke();
             var dropdown = tab.transform.Find("BiomeDropdown").GetComponent<Dropdown>();
 
             yield return Shot("01_tab_auto");

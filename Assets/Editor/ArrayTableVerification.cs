@@ -357,8 +357,12 @@ namespace TacticsECS.EditorTools
             var tab = prefab != null ? prefab.transform.Find("Canvas/GenerationTab") : null;
             Check(tab != null, "SandboxHud prefab has GenerationTab (습도 탭)");
             if (tab == null) return;
-            foreach (var name in new[] { "MapTypeDropdown", "BiomeDropdown", "PlayerTribeDropdown", "EnemyTribeDropdown" })
-                Check(tab.Find(name)?.GetComponent<Dropdown>() != null, $"GenerationTab/{name} is a Dropdown");
+            Check(tab.Find("MapTypeDropdown")?.GetComponent<Dropdown>() != null, "GenerationTab/MapTypeDropdown is a Dropdown");
+            var biomeTab = prefab.transform.Find("Canvas/BiomeTab");
+            Check(biomeTab != null && prefab.transform.Find("Canvas/Toolbar/바이옴종족Button") != null, "SandboxHud prefab has BiomeTab + toolbar button");
+            if (biomeTab == null) return;
+            foreach (var name in new[] { "BiomeDropdown", "PlayerTribeDropdown", "EnemyTribeDropdown" })
+                Check(biomeTab.Find(name)?.GetComponent<Dropdown>() != null, $"BiomeTab/{name} is a Dropdown");
             Check(tab.Find("WaterSlider")?.GetComponent<Slider>() != null, "GenerationTab/WaterSlider is a Slider");
             Check(tab.Find("1차지형생성Button")?.GetComponent<Button>() != null, "GenerationTab outline button");
         }

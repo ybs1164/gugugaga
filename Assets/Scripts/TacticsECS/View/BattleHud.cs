@@ -182,6 +182,16 @@ namespace TacticsECS
 
         public void SetEndTurnVisible(bool visible) => _endTurnButton.gameObject.SetActive(visible);
 
+        /// <summary>전투에서만 쓰는 패널(턴 배지·유닛 로스터·행동 로그) 표시 여부 — 샌드박스 배치 단계에서는 턴·유닛·로그가 없고,
+        /// 같은 정렬 순서의 SandboxHud 캔버스와 자리가 겹쳐(그리는 순서가 정해지지 않음) 툴바를 가리므로 숨긴다.</summary>
+        public void SetBattlePanelsVisible(bool visible)
+        {
+            _turnBadgeBg.gameObject.SetActive(visible);
+            _rosterContent.GetComponentInParent<ScrollRect>(true).gameObject.SetActive(visible);
+            var log = _turnBadgeBg.transform.parent.Find("ActionLog");
+            if (log != null) log.gameObject.SetActive(visible);
+        }
+
         // ---------- 유닛 상태 로스터 (좌상단, TurnBadge 바로 아래) ----------
 
         /// <summary>패널 Content가 최소한 이 높이는 유지하게 한다(스크롤 시작 전 빈 여백 방지). 프리팹

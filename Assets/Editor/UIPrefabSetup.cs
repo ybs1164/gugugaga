@@ -626,10 +626,12 @@ namespace TacticsECS.EditorTools
 
             var canvasRoot = CreateCanvas(root.transform);
             BuildSandboxToolbar(font, canvasRoot);
-            BuildGenerationTab(font, canvasRoot);
             BuildSandboxCsvFiles(font, canvasRoot);
             BuildStructurePanel(font, canvasRoot);
             BuildSandboxStartButton(font, canvasRoot);
+            // 탭은 마지막 형제 — 펼친 드롭다운 목록이 CSV 목록 등 다른 패널 아래로 깔리지 않게.
+            BuildGenerationTab(font, canvasRoot);
+            BuildBiomeTab(font, canvasRoot);
 
             SetPrivateField(hud, "paletteButtonPrefab", paletteButtonPrefab);
             EditorUtility.SetDirty(hud);
@@ -646,7 +648,7 @@ namespace TacticsECS.EditorTools
             panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
             panel.pivot = new Vector2(0f, 1f);
             panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(SandboxPanelWidth, 190f);
+            panel.sizeDelta = new Vector2(SandboxPanelWidth, SandboxToolbarHeight);
             CreatePanelImage(panel, SandboxPanelBackground);
 
             float halfWidth = (SandboxPanelWidth - 24f) / 2f;
@@ -656,12 +658,13 @@ namespace TacticsECS.EditorTools
             CreateTextButtonPlaceholder(font, panel, "습도", "", new Vector2(8f + halfWidth + 8f, -36f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "기술불러오기", Src("UI.SandboxHud.Reload"), new Vector2(8f, -72f), new Vector2(halfWidth, 28f), ButtonIdle);
             CreateTextButtonPlaceholder(font, panel, "기술내보내기", Src("UI.SandboxHud.ResetTables"), new Vector2(8f + halfWidth + 8f, -72f), new Vector2(halfWidth, 28f), ButtonIdle);
-            CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -108f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "바이옴종족", Src("UI.SandboxHud.BiomeTabButton"), new Vector2(8f, -108f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
+            CreateTextButtonPlaceholder(font, panel, "지형생성", Src("UI.SandboxHud.GenerateTerrain"), new Vector2(8f, -144f), new Vector2(SandboxPanelWidth - 16f, 28f), ButtonIdle);
 
             var statusRect = CreateRect("Status", panel);
             statusRect.anchorMin = statusRect.anchorMax = new Vector2(0f, 1f);
             statusRect.pivot = new Vector2(0f, 1f);
-            statusRect.anchoredPosition = new Vector2(8f, -144f);
+            statusRect.anchoredPosition = new Vector2(8f, -180f);
             statusRect.sizeDelta = new Vector2(SandboxPanelWidth - 16f, 42f);
             var status = statusRect.gameObject.AddComponent<Text>();
             status.font = font;
@@ -670,24 +673,19 @@ namespace TacticsECS.EditorTools
             status.horizontalOverflow = HorizontalWrapMode.Wrap;
         }
 
-        // ---------- SandboxHud: 습도 탭(1차 지형 아웃라인 + 바이옴/종족 선택) ----------
+        // ---------- SandboxHud: 습도 탭(맵 타입 · 1차 지형) / 바이옴·종족 탭 ----------
 
-        /// <summary>툴바(16~236) 오른쪽에 붙고 상단 중앙 자원 바(약 500부터) 앞에서 끝나는 폭.</summary>
-        private const float GenerationTabWidth = 252f;
+        private const float SandboxToolbarHeight = 226f;
+        /// <summary>두 탭은 툴바 오른쪽 같은 자리에 뜨고 한 번에 하나만 열린다(SandboxHud.ToggleTab). 배치 단계에서는 상단 자원 바를 숨기므로 그 자리까지 쓴다.</summary>
+        private const float GenerationTabWidth = 300f;
         private static readonly Color DropdownListBackground = new Color(0.12f, 0.13f, 0.16f, 0.98f);
         private static readonly Color DropdownItemBackground = new Color(0.20f, 0.22f, 0.27f, 1f);
 
         /// <summary>툴바 오른쪽에 붙는 "습도 탭" 패널 — 툴바의 습도 버튼이 열고 닫는다(처음엔 닫힘). 맵 타입 드롭다운, 물 비율 슬라이더,
-        /// 1차 지형(아웃라인) 버튼, 바이옴 드롭다운(불러온 바이옴 CSV 중 하나만 골라 생성), 팀별 종족 드롭다운, 종족 요약 텍스트.
-        /// 드롭다운/슬라이더는 uGUI 표준 구성(DefaultControls)으로 만들고 색/폰트만 입힌다. 옵션 목록은 SandboxHud가 런타임에 채운다.</summary>
+        /// 1차 지형(아웃라인) 버튼. 드롭다운/슬라이더는 uGUI 표준 구성(DefaultControls)으로 만들고 색/폰트만 입힌다. 옵션 목록은 SandboxHud가 런타임에 채운다.</summary>
         private static void BuildGenerationTab(Font font, Transform root)
         {
-            var panel = CreateRect("GenerationTab", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f + SandboxPanelWidth + 8f, -16f);
-            panel.sizeDelta = new Vector2(GenerationTabWidth, 318f);
-            CreatePanelImage(panel, SandboxPanelBackground);
+            var panel = CreateSandboxTab("GenerationTab", root, 138f);
 
             CreateLabel(font, panel, "Title", Src("UI.SandboxHud.TabTitle"), new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
 
@@ -700,20 +698,39 @@ namespace TacticsECS.EditorTools
             CreateLabel(font, panel, "WaterValue", "55%", new Vector2(GenerationTabWidth - 52f, -68f), new Vector2(44f, 26f), 14);
 
             CreateTextButtonPlaceholder(font, panel, "1차지형생성", Src("UI.SandboxHud.GenerateOutline"), new Vector2(8f, -102f), new Vector2(GenerationTabWidth - 16f, 28f), ButtonIdle);
+        }
 
-            CreateLabel(font, panel, "BiomeLabel", Src("UI.SandboxHud.Biome"), new Vector2(8f, -140f), new Vector2(labelW, 26f), 14);
-            CreateDropdown(font, panel, "BiomeDropdown", new Vector2(controlX, -140f), new Vector2(controlW, 26f));
-            CreateLabel(font, panel, "PlayerTribeLabel", Src("UI.SandboxHud.PlayerTribe"), new Vector2(8f, -174f), new Vector2(labelW, 26f), 14);
-            CreateDropdown(font, panel, "PlayerTribeDropdown", new Vector2(controlX, -174f), new Vector2(controlW, 26f));
-            CreateLabel(font, panel, "EnemyTribeLabel", Src("UI.SandboxHud.EnemyTribe"), new Vector2(8f, -208f), new Vector2(labelW, 26f), 14);
-            CreateDropdown(font, panel, "EnemyTribeDropdown", new Vector2(controlX, -208f), new Vector2(controlW, 26f));
+        /// <summary>"바이옴·종족" 탭 — 툴바의 바이옴·종족 버튼이 열고 닫는다(처음엔 닫힘). 바이옴 드롭다운(여러 개 선택), 팀별 종족 드롭다운, 종족 요약 텍스트.</summary>
+        private static void BuildBiomeTab(Font font, Transform root)
+        {
+            var panel = CreateSandboxTab("BiomeTab", root, 212f);
+            CreateLabel(font, panel, "Title", Src("UI.SandboxHud.BiomeTabTitle"), new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
 
-            var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -242f), new Vector2(GenerationTabWidth - 16f, 70f), 12);
+            float labelW = 76f, controlX = 8f + labelW + 4f, controlW = GenerationTabWidth - controlX - 8f;
+            CreateLabel(font, panel, "BiomeLabel", Src("UI.SandboxHud.Biome"), new Vector2(8f, -34f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "BiomeDropdown", new Vector2(controlX, -34f), new Vector2(controlW, 26f));
+            CreateLabel(font, panel, "PlayerTribeLabel", Src("UI.SandboxHud.PlayerTribe"), new Vector2(8f, -68f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "PlayerTribeDropdown", new Vector2(controlX, -68f), new Vector2(controlW, 26f));
+            CreateLabel(font, panel, "EnemyTribeLabel", Src("UI.SandboxHud.EnemyTribe"), new Vector2(8f, -102f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "EnemyTribeDropdown", new Vector2(controlX, -102f), new Vector2(controlW, 26f));
+
+            var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -136f), new Vector2(GenerationTabWidth - 16f, 70f), 12);
             info.alignment = TextAnchor.UpperLeft;
             info.horizontalOverflow = HorizontalWrapMode.Wrap;
             info.color = new Color(1f, 1f, 1f, 0.75f);
+        }
 
+        /// <summary>툴바 오른쪽 탭 자리의 빈 패널(처음엔 닫힘).</summary>
+        private static RectTransform CreateSandboxTab(string name, Transform root, float height)
+        {
+            var panel = CreateRect(name, root);
+            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
+            panel.pivot = new Vector2(0f, 1f);
+            panel.anchoredPosition = new Vector2(16f + SandboxPanelWidth + 8f, -16f);
+            panel.sizeDelta = new Vector2(GenerationTabWidth, height);
+            CreatePanelImage(panel, SandboxPanelBackground);
             panel.gameObject.SetActive(false);
+            return panel;
         }
 
         private static Text CreateLabel(Font font, Transform parent, string name, string text, Vector2 anchoredPos, Vector2 size, int fontSize)
@@ -821,7 +838,7 @@ namespace TacticsECS.EditorTools
         private static void BuildSandboxCsvFiles(Font font, Transform root)
         {
             BuildScrollPanel("CsvFiles", root, new Vector2(0f, 1f), new Vector2(0f, 1f),
-                new Vector2(16f, -214f), new Vector2(SandboxPanelWidth, 380f), SandboxPanelBackground, SandboxScrollbarWidth);
+                new Vector2(16f, -16f - SandboxToolbarHeight - 8f), new Vector2(SandboxPanelWidth, 344f), SandboxPanelBackground, SandboxScrollbarWidth);
             var content = (RectTransform)root.Find("CsvFiles/Viewport/Content");
             var paths = GameDataLoader.SandboxCsvPaths;
             content.sizeDelta = new Vector2(0f, paths.Length * 84f + 8f);

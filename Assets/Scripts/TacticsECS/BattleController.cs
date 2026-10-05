@@ -358,6 +358,8 @@ namespace TacticsECS
         {
             _placementActive = true;
             _hud.SetEndTurnVisible(false);
+            // 턴 배지·로스터·행동 로그·도시 자원 바는 전투용 — 배치 단계에서는 샌드박스 툴바·탭 자리와 겹치므로 숨긴다(HandleSandboxStartBattle에서 다시 보임).
+            SetBattleOnlyHudVisible(false);
 
             _placementController = new UnitPlacementController(_world, _spawner, BasePrefabsByName(), _viewsById);
 
@@ -815,8 +817,15 @@ namespace TacticsECS
             Destroy(_sandboxHud.gameObject);
             _sandboxHud = null;
             _placementController = null;
+            SetBattleOnlyHudVisible(true);
 
             BeginBattle();
+        }
+
+        private void SetBattleOnlyHudVisible(bool visible)
+        {
+            _hud.SetBattlePanelsVisible(visible);
+            if (_cityResourceHud != null) _cityResourceHud.gameObject.SetActive(visible);
         }
 
         /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.

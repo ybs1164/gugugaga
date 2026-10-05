@@ -14,6 +14,7 @@ Unity 6000.3.20f1 턴제 전술·경제 프로토타입(탑다운 픽셀 2D).
 
 ## 실행
 - `Assets/Scenes/SampleScene.unity`: 데모 전투. `Assets/Scenes/Sandbox.unity`: 샌드박스. 빌드: `Builds/Pixel2D/gugugaga.exe`.
+- 바이옴 선택 시연 캡처: `gugugaga.exe -biomeDemo <폴더>` — 습도 탭 바이옴 드롭다운에서 두 개를 골라 지형 생성까지 진행하며 단계별 PNG를 남기고 종료한다.
 - 전체 검증:
 
 ```

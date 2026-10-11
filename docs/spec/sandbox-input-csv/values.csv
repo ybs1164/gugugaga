@@ -15,6 +15,10 @@ Reward,PopulationGrowth,즉시 인구 / 인구
 Reward,BorderGrowth,영토 반경 확장 / 새 반경
 Reward,Park,별 수입 증가 + 점수 / 별/턴
 Reward,SuperUnit,슈퍼 유닛 무료 소환(GameRules.csv City.SuperUnitId) / 안 씀
+Kind,Strike,범위 안 적 유닛에게 피해(숨은 유닛·평화 조약 상대 제외) / 피해량
+Kind,Boost,범위 안 다친 아군 체력 회복 / 회복량
+Kind,Terrain,대상 칸 지형을 땅→물→산→땅으로 바꿈 / 쓰지 않음
+Kind,Descend,강림(신화 유닛) — 아직 쓰지 않는다 / 
 Passive,None,없음 / 
 Passive,Aura,신전에 인접(8칸)한 아군 유닛의 능력치 +크기 / Attack 또는 Defense
 Passive,Buff,신전에 인접한 아군이 방어 태세(Defend)일 때 방어력 +크기 / 쓰지 않음

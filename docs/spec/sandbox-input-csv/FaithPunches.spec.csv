@@ -1,0 +1,9 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. Gods.csv FaithPunch{n}이 가리킨다
+Id,문자열,O,,,이름표. 이름·설명은 번역 표 FaithPunch.<Id>.Name/.Desc
+Kind,열거,O,,,효과 유형 — 아래 표
+Cost,정수,,0,,소모하는 신앙
+Range,정수,,0,,대상 칸 중심 체비쇼프 반경
+Value,정수,,0,,유형별 크기
+Target,문자열,,없음,,
+Note,메모,,,,로더 무시

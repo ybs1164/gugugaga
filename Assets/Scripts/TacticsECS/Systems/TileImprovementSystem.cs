@@ -363,7 +363,7 @@ namespace TacticsECS
             }
         }
 
-        private static void DestroyBuilding(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos, List<EconomyLogEntry> log)
+        public static void DestroyBuilding(GridWorld grid, EconomyWorld econ, Team team, Vector2Int pos, List<EconomyLogEntry> log)
         {
             var t = grid.GetTile(pos);
             if (string.IsNullOrEmpty(t.BuildingId) && t.StructureId == StructureGenerationSystem.RuinStructureId)

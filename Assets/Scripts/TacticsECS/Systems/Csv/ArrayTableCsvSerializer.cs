@@ -236,9 +236,34 @@ namespace TacticsECS
 
         public const string GodStringTable = "God";
 
+        public const string FaithPunchStringTable = "FaithPunch";
+
+        public static FaithPunchRow[] ParseFaithPunches(string text, List<string> errors = null)
+        {
+            var t = Begin("FaithPunches.csv", text, new[] { "Index", "Id", "Kind" }, new[] { "Cost", "Range", "Value", "Target", "Note" }, new string[0], errors);
+            var rows = new FaithPunchRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                string id = CsvTableReader.Get(t, r, "Id");
+                rows[r] = new FaithPunchRow
+                {
+                    Index = r,
+                    Id = id,
+                    Name = LocalizationSystem.Name(FaithPunchStringTable, id),
+                    Description = LocalizationSystem.Desc(FaithPunchStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
+                    Kind = CsvTableReader.GetEnum(t, r, "Kind", FaithPunchKind.Strike, errors),
+                    Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
+                    Range = CsvTableReader.GetInt(t, r, "Range", 0, errors),
+                    Value = CsvTableReader.GetInt(t, r, "Value", 0, errors),
+                    Target = CsvTableReader.Get(t, r, "Target"),
+                };
+            }
+            return rows;
+        }
+
         public static GodRow[] ParseGods(string text, List<string> errors = null)
         {
-            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "Note" }, new string[0], errors);
+            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "Note" }, new[] { "FaithPunch" }, errors);
             var rows = new GodRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -254,6 +279,7 @@ namespace TacticsECS
                     Value = CsvTableReader.GetFloat(t, r, "Value", 0f, errors),
                     PerPrayer = CsvTableReader.GetFloat(t, r, "PerPrayer", 0f, errors),
                     Period = CsvTableReader.GetInt(t, r, "Period", 1, errors),
+                    Punches = GetIndexList(t, r, "FaithPunch", errors),
                 };
             }
             return rows;

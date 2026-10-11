@@ -105,6 +105,25 @@ namespace TacticsECS
 
         /// <summary>Resource 유형: 이 턴 수마다 한 번 발동.</summary>
         public int Period;
+
+        /// <summary>이 신이 쓸 수 있는 신앙 펀치(FaithPunches Index 목록).</summary>
+        public int[] Punches;
+    }
+
+    /// <summary>신앙 펀치 하나(FaithPunches.csv). 대상 칸 중심 체비쇼프 Range 안에 효과를 준다(Range 0 = 그 칸만).</summary>
+    public struct FaithPunchRow
+    {
+        public int Index;
+        public string Id;
+        public string Name;
+        public string Description;
+        public FaithPunchKind Kind;
+        public int Cost;
+        public int Range;
+        public int Value;
+
+        /// <summary>유형별 대상: Resource = 구조물 Id. 그 밖에는 쓰지 않는다.</summary>
+        public string Target;
     }
 
     /// <summary>종족 하나(Tribes.csv).</summary>

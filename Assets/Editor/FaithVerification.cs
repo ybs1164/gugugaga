@@ -22,6 +22,7 @@ namespace TacticsECS.EditorTools
             VerifyTempleCap();
             VerifyPrayer();
             VerifyGods();
+            VerifyFaithPunches();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -276,6 +277,94 @@ namespace TacticsECS.EditorTools
             int n = 0;
             for (int i = 0; i < grid.Tiles.Length; i++) if (grid.Tiles[i].StructureId == id) n++;
             return n;
+        }
+
+        private static int PunchIndex(string id)
+        {
+            for (int i = 0; i < GameTables.FaithPunches.Length; i++) if (GameTables.FaithPunches[i].Id == id) return i;
+            Check(false, "FaithPunches.csv has " + id);
+            return 0;
+        }
+
+        private static void VerifyFaithPunches()
+        {
+            Check(GameTables.FaithPunches.Length >= 4, "FaithPunches.csv samples");
+            Check(GameTables.FaithPunches.All(p => !string.IsNullOrEmpty(p.Name) && !p.Name.StartsWith("FaithPunch.") && !p.Description.Contains("{")), "punch names and descriptions are filled");
+            foreach (var god in GameTables.Gods)
+                Check(god.Punches != null && god.Punches.Length > 0 && god.Punches.All(i => i >= 0 && i < GameTables.FaithPunches.Length), $"god {god.Id} has valid punches");
+
+            // 신에 따라 쓸 수 있는 목록.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                Check(FaithPunchSystem.Available(econ, Team.Player).Count == 0, "no god, no punches");
+                econ.GodIds[Team.Player] = GodIndex("Storm");
+                Check(FaithPunchSystem.Available(econ, Team.Player).Count == GameTables.Gods[GodIndex("Storm")].Punches.Length, "god punches listed");
+            }
+
+            // 천벌: 범위 안 적에게만 피해, 신앙 소모, 모자라면 불가.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                var punch = GameTables.FaithPunches[PunchIndex("Smite")];
+                int e1 = Unit(grid, world, Team.Enemy, new Vector2Int(5, 5));
+                int e2 = Unit(grid, world, Team.Enemy, new Vector2Int(5, 6));
+                int far = Unit(grid, world, Team.Enemy, new Vector2Int(7, 7));
+                int ally = Unit(grid, world, Team.Player, new Vector2Int(4, 5));
+                var target = new Vector2Int(5, 5);
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, target) == "UI.FaithPunch.NeedFaith", "strike needs faith");
+                var res = econ.Resources[Team.Player]; res.MaxFaith = 50; res.Faith = punch.Cost + 2; econ.Resources[Team.Player] = res;
+                int hp1 = world.Get<Hp>(e1).Value, hpAlly = world.Get<Hp>(ally).Value;
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, target) == null, "strike allowed");
+                Check(FaithPunchSystem.AffectedCount(grid, world, Team.Player, punch, target) == 2, "strike preview counts enemies in range");
+                var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, target);
+                Check(result.Success && result.UnitIds.Contains(e1) && result.UnitIds.Contains(e2) && !result.UnitIds.Contains(far) && !result.UnitIds.Contains(ally), "strike hits enemies in range only");
+                Check(world.Get<Hp>(e1).Value == hp1 - punch.Value && world.Get<Hp>(ally).Value == hpAlly, "strike damage");
+                Check(econ.Resources[Team.Player].Faith == 2, "strike spends faith");
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, new Vector2Int(0, 7)) != null, "strike needs an enemy");
+            }
+
+            // 축복: 다친 아군만 회복.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                var punch = GameTables.FaithPunches[PunchIndex("Blessing")];
+                int hurt = Unit(grid, world, Team.Player, new Vector2Int(3, 3));
+                int healthy = Unit(grid, world, Team.Player, new Vector2Int(3, 4));
+                world.Set(hurt, new Hp { Value = 2 });
+                var res = econ.Resources[Team.Player]; res.MaxFaith = 50; res.Faith = 50; econ.Resources[Team.Player] = res;
+                var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, new Vector2Int(3, 3));
+                Check(result.UnitIds.Count == 1 && result.UnitIds[0] == hurt && world.Get<Hp>(hurt).Value > 2, "boost heals wounded ally");
+                Check(world.Get<Hp>(hurt).Value <= world.Get<MaxHp>(hurt).Value, "heal capped at max hp");
+                world.Set(hurt, new Hp { Value = world.Get<MaxHp>(hurt).Value });
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, new Vector2Int(3, 3)) == "UI.FaithPunch.NoWounded", "nobody left to heal");
+            }
+
+            // 풍년: 빈 땅에 구조물, 최대 Value개.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                var punch = GameTables.FaithPunches[PunchIndex("Bounty")];
+                var res = econ.Resources[Team.Player]; res.MaxFaith = 50; res.Faith = 50; econ.Resources[Team.Player] = res;
+                var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, new Vector2Int(4, 4));
+                Check(result.Success && result.Tiles.Count == punch.Value && CountStructure(grid, punch.Target) == punch.Value, "resource creates Value structures");
+            }
+
+            // 지각 변동: 땅→물→산→땅, 유닛·도시 칸은 거부.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                var punch = GameTables.FaithPunches[PunchIndex("Upheaval")];
+                var res = econ.Resources[Team.Player]; res.MaxFaith = 100; res.Faith = 100; econ.Resources[Team.Player] = res;
+                var p = new Vector2Int(5, 3);
+                Check(FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, p).TerrainChanged && grid.GetTile(p).Terrain == TerrainType.Water, "land becomes water");
+                FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, p);
+                Check(grid.GetTile(p).Terrain == TerrainType.Land && grid.GetTile(p).TileTypeId == TerrainGenerationSystem.MountainTileId, "water becomes mountain");
+                FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, p);
+                Check(grid.GetTile(p).Terrain == TerrainType.Land && grid.GetTile(p).TileTypeId != TerrainGenerationSystem.MountainTileId, "mountain becomes land");
+                Unit(grid, world, Team.Player, new Vector2Int(5, 4));
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, new Vector2Int(5, 4)) == "UI.FaithPunch.TileBlocked", "unit tile refused");
+                Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, new Vector2Int(1, 1)) == "UI.FaithPunch.TileBlocked", "city tile refused");
+
+                BuildTemple(grid, new Vector2Int(2, 2), "Temple");
+                FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, new Vector2Int(2, 2));
+                Check(string.IsNullOrEmpty(grid.GetTile(new Vector2Int(2, 2)).BuildingId), "terrain change removes the building");
+            }
         }
     }
 }

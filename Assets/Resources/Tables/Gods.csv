@@ -1,7 +1,7 @@
-﻿Index,Id,Passive,Target,Value,PerPrayer,Period,Note
-0,Sun,Aura,Attack,0.5,0.25,,샘플 신 — 신 설계 확정 전 구조 검증용
-1,Guardian,Buff,Defense,0.5,0.25,,샘플 신
-2,Storm,Damage,,1,1,,샘플 신
-3,Harvest,Resource,Resource_Fruit,1,0.5,2,샘플 신
-4,Merchant,Gold,,1,1,,샘플 신
-5,Sage,FaithCap,,3,1,,샘플 신
+﻿Index,Id,Passive,Target,Value,PerPrayer,Period,FaithPunch1,FaithPunch2,Note
+0,Sun,Aura,Attack,0.5,0.25,,0,3,샘플 신 — 신 설계 확정 전 구조 검증용
+1,Guardian,Buff,Defense,0.5,0.25,,1,,샘플 신
+2,Storm,Damage,,1,1,,0,3,샘플 신
+3,Harvest,Resource,Resource_Fruit,1,0.5,2,2,1,샘플 신
+4,Merchant,Gold,,1,1,,2,3,샘플 신
+5,Sage,FaithCap,,3,1,,1,0,샘플 신

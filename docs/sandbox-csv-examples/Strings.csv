@@ -491,3 +491,27 @@ UI.SandboxHud.EnemyGod,신(적),God (enemy)
 UI.SandboxHud.NoGod,신 없음,No god
 UI.Sandbox.GodInfoLine,{0} 신: {1} — {2},{0} god: {1} — {2}
 UI.TileMenu.TempleGod,{0}: 효과 {1},{0}: strength {1}
+FaithPunch.Smite.Name,천벌,Smite
+FaithPunch.Smite.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {Value}.,Deals {Value} damage to enemy units within {Range} tiles of the target.
+FaithPunch.Blessing.Name,축복,Blessing
+FaithPunch.Blessing.Desc,대상 칸 주변 {Range}칸의 아군 체력을 {Value} 회복합니다.,Heals allied units within {Range} tiles of the target by {Value}.
+FaithPunch.Bounty.Name,풍년,Bounty
+FaithPunch.Bounty.Desc,대상 칸 주변 {Range}칸의 빈 땅에 열매를 최대 {Value}개 만듭니다.,Creates up to {Value} fruit on empty land within {Range} tiles of the target.
+FaithPunch.Upheaval.Name,지각 변동,Upheaval
+FaithPunch.Upheaval.Desc,대상 칸의 지형을 바꿉니다: 땅→물→산→땅. 유닛이나 도시가 있는 칸은 안 됩니다.,Changes the target tile: land→water→mountain→land. Not on tiles with units or cities.
+UI.FaithPunch.Title,신앙 펀치,Faith punch
+UI.FaithPunch.NoGod,신을 고르지 않았습니다.,No god selected.
+UI.FaithPunch.CardCost,신앙 {0},Faith {0}
+UI.FaithPunch.Close,닫기,Close
+UI.FaithPunch.Cancel,취소,Cancel
+UI.FaithPunch.Confirm,발동,Cast
+UI.FaithPunch.PickTarget,{0}: 대상 칸을 고르세요. (우클릭/Esc: 취소),{0}: pick a target tile. (right click/Esc: cancel)
+UI.FaithPunch.ConfirmLine,{0} → ({1}:{2}) 영향 {3},{0} → ({1}:{2}) affects {3}
+UI.FaithPunch.CostLine,신앙 −{0} → 남은 {1},Faith −{0} → {1} left
+UI.FaithPunch.NeedFaith,신앙이 모자랍니다.,Not enough faith.
+UI.FaithPunch.NotExplored,아직 탐험하지 않은 칸입니다.,Tile not explored yet.
+UI.FaithPunch.NoEnemy,범위 안에 공격할 적이 없습니다.,No enemy in range.
+UI.FaithPunch.NoWounded,범위 안에 다친 아군이 없습니다.,No wounded ally in range.
+UI.FaithPunch.NoSpace,범위 안에 빈 땅이 없습니다.,No empty land in range.
+UI.FaithPunch.TileBlocked,이 칸은 바꿀 수 없습니다.,This tile can't be changed.
+UI.FaithPunch.Log,신앙 펀치 {0}: 영향 {1},Faith punch {0}: affected {1}

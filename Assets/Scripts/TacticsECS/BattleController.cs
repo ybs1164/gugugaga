@@ -181,6 +181,14 @@ namespace TacticsECS
 
         private CityResourceHud _cityResourceHud;
         private FaithHud _faithHud;
+        private FaithPunchHud _faithPunchHud;
+
+        // 신앙 펀치 진행: 목록 → 대상 고르기 → 확인. None이 아니면 그리드 클릭은 펀치 대상 선택에 쓰인다.
+        private enum PunchPhase { None, List, Targeting, Confirm }
+        private PunchPhase _punchPhase;
+        private List<FaithPunchRow> _punchChoices;
+        private FaithPunchRow _punchActive;
+        private Vector2Int _punchTarget;
         private TechTreeHud _techTreeHud;
         private ActionMenuHud _actionMenu;
 
@@ -277,6 +285,15 @@ namespace TacticsECS
                 faithGo.transform.SetParent(transform, false);
                 _faithHud = faithGo.AddComponent<FaithHud>();
                 _faithHud.Init(_hud.UiFont);
+                _faithHud.OnClicked += OpenPunchList;
+
+                var punchGo = new GameObject("FaithPunchHud");
+                punchGo.transform.SetParent(transform, false);
+                _faithPunchHud = punchGo.AddComponent<FaithPunchHud>();
+                _faithPunchHud.Init(_hud.UiFont);
+                _faithPunchHud.OnPunchSelected += HandlePunchSelected;
+                _faithPunchHud.OnConfirmClicked += HandlePunchConfirm;
+                _faithPunchHud.OnCancelClicked += CancelPunch;
                 RefreshCityResources();
 
                 if (techTreeHudPrefab != null)
@@ -351,6 +368,8 @@ namespace TacticsECS
             _tribeCapitals.Clear();
             _cityResourceHud = null;
             _faithHud = null;
+            _faithPunchHud = null;
+            _punchPhase = PunchPhase.None;
             _techTreeHud = null;
             _actionMenu = null;
             _econ = null;
@@ -529,6 +548,92 @@ namespace TacticsECS
         {
             var biomes = ActiveBiomes();
             return _biomeSelection.Where(i => i < biomes.Count).Select(i => biomes[i]).ToList();
+        }
+
+        // ---------- 신앙 펀치 ----------
+
+        private void OpenPunchList()
+        {
+            if (_econ == null || _faithPunchHud == null || _battleOver || _turnState.ActiveTeam != Team.Player) return;
+            if (_punchPhase != PunchPhase.None) { CancelPunch(); return; }
+            ClearSelection();
+            _punchChoices = FaithPunchSystem.Available(_econ, Team.Player);
+            _punchPhase = PunchPhase.List;
+            var options = new List<FaithPunchOption>();
+            int faith = _econ.Resources[Team.Player].Faith;
+            foreach (var p in _punchChoices)
+                options.Add(new FaithPunchOption
+                {
+                    Name = p.Name, Description = p.Description, Cost = p.Cost, Enabled = faith >= p.Cost,
+                    Reason = faith >= p.Cost ? string.Empty : LocalizationSystem.T("UI.FaithPunch.NeedFaith"),
+                });
+            _faithPunchHud.ShowList(options, TemplePassiveSystem.GodOf(_econ, Team.Player) == null ? LocalizationSystem.T("UI.FaithPunch.NoGod") : null);
+        }
+
+        private void HandlePunchSelected(int index)
+        {
+            if (_punchPhase != PunchPhase.List || index < 0 || index >= _punchChoices.Count) return;
+            _punchActive = _punchChoices[index];
+            _punchPhase = PunchPhase.Targeting;
+            _faithPunchHud.ShowTargeting(LocalizationSystem.F("UI.FaithPunch.PickTarget", _punchActive.Name));
+        }
+
+        /// <summary>대상 칸 선택: 영향 범위를 하이라이트하고 확인 화면을 띄운다. 다른 칸을 다시 누르면 대상이 바뀐다.</summary>
+        private void HandlePunchClick()
+        {
+            if (_punchPhase != PunchPhase.Targeting && _punchPhase != PunchPhase.Confirm) return;
+            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos)) return;
+            _punchTarget = pos;
+            _punchPhase = PunchPhase.Confirm;
+            _gridView.ClearHighlights();
+            _gridView.HighlightAttack(FaithPunchSystem.Area(_grid, _punchActive, pos));
+
+            string reason = FaithPunchSystem.Check(_grid, _world, _econ, Team.Player, _punchActive, pos);
+            int affected = FaithPunchSystem.AffectedCount(_grid, _world, Team.Player, _punchActive, pos);
+            int faith = _econ.Resources[Team.Player].Faith;
+            _faithPunchHud.ShowConfirm(
+                LocalizationSystem.F("UI.FaithPunch.ConfirmLine", _punchActive.Name, pos.x, pos.y, affected),
+                LocalizationSystem.F("UI.FaithPunch.CostLine", _punchActive.Cost, faith - _punchActive.Cost),
+                reason == null, reason == null ? string.Empty : LocalizationSystem.T(reason));
+        }
+
+        private void CancelPunch()
+        {
+            if (_punchPhase == PunchPhase.None) return;
+            _punchPhase = PunchPhase.None;
+            if (_faithPunchHud != null) _faithPunchHud.Hide();
+            if (_gridView != null) _gridView.ClearHighlights();
+        }
+
+        private void HandlePunchConfirm()
+        {
+            if (_punchPhase != PunchPhase.Confirm) return;
+            var punch = _punchActive;
+            var hpBefore = SnapshotHp();
+            var aliveBefore = TaskSystem.SnapshotAlive(_world);
+            var result = FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
+            if (!result.Success) { HandlePunchClick(); return; }
+
+            if (punch.Kind == FaithPunchKind.Strike)
+            {
+                TaskSystem.RecordAttack(_econ, Team.Player);
+                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
+            }
+            _hud.AddLogEntry(LocalizationSystem.F("UI.FaithPunch.Log", punch.Name, result.UnitIds.Count + result.Tiles.Count));
+            foreach (int id in result.UnitIds)
+            {
+                int before = hpBefore.TryGetValue(id, out var v) ? v : 0;
+                int after = UnitQueries.IsAlive(_world, id) ? _world.Get<Hp>(id).Value : 0;
+                if (before - after > 0) _viewsById[id].ShowDamagePopup(before - after);
+                if (!UnitQueries.IsAlive(_world, id))
+                    _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
+                _viewsById[id].Refresh(_world, id);
+            }
+
+            CancelPunch();
+            RefreshRoster();
+            RefreshEconomyViews(result.TerrainChanged);
+            CheckBattleEnd();
         }
 
         private void HandleGodSelected(Team team, int godIndex)
@@ -855,12 +960,14 @@ namespace TacticsECS
             _hud.SetBattlePanelsVisible(visible);
             if (_cityResourceHud != null) _cityResourceHud.gameObject.SetActive(visible);
             if (_faithHud != null) _faithHud.gameObject.SetActive(visible);
+            if (_faithPunchHud != null && !visible) CancelPunch();
         }
 
         /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.
         /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
+            CancelPunch();
             var hpBefore = SnapshotHp();
             var waitedIds = AbilitySystem.ApplyTurnEndWait(_grid, _world, _turnState.ActiveTeam);
             foreach (var id in waitedIds)
@@ -1204,6 +1311,7 @@ namespace TacticsECS
             HandleCameraControl();
 
             if (Mouse.current == null) return;
+            if (_punchPhase != PunchPhase.None && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { CancelPunch(); return; }
             // HUD 버튼(BattleHud/SandboxHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
@@ -1215,6 +1323,13 @@ namespace TacticsECS
 
             if (_battleOver) return;
             if (_turnState.ActiveTeam != Team.Player) return;
+
+            if (_punchPhase != PunchPhase.None)
+            {
+                if (Mouse.current.rightButton.wasPressedThisFrame) CancelPunch();
+                else if (Mouse.current.leftButton.wasPressedThisFrame) HandlePunchClick();
+                return;
+            }
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
                 HandleClick();

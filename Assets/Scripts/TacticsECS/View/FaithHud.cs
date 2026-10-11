@@ -18,6 +18,8 @@ namespace TacticsECS
         private static readonly Color FillColor = new Color(0.93f, 0.80f, 0.35f);
         private static readonly Color FullColor = new Color(1f, 0.95f, 0.65f);
 
+        public event System.Action OnClicked;
+
         private Font _font;
         private Text _valueText;
         private Text _incomeText;
@@ -33,6 +35,7 @@ namespace TacticsECS
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvasGo.AddComponent<GraphicRaycaster>();
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280f, 720f);
@@ -43,7 +46,9 @@ namespace TacticsECS
             panel.pivot = new Vector2(0.5f, 1f);
             panel.anchoredPosition = new Vector2(0f, TopOffset);
             panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
-            panel.gameObject.AddComponent<Image>().color = PanelColor;
+            var panelImage = panel.gameObject.AddComponent<Image>();
+            panelImage.color = PanelColor;
+            panel.gameObject.AddComponent<Button>().onClick.AddListener(() => OnClicked?.Invoke());
 
             var label = NewText("Label", panel, 16, TextAnchor.MiddleLeft);
             label.text = LocalizationSystem.T("UI.Faith.Label");

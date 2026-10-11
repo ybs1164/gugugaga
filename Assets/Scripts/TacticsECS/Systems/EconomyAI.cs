@@ -41,6 +41,7 @@ namespace TacticsECS
             bool threatened = IsThreatened(grid, world, econ, team);
             ChooseRewards(grid, econ, team, threatened, log);
             Research(econ, team, log);
+            FaithAI.RunEarly(grid, world, econ, team, log);
 
             if (threatened)
             {
@@ -127,6 +128,9 @@ namespace TacticsECS
                 int cost = TechSystem.Cost(econ.TechNodes, tech, node, cityCount);
                 if (cost < bestCost || (cost == bestCost && CitySystem.NextRandom(econ, 2) == 0)) { bestCost = cost; bestId = node.Id; }
             }
+            // 신을 고른 팀은 신전·대신전 과업을 여는 기술을 먼저 연구한다(살 수 있을 때).
+            string preferred = FaithAI.PreferredTech(econ, team);
+            if (preferred != null && TechSystem.CanUnlock(econ.TechNodes, tech, econ.Resources[team], cityCount, preferred)) bestId = preferred;
             if (bestId == null) return;
 
             var res = econ.Resources[team];

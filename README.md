@@ -21,15 +21,20 @@ Unity 6000.3.20f1 턴제 전술·경제 프로토타입(탑다운 픽셀 2D).
 unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsECS.EditorTools.VerificationSuite.Run
 ```
 
+- 신앙 AI 대전 시뮬레이션(화면 없이 AI끼리 24판, 불변식 검사, 약 5분): `unity run . -- -nographics -logFile Logs/faith_sim.log -executeMethod TacticsECS.EditorTools.FaithSimulation.Run` → `Logs/FaithSimulation/`
+- 신앙 UI 상태별 캡처(화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/faith_ui.log -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run` → `docs/images/faith/`
+- 사용 전에 Unity 에디터를 닫는다(같은 프로젝트가 열려 있으면 실패한다).
+
 ## 조작
 - 좌클릭: 아군 선택 → 파란 칸 이동 / 빨간 칸 공격. 다른 칸·유닛은 정보 패널·건설 메뉴. 같은 칸을 다시 누르면 유닛 ↔ 칸 전환.
 - 우하단 버튼: 행동, 선택 해제, 턴 종료(마우스를 올리면 설명).
 - 카메라: `WASD`/방향키 이동, 휠 줌.
+- 신앙: 신앙 표시줄을 누르거나 `F` — 신앙 펀치 목록. 자세한 규칙은 [신앙](docs/spec/game/faith.md).
 - 우상단 언어 버튼: 한국어 ↔ English(화면을 다시 연다) — [번역 표](docs/spec/csv/strings.md).
 
 ## 샌드박스
 1. 왼쪽 위 **CSV 데이터 설정** 목록에서 바꿀 CSV의 **파일 선택**을 누르고 탐색기로 파일을 고른다. 선택하지 않은 항목은 `Assets/Resources` 기본 CSV를 쓴다. 파일을 수정한 뒤 **다시 읽기**, 항목별 **기본 파일** 또는 전체 **기본 표**로 복원한다. 선택은 같은 실행에서 언어 변경·다시 시작 후에도 유지된다. [입력 규칙](docs/spec/csv-common.md#파일), [파일별 CSV 명세](docs/spec/sandbox-input-csv/formats.csv).
-2. **맵 크기**, **습도 탭**(맵 타입·물 비율, **1차 지형 생성**으로 육지·물 아웃라인만 미리 확인), **바이옴 · 종족** 탭(바이옴·아군/적 종족) → **지형 생성**. 두 탭은 툴바 오른쪽 같은 자리에 하나씩 열린다. 바이옴 드롭다운에서 바이옴을 누를 때마다 선택에 넣고 빼며(여러 개 가능), 고른 바이옴만으로 지형을 만든다. 아무것도 고르지 않으면 자동(전체 바이옴, 종족이 있으면 종족 바이옴). **지형 생성**은 누를 때마다 육지·물 모양과 수도 위치부터 새로 만든다.
+2. **맵 크기**, **습도 탭**(맵 타입·물 비율, **1차 지형 생성**으로 육지·물 아웃라인만 미리 확인), **바이옴 · 종족** 탭(바이옴·아군/적 종족·아군/적 신) → **지형 생성**. 두 탭은 툴바 오른쪽 같은 자리에 하나씩 열린다. 바이옴 드롭다운에서 바이옴을 누를 때마다 선택에 넣고 빼며(여러 개 가능), 고른 바이옴만으로 지형을 만든다. 아무것도 고르지 않으면 자동(전체 바이옴, 종족이 있으면 종족 바이옴). **지형 생성**은 누를 때마다 육지·물 모양과 수도 위치부터 새로 만든다.
 3. **전투 시작**: CSV의 종족 시작 조건에 따라 유닛을 배치한다(종족 미선택 시 기본 시작 유닛). **다시 시작**으로 설정에 복귀한다.
 
 ## 폴더

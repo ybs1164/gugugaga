@@ -87,6 +87,7 @@ namespace TacticsECS
                         var hp = world.Get<Hp>(id);
                         hp.Value = Mathf.Max(0, hp.Value - punch.Value);
                         world.Set(id, hp);
+                        if (hp.Value <= 0) grid.RemoveOccupant(world.Get<GridPosition>(id).Value); // 처치된 유닛이 칸을 막고 있으면 안 된다
                         world.Set(id, new Accelerated { Value = false });
                         PrayerSystem.OnHit(world, id);
                         StealthSystem.Reveal(world, id);

@@ -27,6 +27,7 @@ namespace TacticsECS.EditorTools
             VerifyMythic();
             VerifyGreatTemple();
             VerifyFaithAI();
+            VerifyFaithResearch();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -324,6 +325,10 @@ namespace TacticsECS.EditorTools
                 Check(result.Success && result.UnitIds.Contains(e1) && result.UnitIds.Contains(e2) && !result.UnitIds.Contains(far) && !result.UnitIds.Contains(ally), "strike hits enemies in range only");
                 Check(world.Get<Hp>(e1).Value == hp1 - punch.Value && world.Get<Hp>(ally).Value == hpAlly, "strike damage");
                 Check(econ.Resources[Team.Player].Faith == 2, "strike spends faith");
+                world.Set(e2, new Hp { Value = 1 });
+                var res2 = econ.Resources[Team.Player]; res2.Faith = punch.Cost; econ.Resources[Team.Player] = res2;
+                FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, target);
+                Check(!UnitQueries.IsAlive(world, e2) && grid.GetOccupant(new Vector2Int(5, 6)) == TileData.NoOccupant, "a unit killed by a strike frees its tile");
                 Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, punch, new Vector2Int(0, 7)) != null, "strike needs an enemy");
             }
 
@@ -598,9 +603,36 @@ namespace TacticsECS.EditorTools
                 FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
                 Check(GreatTempleSystem.IndexOf(econ, ai) < 0, "AI waits for the great temple task");
                 econ.Tasks[ai].Completed.Add(GreatTempleSystem.TaskId);
-                FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                FaithAI.RunEarly(grid, world, econ, ai, new List<EconomyLogEntry>());
                 Check(GreatTempleSystem.IndexOf(econ, ai) >= 0, "AI builds the great temple once the task is done");
             }
+        }
+
+        private static void VerifyFaithResearch()
+        {
+            var ai = Team.Enemy;
+            var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+            econ.TechNodes = GameDataLoader.LoadTechNodes();
+            Check(FaithAI.PreferredTech(econ, ai) == null, "no god, no preferred tech");
+            econ.GodIds[ai] = GodIndex("Storm");
+
+            var templeKeys = BuildingDefinition.All.Where(b => b.FaithCap > 0 && !string.IsNullOrEmpty(b.UnlockKey)).Select(b => b.UnlockKey).ToList();
+            var taskKey = TaskSystem.Find(GreatTempleSystem.TaskId).Value.UnlockKey;
+            bool temple = false, task = false;
+            for (int step = 0; step < 16; step++)
+            {
+                string id = FaithAI.PreferredTech(econ, ai);
+                if (id == null) break;
+                var res = econ.Resources[ai]; res.Stars = 1000; econ.Resources[ai] = res;
+                Check(TechSystem.CanUnlock(econ.TechNodes, econ.Tech[ai], econ.Resources[ai], 1, id), $"preferred tech {id} is researchable now");
+                if (!TechSystem.Unlock(econ.TechNodes, econ.Tech[ai], ref res, 1, id)) break;
+                econ.Resources[ai] = res;
+                temple |= templeKeys.Any(k => TechSystem.HasUnlock(econ.TechNodes, econ.Tech[ai], k));
+                task |= TechSystem.HasUnlock(econ.TechNodes, econ.Tech[ai], taskKey);
+            }
+            Check(temple, "following the preference unlocks a temple");
+            Check(task, "following the preference unlocks the great temple task");
+            Check(FaithAI.PreferredTech(econ, ai) == null, "nothing left to prefer");
         }
     }
 }

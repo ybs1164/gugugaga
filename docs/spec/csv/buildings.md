@@ -32,4 +32,4 @@
 | `StarsFromAdjacent` | 인접 가공 건물의 인구 합만큼 별/턴(시장) |
 | `OnePerCity` | 도시 영토당 하나 |
 | `Embassy` | 영토·도시 타일 제한 대신 [대사관 규칙](../game/building.md#대사관)을 사용하는 건물 |
-| `GreatTemple` | 여러 칸 건물 — 일반 타일 메뉴에 나오지 않고 [신앙 승리](../game/faith.md#신앙-승리) 규칙으로 짓는다. `Cost`는 별, `Terrain`은 지을 수 있는 칸 |
+| `GreatTemple` | 여러 칸 건물 — 일반 타일 메뉴에 나오지 않고 [신앙 승리](../game/faith.md#신앙-승리) 규칙으로 짓는다. `Cost`는 별, `Terrain`은 지을 수 있는 지형(`Field`·`Forest`)이고, 자원 칸도 지을 수 있다(구조물 조건이라 `Terrain`에 없다) |

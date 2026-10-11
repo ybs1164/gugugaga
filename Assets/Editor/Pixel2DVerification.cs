@@ -362,7 +362,7 @@ namespace TacticsECS.EditorTools
                 }
             }
         }
-        private static void CaptureCamera(Camera camera,string path,int width,int height,bool ui)
+        public static void CaptureCamera(Camera camera,string path,int width,int height,bool ui)
         {
             var rt=new RenderTexture(width,height,24);
             camera.targetTexture=rt;
@@ -373,7 +373,7 @@ namespace TacticsECS.EditorTools
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                 {
                     if(canvas.renderMode!=RenderMode.ScreenSpaceOverlay) continue;
-                    canvas.renderMode=RenderMode.ScreenSpaceCamera; canvas.worldCamera=camera; canvas.planeDistance=1;
+                    canvas.renderMode=RenderMode.ScreenSpaceCamera; canvas.worldCamera=camera; canvas.planeDistance=1; canvas.sortingOrder=Mathf.Max(canvas.sortingOrder,PixelSpriteCatalog.FogOrder+5000); // 오버레이처럼 맵 스프라이트(안개 등) 위에 그린다
                 }
                 Canvas.ForceUpdateCanvases();
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) PixelUIScaler.Apply(canvas);

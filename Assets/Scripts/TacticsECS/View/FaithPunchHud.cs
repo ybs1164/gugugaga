@@ -25,10 +25,11 @@ namespace TacticsECS
     public class FaithPunchHud : MonoBehaviour
     {
         private const float PanelWidth = 340f;
-        private const float TopOffset = -146f;
+        private const float RightOffset = -16f;
+        private const float TopOffset = -212f; // 오른쪽 행동 로그 바로 아래
         private const float CardHeight = 58f;
 
-        private static readonly Color PanelColor = new Color(0.08f, 0.09f, 0.11f, 0.92f);
+        private static readonly Color PanelColor = new Color(0.08f, 0.09f, 0.11f, 0.97f);
         private static readonly Color CardColor = new Color(0.16f, 0.17f, 0.20f, 0.95f);
         private static readonly Color Accent = new Color(0.93f, 0.80f, 0.35f);
         private static readonly Color Muted = new Color(1f, 1f, 1f, 0.55f);
@@ -57,9 +58,9 @@ namespace TacticsECS
             scaler.matchWidthOrHeight = 0.5f;
 
             _panel = NewRect("Panel", canvasGo.transform);
-            _panel.anchorMin = _panel.anchorMax = new Vector2(0.5f, 1f);
-            _panel.pivot = new Vector2(0.5f, 1f);
-            _panel.anchoredPosition = new Vector2(0f, TopOffset);
+            _panel.anchorMin = _panel.anchorMax = new Vector2(1f, 1f);
+            _panel.pivot = new Vector2(1f, 1f);
+            _panel.anchoredPosition = new Vector2(RightOffset, TopOffset);
             _panel.sizeDelta = new Vector2(PanelWidth, 100f);
             _panel.gameObject.AddComponent<Image>().color = PanelColor;
             _content = _panel;
@@ -118,11 +119,11 @@ namespace TacticsECS
         {
             Begin();
             AddText("Summary", summary, 14, Color.white, TextAnchor.UpperLeft, new Vector2(10f, -8f), new Vector2(PanelWidth - 20f, 36f));
-            AddText("Cost", canConfirm ? costLine : reason, 13, canConfirm ? Accent : new Color(1f, 0.55f, 0.5f), TextAnchor.UpperLeft, new Vector2(10f, -46f), new Vector2(PanelWidth - 20f, 22f));
+            AddText("Cost", canConfirm ? costLine : reason, 13, canConfirm ? Accent : new Color(1f, 0.55f, 0.5f), TextAnchor.UpperLeft, new Vector2(10f, -36f), new Vector2(PanelWidth - 20f, 22f));
             float half = (PanelWidth - 24f) / 2f;
-            AddButton("Confirm", new Vector2(8f, -74f), new Vector2(half, 28f), canConfirm, () => OnConfirmClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Confirm"));
-            AddButton("Cancel", new Vector2(16f + half, -74f), new Vector2(half, 28f), true, () => OnCancelClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Cancel"));
-            Finish(112f);
+            AddButton("Confirm", new Vector2(8f, -64f), new Vector2(half, 28f), canConfirm, () => OnConfirmClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Confirm"));
+            AddButton("Cancel", new Vector2(16f + half, -64f), new Vector2(half, 28f), true, () => OnCancelClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Cancel"));
+            Finish(100f);
         }
 
         // ---------- 그리기 도우미 ----------
@@ -137,7 +138,11 @@ namespace TacticsECS
 
         private void Clear()
         {
-            foreach (var go in _dynamic) if (go != null) Destroy(go);
+            foreach (var go in _dynamic)
+            {
+                if (go == null) continue;
+                if (Application.isPlaying) Destroy(go); else DestroyImmediate(go); // 에디트 모드 캡처 검증에서도 쓴다
+            }
             _dynamic.Clear();
         }
 

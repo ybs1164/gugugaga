@@ -492,14 +492,14 @@ UI.SandboxHud.NoGod,신 없음,No god
 UI.Sandbox.GodInfoLine,{0} 신: {1} — {2},{0} god: {1} — {2}
 UI.TileMenu.TempleGod,{0}: 효과 {1},{0}: strength {1}
 FaithPunch.Smite.Name,천벌,Smite
-FaithPunch.Smite.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {Value}.,Deals {Value} damage to enemy units within {Range} tiles of the target.
+FaithPunch.Smite.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {Value}.,Deals {Value} damage to enemy units within {Range} tile(s) of the target.
 FaithPunch.Blessing.Name,축복,Blessing
-FaithPunch.Blessing.Desc,대상 칸 주변 {Range}칸의 아군 체력을 {Value} 회복합니다.,Heals allied units within {Range} tiles of the target by {Value}.
+FaithPunch.Blessing.Desc,대상 칸 주변 {Range}칸의 아군 체력을 {Value} 회복합니다.,Heals allied units within {Range} tile(s) of the target by {Value}.
 FaithPunch.Bounty.Name,풍년,Bounty
-FaithPunch.Bounty.Desc,대상 칸 주변 {Range}칸의 빈 땅에 열매를 최대 {Value}개 만듭니다.,Creates up to {Value} fruit on empty land within {Range} tiles of the target.
+FaithPunch.Bounty.Desc,대상 칸 주변 {Range}칸의 빈 땅에 열매를 최대 {Value}개 만듭니다.,Creates up to {Value} fruit on empty land within {Range} tile(s) of the target.
 FaithPunch.Upheaval.Name,지각 변동,Upheaval
 FaithPunch.Upheaval.Desc,대상 칸의 지형을 바꿉니다: 땅→물→산→땅. 유닛이나 도시가 있는 칸은 안 됩니다.,Changes the target tile: land→water→mountain→land. Not on tiles with units or cities.
-UI.FaithPunch.Title,신앙 펀치,Faith punch
+UI.FaithPunch.Title,신앙 펀치 (F),Faith punch (F)
 UI.FaithPunch.NoGod,신을 고르지 않았습니다.,No god selected.
 UI.FaithPunch.CardCost,신앙 {0},Faith {0}
 UI.FaithPunch.Close,닫기,Close

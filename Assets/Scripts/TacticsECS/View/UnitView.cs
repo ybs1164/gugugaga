@@ -28,6 +28,7 @@ namespace TacticsECS
         private Vector3 _bodyOrigin;
         private static readonly Color PlayerColor = new Color(.3f,.6f,1f);
         private static readonly Color EnemyColor = new Color(1f,.36f,.29f);
+        private static readonly Color MythicTint = new Color(1f,.86f,.45f);
         public void Init(EntityWorld world, int id, GridWorld grid, string label)
         {
             UnitId = id; Label = label; _grid = grid; _definition = GetComponent<UnitDefinition>();
@@ -76,8 +77,9 @@ namespace TacticsECS
             _guardBadge.gameObject.SetActive(world.Get<IsGuarding>(id).Value);
             bool frozen = world.GetOrDefault<Frozen>(id).Value;
             bool hidden = world.GetOrDefault<Hidden>(id).Value;
-            _statusBadge.gameObject.SetActive(frozen || hidden);
-            _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : "Icon.infiltrate",half:true);
+            bool praying = world.GetOrDefault<Praying>(id).Value;
+            _statusBadge.gameObject.SetActive(frozen || praying || hidden);
+            _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : praying ? "Icon.heal" : "Icon.infiltrate",half:true);
             var embarked = world.GetOrDefault<Embarked>(id);
             _bodyOrigin = Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;
@@ -86,7 +88,9 @@ namespace TacticsECS
             var body = embarked.Value
                 ? PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+embarked.NavalUnitId), new SpritePlacement(visual,EmbarkedRiderX,EmbarkedRiderY) })
                 : PixelSpriteComposer.Compose(visual);
-            _model.GetComponentInChildren<SpriteRenderer>().sprite = body;
+            var bodyRenderer = _model.GetComponentInChildren<SpriteRenderer>();
+            bodyRenderer.sprite = body;
+            bodyRenderer.color = world.GetOrDefault<Mythic>(id).Active ? MythicTint : Color.white; // 신화 유닛은 금빛
             _model.transform.localScale = new Vector3(_model.transform.localScale.x < 0 ? -1 : 1,1,1);
             var target = PixelCoordinates.GridToWorld(_grid,world.Get<GridPosition>(id).Value);
             if ((target-transform.position).sqrMagnitude > .0001f)

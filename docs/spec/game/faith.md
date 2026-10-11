@@ -56,8 +56,11 @@
 - 신 설계·신화 유닛·펀치 수치는 모두 샘플이다.
 
 ## 화면
-- `FaithHud`: 현재/최대와 게이지, 다음 턴 예상 획득량과 내 순위. 별 표시줄 아래에 놓이고, 누르면 펀치 목록이 열린다. 문구는 [`Strings.csv`](../csv/strings.md) `UI.Faith.*`.
-- `FaithPunchHud`: 목록 · 대상 선택 안내 · 확인(영향 수와 신앙 변화) 세 화면. 문구는 `UI.FaithPunch.*`.
+- `FaithHud`: 현재/최대와 게이지, 다음 턴 예상 획득량과 내 순위. 별 표시줄 아래에 놓이고, 누르면 펀치 목록이 열린다. 값이 바뀌면 숫자 옆에 증감 팝업이 뜨고, 가득 차면 게이지가 밝아진다. 대신전이 있으면 그 아래 줄에 진행 상태가 보인다. 문구는 [`Strings.csv`](../csv/strings.md) `UI.Faith.*`.
+- `FaithPunchHud`: 목록 · 대상 선택 안내 · 확인(영향 수와 신앙 변화) 세 화면. 화면 오른쪽(행동 로그 아래)에 뜬다. 문구는 `UI.FaithPunch.*`.
+- 조작: `F` 키로 펀치 목록을 열고 닫는다. 대상 선택 중 우클릭·`Esc`는 취소.
+- 유닛 표시: 기도 중인 유닛은 상태 배지가 붙고, 신화 유닛은 금빛으로 보인다. 신화 유닛 메뉴에 남은 유지 턴과 액티브 능력이 보인다.
+- 화면 확인: `unity run . -- -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run`(`-nographics` 금지)이 두 언어·세 해상도의 상태별 캡처를 `docs/images/faith/`에 남긴다.
 
 ## 아직 없는 것
 AI의 신앙 사용 — [`FaithPlan`](../../history/FaithPlan.md) 단계 7.

@@ -587,6 +587,12 @@ namespace TacticsECS
         {
             if (_punchPhase != PunchPhase.Targeting && _punchPhase != PunchPhase.Confirm) return;
             if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos)) return;
+            PreviewPunchTarget(pos);
+        }
+
+        /// <summary>고른 대상 칸의 영향 범위를 하이라이트하고 확인 화면을 띄운다(화면 캡처 검증도 이 메서드를 직접 부른다).</summary>
+        private void PreviewPunchTarget(Vector2Int pos)
+        {
             _punchTarget = pos;
             _punchPhase = PunchPhase.Confirm;
             _gridView.ClearHighlights();
@@ -624,7 +630,7 @@ namespace TacticsECS
             int mythicId = _punchMythicId;
             var result = mythicId >= 0 ? MythicSystem.UseActive(_grid, _world, _econ, mythicId, _punchTarget)
                                        : FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
-            if (!result.Success) { HandlePunchClick(); return; }
+            if (!result.Success) { PreviewPunchTarget(_punchTarget); return; }
 
             if (punch.Kind == FaithPunchKind.Strike)
             {
@@ -1391,6 +1397,8 @@ namespace TacticsECS
 
             if (_battleOver) return;
             if (_turnState.ActiveTeam != Team.Player) return;
+
+            if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame) OpenPunchList(); // 신앙 펀치 목록 열기/닫기
 
             if (_punchPhase != PunchPhase.None)
             {

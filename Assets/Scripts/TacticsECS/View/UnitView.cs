@@ -60,6 +60,7 @@ namespace TacticsECS
         public void Refresh(EntityWorld world, int id)
         {
             if (!UnitQueries.IsAlive(world,id)) { gameObject.SetActive(false); return; }
+            if (!gameObject.activeSelf) gameObject.SetActive(true); // 강림에서 돌아온 원본
             int hp = world.Get<Hp>(id).Value;
             int maxHp = world.GetOrDefault<MaxHp>(id).Value;
             if (maxHp <= 0) maxHp = _definition.MaxHp;

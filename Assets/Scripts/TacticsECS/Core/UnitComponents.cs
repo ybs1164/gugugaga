@@ -72,6 +72,13 @@ namespace TacticsECS
     // GuardDefense는 방어 태세(IsGuarding) 중일 때만 방어력에 더해진다. 규칙: docs/spec/game/faith.md
     [System.Serializable] public struct TempleAura { public float Attack; public float Defense; public float GuardDefense; }
 
+    // 강림 중 보존된 원본 유닛(MythicSystem): 그리드에서 빠져 있고 살아 있는 유닛으로 세지 않는다(UnitQueries.IsAlive).
+    [System.Serializable] public struct Dormant { public bool Value; }
+
+    // 신화 유닛(강림으로 생긴 유닛): 원본 유닛 엔티티(Origin)와 남은 유지 턴. Active가 false면 아무 것도 아니다.
+    // 규칙: docs/spec/game/faith.md
+    [System.Serializable] public struct Mythic { public bool Active; public int MythicIndex; public int TurnsLeft; public int Origin; }
+
     // ---- 시야 (스폰 후 불변, 승선 시 교체) ----
     // 이 유닛이 밝히는 반경(체비쇼프). 기본 1(3x3), 정찰(ScoutAction) 보유 시 2(5x5). 산 위에 서 있으면 VisionSystem이
     // 추가로 2까지 넓힌다 — Data/VisionDefinition.cs 참고.

@@ -6,7 +6,7 @@ namespace TacticsECS
     /// </summary>
     public static class UnitQueries
     {
-        public static bool IsAlive(EntityWorld world, int id) => world.Get<Hp>(id).Value > 0;
+        public static bool IsAlive(EntityWorld world, int id) => world.Get<Hp>(id).Value > 0 && !world.GetOrDefault<Dormant>(id).Value;
 
         public static bool AnyAlive(EntityWorld world, Team team)
         {

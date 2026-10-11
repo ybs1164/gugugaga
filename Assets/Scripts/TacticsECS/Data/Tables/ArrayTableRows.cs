@@ -108,6 +108,26 @@ namespace TacticsECS
 
         /// <summary>이 신이 쓸 수 있는 신앙 펀치(FaithPunches Index 목록).</summary>
         public int[] Punches;
+
+        /// <summary>강림하는 신화 유닛(MythicUnits Index). -1 = 없음.</summary>
+        public int Mythic;
+    }
+
+    /// <summary>신화 유닛 하나(MythicUnits.csv). 스탯·패시브는 Units.csv의 같은 Id 행(훈련 불가)이 정하고, 이 표는 유지 턴과 액티브 능력(약해진 신앙 펀치)을 정한다.</summary>
+    public struct MythicRow
+    {
+        public int Index;
+        public string Id;
+
+        /// <summary>강림 때 받는 유지 턴. 매 자기 턴 시작에 1씩 줄고 0이 되면 원본이 돌아온다.</summary>
+        public int Upkeep;
+
+        /// <summary>액티브 능력으로 쓰는 FaithPunches Index(-1 = 없음), 약화된 신앙 비용·크기, 신화 유닛 기준 사거리, 쓸 때 줄어드는 유지 턴.</summary>
+        public int ActivePunch;
+        public int ActiveFaithCost;
+        public int ActiveValue;
+        public int ActiveReach;
+        public int ActiveUpkeepCost;
     }
 
     /// <summary>신앙 펀치 하나(FaithPunches.csv). 대상 칸 중심 체비쇼프 Range 안에 효과를 준다(Range 0 = 그 칸만).</summary>

@@ -14,6 +14,9 @@ namespace TacticsECS
         /// <summary>효과를 받은 칸(자원 생성·지형 변화).</summary>
         public List<Vector2Int> Tiles;
 
+        /// <summary>새로 만들어진 유닛(강림의 신화 유닛) — 화면이 View를 붙여야 한다.</summary>
+        public List<int> SpawnedIds;
+
         public bool TerrainChanged;
         public int Spent;
     }

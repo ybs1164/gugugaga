@@ -15,6 +15,7 @@
 | `Value` | 실수 | | 0 | 신전 하나의 기본 효과 크기 |
 | `PerPrayer` | 실수 | | 0 | 기도 유닛 하나당 더해지는 크기(음수면 약해진다) |
 | `Period` | 정수 | | 1 | `Resource`: 이 턴 수마다 한 번 발동 |
+| `MythicIndex` | [MythicUnits](faith-punches.md#mythicunitscsv--신화-유닛) Index | | -1 | 강림하는 신화 유닛. -1 = 없음 |
 | `FaithPunch{n}` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) Index | | 없음 | 이 신이 쓸 수 있는 신앙 펀치 |
 | `Note` | 메모 | | | 로더 무시 |
 

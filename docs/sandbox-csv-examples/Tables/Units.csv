@@ -10,3 +10,5 @@ Index,Id,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Action
 8,spy,5,0.5,RogueHooded,Move,Attack,Charge,Hide,Infiltrate,Scout,Creep,Stiff,Static,Land,2,2,1,0,0,8,1,4
 9,giant,40,4,Guard,Move,Attack,Counter,,,,,,,Land,1,5,1,0,0,10,0,6
 10,dagger,10,2,RogueHooded,Move,Attack,Charge,Ambush,Independent,Static,Counter,,,Land,1,2,1,0,0,0,0,5
+11,SunAvatar,25,3,Guard,Move,Attack,Counter,Splash,Independent,Static,,,,Land,2,4,1,0,0,0,0,-1
+12,StormTitan,30,2,Melee,Move,Attack,Charge,Combo,Independent,Static,Counter,,,Land,2,5,1,0,0,0,0,-1

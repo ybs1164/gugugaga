@@ -23,6 +23,7 @@ namespace TacticsECS.EditorTools
             VerifyPrayer();
             VerifyGods();
             VerifyFaithPunches();
+            VerifyMythic();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -365,6 +366,61 @@ namespace TacticsECS.EditorTools
                 FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, new Vector2Int(2, 2));
                 Check(string.IsNullOrEmpty(grid.GetTile(new Vector2Int(2, 2)).BuildingId), "terrain change removes the building");
             }
+        }
+
+        private static void VerifyMythic()
+        {
+            Check(GameTables.MythicUnits.Length >= 2, "MythicUnits.csv samples");
+            foreach (var m in GameTables.MythicUnits)
+                Check(System.Array.Exists(GameTables.Units, u => u.Id == m.Id) && m.Upkeep > 0, $"mythic {m.Id} has a Units.csv row and upkeep");
+
+            var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+            econ.GodIds[Team.Player] = GodIndex("Sun");
+            var mythicRow = MythicSystem.MythicOf(econ, Team.Player).Value;
+            var descent = GameTables.FaithPunches[PunchIndex("Descent")];
+            var res = econ.Resources[Team.Player]; res.MaxFaith = 100; res.Faith = 100; econ.Resources[Team.Player] = res;
+
+            var pos = new Vector2Int(3, 3);
+            Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, descent, pos) == "UI.FaithPunch.NoDescendTarget", "descend needs an ally");
+            int origin = Unit(grid, world, Team.Player, pos);
+            world.Set(origin, new Hp { Value = 7 });
+            int enemy = Unit(grid, world, Team.Enemy, new Vector2Int(5, 3));
+            int farEnemy = Unit(grid, world, Team.Enemy, new Vector2Int(7, 3));
+            int unitsBefore = FaithSystem.CountUnits(world, Team.Player);
+
+            var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, descent, pos);
+            Check(result.Success && result.SpawnedIds.Count == 1, "descend succeeds");
+            int mythic = result.SpawnedIds[0];
+            Check(!UnitQueries.IsAlive(world, origin) && grid.GetOccupant(pos) == mythic, "original is preserved off the board, mythic takes the tile");
+            Check(world.Get<Hp>(mythic).Value == world.Get<MaxHp>(mythic).Value && world.Get<Hp>(mythic).Value != 7, "original stats are not carried over");
+            Check(world.Get<Mythic>(mythic).TurnsLeft == mythicRow.Upkeep && MythicSystem.FindMythic(world, Team.Player) == mythic, "upkeep granted, one mythic per team");
+            Check(FaithSystem.CountUnits(world, Team.Player) == unitsBefore, "swap does not change unit count");
+            Check(FaithPunchSystem.Check(grid, world, econ, Team.Player, descent, pos) == "UI.FaithPunch.MythicExists", "only one mythic at a time");
+
+            // 액티브: 사거리·비용·유지 턴.
+            Check(MythicSystem.CanUseActive(world, mythic), "mythic can use its active");
+            Check(MythicSystem.CheckActive(grid, world, econ, mythic, new Vector2Int(7, 3)) == "UI.Mythic.Reason.Reach", "active out of reach refused");
+            int faith = econ.Resources[Team.Player].Faith, hp = world.Get<Hp>(enemy).Value;
+            var used = MythicSystem.UseActive(grid, world, econ, mythic, new Vector2Int(5, 3));
+            Check(used.Success && world.Get<Hp>(enemy).Value == hp - mythicRow.ActiveValue && world.Get<Hp>(farEnemy).Value == world.Get<MaxHp>(farEnemy).Value, "active hits with the weakened value");
+            Check(econ.Resources[Team.Player].Faith == faith - mythicRow.ActiveFaithCost, "active costs faith");
+            Check(world.Get<Mythic>(mythic).TurnsLeft == mythicRow.Upkeep - mythicRow.ActiveUpkeepCost && world.Get<HasActed>(mythic).Value, "active costs upkeep and ends the action");
+            Check(!MythicSystem.CanUseActive(world, mythic), "one active per turn");
+
+            // 유지 턴이 끝나면 원본이 돌아온다(체력은 강림 전 그대로).
+            int turns = world.Get<Mythic>(mythic).TurnsLeft;
+            for (int i = 0; i < turns - 1; i++) MythicSystem.OnTurnStart(grid, world, Team.Player);
+            Check(MythicSystem.IsMythic(world, mythic), "mythic stays while upkeep remains");
+            MythicSystem.OnTurnStart(grid, world, Team.Player);
+            Check(!UnitQueries.IsAlive(world, mythic) && UnitQueries.IsAlive(world, origin) && grid.GetOccupant(pos) == origin && world.Get<Hp>(origin).Value == 7, "original returns when upkeep runs out");
+
+            // 신화 유닛이 죽으면 원본도 함께 제거된다.
+            var again = FaithPunchSystem.Apply(grid, world, econ, Team.Player, descent, pos);
+            int mythic2 = again.SpawnedIds[0];
+            world.Set(mythic2, new Hp { Value = 0 });
+            MythicSystem.Sweep(grid, world);
+            Check(!UnitQueries.IsAlive(world, origin) && !UnitQueries.IsAlive(world, mythic2), "mythic death removes the original too");
+            Check(grid.GetOccupant(pos) == TileData.NoOccupant && MythicSystem.FindMythic(world, Team.Player) < 0, "tile freed, no mythic left");
         }
     }
 }

@@ -261,9 +261,28 @@ namespace TacticsECS
             return rows;
         }
 
+        public static MythicRow[] ParseMythicUnits(string text, List<string> errors = null)
+        {
+            var t = Begin("MythicUnits.csv", text, new[] { "Index", "Id" }, new[] { "Upkeep", "ActivePunch", "ActiveFaithCost", "ActiveValue", "ActiveReach", "ActiveUpkeepCost", "Note" }, new string[0], errors);
+            var rows = new MythicRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+                rows[r] = new MythicRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Upkeep = CsvTableReader.GetInt(t, r, "Upkeep", 1, errors),
+                    ActivePunch = CsvTableReader.GetInt(t, r, "ActivePunch", -1, errors),
+                    ActiveFaithCost = CsvTableReader.GetInt(t, r, "ActiveFaithCost", 0, errors),
+                    ActiveValue = CsvTableReader.GetInt(t, r, "ActiveValue", 0, errors),
+                    ActiveReach = CsvTableReader.GetInt(t, r, "ActiveReach", 1, errors),
+                    ActiveUpkeepCost = CsvTableReader.GetInt(t, r, "ActiveUpkeepCost", 0, errors),
+                };
+            return rows;
+        }
+
         public static GodRow[] ParseGods(string text, List<string> errors = null)
         {
-            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "Note" }, new[] { "FaithPunch" }, errors);
+            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "MythicIndex", "Note" }, new[] { "FaithPunch" }, errors);
             var rows = new GodRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -280,6 +299,7 @@ namespace TacticsECS
                     PerPrayer = CsvTableReader.GetFloat(t, r, "PerPrayer", 0f, errors),
                     Period = CsvTableReader.GetInt(t, r, "Period", 1, errors),
                     Punches = GetIndexList(t, r, "FaithPunch", errors),
+                    Mythic = CsvTableReader.GetInt(t, r, "MythicIndex", -1, errors),
                 };
             }
             return rows;

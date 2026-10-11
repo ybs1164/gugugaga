@@ -189,6 +189,9 @@ namespace TacticsECS
         private List<FaithPunchRow> _punchChoices;
         private FaithPunchRow _punchActive;
         private Vector2Int _punchTarget;
+
+        /// <summary>신화 유닛 액티브 능력으로 연 펀치면 그 유닛 id, 아니면 -1.</summary>
+        private int _punchMythicId = -1;
         private TechTreeHud _techTreeHud;
         private ActionMenuHud _actionMenu;
 
@@ -557,6 +560,7 @@ namespace TacticsECS
             if (_econ == null || _faithPunchHud == null || _battleOver || _turnState.ActiveTeam != Team.Player) return;
             if (_punchPhase != PunchPhase.None) { CancelPunch(); return; }
             ClearSelection();
+            _punchMythicId = -1;
             _punchChoices = FaithPunchSystem.Available(_econ, Team.Player);
             _punchPhase = PunchPhase.List;
             var options = new List<FaithPunchOption>();
@@ -588,12 +592,17 @@ namespace TacticsECS
             _gridView.ClearHighlights();
             _gridView.HighlightAttack(FaithPunchSystem.Area(_grid, _punchActive, pos));
 
-            string reason = FaithPunchSystem.Check(_grid, _world, _econ, Team.Player, _punchActive, pos);
+            bool mythic = _punchMythicId >= 0;
+            string reason = mythic ? MythicSystem.CheckActive(_grid, _world, _econ, _punchMythicId, pos)
+                                   : FaithPunchSystem.Check(_grid, _world, _econ, Team.Player, _punchActive, pos);
             int affected = FaithPunchSystem.AffectedCount(_grid, _world, Team.Player, _punchActive, pos);
             int faith = _econ.Resources[Team.Player].Faith;
+            string costLine = mythic
+                ? LocalizationSystem.F("UI.Mythic.CostLine", _punchActive.Cost, GameTables.MythicUnits[_world.Get<Mythic>(_punchMythicId).MythicIndex].ActiveUpkeepCost)
+                : LocalizationSystem.F("UI.FaithPunch.CostLine", _punchActive.Cost, faith - _punchActive.Cost);
             _faithPunchHud.ShowConfirm(
                 LocalizationSystem.F("UI.FaithPunch.ConfirmLine", _punchActive.Name, pos.x, pos.y, affected),
-                LocalizationSystem.F("UI.FaithPunch.CostLine", _punchActive.Cost, faith - _punchActive.Cost),
+                costLine,
                 reason == null, reason == null ? string.Empty : LocalizationSystem.T(reason));
         }
 
@@ -601,6 +610,7 @@ namespace TacticsECS
         {
             if (_punchPhase == PunchPhase.None) return;
             _punchPhase = PunchPhase.None;
+            _punchMythicId = -1;
             if (_faithPunchHud != null) _faithPunchHud.Hide();
             if (_gridView != null) _gridView.ClearHighlights();
         }
@@ -611,7 +621,9 @@ namespace TacticsECS
             var punch = _punchActive;
             var hpBefore = SnapshotHp();
             var aliveBefore = TaskSystem.SnapshotAlive(_world);
-            var result = FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
+            int mythicId = _punchMythicId;
+            var result = mythicId >= 0 ? MythicSystem.UseActive(_grid, _world, _econ, mythicId, _punchTarget)
+                                       : FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
             if (!result.Success) { HandlePunchClick(); return; }
 
             if (punch.Kind == FaithPunchKind.Strike)
@@ -630,10 +642,47 @@ namespace TacticsECS
                 _viewsById[id].Refresh(_world, id);
             }
 
+            foreach (int spawned in result.SpawnedIds)
+            {
+                AttachSpawnedView(spawned);
+                int origin = _world.Get<Mythic>(spawned).Origin;
+                _hud.AddLogEntry(LocalizationSystem.F("UI.Mythic.Log.Descend", UnitLabel(origin), UnitLabel(spawned)));
+            }
+            if (mythicId >= 0 && _viewsById.TryGetValue(mythicId, out var mythicView)) mythicView.Refresh(_world, mythicId);
+
             CancelPunch();
             RefreshRoster();
             RefreshEconomyViews(result.TerrainChanged);
             CheckBattleEnd();
+        }
+
+        private string UnitLabel(int id) => _viewsById.TryGetValue(id, out var v) ? v.Label : LocalizationSystem.T("UI.Common.Unit");
+
+        /// <summary>펀치로 새로 만들어진 유닛(신화 유닛)에 View를 붙인다 — 엔티티는 이미 FaithPunchSystem이 만들었다.</summary>
+        private void AttachSpawnedView(int id)
+        {
+            var row = MythicSystem.FindUnitRow(_econ, _world.GetOrDefault<UnitTypeId>(id).Value);
+            if (row == null || !BasePrefabsByName().TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
+            {
+                Debug.LogWarning($"[BattleController] 유닛 {id}의 View를 만들 수 없습니다(CSV 행 또는 BaseVisual 프리팹 없음).");
+                return;
+            }
+            var view = _spawner.AttachCsvView(_grid, _world, id, basePrefab, row);
+            _viewsById[id] = view;
+            TechEffectSystem.RefreshUnits(_grid, _world, _econ);
+            view.Refresh(_world, id);
+        }
+
+        /// <summary>신화 유닛의 액티브 능력: 약해진 펀치를 같은 대상 선택 흐름으로 쓴다(사거리·유지 턴은 MythicSystem.CheckActive).</summary>
+        private void StartMythicActive(int mythicId)
+        {
+            if (!CanUseEconomyMenu || !MythicSystem.CanUseActive(_world, mythicId)) return;
+            var punch = MythicSystem.ActivePunchRow(GameTables.MythicUnits[_world.Get<Mythic>(mythicId).MythicIndex]);
+            ClearSelection();
+            _punchMythicId = mythicId;
+            _punchActive = punch;
+            _punchPhase = PunchPhase.Targeting;
+            _faithPunchHud.ShowTargeting(LocalizationSystem.F("UI.FaithPunch.PickTarget", punch.Name));
         }
 
         private void HandleGodSelected(Team team, int godIndex)
@@ -1144,6 +1193,13 @@ namespace TacticsECS
                     foreach (int hitId in TemplePassiveSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber))
                         if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
                 }
+                var mythicChanged = MythicSystem.OnTurnStart(_grid, _world, team);
+                for (int k = 0; k + 1 < mythicChanged.Count; k += 2)
+                {
+                    _hud.AddLogEntry(LocalizationSystem.F("UI.Mythic.Log.Return", UnitLabel(mythicChanged[k + 1])));
+                    foreach (int id in new[] { mythicChanged[k], mythicChanged[k + 1] })
+                        if (_viewsById.TryGetValue(id, out var changedView)) changedView.Refresh(_world, id);
+                }
                 RefreshEconomyViews(false);
             }
 
@@ -1514,6 +1570,8 @@ namespace TacticsECS
             TaskSystem.Refresh(_grid, _econ, log);
             if (log.Count > 0) ProcessEconomyLog(log);
 
+            foreach (int removed in MythicSystem.Sweep(_grid, _world))
+                if (_viewsById.TryGetValue(removed, out var removedView)) removedView.Refresh(_world, removed);
             TemplePassiveSystem.RefreshAuras(_grid, _world, _econ);
             RefreshProduction();
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
@@ -1761,6 +1819,20 @@ namespace TacticsECS
             var options = new List<ActionMenuOption>();
             var pos = _world.Get<GridPosition>(unitId).Value;
 
+            if (MythicSystem.CanUseActive(_world, unitId))
+            {
+                var mythicState = _world.Get<Mythic>(unitId);
+                var mythicRow = GameTables.MythicUnits[mythicState.MythicIndex];
+                var activePunch = MythicSystem.ActivePunchRow(mythicRow);
+                bool can = _econ.Resources[Team.Player].Faith >= mythicRow.ActiveFaithCost && mythicState.TurnsLeft > mythicRow.ActiveUpkeepCost;
+                options.Add(new ActionMenuOption
+                {
+                    Label = LocalizationSystem.F("UI.Mythic.Active", activePunch.Name),
+                    Detail = LocalizationSystem.F("UI.Mythic.ActiveDetail", mythicRow.ActiveFaithCost, mythicRow.ActiveUpkeepCost, mythicRow.ActiveReach),
+                    Enabled = can, OnClick = () => StartMythicActive(unitId)
+                });
+            }
+
             if (CitySystem.CanCapture(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Capture"), Detail = LocalizationSystem.T("UI.UnitMenu.CaptureDetail"), Enabled = true, OnClick = () => HandleCapture(unitId) });
             else if (CitySystem.IsSettlementTile(_grid, pos) && !IsOwnCity(pos))
@@ -1801,6 +1873,7 @@ namespace TacticsECS
             homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · " + LocalizationSystem.T("UI.UnitMenu.Veteran")
                 : VeteranSystem.CannotBePromoted(_world, unitId) ? string.Empty
                 : " · " + LocalizationSystem.F("UI.UnitMenu.Kills", _world.GetOrDefault<Kills>(unitId).Value, GameRules.Veteran.KillsRequired);
+            if (MythicSystem.IsMythic(_world, unitId)) homeText = LocalizationSystem.F("UI.Mythic.Info", _world.Get<Mythic>(unitId).TurnsLeft);
             _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : LocalizationSystem.T("UI.Common.Unit"), homeText, options);
         }
 

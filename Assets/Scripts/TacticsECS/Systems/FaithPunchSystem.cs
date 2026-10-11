@@ -48,6 +48,8 @@ namespace TacticsECS
                     return EmptyLand(grid, team, punch, target).Count > 0 ? null : "UI.FaithPunch.NoSpace";
                 case FaithPunchKind.Terrain:
                     return CanChangeTerrain(grid, econ, target) ? null : "UI.FaithPunch.TileBlocked";
+                case FaithPunchKind.Descend:
+                    return MythicSystem.CheckDescend(grid, world, econ, team, target);
                 default:
                     return "UI.FaithPunch.TileBlocked";
             }
@@ -68,7 +70,7 @@ namespace TacticsECS
         /// <summary>신앙을 쓰고 효과를 적용한다. Check가 null이어야 한다.</summary>
         public static FaithPunchResult Apply(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, FaithPunchRow punch, Vector2Int target)
         {
-            var result = new FaithPunchResult { UnitIds = new List<int>(), Tiles = new List<Vector2Int>() };
+            var result = new FaithPunchResult { UnitIds = new List<int>(), Tiles = new List<Vector2Int>(), SpawnedIds = new List<int>() };
             if (Check(grid, world, econ, team, punch, target) != null) return result;
 
             var resources = econ.Resources[team];
@@ -110,6 +112,10 @@ namespace TacticsECS
                         grid.SetTile(land[i], tile);
                         result.Tiles.Add(land[i]);
                     }
+                    break;
+                case FaithPunchKind.Descend:
+                    result.SpawnedIds.Add(MythicSystem.Descend(grid, world, econ, team, target, out int origin));
+                    result.UnitIds.Add(origin);
                     break;
                 case FaithPunchKind.Terrain:
                     ChangeTerrain(grid, econ, team, target);

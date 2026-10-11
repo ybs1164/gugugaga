@@ -515,3 +515,18 @@ UI.FaithPunch.NoWounded,범위 안에 다친 아군이 없습니다.,No wounded 
 UI.FaithPunch.NoSpace,범위 안에 빈 땅이 없습니다.,No empty land in range.
 UI.FaithPunch.TileBlocked,이 칸은 바꿀 수 없습니다.,This tile can't be changed.
 UI.FaithPunch.Log,신앙 펀치 {0}: 영향 {1},Faith punch {0}: affected {1}
+Unit.SunAvatar.Name,태양의 화신,Avatar of the Sun
+Unit.StormTitan.Name,폭풍의 거신,Storm Titan
+FaithPunch.Descent.Name,강림,Descent
+FaithPunch.Descent.Desc,대상 아군을 신의 신화 유닛으로 바꿉니다. 한 번에 하나만 존재하며 유지 턴이 끝나면 원본이 돌아옵니다.,Turns an ally into your god's mythic unit. Only one at a time and the original returns when upkeep runs out.
+UI.FaithPunch.NoDescendTarget,대상 칸에 바꿀 수 있는 아군이 없습니다.,No eligible ally on that tile.
+UI.FaithPunch.MythicExists,이미 신화 유닛이 있습니다.,You already have a mythic unit.
+UI.FaithPunch.NoMythic,이 신에게는 신화 유닛이 없습니다.,This god has no mythic unit.
+UI.Mythic.Info,신화 유닛 · 유지 {0}턴,Mythic · {0} turns left
+UI.Mythic.Active,액티브: {0},Active: {0}
+UI.Mythic.ActiveDetail,신앙 {0} · 유지 −{1}턴 · 사거리 {2},Faith {0} · upkeep −{1} · reach {2}
+UI.Mythic.CostLine,신앙 −{0} · 유지 −{1}턴,Faith −{0} · upkeep −{1}
+UI.Mythic.Reason.Reach,사거리 밖입니다.,Out of reach.
+UI.Mythic.Reason.Upkeep,유지 턴이 모자랍니다.,Not enough upkeep turns.
+UI.Mythic.Log.Descend,{0}이(가) {1}(으)로 강림했습니다.,{0} descended as {1}.
+UI.Mythic.Log.Return,{0}이(가) 원래 모습으로 돌아왔습니다.,{0} returned to its original form.

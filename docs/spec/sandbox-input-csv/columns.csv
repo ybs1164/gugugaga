@@ -51,6 +51,15 @@ Table.FaithPunches,Range,정수,,0,,대상 칸 중심 체비쇼프 반경
 Table.FaithPunches,Value,정수,,0,,유형별 크기
 Table.FaithPunches,Target,문자열,,없음,,
 Table.FaithPunches,Note,메모,,,,로더 무시
+Table.MythicUnits,Index,정수,O,,,배열 위치. Gods.csv MythicIndex가 가리킨다
+Table.MythicUnits,Id,문자열,O,,,Units.csv의 Id. 이름은 Unit.<Id>.Name
+Table.MythicUnits,Upkeep,정수,,1,,강림 때 받는 유지 턴
+Table.MythicUnits,ActivePunch,FaithPunches Index,,-1,,액티브 능력으로 쓰는 펀치. -1 = 없음
+Table.MythicUnits,ActiveFaithCost,정수,,0,,액티브 능력의 신앙 비용(펀치의 Cost 대신)
+Table.MythicUnits,ActiveValue,정수,,0,,액티브 능력의 크기(펀치의 Value 대신)
+Table.MythicUnits,ActiveReach,정수,,1,,신화 유닛에서 대상 칸까지 체비쇼프 사거리
+Table.MythicUnits,ActiveUpkeepCost,정수,,0,,쓸 때 추가로 줄어드는 유지 턴
+Table.MythicUnits,Note,메모,,,,로더 무시
 Table.GameRules,Key,도메인.이름,O,,,GameRules의 중첩 클래스(도메인)와 필드(이름)
 Table.GameRules,Value,필드 타입,O,,,정수/실수/불리언/문자열/열거형
 Table.GameRules,Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고유 규칙
@@ -63,6 +72,7 @@ Table.Gods,Target,문자열,,없음,,유형별 대상 — 아래 표
 Table.Gods,Value,실수,,0,,신전 하나의 기본 효과 크기
 Table.Gods,PerPrayer,실수,,0,,기도 유닛 하나당 더해지는 크기(음수면 약해진다)
 Table.Gods,Period,정수,,1,,Resource: 이 턴 수마다 한 번 발동
+Table.Gods,MythicIndex,MythicUnits Index,,-1,,강림하는 신화 유닛. -1 = 없음
 Table.Gods,FaithPunch{n},FaithPunches Index,,없음,,이 신이 쓸 수 있는 신앙 펀치
 Table.Gods,Note,메모,,,,로더 무시
 Table.SpriteCatalog,VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙

@@ -29,6 +29,7 @@
 | `CityReward.<Reward>.Name`, `.Desc` | [CityRewards](city-rewards.md) |
 | `Tribe.<Id>.Name`, `.Desc` | [Tribes](tribes.md#tribescsv--종족) |
 | `God.<Id>.Name`, `.Desc` | [Gods](gods.md#godscsv--신) |
+| `Unit.<Id>.Name` (신화 유닛) | [MythicUnits](faith-punches.md#mythicunitscsv--신화-유닛) → `Units.csv` |
 | `FaithPunch.<Id>.Name`, `.Desc` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) |
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |
 | `Biome.<Biome>.Name` | [Biomes](biomes.md) `Biome` 행. 불러온 바이옴 파일의 `Name`보다 앞선다 |

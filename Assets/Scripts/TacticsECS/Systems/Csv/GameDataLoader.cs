@@ -24,7 +24,7 @@ namespace TacticsECS
             TileActionDefinition.CsvResourcePath, CityRewardDefinition.CsvResourcePath, TaskDefinition.CsvResourcePath,
             GameTables.UnitsPath, GameTables.BoatsPath, GameTables.BuildingsPath,
             GameTables.TechUnlocksPath, GameTables.TechsPath, GameTables.TechSlotsPath, GameTables.TechTreeLayoutPath, GameTables.TechGroupsPath,
-            GameTables.TribesPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.DefaultBiomesPath,
+            GameTables.TribesPath, GameTables.GodsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.DefaultBiomesPath,
         };
 
         public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
@@ -68,6 +68,7 @@ namespace TacticsECS
             GameTables.TechTreeLayout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors, source), errors);
             GameTables.TechGroups = ArrayTableCsvSerializer.ParseTechGroups(Read(GameTables.TechGroupsPath, errors, source), errors);
             GameTables.Tribes = ArrayTableCsvSerializer.ParseTribes(Read(GameTables.TribesPath, errors, source), errors);
+            GameTables.Gods = ArrayTableCsvSerializer.ParseGods(Read(GameTables.GodsPath, errors, source), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
             errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(biomeCount: LoadDefaultBiomes(source).Count));

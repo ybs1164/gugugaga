@@ -704,7 +704,7 @@ namespace TacticsECS.EditorTools
         /// <summary>"바이옴·종족" 탭 — 툴바의 바이옴·종족 버튼이 열고 닫는다(처음엔 닫힘). 바이옴 드롭다운(여러 개 선택), 팀별 종족 드롭다운, 종족 요약 텍스트.</summary>
         private static void BuildBiomeTab(Font font, Transform root)
         {
-            var panel = CreateSandboxTab("BiomeTab", root, 212f);
+            var panel = CreateSandboxTab("BiomeTab", root, 286f);
             CreateLabel(font, panel, "Title", Src("UI.SandboxHud.BiomeTabTitle"), new Vector2(8f, -6f), new Vector2(GenerationTabWidth - 16f, 20f), 14);
 
             float labelW = 76f, controlX = 8f + labelW + 4f, controlW = GenerationTabWidth - controlX - 8f;
@@ -715,7 +715,12 @@ namespace TacticsECS.EditorTools
             CreateLabel(font, panel, "EnemyTribeLabel", Src("UI.SandboxHud.EnemyTribe"), new Vector2(8f, -102f), new Vector2(labelW, 26f), 14);
             CreateDropdown(font, panel, "EnemyTribeDropdown", new Vector2(controlX, -102f), new Vector2(controlW, 26f));
 
-            var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -136f), new Vector2(GenerationTabWidth - 16f, 70f), 12);
+            CreateLabel(font, panel, "PlayerGodLabel", Src("UI.SandboxHud.PlayerGod"), new Vector2(8f, -136f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "PlayerGodDropdown", new Vector2(controlX, -136f), new Vector2(controlW, 26f));
+            CreateLabel(font, panel, "EnemyGodLabel", Src("UI.SandboxHud.EnemyGod"), new Vector2(8f, -170f), new Vector2(labelW, 26f), 14);
+            CreateDropdown(font, panel, "EnemyGodDropdown", new Vector2(controlX, -170f), new Vector2(controlW, 26f));
+
+            var info = CreateLabel(font, panel, "TribeInfo", "", new Vector2(8f, -204f), new Vector2(GenerationTabWidth - 16f, 78f), 12);
             info.alignment = TextAnchor.UpperLeft;
             info.horizontalOverflow = HorizontalWrapMode.Wrap;
             info.color = new Color(1f, 1f, 1f, 0.75f);

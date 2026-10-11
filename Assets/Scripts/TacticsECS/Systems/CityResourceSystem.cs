@@ -30,10 +30,10 @@ namespace TacticsECS
         /// HUD에 바뀐 수입을 바로 보여줄 때 쓴다.</summary>
         public static CityResourceData RefreshProduction(CityResourceData resources, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
-            resources.StarsProduction = CitySystem.StarsIncome(grid, world, econ, team);
+            resources.StarsProduction = CitySystem.StarsIncome(grid, world, econ, team) + TemplePassiveSystem.GoldIncome(grid, world, econ, team);
             resources.PopulationCap = CitySystem.UnitCapacity(econ, team);
             resources.IsCapital = CitySystem.FindCapital(econ, team) >= 0;
-            resources = FaithSystem.RefreshMax(resources, grid, econ, team);
+            resources = FaithSystem.RefreshMax(resources, grid, world, econ, team);
             return resources;
         }
 

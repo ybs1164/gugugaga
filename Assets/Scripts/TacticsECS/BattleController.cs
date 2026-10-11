@@ -167,6 +167,9 @@ namespace TacticsECS
         /// <summary>습도 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
         private readonly Dictionary<Team, int> _tribeByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
 
+        /// <summary>바이옴·종족 탭 신 드롭다운(Gods.csv Index, -1 = 없음). 팀이 고른 신은 그 팀 신전 패시브를 정한다. "다시 시작"해도 유지한다.</summary>
+        private readonly Dictionary<Team, int> _godByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
+
         /// <summary>마지막 1차 지형. "지형 생성"은 설정(크기/수도 수/맵 타입/물 비율)이 같으면 이 아웃라인 위에 바이옴만 다시 채운다.</summary>
         private TerrainOutlineData? _outline;
 
@@ -392,6 +395,7 @@ namespace TacticsECS
             _sandboxHud.OnGenerateOutlineClicked += HandleGenerateOutline;
             _sandboxHud.OnBiomeToggled += HandleBiomeToggled;
             _sandboxHud.OnTribeSelected += HandleTribeSelected;
+            _sandboxHud.OnGodSelected += HandleGodSelected;
 
             InitMapSizeSelection();
             _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), MapSizePresets[_selectedMapSizeIndex].Size);
@@ -400,6 +404,7 @@ namespace TacticsECS
             RefreshWetnessLabel();
             RefreshBiomeOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
+            _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
             RefreshTribeInfo();
             _sandboxHud.SetCsvSources(s_csvFiles);
@@ -479,6 +484,12 @@ namespace TacticsECS
                 var tribe = TribeOf(team);
                 if (tribe != null) lines.Add(LocalizationSystem.F("UI.Sandbox.TribeInfoLine", TeamName(team), TribeSystem.Summary(tribe.Value, biomes, unitRows)));
             }
+            foreach (var team in CitySystem.Teams)
+            {
+                int g = _godByTeam[team];
+                if (g >= 0 && g < GameTables.Gods.Length)
+                    lines.Add(LocalizationSystem.F("UI.Sandbox.GodInfoLine", TeamName(team), GameTables.Gods[g].Name, GameTables.Gods[g].Description));
+            }
             _sandboxHud.SetTribeInfo(lines.Count > 0 ? string.Join("\n", lines) : LocalizationSystem.T("UI.Sandbox.TribeInfoEmpty"));
         }
 
@@ -518,6 +529,12 @@ namespace TacticsECS
         {
             var biomes = ActiveBiomes();
             return _biomeSelection.Where(i => i < biomes.Count).Select(i => biomes[i]).ToList();
+        }
+
+        private void HandleGodSelected(Team team, int godIndex)
+        {
+            _godByTeam[team] = godIndex >= 0 && godIndex < GameTables.Gods.Length ? godIndex : -1;
+            RefreshTribeInfo();
         }
 
         private void HandleTribeSelected(Team team, int tribeIndex)
@@ -626,11 +643,14 @@ namespace TacticsECS
             _biomeSelection.Clear();
             foreach (var team in CitySystem.Teams)
                 if (!TribeSystem.IsValid(_tribeByTeam[team])) _tribeByTeam[team] = -1;
+            foreach (var team in CitySystem.Teams)
+                if (_godByTeam[team] < 0 || _godByTeam[team] >= GameTables.Gods.Length) _godByTeam[team] = -1;
 
             _sandboxHud.RefreshLabels();
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
             RefreshBiomeOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
+            _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
             RefreshTribeInfo();
             if (_techTreeHud != null) _techTreeHud.SetNodes(CurrentTechNodes());
 
@@ -1014,6 +1034,8 @@ namespace TacticsECS
                 {
                     _econ.Resources[team] = CityResourceSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team);
                     _econ.Resources[team] = FaithSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team, turnNumber);
+                    foreach (int hitId in TemplePassiveSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber))
+                        if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
                 }
                 RefreshEconomyViews(false);
             }
@@ -1329,6 +1351,7 @@ namespace TacticsECS
                 res.Stars = GameRules.Economy.StartingStars;
                 _econ.Resources[team] = res;
                 _econ.Tech[team] = TechTreeData.CreateEmpty();
+                _econ.GodIds[team] = _godByTeam[team];
                 // 종족: 시작 별 / 기술 그룹(연구 가능 목록) / 시작 기술 / 시작 유닛.
                 if (TribeOf(team) is TribeRow tribe) TribeSystem.Apply(_econ, team, tribe, _econ.UnitRows);
             }
@@ -1376,6 +1399,7 @@ namespace TacticsECS
             TaskSystem.Refresh(_grid, _econ, log);
             if (log.Count > 0) ProcessEconomyLog(log);
 
+            TemplePassiveSystem.RefreshAuras(_grid, _world, _econ);
             RefreshProduction();
             TechEffectSystem.RefreshUnits(_grid, _world, _econ);
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
@@ -1572,6 +1596,8 @@ namespace TacticsECS
                     {
                         int level = ScoreSystem.TempleLevel(_econ.Turn, tile.BuildingTurn);
                         body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.Temple", level, ScoreSystem.TemplePoints(level)));
+                        if (tile.OwnerTeam >= 0 && TemplePassiveSystem.GodOf(_econ, (Team)tile.OwnerTeam) is GodRow god)
+                            body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.TempleGod", god.Name, TemplePassiveSystem.StrengthAt(_world, _econ, (Team)tile.OwnerTeam, pos)));
                     }
                 }
                 if (tile.HasRoad) body.Append(" · ").Append(LocalizationSystem.Name(ArrayTableCsvSerializer.BuildingStringTable, BuildingDefinition.Road));

@@ -14,6 +14,7 @@ namespace TacticsECS
         public const string TechTreeLayoutPath = Folder + "TechTreeLayout";
         public const string TechGroupsPath = Folder + "TechGroups";
         public const string TribesPath = Folder + "Tribes";
+        public const string GodsPath = Folder + "Gods";
         public const string StartConditionsPath = Folder + "StartConditions";
         public const string StartConditionRulesPath = Folder + "StartConditionRules";
 
@@ -34,6 +35,7 @@ namespace TacticsECS
         public static TechTreeLayoutRow[] TechTreeLayout = new TechTreeLayoutRow[0];
         public static TechGroupRow[] TechGroups = new TechGroupRow[0];
         public static TribeRow[] Tribes = new TribeRow[0];
+        public static GodRow[] Gods = new GodRow[0];
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];
         public static StartConditionRuleRow[] StartConditionRules = new StartConditionRuleRow[0];
 

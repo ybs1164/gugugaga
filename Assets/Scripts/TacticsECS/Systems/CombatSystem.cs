@@ -33,7 +33,11 @@ namespace TacticsECS
         /// <summary>방어 스탯(방어 태세 가산 포함, 위치 보너스 배수는 제외).</summary>
         public static float BaseDefense(EntityWorld world, int unitId) =>
             world.GetOrDefault<Praying>(unitId).Value ? 0f // 기도 중에는 방어력 0 — docs/spec/game/faith.md
-            : world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0f);
+            : world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus + world.GetOrDefault<TempleAura>(unitId).GuardDefense : 0f)
+              + world.GetOrDefault<TempleAura>(unitId).Defense;
+
+        /// <summary>공격 스탯 + 신전 오라 보너스.</summary>
+        public static float EffectiveAttack(EntityWorld world, int unitId) => world.Get<Attack>(unitId).Value + world.GetOrDefault<TempleAura>(unitId).Attack;
 
         /// <summary>위치 방어 보너스 배수(PositionalDefenseBonus 등급 — TechEffectSystem이 계산): 없음 1, 표준 1.5, 성벽 4.</summary>
         public static float DefenseMultiplier(EntityWorld world, int unitId)
@@ -49,7 +53,7 @@ namespace TacticsECS
         /// <summary>위키 공식으로 공격 피해와 반격 피해를 한 번에 계산한다. targetHp는 대상의 공격 전 체력(반격도 이 값 기준).</summary>
         public static void Resolve(EntityWorld world, int attackerId, int targetId, int targetHp, out int attackResult, out int defenseResult)
         {
-            double atk = world.Get<Attack>(attackerId).Value;
+            double atk = EffectiveAttack(world, attackerId);
             double def = BaseDefense(world, targetId);
             double attackForce = atk * HealthRatio(world.Get<Hp>(attackerId).Value, world.Get<MaxHp>(attackerId).Value);
             double defenseForce = def * HealthRatio(targetHp, world.Get<MaxHp>(targetId).Value) * DefenseMultiplier(world, targetId);

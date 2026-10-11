@@ -15,6 +15,12 @@ Reward,PopulationGrowth,즉시 인구 / 인구
 Reward,BorderGrowth,영토 반경 확장 / 새 반경
 Reward,Park,별 수입 증가 + 점수 / 별/턴
 Reward,SuperUnit,슈퍼 유닛 무료 소환(GameRules.csv City.SuperUnitId) / 안 씀
+Passive,None,없음 / 
+Passive,Aura,신전에 인접(8칸)한 아군 유닛의 능력치 +크기 / Attack 또는 Defense
+Passive,Buff,신전에 인접한 아군이 방어 태세(Defend)일 때 방어력 +크기 / 쓰지 않음
+Passive,Damage,그 팀 턴 시작에 신전에 인접한 적 유닛에게 피해(체력 1 아래로는 깎지 않음) / 쓰지 않음
+Passive,Gold,신전마다 별 +크기/턴 / 쓰지 않음
+Passive,FaithCap,신전마다 신앙 최대 보유량 +크기 / 쓰지 않음
 VisualId 접두사,Ground.,"지면 타일 / Ground.<TileTypeId>, 없으면 Ground.Grass"
 VisualId 접두사,Terrain.,숲·산·바위·구름 오버레이 / Terrain.Cloud(시야) 등
 VisualId 접두사,Building.,건물 / Building.<건물 Id>

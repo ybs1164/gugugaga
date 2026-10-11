@@ -234,6 +234,31 @@ namespace TacticsECS
             return rows;
         }
 
+        public const string GodStringTable = "God";
+
+        public static GodRow[] ParseGods(string text, List<string> errors = null)
+        {
+            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "Note" }, new string[0], errors);
+            var rows = new GodRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                string id = CsvTableReader.Get(t, r, "Id");
+                rows[r] = new GodRow
+                {
+                    Index = r,
+                    Id = id,
+                    Name = LocalizationSystem.Name(GodStringTable, id),
+                    Description = LocalizationSystem.Desc(GodStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
+                    Passive = CsvTableReader.GetEnum(t, r, "Passive", GodPassiveKind.None, errors),
+                    Target = CsvTableReader.Get(t, r, "Target"),
+                    Value = CsvTableReader.GetFloat(t, r, "Value", 0f, errors),
+                    PerPrayer = CsvTableReader.GetFloat(t, r, "PerPrayer", 0f, errors),
+                    Period = CsvTableReader.GetInt(t, r, "Period", 1, errors),
+                };
+            }
+            return rows;
+        }
+
         public static StartConditionRow[] ParseStartConditions(string text, List<string> errors = null)
         {
             var t = Begin("StartConditions.csv", text, new[] { "Index", "Id" }, new[] { "Note" }, new[] { "Rule" }, errors);

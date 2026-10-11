@@ -9,7 +9,7 @@ namespace TacticsECS
     public static class FaithSystem
     {
         /// <summary>팀의 신앙 최대 보유량 = 기본 + 도시 레벨 합 × 레벨당 증가량 + 자기 영토 신전들의 FaithCap. 기술 등은 이후 단계에서 더한다.</summary>
-        public static int MaxFaith(GridWorld grid, EconomyWorld econ, Team team)
+        public static int MaxFaith(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
             int max = GameRules.Faith.BaseCap;
             for (int i = 0; i < econ.Cities.Count; i++)
@@ -24,13 +24,14 @@ namespace TacticsECS
                 var info = TileImprovementSystem.FindBuilding(tile.BuildingId);
                 if (info != null) max += info.Value.FaithCap;
             }
+            max += TemplePassiveSystem.FaithCapBonus(grid, world, econ, team);
             return Mathf.Max(0, max);
         }
 
         /// <summary>상한을 다시 계산해 적고, 현재량이 새 상한을 넘으면 상한까지 줄인다.</summary>
-        public static CityResourceData RefreshMax(CityResourceData resources, GridWorld grid, EconomyWorld econ, Team team)
+        public static CityResourceData RefreshMax(CityResourceData resources, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
-            resources.MaxFaith = MaxFaith(grid, econ, team);
+            resources.MaxFaith = MaxFaith(grid, world, econ, team);
             resources.Faith = Mathf.Clamp(resources.Faith, 0, resources.MaxFaith);
             return resources;
         }
@@ -92,7 +93,7 @@ namespace TacticsECS
         /// <summary>턴 시작 지급.</summary>
         public static CityResourceData ApplyTurnStart(CityResourceData resources, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turnNumber)
         {
-            resources = RefreshMax(resources, grid, econ, team);
+            resources = RefreshMax(resources, grid, world, econ, team);
             PrayerSystem.ReleaseStale(grid, world, team);
             return Add(resources, IncomePreview(grid, world, team, turnNumber, out _));
         }

@@ -43,6 +43,9 @@ namespace TacticsECS
         /// <summary>종족 Index(Tribes.csv), -1 = 종족 없음.</summary>
         public event Action<Team, int> OnTribeSelected;
 
+        /// <summary>신 Index(Gods.csv), -1 = 신 없음.</summary>
+        public event Action<Team, int> OnGodSelected;
+
         [Tooltip("팔레트 목록 한 줄(버튼). CSV 행 수만큼 매번 이 프리팹을 인스턴스화한다. Assets/Prefabs/UI/PaletteButton.prefab.")]
         [SerializeField] private GameObject paletteButtonPrefab;
 
@@ -63,6 +66,8 @@ namespace TacticsECS
         private Dropdown _biomeDropdown;
         private Dropdown _playerTribeDropdown;
         private Dropdown _enemyTribeDropdown;
+        private Dropdown _playerGodDropdown;
+        private Dropdown _enemyGodDropdown;
         private Text _tribeInfoText;
         private Button _playerButton;
         private Button _enemyButton;
@@ -229,6 +234,8 @@ namespace TacticsECS
                 SetLabel(biomeTab, "BiomeLabel", "UI.SandboxHud.Biome");
                 SetLabel(biomeTab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
                 SetLabel(biomeTab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
+                SetLabel(biomeTab, "PlayerGodLabel", "UI.SandboxHud.PlayerGod");
+                SetLabel(biomeTab, "EnemyGodLabel", "UI.SandboxHud.EnemyGod");
             }
             SetLabel(_canvas, "StartBattleButton", "UI.SandboxHud.StartBattle");
         }
@@ -268,6 +275,9 @@ namespace TacticsECS
             _playerTribeDropdown = biomeTab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
             _enemyTribeDropdown = biomeTab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
             _tribeInfoText = biomeTab.Find("TribeInfo").GetComponent<Text>();
+            // 신 드롭다운은 나중에 추가돼 옛 프리팹(UIPrefabSetup.GenerateSandboxOnly 전)에는 없을 수 있다.
+            _playerGodDropdown = biomeTab.Find("PlayerGodDropdown")?.GetComponent<Dropdown>();
+            _enemyGodDropdown = biomeTab.Find("EnemyGodDropdown")?.GetComponent<Dropdown>();
 
             _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
             _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });
@@ -281,6 +291,8 @@ namespace TacticsECS
             });
             _playerTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Player, i - 1));
             _enemyTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Enemy, i - 1));
+            if (_playerGodDropdown != null) _playerGodDropdown.onValueChanged.AddListener(i => OnGodSelected?.Invoke(Team.Player, i - 1));
+            if (_enemyGodDropdown != null) _enemyGodDropdown.onValueChanged.AddListener(i => OnGodSelected?.Invoke(Team.Enemy, i - 1));
         }
 
         private static string Percent(float v) => $"{Mathf.RoundToInt(v * 100f)}%";
@@ -332,6 +344,15 @@ namespace TacticsECS
             options.AddRange(tribeNames);
             SetOptions(_playerTribeDropdown, options, playerSelected + 1);
             SetOptions(_enemyTribeDropdown, options, enemySelected + 1);
+        }
+
+        /// <summary>신 드롭다운 두 개: 0번은 "신 없음", 그 뒤로 신 이름들. selected는 신 Index(-1 = 없음).</summary>
+        public void SetGodOptions(IReadOnlyList<string> godNames, int playerSelected, int enemySelected)
+        {
+            var options = new List<string> { LocalizationSystem.T("UI.SandboxHud.NoGod") };
+            options.AddRange(godNames);
+            SetOptions(_playerGodDropdown, options, playerSelected + 1);
+            SetOptions(_enemyGodDropdown, options, enemySelected + 1);
         }
 
         public void SetTribeInfo(string text)

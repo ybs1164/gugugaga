@@ -68,6 +68,10 @@ namespace TacticsECS
     // 기도: 신전 근처에서 기도를 고른 유닛(PrayerSystem). 방어력 0, 매 턴 시작 신앙 획득. 피격·이동·공격하면 풀린다 — docs/spec/game/faith.md
     [System.Serializable] public struct Praying { public bool Value; }
 
+    // 신전 패시브(오라/버프)로 받는 능력치 보너스. TemplePassiveSystem.RefreshAuras가 상태가 바뀔 때마다 통째로 다시 계산한다.
+    // GuardDefense는 방어 태세(IsGuarding) 중일 때만 방어력에 더해진다. 규칙: docs/spec/game/faith.md
+    [System.Serializable] public struct TempleAura { public float Attack; public float Defense; public float GuardDefense; }
+
     // ---- 시야 (스폰 후 불변, 승선 시 교체) ----
     // 이 유닛이 밝히는 반경(체비쇼프). 기본 1(3x3), 정찰(ScoutAction) 보유 시 2(5x5). 산 위에 서 있으면 VisionSystem이
     // 추가로 2까지 넓힌다 — Data/VisionDefinition.cs 참고.

@@ -32,6 +32,9 @@ namespace TacticsECS
         public readonly Dictionary<Team, string[]> StartUnitIds = new Dictionary<Team, string[]>();
         public readonly Dictionary<Team, int> StartCapitalLevels = new Dictionary<Team, int>();
 
+        /// <summary>팀이 고른 신(Gods.csv Index). 없는 팀은 키가 없거나 -1 — 신전 패시브가 없다.</summary>
+        public readonly Dictionary<Team, int> GodIds = new Dictionary<Team, int>();
+
         public readonly List<EmbassyData> Embassies = new List<EmbassyData>();
         public readonly HashSet<(Team, Team)> Wars = new HashSet<(Team, Team)>();
         public readonly HashSet<(Team, Team)> PeaceTreaties = new HashSet<(Team, Team)>();

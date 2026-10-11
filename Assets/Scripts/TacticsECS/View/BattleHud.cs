@@ -419,7 +419,7 @@ namespace TacticsECS
             _hpFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(frac), 1f);
             _hpFill.color = HpColorScale.ForFraction(frac);
 
-            _attackText.text = world.Get<Attack>(unitId).Value.ToString();
+            _attackText.text = CombatSystem.EffectiveAttack(world, unitId).ToString();
 
             bool guarding = world.Get<IsGuarding>(unitId).Value;
             _defenseText.text = CombatSystem.EffectiveDefense(world, unitId).ToString();

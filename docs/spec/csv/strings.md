@@ -28,6 +28,7 @@
 | `Task.<Id>.Name`, `.Desc` | [Tasks](tasks.md) |
 | `CityReward.<Reward>.Name`, `.Desc` | [CityRewards](city-rewards.md) |
 | `Tribe.<Id>.Name`, `.Desc` | [Tribes](tribes.md#tribescsv--종족) |
+| `God.<Id>.Name`, `.Desc` | [Gods](gods.md#godscsv--신) |
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |
 | `Biome.<Biome>.Name` | [Biomes](biomes.md) `Biome` 행. 불러온 바이옴 파일의 `Name`보다 앞선다 |
 | `Structure.<StructureId>.Name`, `.Desc` | 타일 구조물(`StructureDefinition`) |

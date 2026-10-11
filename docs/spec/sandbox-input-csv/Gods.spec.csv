@@ -1,0 +1,9 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. 샌드박스 신 드롭다운이 가리킨다
+Id,문자열,O,,,이름표. 이름·설명은 번역 표 God.<Id>.Name/.Desc
+Passive,열거,,None,,패시브 유형 — 아래 표
+Target,문자열,,없음,,유형별 대상 — 아래 표
+Value,실수,,0,,신전 하나의 기본 효과 크기
+PerPrayer,실수,,0,,기도 유닛 하나당 더해지는 크기(음수면 약해진다)
+Period,정수,,1,,Resource: 이 턴 수마다 한 번 발동
+Note,메모,,,,로더 무시

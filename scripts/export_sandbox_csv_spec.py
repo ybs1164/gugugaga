@@ -69,7 +69,7 @@ boat_path = 'Assets/Resources/Tables/Boats.csv'
 unit_by_name = {r[0]: r for r in units}
 specs[boat_path] = [([r[0], *unit_by_name[r[0]][1:]] if r[0] in unit_by_name and not r[1] else r) for r in specs[boat_path]]
 tables = [p for p in specs if p.startswith('Assets/Resources/') and '/Models/' not in p]
-assert len(tables) == 18, tables
+assert len(tables) == 19, tables
 manifest = []
 columns = []
 for path in tables:

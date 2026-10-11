@@ -89,6 +89,24 @@ namespace TacticsECS
         public int[] Techs;
     }
 
+    /// <summary>신 하나(Gods.csv) — 신전 패시브 하나를 가진다. Value + PerPrayer × (신전 곁에서 기도 중인 유닛 수)가 신전 하나의 효과 크기다.</summary>
+    public struct GodRow
+    {
+        public int Index;
+        public string Id;
+        public string Name;
+        public string Description;
+        public GodPassiveKind Passive;
+
+        /// <summary>패시브가 무엇에 작용하는지(유형별로 뜻이 다르다 — csv/gods.md).</summary>
+        public string Target;
+        public float Value;
+        public float PerPrayer;
+
+        /// <summary>Resource 유형: 이 턴 수마다 한 번 발동.</summary>
+        public int Period;
+    }
+
     /// <summary>종족 하나(Tribes.csv).</summary>
     public struct TribeRow
     {

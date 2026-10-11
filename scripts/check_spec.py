@@ -142,7 +142,7 @@ def check_string_keys():
     expected = []
     expected += [f"Unit.{i}.Name" for i in ids(tables / "Units.csv") + ids(tables / "Boats.csv")]
     for prefix, path, col in (("Building", tables / "Buildings.csv", "Id"), ("Tech", tables / "Techs.csv", "Id"),
-                              ("Tribe", tables / "Tribes.csv", "Id"), ("StartCondition", tables / "StartConditions.csv", "Id"),
+                              ("Tribe", tables / "Tribes.csv", "Id"), ("God", tables / "Gods.csv", "Id"), ("StartCondition", tables / "StartConditions.csv", "Id"),
                               ("TileAction", res / "TileActions.csv", "Id"), ("Task", res / "Tasks.csv", "Id"),
                               ("CityReward", res / "CityRewards.csv", "Reward")):
         expected += [f"{prefix}.{i}.Name" for i in ids(path, col)]
@@ -183,6 +183,7 @@ def check_placeholders(rows, langs):
         "Unit": (*merged(load(tables / "Units.csv"), load(tables / "Boats.csv")), unit_cols),
         "Tech": (*load(tables / "Techs.csv"), ["CostBase", "CostPerCity"]),
         "Tribe": (*load(tables / "Tribes.csv"), ["StartStars"]),
+        "God": (*load(tables / "Gods.csv"), []),
         "StartRule": (*load(tables / "StartConditionRules.csv"), ["Count", "MinDistance", "MaxDistance"]),
         "StartCondition": (*load(tables / "StartConditions.csv"), []),
     }

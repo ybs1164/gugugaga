@@ -48,6 +48,14 @@ Table.GameRules,Value,필드 타입,O,,,정수/실수/불리언/문자열/열거
 Table.GameRules,Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고유 규칙
 Table.GameRules,Description,문자열,,,,규칙 설명(단일 출처)
 Table.GameRules,Note,문자열,△,,,Value≠Wiki이거나 Wiki가 비었으면 필수 — 원문과 다른 이유
+Table.Gods,Index,정수,O,,,배열 위치. 샌드박스 신 드롭다운이 가리킨다
+Table.Gods,Id,문자열,O,,,이름표. 이름·설명은 번역 표 God.<Id>.Name/.Desc
+Table.Gods,Passive,열거,,None,,패시브 유형 — 아래 표
+Table.Gods,Target,문자열,,없음,,유형별 대상 — 아래 표
+Table.Gods,Value,실수,,0,,신전 하나의 기본 효과 크기
+Table.Gods,PerPrayer,실수,,0,,기도 유닛 하나당 더해지는 크기(음수면 약해진다)
+Table.Gods,Period,정수,,1,,Resource: 이 턴 수마다 한 번 발동
+Table.Gods,Note,메모,,,,로더 무시
 Table.SpriteCatalog,VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
 Table.SpriteCatalog,Sheet,문자열,O,,,"Assets/Resources/Pixel2D/Sheets/<이름>.png, 또는 Pattern/<이름>(아래 픽셀 패턴)"
 Table.SpriteCatalog,Column,정수,,0,,시트의 16px 격자 좌표

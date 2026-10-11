@@ -65,6 +65,9 @@ namespace TacticsECS
     // 만들어 소모시키고 즉시 해제한다 — "1턴간 행동불능".
     [System.Serializable] public struct Frozen { public bool Value; }
 
+    // 기도: 신전 근처에서 기도를 고른 유닛(PrayerSystem). 방어력 0, 매 턴 시작 신앙 획득. 피격·이동·공격하면 풀린다 — docs/spec/game/faith.md
+    [System.Serializable] public struct Praying { public bool Value; }
+
     // ---- 시야 (스폰 후 불변, 승선 시 교체) ----
     // 이 유닛이 밝히는 반경(체비쇼프). 기본 1(3x3), 정찰(ScoutAction) 보유 시 2(5x5). 산 위에 서 있으면 VisionSystem이
     // 추가로 2까지 넓힌다 — Data/VisionDefinition.cs 참고.

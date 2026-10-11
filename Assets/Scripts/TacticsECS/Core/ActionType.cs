@@ -97,5 +97,8 @@ namespace TacticsECS
         /// 값을 갖지 않는 순수 마커 — Actions/CreepAction.cs 참고.</summary>
         Creep = 1 << 28,
         Stomp = 1 << 29,
+        /// <summary>기도: 신전 근처 유닛이 고르는 액티브 행동(PrayerSystem). 유닛 CSV의 행동이 아니다 — 선택 시 BattleController가 조건을 보고
+        /// 버튼 표시용으로만 붙인다. 규칙: docs/spec/game/faith.md</summary>
+        Pray = 1 << 30,
     }
 }

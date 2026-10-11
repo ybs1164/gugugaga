@@ -13,6 +13,7 @@
 | `RequiredStructure{n}` | StructureId | | 없음 | 이 구조물 중 하나 위에만 지을 수 있고, 지으면 소모 |
 | `AdjacentBuildingIndex{n}` | Buildings Index | | 없음 | 8방향 같은 팀 영토에 이 건물 중 하나가 있어야 함 |
 | `PopulationPerAdjacent` | 정수 | | 0 | 인접한 `AdjacentBuildingIndex` 건물 하나당 인구 |
+| `FaithCap` | 정수 | | 0 | 지은 팀의 신앙 최대 보유량에 더하는 값. 0보다 크면 [기도](../game/faith.md#기도) 거점 |
 | `Flag{n}` | 태그 | | 없음 | 아래 태그 |
 | `Task` | 과업 Id | | 없음 | 기념물이면 [과업](tasks.md) Id |
 | `Wiki`, `Note` | 메모 | | | 로더 무시 |

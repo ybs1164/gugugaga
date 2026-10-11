@@ -33,6 +33,7 @@ Table.Buildings,Terrain{n},TileClass,O(1개 이상),,,지을 수 있는 지형
 Table.Buildings,RequiredStructure{n},StructureId,,없음,,
 Table.Buildings,AdjacentBuildingIndex{n},Buildings Index,,없음,,8방향 같은 팀 영토에 이 건물 중 하나가 있어야 함
 Table.Buildings,PopulationPerAdjacent,정수,,0,,인접한 AdjacentBuildingIndex 건물 하나당 인구
+Table.Buildings,FaithCap,정수,,0,,지은 팀의 신앙 최대 보유량에 더하는 값. 0보다 크면 기도 거점
 Table.Buildings,Flag{n},태그,,없음,,아래 태그
 Table.Buildings,Task,과업 Id,,없음,,기념물이면 과업 Id
 Table.Buildings,Wiki,메모,,,,로더 무시

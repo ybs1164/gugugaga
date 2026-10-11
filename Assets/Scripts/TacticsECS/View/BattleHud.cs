@@ -25,6 +25,7 @@ namespace TacticsECS
         public event Action OnHealClicked;
         public event Action OnSelfDestructClicked;
         public event Action OnWaitClicked;
+        public event Action OnPrayClicked;
         public event Action OnDeselectClicked;
         /// <summary>승/패 화면의 "다시 시작" 버튼. 샌드박스 모드에서는 이 버튼이 곧 배치 화면(커스텀 화면)으로
         /// 되돌아가는 진입점이고, 데모 모드에서는 데모 편성을 다시 스폰하는 재시작이다 — 어느 쪽이든
@@ -491,6 +492,7 @@ namespace TacticsECS
             (ActionType.Heal, "heal"),
             (ActionType.SelfDestruct, "selfdestruct"),
             (ActionType.Wait, "hp"),
+            (ActionType.Pray, "heal"),
         };
 
         private void WireActionButtons(Transform canvas)
@@ -517,6 +519,7 @@ namespace TacticsECS
                     case ActionType.Heal: button.onClick.AddListener(() => OnHealClicked?.Invoke()); break;
                     case ActionType.SelfDestruct: button.onClick.AddListener(() => OnSelfDestructClicked?.Invoke()); break;
                     case ActionType.Wait: button.onClick.AddListener(() => OnWaitClicked?.Invoke()); break;
+                    case ActionType.Pray: button.onClick.AddListener(() => OnPrayClicked?.Invoke()); break;
                 }
                 _optionalActions[i] = new OptionalActionButton { Flag = def.Flag, Button = button, Rect = (RectTransform)buttonTransform };
             }

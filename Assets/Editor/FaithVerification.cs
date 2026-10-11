@@ -18,6 +18,8 @@ namespace TacticsECS.EditorTools
             VerifyGain();
             VerifyCapAndClamp();
             VerifyTurnStart();
+            VerifyTempleCap();
+            VerifyPrayer();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -108,6 +110,66 @@ namespace TacticsECS.EditorTools
 
             world.Set(0, new Hp { Value = 0 });
             Check(FaithSystem.CountUnits(world, Team.Player) == 1, "죽은 유닛은 순위 계산에서 빠진다");
+        }
+        private static void BuildTemple(GridWorld grid, Vector2Int p, string id)
+        {
+            var tile = grid.GetTile(p);
+            tile.BuildingId = id;
+            grid.SetTile(p, tile);
+        }
+
+        private static void VerifyTempleCap()
+        {
+            var grid = NewGrid();
+            var econ = NewEconomy(grid, out _);
+            int before = FaithSystem.MaxFaith(grid, econ, Team.Player);
+            BuildTemple(grid, new Vector2Int(2, 2), "Temple");
+            int cap = TileImprovementSystem.FindBuilding("Temple").Value.FaithCap;
+            Check(cap > 0, "Buildings.csv Temple has FaithCap");
+            Check(FaithSystem.MaxFaith(grid, econ, Team.Player) == before + cap, "자기 영토 신전이 최대치를 늘린다");
+            Check(FaithSystem.MaxFaith(grid, econ, Team.Enemy) == GameRules.Faith.BaseCap + econ.Cities[1].Level * GameRules.Faith.CityLevelCap, "남의 신전은 영향 없음");
+
+            var r = FaithSystem.RefreshMax(new CityResourceData(), grid, econ, Team.Player);
+            r = FaithSystem.Add(r, r.MaxFaith);
+            BuildTemple(grid, new Vector2Int(2, 2), string.Empty);
+            r = FaithSystem.RefreshMax(r, grid, econ, Team.Player);
+            Check(r.MaxFaith == before && r.Faith == before, "신전이 사라지면 최대치와 현재량이 함께 줄어든다");
+        }
+
+        private static void VerifyPrayer()
+        {
+            var grid = NewGrid();
+            var econ = NewEconomy(grid, out var world);
+            BuildTemple(grid, new Vector2Int(2, 2), "Temple");
+            int near = Unit(grid, world, Team.Player, new Vector2Int(1, 2));
+            int far = Unit(grid, world, Team.Player, new Vector2Int(0, 0));
+            int enemy = Unit(grid, world, Team.Enemy, new Vector2Int(1, 3));
+
+            Check(PrayerSystem.CanPray(grid, world, near), "신전 8칸 안의 유닛은 기도할 수 있다");
+            Check(!PrayerSystem.CanPray(grid, world, far), "신전에서 먼 유닛은 기도할 수 없다");
+            Check(!PrayerSystem.CanPray(grid, world, enemy), "남의 신전에서는 기도할 수 없다");
+
+            float defense = CombatSystem.BaseDefense(world, near);
+            Check(PrayerSystem.Pray(grid, world, near), "기도 시작");
+            Check(world.Get<HasActed>(near).Value && world.Get<HasMoved>(near).Value, "기도하면 행동이 끝난다");
+            Check(CombatSystem.BaseDefense(world, near) == 0f && defense > 0f, "기도 중 방어력 0");
+            Check(!PrayerSystem.CanPray(grid, world, near), "이미 기도 중이면 다시 못 한다");
+
+            var res = FaithSystem.RefreshMax(new CityResourceData(), grid, econ, Team.Player);
+            var withPrayer = FaithSystem.ApplyTurnStart(res, grid, world, econ, Team.Player, 1);
+            var noPrayerWorld = FaithSystem.GainPreview(world, Team.Player, 1, out _);
+            Check(withPrayer.Faith == noPrayerWorld + GameRules.Faith.PrayGain, "기도 유닛 하나당 PrayGain 추가");
+
+            var attack = UnitActionQueries.Find<AttackAction>(world, enemy);
+            Check(attack != null && attack.Execute(grid, world, enemy, near, out _), "적이 기도 중인 유닛을 공격");
+            Check(!world.Get<Praying>(near).Value, "피격되면 기도가 풀린다");
+            Check(CombatSystem.BaseDefense(world, near) > 0f, "풀리면 방어력 복구");
+
+            world.Set(near, new HasActed { Value = false });
+            PrayerSystem.Pray(grid, world, near);
+            BuildTemple(grid, new Vector2Int(2, 2), string.Empty);
+            PrayerSystem.ReleaseStale(grid, world, Team.Player);
+            Check(!world.Get<Praying>(near).Value, "신전이 사라지면 기도가 풀린다");
         }
     }
 }

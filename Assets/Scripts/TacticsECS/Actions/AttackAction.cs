@@ -44,10 +44,12 @@ namespace TacticsECS
             StealthSystem.Reveal(world, actorId); // 위키 Hide: 행동(공격)하면 드러난다
             DiplomacySystem.DeclareWar(grid.Economy, world.Get<Team>(actorId), world.Get<Team>(targetId));
             amount = CombatSystem.CalculateDamage(world, actorId, targetId);
+            PrayerSystem.Cancel(world, actorId);
             var hp = world.Get<Hp>(targetId);
             hp.Value = Mathf.Max(0, hp.Value - amount);
             world.Set(targetId, hp);
             world.Set(targetId, new Accelerated { Value = false });
+            PrayerSystem.OnHit(world, targetId);
             world.Set(actorId, new HasActed { Value = true });
 
             if (!UnitQueries.IsAlive(world, targetId))
@@ -110,6 +112,7 @@ namespace TacticsECS
                 splashHp.Value = Mathf.Max(0, splashHp.Value - splashDamage);
                 world.Set(i, splashHp);
                 world.Set(i, new Accelerated { Value = false });
+                PrayerSystem.OnHit(world, i);
 
                 if (!UnitQueries.IsAlive(world, i))
                 {

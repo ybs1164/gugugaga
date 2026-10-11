@@ -50,7 +50,7 @@ namespace TacticsECS
         public static BuildingInfo[] ParseBuildings(string text, List<string> errors = null, string name = "Buildings.csv")
         {
             var t = Begin(name, text, new[] { "Index", "Id", "Terrain" },
-                new[] { "Cost", "Population", "RequiredStructure", "AdjacentBuildingIndex", "PopulationPerAdjacent", "Flag", "Task", "Wiki", "Note" },
+                new[] { "Cost", "Population", "RequiredStructure", "AdjacentBuildingIndex", "PopulationPerAdjacent", "FaithCap", "Flag", "Task", "Wiki", "Note" },
                 new[] { "Terrain", "RequiredStructure", "AdjacentBuildingIndex", "Flag" }, errors);
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var rows = new BuildingInfo[t.Rows.Count];
@@ -70,6 +70,7 @@ namespace TacticsECS
                     Terrain = CsvTableReader.GetFlags<TileClass>(t, r, "Terrain", errors),
                     RequiredStructures = CsvTableReader.GetList(t, r, "RequiredStructure"),
                     PopulationPerAdjacent = CsvTableReader.GetInt(t, r, "PopulationPerAdjacent", 0, errors),
+                    FaithCap = CsvTableReader.GetInt(t, r, "FaithCap", 0, errors),
                     IsRoad = flags.Contains(GameTableCsvSerializer.FlagRoad),
                     AllowNeutral = flags.Contains(GameTableCsvSerializer.FlagNeutral),
                     RequiresOppositeLand = flags.Contains(GameTableCsvSerializer.FlagOppositeLand),

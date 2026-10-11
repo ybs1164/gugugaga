@@ -16,7 +16,7 @@
 - 가공 건물(`PopulationPerAdjacent`): 옆에 기반 건물이 생기거나 없어지면 가공 건물이 주는 인구도 같이 바뀐다.
 - `OnePerCity`: 도시 영토당 하나.
 - 시장(`StarsFromAdjacent`): 인접 가공 건물들의 인구 합 × `City.MarketStarsPerLevel`만큼 별/턴, 상한 `City.MarketStarsCap`.
-- 신전(`Temple`): 지은 턴부터 레벨이 오른다 — 점수는 [task-score](task-score.md).
+- 신전(`Temple`): 지은 턴부터 레벨이 오른다 — 점수는 [task-score](task-score.md). `FaithCap`만큼 신앙 최대치를 늘리고 기도 거점이 된다 — [faith](faith.md).
 - 기념물(`Task`): 그 과업을 달성하면 한 번 무료로 지을 수 있다.
 - 다리(`OppositeLand`): 상하 또는 좌우 양쪽 이웃이 육지인 물 칸. 육지 유닛은 다리 칸을 육지처럼 지나간다.
 - 항구: 육지 유닛이 들어가면 배가 된다 — [unit](unit.md#배).

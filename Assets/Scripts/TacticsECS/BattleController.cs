@@ -259,6 +259,7 @@ namespace TacticsECS
             _hud.OnHealClicked += HandleHealClicked;
             _hud.OnSelfDestructClicked += HandleSelfDestructClicked;
             _hud.OnWaitClicked += HandleWaitClicked;
+            _hud.OnPrayClicked += HandlePrayClicked;
             _hud.OnDeselectClicked += ClearSelection;
             _hud.OnRestartClicked += HandleReturnToSetup;
             _hud.OnLanguageClicked += HandleLanguageClicked;
@@ -1040,7 +1041,7 @@ namespace TacticsECS
             if (_faithHud == null) return;
             _faithHud.SetFaith(resources.Faith, resources.MaxFaith);
             if (_econ == null) { _faithHud.SetIncomePreview(0, 0); return; }
-            int gain = FaithSystem.GainPreview(_world, Team.Player, _econ.Turn + 1, out int rank);
+            int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out int rank);
             _faithHud.SetIncomePreview(gain, rank);
         }
 
@@ -1795,6 +1796,7 @@ namespace TacticsECS
             var available = _world.Get<AvailableActions>(unitId).Value;
             // 대기(회복)는 이번 턴 움직이지 않은 유닛만(위키 Recover — WaitAction.CanExecute).
             if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
+            if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
 
             _reachableTiles = null;
             var move = UnitActionQueries.Find<MoveAction>(_world, unitId);
@@ -1959,6 +1961,18 @@ namespace TacticsECS
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Wait, TargetId = BattleLogEntry.NoTarget, Amount = healed }));
             _viewsById[unitId].Refresh(_world, unitId);
             RefreshRoster();
+            ClearSelection();
+        }
+
+        private void HandlePrayClicked()
+        {
+            if (_state != SelectState.UnitSelected) return;
+            int unitId = _selectedUnitId;
+            if (!PrayerSystem.Pray(_grid, _world, unitId)) return;
+
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshRoster();
+            RefreshCityResources();
             ClearSelection();
         }
 

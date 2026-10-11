@@ -8,7 +8,7 @@ namespace TacticsECS
     /// </summary>
     public static class FaithSystem
     {
-        /// <summary>팀의 신앙 최대 보유량 = 기본 + 도시 레벨 합 × 레벨당 증가량. 세부: 신전·기술 등은 이후 단계에서 여기에 더한다.</summary>
+        /// <summary>팀의 신앙 최대 보유량 = 기본 + 도시 레벨 합 × 레벨당 증가량 + 자기 영토 신전들의 FaithCap. 기술 등은 이후 단계에서 더한다.</summary>
         public static int MaxFaith(GridWorld grid, EconomyWorld econ, Team team)
         {
             int max = GameRules.Faith.BaseCap;
@@ -16,6 +16,13 @@ namespace TacticsECS
             {
                 if (econ.Cities[i].Owner != team) continue;
                 max += econ.Cities[i].Level * GameRules.Faith.CityLevelCap;
+            }
+            for (int i = 0; i < grid.Tiles.Length; i++)
+            {
+                var tile = grid.Tiles[i];
+                if (tile.OwnerTeam != (int)team || string.IsNullOrEmpty(tile.BuildingId)) continue;
+                var info = TileImprovementSystem.FindBuilding(tile.BuildingId);
+                if (info != null) max += info.Value.FaithCap;
             }
             return Mathf.Max(0, max);
         }
@@ -78,11 +85,16 @@ namespace TacticsECS
             return GainFor(rank, turnNumber);
         }
 
+        /// <summary>순위 획득량 + 기도 중인 유닛 하나당 PrayGain(HUD 미리보기와 턴 시작 지급이 같은 값을 쓴다).</summary>
+        public static int IncomePreview(GridWorld grid, EntityWorld world, Team team, int turnNumber, out int rank) =>
+            GainPreview(world, team, turnNumber, out rank) + PrayerSystem.CountPraying(grid, world, team) * GameRules.Faith.PrayGain;
+
         /// <summary>턴 시작 지급.</summary>
         public static CityResourceData ApplyTurnStart(CityResourceData resources, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turnNumber)
         {
             resources = RefreshMax(resources, grid, econ, team);
-            return Add(resources, GainPreview(world, team, turnNumber, out _));
+            PrayerSystem.ReleaseStale(grid, world, team);
+            return Add(resources, IncomePreview(grid, world, team, turnNumber, out _));
         }
     }
 }

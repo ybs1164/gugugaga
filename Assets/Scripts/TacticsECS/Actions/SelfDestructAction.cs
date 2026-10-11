@@ -33,6 +33,7 @@ namespace TacticsECS
                 hp.Value = Mathf.Max(0, hp.Value - damage);
                 world.Set(i, hp);
                 world.Set(i, new Accelerated { Value = false });
+                PrayerSystem.OnHit(world, i);
                 affectedIds.Add(i);
 
                 if (!UnitQueries.IsAlive(world, i))

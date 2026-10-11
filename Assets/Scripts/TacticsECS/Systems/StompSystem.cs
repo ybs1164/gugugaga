@@ -21,6 +21,7 @@ namespace TacticsECS
                 hp.Value = Mathf.Max(0, hp.Value - CombatSystem.CalculateSplashDamage(world, actorId, i));
                 world.Set(i, hp);
                 world.Set(i, new Accelerated { Value = false });
+                PrayerSystem.OnHit(world, i);
                 StealthSystem.Reveal(world, i);
                 if (!UnitQueries.IsAlive(world, i))
                 {

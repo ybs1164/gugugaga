@@ -75,6 +75,7 @@ namespace TacticsECS.EditorTools
             (ActionType.Heal, "heal"),
             (ActionType.SelfDestruct, "selfdestruct"),
             (ActionType.Wait, "hp"),
+            (ActionType.Pray, "heal"),
         };
 
         /// <summary>프리팹에 구울 글자 — 번역 표 원문(ko). 실행 중에는 각 HUD가 지금 언어로 다시 채운다.</summary>

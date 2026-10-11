@@ -84,6 +84,8 @@ namespace TacticsECS
             public static int RankBonus2 = 2;
             public static int RankBonus3 = 1;
             public static int TurnsPerGrowth = 5;
+            public static int PrayGain = 1;
+            public static int PrayRange = 1;
         }
 
         public static class Tech

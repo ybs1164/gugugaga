@@ -57,6 +57,9 @@ namespace TacticsECS
         /// <summary>신전류(레벨이 오르며 점수가 늘어난다 — ScoreSystem).</summary>
         public bool IsTemple;
 
+        /// <summary>이 건물이 늘려 주는 신앙 최대 보유량(0이면 신앙과 무관). 있으면 기도 거점이 된다 — docs/spec/game/faith.md</summary>
+        public int FaithCap;
+
         /// <summary>한 도시(영토)에 하나만 지을 수 있다(위키 Sawmill/Windmill/Forge: "only one can be built per city").</summary>
         public bool OnePerCity;
         public bool IsEmbassy;

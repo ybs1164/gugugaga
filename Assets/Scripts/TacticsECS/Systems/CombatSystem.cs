@@ -32,7 +32,8 @@ namespace TacticsECS
 
         /// <summary>방어 스탯(방어 태세 가산 포함, 위치 보너스 배수는 제외).</summary>
         public static float BaseDefense(EntityWorld world, int unitId) =>
-            world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0f);
+            world.GetOrDefault<Praying>(unitId).Value ? 0f // 기도 중에는 방어력 0 — docs/spec/game/faith.md
+            : world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus : 0f);
 
         /// <summary>위치 방어 보너스 배수(PositionalDefenseBonus 등급 — TechEffectSystem이 계산): 없음 1, 표준 1.5, 성벽 4.</summary>
         public static float DefenseMultiplier(EntityWorld world, int unitId)

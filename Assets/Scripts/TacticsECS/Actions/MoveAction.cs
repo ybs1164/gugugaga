@@ -47,6 +47,7 @@ namespace TacticsECS
             }
             if (PathfindingSystem.IsBlockedByOccupant(grid, world, unitId, destination, ignoreUnitBlocking)) return false;
             if (occupant != TileData.NoOccupant && occupant != unitId && !ignoreUnitBlocking) return false; // 지나갈 수는 있어도 멈출 수는 없다
+            PrayerSystem.Cancel(world, unitId);
 
             grid.RemoveOccupant(world.Get<GridPosition>(unitId).Value);
             world.Set(unitId, new GridPosition { Value = destination });

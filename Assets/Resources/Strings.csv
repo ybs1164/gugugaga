@@ -470,3 +470,6 @@ Building.Embassy.Desc,"상대의 원래 수도에 건설. 양쪽에 별 +{Rule.D
 UI.CityMenu.Embassy,대사관: {0},Embassy: {0}
 Action.Stomp.Name,짓밟기,Stomp
 Action.Stomp.Tooltip,이동·승선·하선 시 주변 적에게 광역 피해.,"Deals splash damage to adjacent enemies when moving, embarking or disembarking."
+UI.Faith.Label,신앙,Faith
+UI.Faith.Value,{0}/{1},{0}/{1}
+UI.Faith.Income,다음 턴 +{0} · {1}위,Next turn +{0} · rank {1}

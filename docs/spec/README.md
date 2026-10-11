@@ -40,6 +40,7 @@
 | 이동 | [movement](game/movement.md) | [units](csv/units.md) | `PathfindingSystem`, `MovementSystem` |
 | 시야·은신·침투 | [vision](game/vision.md) | [game-rules](csv/game-rules.md) `Vision.*` | `VisionSystem`, `StealthSystem`, `InfiltrationSystem` |
 | 턴·별 | [turn](game/turn.md) | [game-rules](csv/game-rules.md) | `TurnSystem`, `CityResourceSystem` |
+| 신앙 | [faith](game/faith.md) | [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `View/FaithHud` |
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
 | AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI` |

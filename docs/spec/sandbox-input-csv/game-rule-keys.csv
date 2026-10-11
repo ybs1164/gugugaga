@@ -78,3 +78,10 @@ AI.DefendRadius,int,군사 AI: 적이 도시 N칸 안이면 가장 가까운 유
 Diplomacy.EmbassyIncome,int,대사관 하나가 양쪽 부족에 주는 별/턴
 Diplomacy.PeaceTreatyIncomeMultiplier,int,평화 조약 상태의 대사관 수입 배수
 Diplomacy.EmbassySightRadius,int,대사관 건설 시 상대 수도 주변 공개 반경
+Faith.BaseCap,int,신앙 포인트 기본 최대 보유량
+Faith.CityLevelCap,int,도시 레벨 1당 늘어나는 최대 보유량
+Faith.BaseGain,int,턴 시작 기본 신앙 획득량(4위 이하 동일)
+Faith.RankBonus1,int,1위 추가 획득량
+Faith.RankBonus2,int,2위 추가 획득량
+Faith.RankBonus3,int,3위 추가 획득량
+Faith.TurnsPerGrowth,int,이만큼 턴이 지날 때마다 모든 순위의 획득량 +1

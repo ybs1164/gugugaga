@@ -13,6 +13,7 @@ namespace TacticsECS.EditorTools
         public static void Run()
         {
             Step("GameDataCsvVerification", GameDataCsvVerification.Run);
+            Step("FaithVerification", FaithVerification.Run);
             Step("EconomyVerification", EconomyVerification.Run);
             Step("BuildingFeatureVerification", BuildingFeatureVerification.Run);
             Step("UnitCsvVerification", UnitCsvVerification.Run);

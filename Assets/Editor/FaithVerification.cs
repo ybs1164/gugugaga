@@ -1,0 +1,113 @@
+using UnityEngine;
+
+namespace TacticsECS.EditorTools
+{
+    /// <summary>
+    /// 신앙 포인트(FaithSystem)를 GameObject 없이 검증하는 배치모드 스크립트. 규칙: docs/spec/game/faith.md
+    /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.FaithVerification.Run
+    /// </summary>
+    public static class FaithVerification
+    {
+        private static bool _ok;
+
+        public static void Run()
+        {
+            GameDataLoader.LoadAll();
+            _ok = true;
+            VerifyRank();
+            VerifyGain();
+            VerifyCapAndClamp();
+            VerifyTurnStart();
+            Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
+        }
+
+        private static void Check(bool condition, string message)
+        {
+            if (condition) return;
+            _ok = false;
+            Debug.LogError("[FaithVerification] FAIL: " + message);
+        }
+
+        private static void VerifyRank()
+        {
+            Check(FaithSystem.RankOf(new[] { 3, 1 }, 0) == 1, "유닛이 많은 팀은 1위");
+            Check(FaithSystem.RankOf(new[] { 3, 1 }, 1) == 2, "유닛이 적은 팀은 2위");
+            Check(FaithSystem.RankOf(new[] { 2, 2 }, 0) == 1 && FaithSystem.RankOf(new[] { 2, 2 }, 1) == 1, "동수는 공동 1위");
+            Check(FaithSystem.RankOf(new[] { 3, 3, 1 }, 2) == 3, "공동 1위 다음은 3위");
+        }
+
+        private static void VerifyGain()
+        {
+            int first = FaithSystem.GainFor(1, 1), second = FaithSystem.GainFor(2, 1), fourth = FaithSystem.GainFor(4, 1), fifth = FaithSystem.GainFor(5, 1);
+            Check(first > second && second > FaithSystem.GainFor(3, 1) && FaithSystem.GainFor(3, 1) > fourth, "순위가 높을수록 획득량이 크다");
+            Check(fourth == fifth, "4위 이하는 같은 양");
+            Check(fourth == GameRules.Faith.BaseGain, "4위는 기본 획득량");
+            int late = 1 + GameRules.Faith.TurnsPerGrowth;
+            Check(FaithSystem.GainFor(1, late) == first + 1, "TurnsPerGrowth 턴마다 획득량 +1");
+        }
+
+        private static EconomyWorld NewEconomy(GridWorld grid, out EntityWorld world)
+        {
+            world = new EntityWorld();
+            var econ = new EconomyWorld();
+            foreach (var team in CitySystem.Teams) econ.Resources[team] = new CityResourceData();
+            CitySystem.FoundCity(grid, econ, new Vector2Int(1, 1), Team.Player, true, "수도");
+            CitySystem.FoundCity(grid, econ, new Vector2Int(6, 6), Team.Enemy, true, "수도");
+            return econ;
+        }
+
+        private static GridWorld NewGrid()
+        {
+            var grid = new GridWorld(8, 8);
+            for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) grid.SetTileType(new Vector2Int(x, y), "Grass");
+            return grid;
+        }
+
+        private static int Unit(GridWorld grid, EntityWorld world, Team team, Vector2Int pos)
+        {
+            var row = new UnitCsvRow { Id = "infantry", Name = "보병", MaxHp = 10, Defense = 1, Cost = 2,
+                Actions = ActionType.Move | ActionType.Attack, MoveRange = 1, AttackAttack = 4, AttackRange = 1 };
+            return UnitFactorySystem.CreateFromCsv(grid, world, team, row, pos);
+        }
+
+        private static void VerifyCapAndClamp()
+        {
+            var grid = NewGrid();
+            var econ = NewEconomy(grid, out _);
+            var r = FaithSystem.RefreshMax(new CityResourceData(), grid, econ, Team.Player);
+            int expected = GameRules.Faith.BaseCap + econ.Cities[0].Level * GameRules.Faith.CityLevelCap;
+            Check(r.MaxFaith == expected, $"최대치 = 기본 + 도시 레벨 × 레벨당 증가량 (기대 {expected}, 실제 {r.MaxFaith})");
+
+            r = FaithSystem.Add(r, r.MaxFaith + 50);
+            Check(r.Faith == r.MaxFaith, "최대치를 넘는 신앙은 버려진다");
+            r = FaithSystem.Add(r, -r.MaxFaith - 5);
+            Check(r.Faith == 0, "신앙은 0 아래로 내려가지 않는다");
+
+            r = FaithSystem.Add(r, r.MaxFaith);
+            var c = econ.Cities[0]; c.Level = 1; econ.Cities[0] = c;
+            r = FaithSystem.RefreshMax(r, grid, econ, Team.Player);
+            Check(r.MaxFaith == GameRules.Faith.BaseCap + GameRules.Faith.CityLevelCap, "도시 레벨이 내려가면 최대치도 내려간다");
+            Check(r.Faith == r.MaxFaith, "최대치가 줄면 현재량도 새 상한까지 줄어든다");
+        }
+
+        private static void VerifyTurnStart()
+        {
+            var grid = NewGrid();
+            var econ = NewEconomy(grid, out var world);
+            Unit(grid, world, Team.Player, new Vector2Int(1, 2));
+            Unit(grid, world, Team.Player, new Vector2Int(2, 2));
+            Unit(grid, world, Team.Enemy, new Vector2Int(6, 5));
+
+            var player = FaithSystem.ApplyTurnStart(econ.Resources[Team.Player], grid, world, econ, Team.Player, 1);
+            var enemy = FaithSystem.ApplyTurnStart(econ.Resources[Team.Enemy], grid, world, econ, Team.Enemy, 1);
+            Check(player.Faith == FaithSystem.GainFor(1, 1), $"유닛이 더 많은 팀은 1위 획득량 (실제 {player.Faith})");
+            Check(enemy.Faith == FaithSystem.GainFor(2, 1), $"유닛이 적은 팀은 2위 획득량 (실제 {enemy.Faith})");
+
+            int preview = FaithSystem.GainPreview(world, Team.Player, 1, out int rank);
+            Check(rank == 1 && preview == player.Faith, "미리보기와 실제 지급이 같은 값");
+
+            world.Set(0, new Hp { Value = 0 });
+            Check(FaithSystem.CountUnits(world, Team.Player) == 1, "죽은 유닛은 순위 계산에서 빠진다");
+        }
+    }
+}

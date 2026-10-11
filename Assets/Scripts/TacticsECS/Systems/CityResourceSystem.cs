@@ -33,6 +33,7 @@ namespace TacticsECS
             resources.StarsProduction = CitySystem.StarsIncome(grid, world, econ, team);
             resources.PopulationCap = CitySystem.UnitCapacity(econ, team);
             resources.IsCapital = CitySystem.FindCapital(econ, team) >= 0;
+            resources = FaithSystem.RefreshMax(resources, grid, econ, team);
             return resources;
         }
 

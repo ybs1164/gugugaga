@@ -9,6 +9,10 @@ namespace TacticsECS
         public int StarsProduction;
         public bool IsCapital;
 
+        /// <summary>신앙 포인트와 그 상한 — 계산은 FaithSystem. 규칙: docs/spec/game/faith.md</summary>
+        public int Faith;
+        public int MaxFaith;
+
         public static CityResourceData Create(int populationCap, int starsProduction, bool isCapital)
         {
             return new CityResourceData

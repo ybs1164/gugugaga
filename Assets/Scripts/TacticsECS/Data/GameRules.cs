@@ -74,6 +74,18 @@ namespace TacticsECS
             public static int Stars = 8;
         }
 
+        /// <summary>신앙 포인트(위키에 없는 확장). 계산은 FaithSystem.</summary>
+        public static class Faith
+        {
+            public static int BaseCap = 10;
+            public static int CityLevelCap = 2;
+            public static int BaseGain = 1;
+            public static int RankBonus1 = 3;
+            public static int RankBonus2 = 2;
+            public static int RankBonus3 = 1;
+            public static int TurnsPerGrowth = 5;
+        }
+
         public static class Tech
         {
             public static int DefaultCostBase = 4;

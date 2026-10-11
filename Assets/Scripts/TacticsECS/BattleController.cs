@@ -177,6 +177,7 @@ namespace TacticsECS
         private List<BiomeCsvRow> _defaultBiomes;
 
         private CityResourceHud _cityResourceHud;
+        private FaithHud _faithHud;
         private TechTreeHud _techTreeHud;
         private ActionMenuHud _actionMenu;
 
@@ -267,6 +268,11 @@ namespace TacticsECS
                 _cityResourceHud = Instantiate(cityResourceHudPrefab, transform);
                 _cityResourceHud.name = "CityResourceHud";
                 _cityResourceHud.Init();
+
+                var faithGo = new GameObject("FaithHud");
+                faithGo.transform.SetParent(transform, false);
+                _faithHud = faithGo.AddComponent<FaithHud>();
+                _faithHud.Init(_hud.UiFont);
                 RefreshCityResources();
 
                 if (techTreeHudPrefab != null)
@@ -340,6 +346,7 @@ namespace TacticsECS
             _outline = null;
             _tribeCapitals.Clear();
             _cityResourceHud = null;
+            _faithHud = null;
             _techTreeHud = null;
             _actionMenu = null;
             _econ = null;
@@ -826,6 +833,7 @@ namespace TacticsECS
         {
             _hud.SetBattlePanelsVisible(visible);
             if (_cityResourceHud != null) _cityResourceHud.gameObject.SetActive(visible);
+            if (_faithHud != null) _faithHud.gameObject.SetActive(visible);
         }
 
         /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.
@@ -1002,7 +1010,10 @@ namespace TacticsECS
                 _econ.Turn = turnNumber;
                 // 폴리토피아처럼 첫 턴은 시작 자원만 쓰고, 2턴부터 매 자기 턴 시작마다 도시 수입이 들어온다.
                 if (turnNumber > 1)
+                {
                     _econ.Resources[team] = CityResourceSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team);
+                    _econ.Resources[team] = FaithSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team, turnNumber);
+                }
                 RefreshEconomyViews(false);
             }
 
@@ -1021,6 +1032,16 @@ namespace TacticsECS
             _cityResourceHud.SetScoreLine(_econ != null
                 ? LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy))
                 : string.Empty);
+            RefreshFaith(resources);
+        }
+
+        private void RefreshFaith(CityResourceData resources)
+        {
+            if (_faithHud == null) return;
+            _faithHud.SetFaith(resources.Faith, resources.MaxFaith);
+            if (_econ == null) { _faithHud.SetIncomePreview(0, 0); return; }
+            int gain = FaithSystem.GainPreview(_world, Team.Player, _econ.Turn + 1, out int rank);
+            _faithHud.SetIncomePreview(gain, rank);
         }
 
         private void RefreshTechTree()

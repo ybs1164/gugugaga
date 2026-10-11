@@ -217,7 +217,7 @@ namespace TacticsECS
         /// ScrollRect로 스크롤해서 볼 수 있다.</summary>
         public void SetRoster(EntityWorld world)
         {
-            foreach (var row in _rosterRows) Destroy(row);
+            foreach (var row in _rosterRows) { if (Application.isPlaying) Destroy(row); else DestroyImmediate(row); } // 에디트 모드 캡처에서도 비운다
             _rosterRows.Clear();
 
             float y = 0f;
@@ -326,7 +326,7 @@ namespace TacticsECS
             {
                 var oldest = _logLines[_logLines.Count - 1];
                 _logLines.RemoveAt(_logLines.Count - 1);
-                Destroy(oldest.gameObject);
+                if (Application.isPlaying) Destroy(oldest.gameObject); else DestroyImmediate(oldest.gameObject);
             }
 
             for (int i = 0; i < _logLines.Count; i++)

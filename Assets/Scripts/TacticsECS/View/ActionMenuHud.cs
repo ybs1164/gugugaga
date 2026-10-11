@@ -74,7 +74,7 @@ namespace TacticsECS
 
         public void Show(string title, string body, IReadOnlyList<ActionMenuOption> options)
         {
-            foreach (var r in _rows) Destroy(r);
+            foreach (var r in _rows) { if (Application.isPlaying) Destroy(r); else DestroyImmediate(r); }
             _rows.Clear();
 
             float y = -Padding;

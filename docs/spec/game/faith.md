@@ -62,5 +62,4 @@
 - 유닛 표시: 기도 중인 유닛은 상태 배지가 붙고, 신화 유닛은 금빛으로 보인다. 신화 유닛 메뉴에 남은 유지 턴과 액티브 능력이 보인다.
 - 화면 확인: `unity run . -- -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run`(`-nographics` 금지)이 두 언어·세 해상도의 상태별 캡처를 `docs/images/faith/`에 남긴다.
 
-## 아직 없는 것
-AI의 신앙 사용 — [`FaithPlan`](../../history/FaithPlan.md) 단계 7.
+AI의 신앙 사용은 [ai](ai.md#신앙).

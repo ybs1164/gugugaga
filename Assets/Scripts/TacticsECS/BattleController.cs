@@ -1267,8 +1267,10 @@ namespace TacticsECS
             yield return new WaitForSeconds(0.3f);
             if (_econ != null)
             {
+                var hpBefore = SnapshotHp();
                 ProcessEconomyLog(EconomyAI.RunTurn(_grid, _world, _econ, Team.Enemy));
-                RefreshEconomyViews(false);
+                ShowAiFaithEffects(hpBefore);
+                RefreshEconomyViews(true); // 신앙 펀치(지형 변화)가 있었을 수 있다
                 CheckBattleEnd();
                 if (_battleOver) yield break;
             }
@@ -1290,6 +1292,21 @@ namespace TacticsECS
             yield return new WaitForSeconds(0.3f);
             if (!_battleOver)
                 EndTurn();
+        }
+
+        /// <summary>AI의 신앙 펀치·강림 결과를 화면에 반영한다: 새 신화 유닛에 View를 붙이고, 체력이 깎인 유닛에 피해 팝업을 띄우고, 모든 유닛 View를 갱신한다.</summary>
+        private void ShowAiFaithEffects(Dictionary<int, int> hpBefore)
+        {
+            for (int id = 0; id < _world.EntityCount; id++)
+                if (UnitQueries.IsAlive(_world, id) && !_viewsById.ContainsKey(id)) AttachSpawnedView(id);
+            RefreshAllViews();
+            foreach (var kv in hpBefore)
+            {
+                if (!_viewsById.TryGetValue(kv.Key, out var view)) continue;
+                int after = UnitQueries.IsAlive(_world, kv.Key) ? _world.Get<Hp>(kv.Key).Value : 0;
+                if (kv.Value - after > 0 && _world.Get<Team>(kv.Key) == Team.Player) view.ShowDamagePopup(kv.Value - after);
+            }
+            RefreshRoster();
         }
 
         private void RefreshAllViews()

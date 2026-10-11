@@ -43,7 +43,7 @@
 | 신앙 | [faith](game/faith.md) | [gods](csv/gods.md), [faith-punches](csv/faith-punches.md) (신앙 펀치·신화 유닛), [buildings](csv/buildings.md) `FaithCap`, [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `PrayerSystem`, `TemplePassiveSystem`, `FaithPunchSystem`, `MythicSystem`, `View/FaithHud`, `View/FaithPunchHud` |
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
-| AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI` |
+| AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI`, `FaithAI` |
 | 화면 표시 | — | [sprites](csv/sprites.md) | `View/PixelSpriteCatalog` |
 | 화면 문구·언어 | — | [strings](csv/strings.md) | `LocalizationSystem`, `View/LanguagePreference` |
 

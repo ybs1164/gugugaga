@@ -53,6 +53,7 @@ namespace TacticsECS
                 Train(grid, world, econ, team, log);
             }
             UpgradeRafts(grid, world, econ, team, log);
+            FaithAI.RunTurn(grid, world, econ, team, log); // 신을 고른 팀만 — docs/spec/game/ai.md
             TaskSystem.Refresh(grid, econ, log);
             return log;
         }

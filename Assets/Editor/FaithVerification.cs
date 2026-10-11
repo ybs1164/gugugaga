@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -25,6 +26,7 @@ namespace TacticsECS.EditorTools
             VerifyFaithPunches();
             VerifyMythic();
             VerifyGreatTemple();
+            VerifyFaithAI();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -57,7 +59,8 @@ namespace TacticsECS.EditorTools
         {
             world = new EntityWorld();
             var econ = new EconomyWorld();
-            foreach (var team in CitySystem.Teams) econ.Resources[team] = new CityResourceData();
+            foreach (var team in CitySystem.Teams) { econ.Resources[team] = new CityResourceData(); econ.Tech[team] = TechTreeData.CreateEmpty(); }
+            TaskSystem.Init(econ);
             CitySystem.FoundCity(grid, econ, new Vector2Int(1, 1), Team.Player, true, "수도");
             CitySystem.FoundCity(grid, econ, new Vector2Int(6, 6), Team.Enemy, true, "수도");
             return econ;
@@ -482,6 +485,122 @@ namespace TacticsECS.EditorTools
             // 일반 타일 메뉴에는 나오지 않는다.
             econ.Tech[Team.Player] = TechTreeData.CreateEmpty();
             Check(!TileImprovementSystem.GetOptions(grid, econ, Team.Player, new Vector2Int(0, 0)).Any(o => o.Id == GreatTempleSystem.BuildingId), "not a regular tile option");
+        }
+
+        private static void SetFaithOf(EconomyWorld econ, Team team, int faith, int max)
+        {
+            var r = econ.Resources[team]; r.MaxFaith = max; r.Faith = faith; econ.Resources[team] = r;
+        }
+
+        private static void VerifyFaithAI()
+        {
+            var ai = Team.Enemy;
+            int storm = GodIndex("Storm");
+
+            // 신이 없으면 신앙 AI는 아무것도 하지 않는다.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                BuildTemple(grid, new Vector2Int(5, 5), "Temple");
+                int u = Unit(grid, world, ai, new Vector2Int(5, 6));
+                FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                Check(!world.GetOrDefault<Praying>(u).Value, "AI without a god does nothing");
+            }
+
+            // 기도: 신전 곁 + 적이 멀 때만.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                econ.GodIds[ai] = storm;
+                BuildTemple(grid, new Vector2Int(5, 5), "Temple");
+                int safe = Unit(grid, world, ai, new Vector2Int(5, 6));
+                int far = Unit(grid, world, ai, new Vector2Int(7, 7));
+                Unit(grid, world, Team.Player, new Vector2Int(0, 0));
+                FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                Check(world.GetOrDefault<Praying>(safe).Value && world.Get<HasActed>(safe).Value, "AI prays next to its temple when no enemy is near");
+                Check(!world.GetOrDefault<Praying>(far).Value, "AI units away from the temple do not pray");
+
+                var grid2 = NewGrid(); var econ2 = NewEconomy(grid2, out var world2);
+                econ2.GodIds[ai] = storm;
+                BuildTemple(grid2, new Vector2Int(5, 5), "Temple");
+                int busy = Unit(grid2, world2, ai, new Vector2Int(5, 6));
+                Unit(grid2, world2, Team.Player, new Vector2Int(5, 3));
+                FaithAI.RunTurn(grid2, world2, econ2, ai, new List<EconomyLogEntry>());
+                Check(!world2.GetOrDefault<Praying>(busy).Value, "AI does not pray with an enemy close by");
+            }
+
+            // 신전 건설.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                econ.TechNodes = GameDataLoader.LoadTechNodes();
+                econ.Tech[ai] = TechTreeData.CreateEmpty();
+                foreach (var n in econ.TechNodes) econ.Tech[ai].Unlocked.Add(n.Id);
+                econ.GodIds[ai] = storm;
+                var res = econ.Resources[ai]; res.Stars = 100; econ.Resources[ai] = res;
+                var log = new List<EconomyLogEntry>();
+                FaithAI.RunTurn(grid, world, econ, ai, log);
+                Check(TemplePassiveSystem.Temples(grid, ai).Count >= 1, "AI builds a temple near its capital");
+                Check(econ.Resources[ai].Stars < 100, "temple costs stars");
+            }
+
+            // 천벌: 신앙이 가득 차면(낭비 방지) 가장 이득인 칸에 쓴다.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                econ.GodIds[ai] = storm;
+                SetFaithOf(econ, ai, 20, 20);
+                int target = Unit(grid, world, Team.Player, new Vector2Int(3, 3));
+                int hp = world.Get<Hp>(target).Value;
+                var log = new List<EconomyLogEntry>();
+                FaithAI.RunTurn(grid, world, econ, ai, log);
+                var smite = GameTables.FaithPunches[PunchIndex("Smite")];
+                Check(world.Get<Hp>(target).Value <= hp - smite.Value, "AI strikes a visible enemy");
+                Check(econ.Resources[ai].Faith < 20 && log.Count > 0, "AI spends faith and logs it");
+
+                // 신앙이 낮고 위협도 없으면 아끼고 쓰지 않는다.
+                var grid2 = NewGrid(); var econ2 = NewEconomy(grid2, out var world2);
+                econ2.GodIds[ai] = storm;
+                SetFaithOf(econ2, ai, 8, 20);
+                int safeTarget = Unit(grid2, world2, Team.Player, new Vector2Int(1, 3));
+                int hp2 = world2.Get<Hp>(safeTarget).Value;
+                FaithAI.RunTurn(grid2, world2, econ2, ai, new List<EconomyLogEntry>());
+                Check(world2.Get<Hp>(safeTarget).Value == hp2 && econ2.Resources[ai].Faith == 8, "AI saves faith when not threatened and not capped");
+            }
+
+            // 강림 + 신화 유닛 액티브.
+            {
+                int idx = PunchIndex("Smite");
+                var saved = GameTables.FaithPunches[idx];
+                var blocked = saved; blocked.Cost = 99; // 천벌을 막아 강림이 고르게 한다
+                GameTables.FaithPunches[idx] = blocked;
+                try
+                {
+                    var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                    econ.GodIds[ai] = GodIndex("Storm");
+                    SetFaithOf(econ, ai, 20, 20);
+                    int own = Unit(grid, world, ai, new Vector2Int(5, 5));
+                    int victim = Unit(grid, world, Team.Player, new Vector2Int(3, 5));
+                    int hp = world.Get<Hp>(victim).Value;
+                    FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                    int mythic = MythicSystem.FindMythic(world, ai);
+                    Check(mythic >= 0 && !UnitQueries.IsAlive(world, own), "AI descends its unit when an enemy is near");
+
+                    // 같은 턴에 신화 유닛 액티브(약해진 천벌)도 사거리 안의 적에게 쓴다. 원본 천벌은 막혀 있어도 액티브는 자기 비용을 쓴다.
+                    var row = GameTables.MythicUnits[world.Get<Mythic>(mythic).MythicIndex];
+                    Check(row.ActiveReach >= 2 && world.Get<HasActed>(mythic).Value && world.Get<Hp>(victim).Value < hp, "AI uses the mythic active on an enemy in reach");
+                }
+                finally { GameTables.FaithPunches[idx] = saved; }
+            }
+
+            // 대신전.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                TaskSystem.Init(econ);
+                econ.GodIds[ai] = storm;
+                var res = econ.Resources[ai]; res.Stars = 50; econ.Resources[ai] = res;
+                FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                Check(GreatTempleSystem.IndexOf(econ, ai) < 0, "AI waits for the great temple task");
+                econ.Tasks[ai].Completed.Add(GreatTempleSystem.TaskId);
+                FaithAI.RunTurn(grid, world, econ, ai, new List<EconomyLogEntry>());
+                Check(GreatTempleSystem.IndexOf(econ, ai) >= 0, "AI builds the great temple once the task is done");
+            }
         }
     }
 }

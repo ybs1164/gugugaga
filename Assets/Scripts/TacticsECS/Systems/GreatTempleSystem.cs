@@ -12,6 +12,7 @@ namespace TacticsECS
     {
         public const string BuildingId = "GreatTemple";
         public const string TaskId = "GreatTemple";
+        private const string NaturalResourcePrefix = "Resource_";
 
         public static BuildingInfo? Info() => TileImprovementSystem.FindBuilding(BuildingId);
 
@@ -24,7 +25,7 @@ namespace TacticsECS
 
         // ---------- 건설 ----------
 
-        /// <summary>origin에서 이어진(4방향) 자기 영토의 빈 평지 칸 N개. 모자라면 null.</summary>
+        /// <summary>origin에서 이어진(4방향) 자기 영토의 지을 수 있는 칸(빈 평지, 숲, 자원 칸) N개. 모자라면 null.</summary>
         public static List<Vector2Int> FindSite(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, Vector2Int origin)
         {
             int need = GameRules.Faith.GreatTempleMinTiles;
@@ -48,14 +49,28 @@ namespace TacticsECS
             return site.Count >= need ? site : null;
         }
 
-        private static bool IsFree(GridWorld grid, EconomyWorld econ, Team team, Vector2Int p)
+        public static bool IsFree(GridWorld grid, EconomyWorld econ, Team team, Vector2Int p)
         {
             if (!grid.InBounds(p)) return false;
             var tile = grid.GetTile(p);
             if (tile.OwnerTeam != (int)team || tile.OccupantId != TileData.NoOccupant) return false;
-            if (TileImprovementSystem.Classify(grid, p) != TileClass.Field) return false;
-            if (!string.IsNullOrEmpty(tile.BuildingId) || !string.IsNullOrEmpty(tile.StructureId) || tile.HasRoad) return false;
+            var cls = TileImprovementSystem.Classify(grid, p);
+            if (cls != TileClass.Field && cls != TileClass.Forest) return false; // 숲은 지을 때 치워진다
+            if (!string.IsNullOrEmpty(tile.BuildingId) || tile.HasRoad) return false;
+            if (!string.IsNullOrEmpty(tile.StructureId) && !tile.StructureId.StartsWith(NaturalResourcePrefix)) return false; // 도시·유적·등대 등은 안 된다. 자원은 치워진다
             return CitySystem.FindCityAt(econ, p) < 0;
+        }
+
+        /// <summary>자기 영토에서 대신전을 지을 수 있는 칸(첫 번째), 없으면 null.</summary>
+        public static Vector2Int? AnySite(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
+        {
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var p = new Vector2Int(x, y);
+                if (grid.GetTile(p).OwnerTeam == (int)team && FindSite(grid, world, econ, team, p) != null) return p;
+            }
+            return null;
         }
 
         /// <summary>지을 수 없으면 이유 문구 키, 지을 수 있으면 null.</summary>
@@ -83,6 +98,8 @@ namespace TacticsECS
             foreach (var pos in site)
             {
                 var tile = grid.GetTile(pos);
+                if (TileImprovementSystem.Classify(grid, pos) == TileClass.Forest) tile.TileTypeId = TileImprovementSystem.NeighborFieldTileType(grid, pos); // 숲을 치운다
+                tile.StructureId = string.Empty; // 자원도 치운다
                 tile.BuildingId = BuildingId;
                 tile.BuildingTurn = turn;
                 tile.ExploredMask |= everyone; // 세션의 모든 부족에게 위치 공개

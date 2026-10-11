@@ -227,9 +227,34 @@ namespace TacticsECS.EditorTools
                     if (stats.Winner != "-") break;
                 }
             }
-            foreach (var team in CitySystem.Teams) stats.TaskDone[team] = econ.Tasks[team].Completed.Contains(GreatTempleSystem.TaskId);
+            foreach (var team in CitySystem.Teams)
+            {
+                stats.TaskDone[team] = econ.Tasks[team].Completed.Contains(GreatTempleSystem.TaskId);
+                if (stats.TaskDone[team] && GreatTempleSystem.IndexOf(econ, team) < 0) Diagnose(game.Name, grid, econ, team, stats);
+            }
             stats.Csv = csv.ToString();
             return stats;
+        }
+
+        /// <summary>과업을 채웠는데 대신전이 없는 팀: 영토 칸이 왜 후보가 못 되는지 이유별로 센다(Debug.Log).</summary>
+        private static void Diagnose(string game, GridWorld grid, EconomyWorld econ, Team team, Stats stats)
+        {
+            int own = 0, free = 0, nonField = 0, building = 0, structure = 0, road = 0, city = 0, occupied = 0;
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var p = new Vector2Int(x, y); var t = grid.GetTile(p);
+                if (t.OwnerTeam != (int)team) continue;
+                own++;
+                if (GreatTempleSystem.IsFree(grid, econ, team, p)) { free++; continue; }
+                if (TileImprovementSystem.Classify(grid, p) != TileClass.Field) nonField++;
+                else if (!string.IsNullOrEmpty(t.BuildingId)) building++;
+                else if (!string.IsNullOrEmpty(t.StructureId)) structure++;
+                else if (t.HasRoad) road++;
+                else if (CitySystem.FindCityAt(econ, p) >= 0) city++;
+                else occupied++;
+            }
+            Debug.Log($"[FaithSimulation] NO-GREAT-TEMPLE {game} {team}: own={own} free={free} nonField={nonField} building={building} structure={structure} road={road} city={city} occupied={occupied} stars={econ.Resources[team].Stars}");
         }
 
         /// <summary>BattleController.HandleTurnStart + 적 턴 루틴과 같은 순서.</summary>

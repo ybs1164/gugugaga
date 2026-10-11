@@ -109,6 +109,16 @@ namespace TacticsECS
             }
         }
 
+        /// <summary>대신전을 지을 수 있는 상태(과업 달성, 아직 없음, 자리 있음)인데 별이 모자라면 그 비용만큼 다른 지출(연구·건설·훈련)에서 남겨 둔다.
+        /// 안 그러면 AI가 별을 매 턴 다 써서 대신전 비용이 영영 모이지 않는다.</summary>
+        public static int StarReserve(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
+        {
+            var info = GreatTempleSystem.Info();
+            if (info == null || econ == null || TemplePassiveSystem.GodOf(econ, team) == null) return 0;
+            if (GreatTempleSystem.IndexOf(econ, team) >= 0 || !TaskDone(econ, team)) return 0;
+            return GreatTempleSystem.AnySite(grid, world, econ, team) != null ? info.Value.Cost : 0;
+        }
+
         /// <summary>수도 2칸 안의 자기 영토에서 가장 싼 신전 하나(FaithCap이 있는 건물)를 짓는다. 별이 조금 남을 때만.</summary>
         private static void BuildTemple(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, List<EconomyLogEntry> log)
         {

@@ -28,6 +28,7 @@ namespace TacticsECS.EditorTools
             VerifyGreatTemple();
             VerifyFaithAI();
             VerifyFaithResearch();
+            VerifyGreatTempleAccess();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -633,6 +634,56 @@ namespace TacticsECS.EditorTools
             Check(temple, "following the preference unlocks a temple");
             Check(task, "following the preference unlocks the great temple task");
             Check(FaithAI.PreferredTech(econ, ai) == null, "nothing left to prefer");
+        }
+
+        private static void VerifyGreatTempleAccess()
+        {
+            var ai = Team.Enemy;
+
+            // 숲과 자원 칸도 대신전 자리로 쓸 수 있고, 지으면 치워진다. 유적 같은 구조물은 막는다.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                foreach (var p in new[] { new Vector2Int(2, 2), new Vector2Int(1, 2), new Vector2Int(2, 1), new Vector2Int(0, 2) })
+                {
+                    var t = grid.GetTile(p); t.TileTypeId = TerrainGenerationSystem.ForestTileId; grid.SetTile(p, t);
+                }
+                var res0 = grid.GetTile(new Vector2Int(2, 1)); res0.StructureId = "Resource_Fruit"; grid.SetTile(new Vector2Int(2, 1), res0);
+                econ.Tasks[Team.Player].Completed.Add(GreatTempleSystem.TaskId);
+                var r = econ.Resources[Team.Player]; r.Stars = 50; econ.Resources[Team.Player] = r;
+                Check(GreatTempleSystem.CanBuild(grid, world, econ, Team.Player, new Vector2Int(2, 2)) == null, "forest and resource tiles can host the great temple");
+                GreatTempleSystem.Build(grid, world, econ, Team.Player, new Vector2Int(2, 2), 1);
+                var cleared = econ.GreatTemples[0].Tiles.All(t => grid.GetTile(t).TileTypeId != TerrainGenerationSystem.ForestTileId && string.IsNullOrEmpty(grid.GetTile(t).StructureId) && grid.GetTile(t).BuildingId == GreatTempleSystem.BuildingId);
+                Check(cleared, "building clears forest and resources on its tiles");
+
+                var grid2 = NewGrid(); var econ2 = NewEconomy(grid2, out var world2);
+                foreach (var p in new[] { new Vector2Int(2, 2), new Vector2Int(1, 2), new Vector2Int(2, 1), new Vector2Int(0, 2), new Vector2Int(0, 1), new Vector2Int(2, 0), new Vector2Int(1, 0), new Vector2Int(0, 0) })
+                {
+                    var t = grid2.GetTile(p); t.StructureId = "Ruin"; grid2.SetTile(p, t);
+                }
+                econ2.Tasks[Team.Player].Completed.Add(GreatTempleSystem.TaskId);
+                var r2 = econ2.Resources[Team.Player]; r2.Stars = 50; econ2.Resources[Team.Player] = r2;
+                Check(GreatTempleSystem.CanBuild(grid2, world2, econ2, Team.Player, new Vector2Int(2, 2)) == "UI.GreatTemple.NoSite", "ruins block the great temple");
+            }
+
+            // 별 비축: 과업을 채우고 자리가 있는데 별이 모자라면 AI는 그 비용을 남겨 둔다(연구·건설·훈련을 미룬다).
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                econ.TechNodes = GameDataLoader.LoadTechNodes();
+                econ.UnitRows.Add(new UnitCsvRow { Id = "infantry", Name = "보병", MaxHp = 10, Defense = 1, Cost = 2, BaseVisual = "Melee",
+                    Actions = ActionType.Move | ActionType.Attack, MoveRange = 1, AttackAttack = 4, AttackRange = 1 });
+                econ.GodIds[ai] = GodIndex("Storm");
+                econ.Tasks[ai].Completed.Add(GreatTempleSystem.TaskId);
+                int cost = GreatTempleSystem.Info().Value.Cost;
+                var res = econ.Resources[ai]; res.Stars = cost - 1; econ.Resources[ai] = res;
+                Check(FaithAI.StarReserve(grid, world, econ, ai) == cost, "reserve equals the great temple cost while it is unaffordable");
+                EconomyAI.RunTurn(grid, world, econ, ai);
+                Check(econ.Resources[ai].Stars == cost - 1 && GreatTempleSystem.IndexOf(econ, ai) < 0, "AI saves stars instead of spending them");
+
+                res = econ.Resources[ai]; res.Stars = cost; econ.Resources[ai] = res;
+                EconomyAI.RunTurn(grid, world, econ, ai);
+                Check(GreatTempleSystem.IndexOf(econ, ai) >= 0, "AI builds the great temple as soon as it can pay");
+                Check(FaithAI.StarReserve(grid, world, econ, ai) == 0, "no reserve once built");
+            }
         }
     }
 }

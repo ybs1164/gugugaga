@@ -40,18 +40,19 @@ namespace TacticsECS
 
             bool threatened = IsThreatened(grid, world, econ, team);
             ChooseRewards(grid, econ, team, threatened, log);
-            Research(econ, team, log);
-            FaithAI.RunEarly(grid, world, econ, team, log);
+            FaithAI.RunEarly(grid, world, econ, team, log); // 대신전은 연구·건설·훈련보다 먼저(별을 빼앗기기 전에)
+            int faithReserve = FaithAI.StarReserve(grid, world, econ, team); // 못 지었으면 그 비용을 남겨 둔다
+            Research(econ, team, faithReserve, log);
 
             if (threatened)
             {
-                Train(grid, world, econ, team, log);
-                Improve(grid, world, econ, team, 0, log);
+                Train(grid, world, econ, team, 0, log); // 위협받을 땐 방어가 먼저
+                Improve(grid, world, econ, team, faithReserve, log);
             }
             else
             {
-                Improve(grid, world, econ, team, TrainingReserve(world, econ, team), log);
-                Train(grid, world, econ, team, log);
+                Improve(grid, world, econ, team, TrainingReserve(world, econ, team) + faithReserve, log);
+                Train(grid, world, econ, team, faithReserve, log);
             }
             UpgradeRafts(grid, world, econ, team, log);
             FaithAI.RunTurn(grid, world, econ, team, log); // 신을 고른 팀만 — docs/spec/game/ai.md
@@ -116,7 +117,7 @@ namespace TacticsECS
             return false;
         }
 
-        private static void Research(EconomyWorld econ, Team team, List<EconomyLogEntry> log)
+        private static void Research(EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
         {
             int cityCount = CitySystem.CountCities(econ, team);
             var tech = econ.Tech[team];
@@ -130,8 +131,13 @@ namespace TacticsECS
             }
             // 신을 고른 팀은 신전·대신전 과업을 여는 기술을 먼저 연구한다(살 수 있을 때).
             string preferred = FaithAI.PreferredTech(econ, team);
-            if (preferred != null && TechSystem.CanUnlock(econ.TechNodes, tech, econ.Resources[team], cityCount, preferred)) bestId = preferred;
+            if (preferred != null && TechSystem.CanUnlock(econ.TechNodes, tech, econ.Resources[team], cityCount, preferred))
+            {
+                bestId = preferred;
+                bestCost = TechSystem.Cost(econ.TechNodes, tech, TechSystem.Find(econ.TechNodes, preferred).Value, cityCount);
+            }
             if (bestId == null) return;
+            if (reserve > 0 && econ.Resources[team].Stars - bestCost < reserve) return; // 대신전 비용을 남긴다
 
             var res = econ.Resources[team];
             if (TechSystem.Unlock(econ.TechNodes, tech, ref res, cityCount, bestId))
@@ -141,7 +147,7 @@ namespace TacticsECS
             }
         }
 
-        private static void Train(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, List<EconomyLogEntry> log)
+        private static void Train(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
         {
             if (econ.UnitRows.Count == 0) return;
             int pending = 0;
@@ -153,7 +159,7 @@ namespace TacticsECS
                 UnitCsvRow best = null;
                 foreach (var row in econ.UnitRows)
                     if (CitySystem.CanTrain(grid, world, econ, team, i, row, out _) && (best == null || row.Cost > best.Cost)) best = row;
-                if (best == null || !CitySystem.PayForTraining(grid, world, econ, team, i, best)) continue;
+                if (best == null || econ.Resources[team].Stars - best.Cost < reserve || !CitySystem.PayForTraining(grid, world, econ, team, i, best)) continue;
 
                 pending++;
                 log.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Train, Subject = best.Name, SpawnUnitId = best.Id, Position = econ.Cities[i].Position, CityIndex = i });

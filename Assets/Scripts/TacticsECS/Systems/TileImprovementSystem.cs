@@ -386,7 +386,7 @@ namespace TacticsECS
 
         /// <summary>숲을 없앤 뒤 칸에 쓸 평지 타일 Id — 주변 8칸에서 가장 흔한 평지 타입(바이옴에 맞게 초원/사막
         /// 등), 없으면 "Grass".</summary>
-        private static string NeighborFieldTileType(GridWorld grid, Vector2Int pos)
+        public static string NeighborFieldTileType(GridWorld grid, Vector2Int pos)
         {
             var counts = new Dictionary<string, int>();
             foreach (var n in grid.GetNeighbors(pos, true))

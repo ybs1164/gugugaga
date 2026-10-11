@@ -530,3 +530,18 @@ UI.Mythic.Reason.Reach,사거리 밖입니다.,Out of reach.
 UI.Mythic.Reason.Upkeep,유지 턴이 모자랍니다.,Not enough upkeep turns.
 UI.Mythic.Log.Descend,{0}이(가) {1}(으)로 강림했습니다.,{0} descended as {1}.
 UI.Mythic.Log.Return,{0}이(가) 원래 모습으로 돌아왔습니다.,{0} returned to its original form.
+Building.GreatTemple.Name,대신전,Great Temple
+Building.GreatTemple.Desc,이어진 빈 평지 {Rule.Faith.GreatTempleMinTiles}칸에 짓는다. {Rule.Faith.GreatTempleProtectTurns}턴 동안 지키면 완성되고 유일한 대신전이면 신앙 승리.,Built on {Rule.Faith.GreatTempleMinTiles} connected empty plains tiles. Hold it for {Rule.Faith.GreatTempleProtectTurns} turns to complete it and win if it is the only one.
+Task.GreatTemple.Name,대신전,Great Temple
+Task.GreatTemple.Desc,신앙 {Threshold}을 한 번에 보유.,Hold {Threshold} faith at once.
+UI.GreatTemple.Build,대신전 건설 (별 {0}),Build Great Temple ({0} stars)
+UI.GreatTemple.NeedTask,대신전 과업을 달성해야 합니다.,Complete the Great Temple task first.
+UI.GreatTemple.Exists,이미 대신전이 있습니다.,You already have a Great Temple.
+UI.GreatTemple.NeedStars,별이 모자랍니다.,Not enough stars.
+UI.GreatTemple.NoSite,이어진 빈 평지가 모자랍니다.,Not enough connected empty plains.
+UI.GreatTemple.StatusBuilding,대신전 보호 {0}/{1}턴,Great Temple guarded {0}/{1} turns
+UI.GreatTemple.StatusWaiting,대신전 완성 · 타이브레이크 {0}턴 남음,Great Temple complete · tiebreak {0} turns left
+UI.GreatTemple.StatusSuspended,대신전 완성 · 다른 대신전 때문에 승리 보류,Great Temple complete · win on hold (rival temple)
+UI.GreatTemple.StatusRival,상대 대신전 ({0}:{1}),Rival Great Temple ({0}:{1})
+UI.GreatTemple.Log.Built,대신전을 짓기 시작했습니다. 위치가 모두에게 공개됩니다.,The Great Temple is under construction. Its location is revealed to everyone.
+UI.GreatTemple.Log.Victory,신앙 승리!,Faith victory!

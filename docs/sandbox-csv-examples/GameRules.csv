@@ -99,3 +99,7 @@ Faith.RankBonus3,1,,3위 추가 획득량,위키에 없는 확장
 Faith.TurnsPerGrowth,5,,이만큼 턴이 지날 때마다 모든 순위의 획득량 +1,위키에 없는 확장
 Faith.PrayGain,1,,기도 중인 유닛 하나당 턴 시작 신앙 획득량,위키에 없는 확장
 Faith.PrayRange,1,,기도할 수 있는 신전 거리(체비쇼프),위키에 없는 확장
+Faith.GreatTempleMinTiles,4,,대신전을 지으려면 필요한 이어진 빈 평지 칸 수,위키에 없는 확장
+Faith.GreatTempleProtectTurns,3,,대신전 완성까지 지켜야 하는 턴 수(인접 칸에 적이 들어오면 다시 센다),위키에 없는 확장
+Faith.GreatTempleTieBreakTurns,1,,완성 뒤 타이브레이크로 기다리는 턴 수,위키에 없는 확장
+Score.FaithVictory,1000,,신앙 승리 보너스 점수,위키에 없는 확장

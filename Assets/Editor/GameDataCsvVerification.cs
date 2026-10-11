@@ -61,7 +61,7 @@ namespace TacticsECS.EditorTools
             System.IO.File.WriteAllLines(unitsFile, lines);
             GameDataLoader.LoadAll(new TableSource { Files = new Dictionary<string, string> { ["Tables/Units"] = unitsFile } });
             Check(GameTables.Units.First(u => u.Id == "infantry").Cost == 99, "individual selected units file changes cost");
-            Check(GameTables.Techs.Length == 25 && BuildingDefinition.All.Length == 22, "unselected tables keep defaults");
+            Check(GameTables.Techs.Length == 25 && BuildingDefinition.All.Length == 23, "unselected tables keep defaults");
             GameDataLoader.LoadAll();
             Check(GameTables.Units.First(u => u.Id == "infantry").Cost != 99, "clearing individual selection restores default");
         }
@@ -201,7 +201,7 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyBuildingsAndActions()
         {
-            Check(BuildingDefinition.All.Length == 22, $"22 buildings (15 + 7 monuments), got {BuildingDefinition.All.Length}");
+            Check(BuildingDefinition.All.Length == 23, $"23 buildings (15 + 7 monuments + great temple), got {BuildingDefinition.All.Length}");
             Check(TileActionDefinition.All.Length == 7, $"7 tile actions (starfish is a ship action since 2026-09-29), got {TileActionDefinition.All.Length}");
             var bridge = TileImprovementSystem.FindBuilding(BuildingDefinition.Bridge);
             Check(bridge != null && bridge.Value.AllowNeutral && bridge.Value.RequiresOppositeLand && bridge.Value.ActsAsRoad && !bridge.Value.IsRoad, "bridge flags from CSV");
@@ -295,7 +295,7 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyRewardsAndTasks()
         {
-            Check(CityRewardDefinition.All.Length == 8 && TaskDefinition.All.Length == 7, "8 city rewards, 7 tasks from CSV");
+            Check(CityRewardDefinition.All.Length == 8 && TaskDefinition.All.Length == 8, "8 city rewards, 8 tasks from CSV (7 monuments + great temple)");
             var lv2 = CitySystem.RewardOptions(2);
             var lv7 = CitySystem.RewardOptions(7);
             Check(lv2.Length == 2 && lv2.Contains(CityRewardType.Workshop) && lv2.Contains(CityRewardType.Explorer), "level 2 rewards");

@@ -21,3 +21,4 @@ Index,Id,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2
 19,ParkOfFortune,0,3,Field,ShallowWater,,,,,,0,,,,,Metropolis
 20,TowerOfWisdom,0,3,Field,ShallowWater,,,,,,0,,,,,Genius
 21,Embassy,5,0,Field,,,,,,,0,,Embassy,,,
+22,GreatTemple,10,0,Field,,,,,,,0,,GreatTemple,,,

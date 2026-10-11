@@ -79,6 +79,7 @@ namespace TacticsECS
                     ProducesStarsFromAdjacent = flags.Contains(GameTableCsvSerializer.FlagStarsFromAdjacent),
                     OnePerCity = flags.Contains(GameTableCsvSerializer.FlagOnePerCity),
                     IsEmbassy = flags.Contains(GameTableCsvSerializer.FlagEmbassy),
+                    IsGreatTemple = flags.Contains(GameTableCsvSerializer.FlagGreatTemple),
                     TaskId = CsvTableReader.Get(t, r, "Task"),
                     Description = LocalizationSystem.Desc(BuildingStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
                 };

@@ -23,6 +23,7 @@ namespace TacticsECS
         private Font _font;
         private Text _valueText;
         private Text _incomeText;
+        private Text _statusText;
         private RectTransform _fill;
         private Image _fillImage;
         private float _lastRatio = -1f;
@@ -79,6 +80,16 @@ namespace TacticsECS
             Place(_incomeText.rectTransform, 132f, -10f, PanelWidth - 140f, 18f);
             _incomeText.color = new Color(0.82f, 0.84f, 0.88f);
 
+            // 대신전 상태 줄: 패널 바로 아래(없으면 숨김).
+            _statusText = NewText("Status", canvasGo.transform, 13, TextAnchor.UpperCenter);
+            var statusRect = _statusText.rectTransform;
+            statusRect.anchorMin = statusRect.anchorMax = new Vector2(0.5f, 1f);
+            statusRect.pivot = new Vector2(0.5f, 1f);
+            statusRect.anchoredPosition = new Vector2(0f, TopOffset - PanelHeight - 2f);
+            statusRect.sizeDelta = new Vector2(PanelWidth + 80f, 36f);
+            _statusText.color = FillColor;
+            _statusText.gameObject.SetActive(false);
+
             PixelUISkin.Apply(gameObject);
         }
 
@@ -94,6 +105,14 @@ namespace TacticsECS
                 _lastRatio = ratio;
             }
             _fillImage.color = max > 0 && current >= max ? FullColor : FillColor;
+        }
+
+        /// <summary>대신전 진행 상태 줄(여러 줄 가능). 비면 숨긴다.</summary>
+        public void SetStatus(string text)
+        {
+            if (_statusText == null) return;
+            _statusText.text = text ?? string.Empty;
+            _statusText.gameObject.SetActive(!string.IsNullOrEmpty(text));
         }
 
         /// <summary>다음 턴 시작 예상 수입과 내 순위. 순위가 0 이하면 숨긴다.</summary>

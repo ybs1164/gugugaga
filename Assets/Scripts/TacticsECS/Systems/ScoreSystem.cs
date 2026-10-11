@@ -17,7 +17,7 @@ namespace TacticsECS
 
         public static int Compute(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team) => Total(ComputeBreakdown(grid, world, econ, team));
 
-        public static int Total(ScoreBreakdown b) => b.Units + b.Territory + b.Exploration + b.Cities + b.Parks + b.Monuments + b.Temples + b.Tech;
+        public static int Total(ScoreBreakdown b) => b.Units + b.Territory + b.Exploration + b.Cities + b.Parks + b.Monuments + b.Temples + b.Tech + b.FaithVictory;
 
         public static ScoreBreakdown ComputeBreakdown(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
@@ -54,6 +54,7 @@ namespace TacticsECS
 
             foreach (var n in econ.TechNodes)
                 if (TechSystem.IsUnlocked(econ.Tech[team], n.Id)) b.Tech += GameRules.Score.PerTechTier * n.Tier;
+            if (econ.FaithWinner == (int)team) b.FaithVictory = GameRules.Score.FaithVictory;
             return b;
         }
     }

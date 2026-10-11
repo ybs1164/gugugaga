@@ -47,12 +47,12 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyTableShapes()
         {
-            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 52, $"25 techs / 52 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
+            Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 53, $"25 techs / 53 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
             Check(GameTables.Tribes.Length == 12 && GameTables.TechGroups.Length == 12, "12 regular tribes, one tech group each");
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
             var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count);
             Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
-            Check(GameTables.Units.Length == 11 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 22, "units 11 + mythic samples / boats 7 / buildings 22");
+            Check(GameTables.Units.Length == 11 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 23, "units 11 + mythic samples / boats 7 / buildings 23");
             Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
                   BuildingDefinition.All.First(b => b.Id == "Farm").UnlockKey == "Build.Farm" &&
                   string.IsNullOrEmpty(BuildingDefinition.All.First(b => b.Id == "AltarOfPeace").UnlockKey), "building unlock keys come from TechUnlocks.BuildingIndex");

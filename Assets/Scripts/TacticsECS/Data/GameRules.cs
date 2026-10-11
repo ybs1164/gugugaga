@@ -86,6 +86,9 @@ namespace TacticsECS
             public static int TurnsPerGrowth = 5;
             public static int PrayGain = 1;
             public static int PrayRange = 1;
+            public static int GreatTempleMinTiles = 4;
+            public static int GreatTempleProtectTurns = 3;
+            public static int GreatTempleTieBreakTurns = 1;
         }
 
         public static class Tech
@@ -122,6 +125,7 @@ namespace TacticsECS
             public static int TempleMaxLevel = 5;
             public static int TempleTurnsPerLevel = 3;
             public static int PerTechTier = 100;
+            public static int FaithVictory = 1000;
         }
 
         /// <summary>위키 Terrain(Cloud)/Unit Skills(Scout)/Explorer/Lighthouse. 계산은 VisionSystem, 해금 키는 VisionDefinition.</summary>

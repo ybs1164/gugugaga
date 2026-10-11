@@ -21,3 +21,4 @@
 | `ConnectedCities` | 수도와 연결된 도시 `Threshold` 개 |
 | `CityLevel` | 레벨 `Threshold` 이상 도시 보유 |
 | `AllTech` | 기술 전부 연구 |
+| `FaithHeld` | 신앙 `Threshold` 이상을 한 번에 보유(대신전 — 기념물이 아니라 [신앙 승리](../game/faith.md#신앙-승리) 건설 조건) |

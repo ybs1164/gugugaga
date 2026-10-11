@@ -41,9 +41,23 @@
 - 액티브 능력: 유닛 메뉴에서 쓴다. 신앙 펀치의 약한 버전을 신앙 `ActiveFaithCost`를 내고 쓰며, 유지 턴이 `ActiveUpkeepCost` 더 줄고 이번 턴 행동이 끝난다. 유지 턴이 모자라면 못 쓴다. 대상은 신화 유닛에서 `ActiveReach`칸 안이다.
 - 패시브 능력: 신화 유닛 행의 `Action{n}`(일반 유닛 패시브)이다. 훈련·점령 수용량은 차지하지 않는다(`Independent`).
 
+## 신앙 승리
+대신전을 짓고 지켜서 이기는 내정 승리. 값은 [`GameRules.csv`](../csv/game-rules.md) `Faith.GreatTemple*`·`Score.FaithVictory`, 건물은 [`Buildings.csv`](../csv/buildings.md) `GreatTemple`, 과업은 [`Tasks.csv`](../csv/tasks.md) `GreatTemple`.
+- 열기: 건축 기술(`Construction`)을 연구하면 대신전 과업이 열리고, 신앙을 `Threshold` 이상 한 번에 보유하면 달성한다.
+- 건설: 과업을 달성한 팀이 팀당 하나, 자기 영토의 이어진(4방향) 빈 평지 `Faith.GreatTempleMinTiles`칸에 짓는다(타일 메뉴의 대신전 건설). 별을 내며, 지으면 모든 팀에게 위치가 공개된다.
+- 보호: 지은 뒤 `Faith.GreatTempleProtectTurns` 턴 동안 대신전(칸 위나 8방향 인접 칸)에 적 유닛이 없어야 한다. 적이 들어오면 그 순간부터 처음부터 다시 센다. 이 기간을 채우면 완성되어 타이브레이크를 기다린다.
+- 타이브레이크: 완성 뒤 `Faith.GreatTempleTieBreakTurns` 턴을 기다린다. 그때 살아 있는 상대의 대신전이 있으면 승리가 보류되고, 상대가 전멸해 유일한 대신전이 되면 다시 확인한다.
+- 결과: 유일한 대신전으로 대기를 마치면 즉시 승리하고 `Score.FaithVictory` 점수를 받는다.
+- 화면: 신앙 HUD 아래 줄에 내 대신전의 보호·타이브레이크 진행과 상대 대신전 소식(위치)이 보인다.
+
+## 원문과 다른 점
+- 대신전 과업의 기획 원문 기준은 신앙 50 보유이지만 신앙 최대치가 그보다 낮아 샘플 값은 `Tasks.csv`에서 낮췄다.
+- 보호는 원문의 1안(인접 칸에 적이 들어오면 진행 중단)만 구현했다. 체력을 가진 대신전(2안)은 없다.
+- 신 설계·신화 유닛·펀치 수치는 모두 샘플이다.
+
 ## 화면
 - `FaithHud`: 현재/최대와 게이지, 다음 턴 예상 획득량과 내 순위. 별 표시줄 아래에 놓이고, 누르면 펀치 목록이 열린다. 문구는 [`Strings.csv`](../csv/strings.md) `UI.Faith.*`.
 - `FaithPunchHud`: 목록 · 대상 선택 안내 · 확인(영향 수와 신앙 변화) 세 화면. 문구는 `UI.FaithPunch.*`.
 
 ## 아직 없는 것
-신앙 승리 — [`FaithPlan`](../../history/FaithPlan.md) 단계 6 이후.
+AI의 신앙 사용 — [`FaithPlan`](../../history/FaithPlan.md) 단계 7.

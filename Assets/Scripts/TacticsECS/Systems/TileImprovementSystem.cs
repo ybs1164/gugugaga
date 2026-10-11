@@ -168,6 +168,7 @@ namespace TacticsECS
 
             foreach (var b in BuildingDefinition.All)
             {
+                if (b.IsGreatTemple) continue; // 여러 칸 건물 — GreatTempleSystem.Build
                 if (!string.IsNullOrEmpty(b.UnlockKey) && !TechSystem.HasUnlock(econ.TechNodes, tech, b.UnlockKey)) continue;
                 if (!string.IsNullOrEmpty(b.TaskId) && !TaskSystem.CanBuildMonument(econ, team, b.TaskId)) continue;
                 if (b.IsEmbassy)

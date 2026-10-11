@@ -64,6 +64,9 @@ namespace TacticsECS
         public bool OnePerCity;
         public bool IsEmbassy;
 
+        /// <summary>대신전(여러 칸, 신앙 승리) — 일반 타일 메뉴가 아니라 GreatTempleSystem이 짓는다.</summary>
+        public bool IsGreatTemple;
+
         public string Description;
     }
 }

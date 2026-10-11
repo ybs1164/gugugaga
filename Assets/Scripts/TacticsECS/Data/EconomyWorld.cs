@@ -35,6 +35,12 @@ namespace TacticsECS
         /// <summary>팀이 고른 신(Gods.csv Index). 없는 팀은 키가 없거나 -1 — 신전 패시브가 없다.</summary>
         public readonly Dictionary<Team, int> GodIds = new Dictionary<Team, int>();
 
+        /// <summary>팀별 대신전(신앙 승리). 팀당 하나.</summary>
+        public readonly List<GreatTempleData> GreatTemples = new List<GreatTempleData>();
+
+        /// <summary>신앙 승리한 팀((int)Team), 아직 없으면 -1.</summary>
+        public int FaithWinner = -1;
+
         public readonly List<EmbassyData> Embassies = new List<EmbassyData>();
         public readonly HashSet<(Team, Team)> Wars = new HashSet<(Team, Team)>();
         public readonly HashSet<(Team, Team)> PeaceTreaties = new HashSet<(Team, Team)>();

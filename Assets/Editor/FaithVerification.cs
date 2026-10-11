@@ -24,6 +24,7 @@ namespace TacticsECS.EditorTools
             VerifyGods();
             VerifyFaithPunches();
             VerifyMythic();
+            VerifyGreatTemple();
             Debug.Log(_ok ? "[FaithVerification] ALL PASS" : "[FaithVerification] SOME CHECKS FAILED - see errors above");
         }
 
@@ -421,6 +422,66 @@ namespace TacticsECS.EditorTools
             MythicSystem.Sweep(grid, world);
             Check(!UnitQueries.IsAlive(world, origin) && !UnitQueries.IsAlive(world, mythic2), "mythic death removes the original too");
             Check(grid.GetOccupant(pos) == TileData.NoOccupant && MythicSystem.FindMythic(world, Team.Player) < 0, "tile freed, no mythic left");
+        }
+
+        private static void VerifyGreatTemple()
+        {
+            var info = GreatTempleSystem.Info();
+            Check(info != null && info.Value.IsGreatTemple, "GreatTemple building row");
+            var task = TaskSystem.Find(GreatTempleSystem.TaskId);
+            Check(task != null && task.Value.Kind == TaskKind.FaithHeld, "GreatTemple task is FaithHeld");
+
+            var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+            TaskSystem.Init(econ);
+            var res = econ.Resources[Team.Player]; res.Stars = 50; res.MaxFaith = 100; res.Faith = 0; econ.Resources[Team.Player] = res;
+            var origin = new Vector2Int(2, 2);
+
+            Check(GreatTempleSystem.CanBuild(grid, world, econ, Team.Player, origin) == "UI.GreatTemple.NeedTask", "needs the task");
+            Check(!TaskSystem.IsMet(grid, econ, Team.Player, task.Value), "task not met without faith");
+            res.Faith = task.Value.Threshold; econ.Resources[Team.Player] = res;
+            Check(TaskSystem.IsMet(grid, econ, Team.Player, task.Value), "task met when holding enough faith");
+            econ.Tasks[Team.Player].Completed.Add(GreatTempleSystem.TaskId);
+
+            Check(GreatTempleSystem.CanBuild(grid, world, econ, Team.Player, new Vector2Int(6, 6)) == "UI.GreatTemple.NoSite", "needs own territory");
+            Check(GreatTempleSystem.CanBuild(grid, world, econ, Team.Player, origin) == null, "buildable on connected empty plains");
+            Check(GreatTempleSystem.FindSite(grid, world, econ, Team.Player, origin).Count == GameRules.Faith.GreatTempleMinTiles, "site has the required tile count");
+
+            Check(GreatTempleSystem.Build(grid, world, econ, Team.Player, origin, 1), "build");
+            var temple = econ.GreatTemples[0];
+            Check(temple.Tiles.All(t => grid.GetTile(t).BuildingId == GreatTempleSystem.BuildingId), "every tile carries the building");
+            Check(temple.Tiles.All(t => VisionSystem.IsExplored(grid, Team.Enemy, t)), "location revealed to every team");
+            Check(econ.Resources[Team.Player].Stars == 50 - info.Value.Cost, "build costs stars");
+            Check(GreatTempleSystem.CanBuild(grid, world, econ, Team.Player, origin) == "UI.GreatTemple.Exists", "one per team");
+
+            // 보호: 인접 적이 있으면 처음부터 다시 센다.
+            int protect = GameRules.Faith.GreatTempleProtectTurns;
+            GreatTempleSystem.OnTurnStart(grid, world, econ, Team.Player, 1 + protect - 1);
+            Check(econ.GreatTemples[0].State == GreatTempleState.Building, "still guarded before the protection time");
+            int intruder = Unit(grid, world, Team.Enemy, new Vector2Int(3, 3));
+            GreatTempleSystem.Refresh(grid, world, econ, 1 + protect - 1);
+            Check(econ.GreatTemples[0].StartTurn == protect, "intruder restarts the protection count");
+            GreatTempleSystem.OnTurnStart(grid, world, econ, Team.Player, 1 + protect);
+            Check(econ.GreatTemples[0].State == GreatTempleState.Building, "protection does not finish while the intruder stays");
+            world.Set(intruder, new Hp { Value = 0 });
+            grid.RemoveOccupant(new Vector2Int(3, 3));
+            int done = 1 + protect + protect;
+            GreatTempleSystem.OnTurnStart(grid, world, econ, Team.Player, done);
+            Check(econ.GreatTemples[0].State == GreatTempleState.Waiting && econ.FaithWinner < 0, "protection completes into the tiebreak wait");
+
+            // 타이브레이크: 살아 있는 상대의 대신전이 있으면 보류, 상대가 전멸하면 승리.
+            Unit(grid, world, Team.Enemy, new Vector2Int(6, 6));
+            econ.GreatTemples.Add(new GreatTempleData { Owner = Team.Enemy, Tiles = new[] { new Vector2Int(6, 5) }, State = GreatTempleState.Building, StartTurn = done, CompleteTurn = -1 });
+            GreatTempleSystem.OnTurnStart(grid, world, econ, Team.Player, done + GameRules.Faith.GreatTempleTieBreakTurns);
+            Check(econ.FaithWinner < 0, "rival great temple suspends the win");
+            Check(GreatTempleSystem.StatusLine(world, econ, Team.Player, done).Contains("\n") || GreatTempleSystem.StatusLine(world, econ, Team.Player, done).Length > 0, "status line shows progress");
+            for (int i = 0; i < world.EntityCount; i++) if (world.Get<Team>(i) == Team.Enemy) world.Set(i, new Hp { Value = 0 });
+            GreatTempleSystem.OnTurnStart(grid, world, econ, Team.Player, done + GameRules.Faith.GreatTempleTieBreakTurns);
+            Check(econ.FaithWinner == (int)Team.Player, "sole great temple wins");
+            Check(ScoreSystem.ComputeBreakdown(grid, world, econ, Team.Player).FaithVictory == GameRules.Score.FaithVictory, "victory bonus in the breakdown");
+
+            // 일반 타일 메뉴에는 나오지 않는다.
+            econ.Tech[Team.Player] = TechTreeData.CreateEmpty();
+            Check(!TileImprovementSystem.GetOptions(grid, econ, Team.Player, new Vector2Int(0, 0)).Any(o => o.Id == GreatTempleSystem.BuildingId), "not a regular tile option");
         }
     }
 }

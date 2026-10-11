@@ -11,5 +11,6 @@ namespace TacticsECS
         public int Monuments;
         public int Temples;
         public int Tech;
+        public int FaithVictory;
     }
 }

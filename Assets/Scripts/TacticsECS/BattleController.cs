@@ -1193,6 +1193,7 @@ namespace TacticsECS
                     foreach (int hitId in TemplePassiveSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber))
                         if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
                 }
+                GreatTempleSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber);
                 var mythicChanged = MythicSystem.OnTurnStart(_grid, _world, team);
                 for (int k = 0; k + 1 < mythicChanged.Count; k += 2)
                 {
@@ -1201,6 +1202,7 @@ namespace TacticsECS
                         if (_viewsById.TryGetValue(id, out var changedView)) changedView.Refresh(_world, id);
                 }
                 RefreshEconomyViews(false);
+                CheckBattleEnd();
             }
 
             if (team == Team.Enemy && !_battleOver)
@@ -1225,6 +1227,7 @@ namespace TacticsECS
         {
             if (_faithHud == null) return;
             _faithHud.SetFaith(resources.Faith, resources.MaxFaith);
+            _faithHud.SetStatus(_econ != null ? GreatTempleSystem.StatusLine(_world, _econ, Team.Player, _econ.Turn) : string.Empty);
             if (_econ == null) { _faithHud.SetIncomePreview(0, 0); return; }
             int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out int rank);
             _faithHud.SetIncomePreview(gain, rank);
@@ -1349,6 +1352,15 @@ namespace TacticsECS
 
         private void CheckBattleEnd()
         {
+            if (_econ != null && _econ.FaithWinner >= 0 && !_battleOver)
+            {
+                _battleOver = true;
+                ClearSelection();
+                _hud.SetEndTurnVisible(false);
+                _hud.AddLogEntry(LocalizationSystem.T("UI.GreatTemple.Log.Victory"));
+                _hud.ShowBattleEnd(playerWon: _econ.FaithWinner == (int)Team.Player);
+                return;
+            }
             bool playerAlive = !HasTeamLost(Team.Player);
             bool enemyAlive = !HasTeamLost(Team.Enemy);
             if (!playerAlive || !enemyAlive)
@@ -1570,6 +1582,7 @@ namespace TacticsECS
             TaskSystem.Refresh(_grid, _econ, log);
             if (log.Count > 0) ProcessEconomyLog(log);
 
+            GreatTempleSystem.Refresh(_grid, _world, _econ, _econ.Turn);
             foreach (int removed in MythicSystem.Sweep(_grid, _world))
                 if (_viewsById.TryGetValue(removed, out var removedView)) removedView.Refresh(_world, removed);
             TemplePassiveSystem.RefreshAuras(_grid, _world, _econ);
@@ -1786,12 +1799,40 @@ namespace TacticsECS
                 });
             }
 
+            AddGreatTempleOption(options, pos, tile);
+
             if (cityIndex < 0 && options.Count == 0 && string.IsNullOrEmpty(tile.BuildingId) && !tile.HasRoad)
             {
                 _actionMenu.Hide();
                 return;
             }
             _actionMenu.Show(title, body.ToString(), options);
+        }
+
+        /// <summary>자기 영토의 빈 평지 칸에서 대신전 건설 항목을 보인다 — 과업·별·자리가 모자라면 이유와 함께 비활성.</summary>
+        private void AddGreatTempleOption(List<ActionMenuOption> options, Vector2Int pos, TileData tile)
+        {
+            var info = GreatTempleSystem.Info();
+            if (info == null || tile.OwnerTeam != (int)Team.Player || !string.IsNullOrEmpty(tile.BuildingId)) return;
+            if (TileImprovementSystem.Classify(_grid, pos) != TileClass.Field) return;
+            string reason = GreatTempleSystem.CanBuild(_grid, _world, _econ, Team.Player, pos);
+            if (reason == "UI.GreatTemple.NeedTask" || reason == "UI.GreatTemple.Exists") return; // 아직 열리지 않았거나 이미 있으면 항목을 숨긴다
+            options.Add(new ActionMenuOption
+            {
+                Label = LocalizationSystem.F("UI.GreatTemple.Build", info.Value.Cost),
+                Detail = reason == null ? info.Value.Description : LocalizationSystem.T(reason),
+                Enabled = reason == null,
+                OnClick = () => HandleBuildGreatTemple(pos)
+            });
+        }
+
+        private void HandleBuildGreatTemple(Vector2Int pos)
+        {
+            if (!CanUseEconomyMenu) return;
+            if (!GreatTempleSystem.Build(_grid, _world, _econ, Team.Player, pos, _econ.Turn)) return;
+            _hud.AddLogEntry(LocalizationSystem.T("UI.GreatTemple.Log.Built"));
+            RefreshEconomyViews(false);
+            RefreshMenu();
         }
 
         private bool IsOwnCity(Vector2Int pos)

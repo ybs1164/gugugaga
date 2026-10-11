@@ -6,3 +6,4 @@ Killer,Kills,10,,위키: 적 유닛 처치 시 개방 — 같은 이유로 생�
 Network,ConnectedCities,5,Task.Network,도로
 Metropolis,CityLevel,5,,위키: 도시 레벨 업 시 개방
 Genius,AllTech,0,Task.Genius,철학
+GreatTemple,FaithHeld,20,Task.GreatTemple,건축 — 샘플: 기획 원문은 신앙 50 보유(최대 보유량이 모자라 샘플은 낮춤)

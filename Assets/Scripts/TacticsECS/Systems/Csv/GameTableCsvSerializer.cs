@@ -26,8 +26,9 @@ namespace TacticsECS
         public const string FlagStarsFromAdjacent = "StarsFromAdjacent";
         public const string FlagOnePerCity = "OnePerCity";
         public const string FlagEmbassy = "Embassy";
+        public const string FlagGreatTemple = "GreatTemple";
 
-        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagStarsFromAdjacent, FlagOnePerCity, FlagEmbassy };
+        public static readonly string[] BuildingFlags = { FlagRoad, FlagNeutral, FlagOppositeLand, FlagActsAsRoad, FlagTemple, FlagStarsFromAdjacent, FlagOnePerCity, FlagEmbassy, FlagGreatTemple };
 
         // ---------- 타일 행동 (TileActions.csv) ----------
 

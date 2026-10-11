@@ -51,3 +51,4 @@ Index,Kind,Category,Target,BuildingIndex,UnitIndex,BoatIndex,Name,Description
 49,Passive,Connect,Ocean,,,,원양 항로,깊은 바다를 건너는 항구 연결
 50,BuildingConstruction,Build,,13,,,다리,다리 건설(별 5)
 51,BuildingConstruction,Build,,21,,,대사관,평화 상태인 다른 부족의 원래 수도에 대사관 건설
+52,Quest,Task,GreatTemple,,,,대신전 과업,신앙 보유 → 대신전 건설

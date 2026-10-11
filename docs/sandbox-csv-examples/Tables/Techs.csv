@@ -1,4 +1,4 @@
-Index,Id,Icon,CostBase,CostPerCity,Unlock1,Unlock2,Unlock3,Unlock4
+﻿Index,Id,Icon,CostBase,CostPerCity,Unlock1,Unlock2,Unlock3,Unlock4
 0,Climbing,mountaineering,4,1,0,1,2,
 1,Meditation,meditation,4,2,3,4,,
 2,Mining,mining,4,2,5,,,
@@ -8,7 +8,7 @@ Index,Id,Icon,CostBase,CostPerCity,Unlock1,Unlock2,Unlock3,Unlock4
 6,Strategy,shields,4,2,13,,,
 7,Farming,farming,4,2,14,,,
 8,Diplomacy,diplomacy,4,3,15,16,51,
-9,Construction,construction,4,3,17,18,,
+9,Construction,construction,4,3,17,18,52,
 10,Riding,riding,4,1,19,,,
 11,FreeSpirit,freespirit,4,2,20,21,,
 12,Roads,roads,4,2,22,23,50,

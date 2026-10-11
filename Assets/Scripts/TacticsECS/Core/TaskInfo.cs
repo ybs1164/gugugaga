@@ -17,6 +17,8 @@ namespace TacticsECS
         CityLevel,
         /// <summary>기술 전부 연구(지혜의 탑).</summary>
         AllTech,
+        /// <summary>신앙 포인트 Threshold 이상을 한 번에 보유(대신전).</summary>
+        FaithHeld,
     }
 
     /// <summary>과업 하나의 고정 정의. 순수 데이터 — 표는 Data/TaskDefinition.cs.</summary>

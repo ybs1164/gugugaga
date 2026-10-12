@@ -66,6 +66,7 @@ Map.CapitalLandRadius,1,,수도 주변 N칸(체비쇼프)은 육지로 강제,�
 Map.MinCapitalLandmassSize,9,,Pangea/Continents에서 수도가 설 수 있는 육지 덩어리(4방향 연결) 최소 칸 수,원문에 없음 — 수도가 한두 칸짜리 섬에 갇히지 않게
 Map.CapitalMinDistance,3,,수도끼리 최소 거리(체비쇼프),원문에 없음 — 쿼드런트 경계에서 수도가 붙지 않게
 Map.CityMinDistance,2,2,수도·Suburb·Pre-terrain 마을끼리 최소 거리(체비쇼프; 2 = 바로 인접 금지),
+Map.SuburbMinDistance,3,,Suburb와 수도 사이 최소 거리(체비쇼프; 다른 도시와의 간격은 Map.CityMinDistance),원문에 없음 — 수도 바로 옆에 마을이 붙어 보이지 않게
 Map.SuburbRadius,3,,Suburb가 수도로부터 떨어질 수 있는 최대 거리(체비쇼프),원문은 "보통 몇 칸 떨어짐"이라고만 함
 Map.SuburbsPerCapital,2,2,수도마다 시도하는 Suburb 수(자리가 없을 때만 줄어듦),
 Map.PreTerrainDensity,0.3,0.3,Pre-terrain 마을 수 공식의 밀도 계수(Lakes/Archipelago),

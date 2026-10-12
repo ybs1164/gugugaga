@@ -149,6 +149,7 @@ namespace TacticsECS
             public static int MinCapitalLandmassSize = 9;
             public static int CapitalMinDistance = 3;
             public static int CityMinDistance = 2;
+            public static int SuburbMinDistance = 3;
             public static int SuburbRadius = 3;
             public static int SuburbsPerCapital = 2;
             public static float PreTerrainDensity = 0.3f;

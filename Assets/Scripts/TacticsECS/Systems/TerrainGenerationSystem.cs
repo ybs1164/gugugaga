@@ -115,7 +115,7 @@ namespace TacticsECS
             if (capitalAnchors.Length > 0)
             {
                 anchors = SnapAllToLand(grid, capitalAnchors, landMask);
-                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, GameRules.Map.CityMinDistance);
+                snappedSuburbs = FilterSuburbs(SnapAllToLand(grid, suburbs, landMask), anchors);
                 snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), GameRules.Map.CityMinDistance);
             }
             else
@@ -335,7 +335,7 @@ namespace TacticsECS
                 // 쿼드런트로 미리 정한 수도/마을 — 마스크 컷에서 탈락했을 때의 안전망 스냅 후, 스냅으로 서로
                 // 붙어버린 마을은 버린다(간격 규칙이 스냅보다 우선).
                 anchors = SnapAllToLand(grid, capitalAnchors, landMask);
-                snappedSuburbs = FilterBySpacing(SnapAllToLand(grid, suburbs, landMask), anchors, GameRules.Map.CityMinDistance);
+                snappedSuburbs = FilterSuburbs(SnapAllToLand(grid, suburbs, landMask), anchors);
                 snappedPreTerrain = FilterBySpacing(SnapAllToLand(grid, preTerrain, landMask), Concat(anchors, snappedSuburbs), GameRules.Map.CityMinDistance);
             }
             else
@@ -376,6 +376,16 @@ namespace TacticsECS
         }
 
         private static Vector2Int[] Concat(Vector2Int[] a, Vector2Int[] b) => Combine(a, b, Array.Empty<Vector2Int>());
+
+        /// <summary>육지로 옮긴 Suburb 후보 중 수도와 GameRules.Map.SuburbMinDistance 미만인 것을 버리고, 나머지는 다른 도시와의
+        /// 일반 간격(CityMinDistance)을 FilterBySpacing으로 지킨다(육지 맞춤 이동으로 수도에 다시 붙는 경우를 막는다).</summary>
+        private static Vector2Int[] FilterSuburbs(Vector2Int[] snapped, Vector2Int[] capitals)
+        {
+            var farEnough = new List<Vector2Int>();
+            foreach (var p in snapped)
+                if (!IsWithinDistance(capitals, p, GameRules.Map.SuburbMinDistance)) farEnough.Add(p);
+            return FilterBySpacing(farEnough.ToArray(), capitals, GameRules.Map.CityMinDistance);
+        }
 
         /// <summary>positions를 순서대로 보며, existing과 이미 통과한 칸 전부로부터 minDistance(체비쇼프) 이상인
         /// 것만 남긴다(중복 칸도 여기서 걸러진다).</summary>
@@ -760,7 +770,7 @@ namespace TacticsECS
                     // (그래서 원문처럼 작은 맵일수록 1개가 더 흔하다).
                     for (int i = 0; i < GameRules.Map.SuburbsPerCapital; i++)
                     {
-                        var pos = FindSuburbCell(grid, capital, reserved, rng);
+                        var pos = FindSuburbCell(grid, capital, capitalAnchors, reserved, rng);
                         if (!pos.HasValue) continue;
                         suburbs.Add(pos.Value);
                         reserved.Add(pos.Value);
@@ -801,8 +811,8 @@ namespace TacticsECS
 
         /// <summary>capital로부터 GameRules.Map.SuburbRadius 이내에서 Suburb 자리를 찾는다 — 가장자리 1칸 여백 + 이미 정해진
         /// 수도/마을 전부와 GameRules.Map.CityMinDistance 이상(12절 보강 4: 예전엔 거리 검사가 없어 수도/다른 Suburb에 바로
-        /// 붙을 수 있었다). 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
-        private static Vector2Int? FindSuburbCell(GridWorld grid, Vector2Int capital, List<Vector2Int> reserved, Random rng)
+        /// 붙을 수 있었다) + 모든 수도와 GameRules.Map.SuburbMinDistance 이상. 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
+        private static Vector2Int? FindSuburbCell(GridWorld grid, Vector2Int capital, Vector2Int[] capitals, List<Vector2Int> reserved, Random rng)
         {
             var candidates = new List<Vector2Int>();
             for (int dy = -GameRules.Map.SuburbRadius; dy <= GameRules.Map.SuburbRadius; dy++)
@@ -811,6 +821,7 @@ namespace TacticsECS
                     var p = capital + new Vector2Int(dx, dy);
                     if (!grid.InBounds(p) || ProceduralGenerationUtil.DistanceToEdge(grid, p) < 1) continue;
                     if (IsWithinDistance(reserved, p, GameRules.Map.CityMinDistance)) continue;
+                    if (IsWithinDistance(capitals, p, GameRules.Map.SuburbMinDistance)) continue;
                     candidates.Add(p);
                 }
             if (candidates.Count == 0) return null;

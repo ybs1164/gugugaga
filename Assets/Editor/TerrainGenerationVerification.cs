@@ -878,6 +878,14 @@ namespace TacticsECS.EditorTools
                                 }
                             totalCities += cities.Count;
 
+                            foreach (var sub in suburbs)
+                                foreach (var cap in anchors)
+                                    if (ProceduralGenerationUtil.ChebyshevDistance(sub, cap) < GameRules.Map.SuburbMinDistance)
+                                    {
+                                        Debug.LogError($"[TerrainGenerationVerification] {mode} {size}x{size} seed={s}: suburb {sub} closer than {GameRules.Map.SuburbMinDistance} to capital {cap}");
+                                        ok = false;
+                                    }
+
                             for (int i = 0; i < cities.Count; i++)
                                 for (int j = i + 1; j < cities.Count; j++)
                                     if (ProceduralGenerationUtil.ChebyshevDistance(cities[i], cities[j]) < GameRules.Map.CityMinDistance)

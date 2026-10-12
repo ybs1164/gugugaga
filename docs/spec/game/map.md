@@ -39,6 +39,7 @@
 
 ## 간격 규칙
 - 도시(수도·마을)끼리 체비쇼프 거리 `Map.CityMinDistance` 이상, 지형이 다 생긴 뒤 놓이는 마을은 `Map.PostTerrainCityMinDistance` 이상. 수도끼리는 `Map.CapitalMinDistance` 이상.
+- Suburb는 수도와 `Map.SuburbMinDistance` 이상 떨어진다(다른 도시와는 `Map.CityMinDistance`). 육지로 옮겨진 뒤에도 같은 검사를 다시 한다.
 - 구조물 인접 배제(`Exclude{n}`)는 8방향, 타일 인접 배제는 상하좌우.
 
 ## 원문과 다른 점

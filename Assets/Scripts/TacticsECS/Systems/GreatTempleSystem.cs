@@ -98,7 +98,7 @@ namespace TacticsECS
             foreach (var pos in site)
             {
                 var tile = grid.GetTile(pos);
-                if (TileImprovementSystem.Classify(grid, pos) == TileClass.Forest) tile.TileTypeId = TileImprovementSystem.NeighborFieldTileType(grid, pos); // 숲을 치운다
+                if (TileImprovementSystem.Classify(grid, pos) == TileClass.Forest) tile.TileTypeId = TileImprovementSystem.GroundTileType(grid, pos); // 숲을 치운다
                 tile.StructureId = string.Empty; // 자원도 치운다
                 tile.BuildingId = BuildingId;
                 tile.BuildingTurn = turn;

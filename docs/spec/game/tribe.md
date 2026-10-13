@@ -16,7 +16,7 @@
 ## 영역 지형
 맵의 수도 영역은 팀마다 하나다(영역 수 = 팀 수). 바이옴을 따로 고르지 않고, 영역 바이옴은 그 팀 종족이 정한다. 코드: `TribeSystem.RegionBiome`.
 1. 기본 바이옴 = `Biome`.
-2. 평지: 기본 바이옴의 평지 타일(첫 `Land` 타일)을 `GroundTile`로 바꾼다 — 타일 행과 구조물·자원의 `AllowedTile`, 타일 `Exclude`까지. 종족마다 색만 다른 맨땅(`Ground.<GroundTile>`)이 된다. 평지 Id가 달라도 규칙상 같은 `Field`다([tile](tile.md)).
+2. 평지: 기본 바이옴의 평지 타일(첫 `Land` 타일)을 `GroundTile`로 바꾼다 — 타일 행과 구조물·자원의 `AllowedTile`, 타일 `Exclude`까지. 종족마다 색만 다른 맨땅(`Ground.<GroundTile>`)이 되고, 그 위에 생긴 숲·산의 바닥도 이 맨땅이다([tile](tile.md#타일-값) `GroundTileId`). 평지 Id가 달라도 규칙상 같은 `Field`다([tile](tile.md)).
 3. 배수: 숲·산 레이어 = 바이옴 배수 × `MountainRate`/`ForestRate`. 자원 = 바이옴 `InnerRate`/`OuterRate` × 자원별 배수(`FruitRate` 등). 같은 타일 묶음 안 비율 합이 1을 넘으면 CSV 앞쪽 자원부터 칸을 가져간다([map](map.md#단계) 8-5).
 
 ## 원문과 다른 점

@@ -44,7 +44,7 @@ namespace TacticsECS.EditorTools
 
             Invoke(controller, "HandleGenerateTerrain");
             var grid = (GridWorld)typeof(BattleController).GetField("_grid", Any).GetValue(controller);
-            int xField = 0, bField = 0, bCrops = 0;
+            int xField = 0, bField = 0, bCrops = 0, featureOnTribeGround = 0, featureNoGround = 0;
             for (int y = 0; y < grid.Height; y++)
             for (int i = 0; i < grid.Width; i++)
             {
@@ -52,9 +52,16 @@ namespace TacticsECS.EditorTools
                 string type = grid.GetTileType(p);
                 if (type == x.GroundTile) xField++;
                 if (type == b.GroundTile) { bField++; if (grid.GetStructure(p) == TribeSystem.CropId) bCrops++; }
+                if (type == TerrainGenerationSystem.ForestTileId || type == TerrainGenerationSystem.MountainTileId)
+                {
+                    string ground = grid.GetTile(p).GroundTileId;
+                    if (string.IsNullOrEmpty(ground)) featureNoGround++;
+                    else if (ground == x.GroundTile || ground == b.GroundTile) featureOnTribeGround++;
+                }
             }
             Check(xField > 0 && bField > 0, $"both tribe fields on map ({xField}/{bField})");
             Check(bCrops == 0, "no crops on Bardur field");
+            Check(featureNoGround == 0 && featureOnTribeGround > 0, $"forest/mountain remember their ground ({featureOnTribeGround} on tribe fields, {featureNoGround} without)");
             Check(PixelSpriteCatalog.Has("Ground." + x.GroundTile) && PixelSpriteCatalog.Has("Ground." + b.GroundTile), "tribe field sprites");
             var capitals = (Dictionary<Team, Vector2Int>)typeof(BattleController).GetField("_tribeCapitals", Any).GetValue(controller);
             Check(capitals.Count == 2, "one capital per team");

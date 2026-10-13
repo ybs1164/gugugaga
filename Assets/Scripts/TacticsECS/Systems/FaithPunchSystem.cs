@@ -190,14 +190,18 @@ namespace TacticsECS
             tile.StructureId = string.Empty;
             tile.HasRoad = false;
             tile.BuildingId = string.Empty;
-            if (tile.Terrain == TerrainType.Water) { tile.Terrain = TerrainType.Land; tile.TileTypeId = TerrainGenerationSystem.MountainTileId; }
-            else if (tile.TileTypeId == TerrainGenerationSystem.MountainTileId) { tile.Terrain = TerrainType.Land; tile.TileTypeId = LandTileId; }
+            if (tile.Terrain == TerrainType.Water)
+            {
+                tile.Terrain = TerrainType.Land;
+                tile.TileTypeId = TerrainGenerationSystem.MountainTileId;
+                tile.GroundTileId = TileImprovementSystem.NeighborFieldTileType(grid, p);
+            }
+            else if (tile.TileTypeId == TerrainGenerationSystem.MountainTileId) { tile.Terrain = TerrainType.Land; tile.TileTypeId = TileImprovementSystem.GroundTileType(grid, p); }
             else { tile.Terrain = TerrainType.Water; tile.TileTypeId = WaterTileId; }
             grid.SetTile(p, tile);
             CitySystem.RefreshConnections(grid, econ, log);
         }
 
-        public const string LandTileId = "Grass";
         public const string WaterTileId = "Water";
     }
 }

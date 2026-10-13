@@ -7,6 +7,7 @@
 |---|---|
 | `Terrain` (`TerrainType`) | 이동 판정 지형 `Land`/`Water` |
 | `TileTypeId` | 세부 타일(바이옴 `Entry`, `Forest`, `Mountain`, `Ocean`) — 생성·표시용 |
+| `GroundTileId` | 맨땅 — 숲·산이 덮기 전의 평지 `TileTypeId`. 숲·산 칸의 바닥 표시, 숲을 치웠을 때 돌아갈 타일. 비면 주변 평지 |
 | `StructureId` | 칸 위 구조물(아래) |
 | `BuildingId`, `HasRoad` | 건물, 도로 — [building](building.md) |
 | `OwnerCity`, `OwnerTeam` | 영토 주인. 없으면 중립 |

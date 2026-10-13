@@ -336,17 +336,17 @@ namespace TacticsECS
                     grid.SetTile(pos, t);
                     break;
                 case TileActionKind.ClearForest:
-                    t.TileTypeId = NeighborFieldTileType(grid, pos);
+                    t.TileTypeId = GroundTileType(grid, pos);
                     grid.SetTile(pos, t);
                     break;
                 case TileActionKind.BurnForest:
-                    t.TileTypeId = NeighborFieldTileType(grid, pos);
+                    t.TileTypeId = GroundTileType(grid, pos);
                     t.StructureId = "Resource_Crop";
                     grid.SetTile(pos, t);
                     break;
                 case TileActionKind.GrowForest:
                     // 기술이 없어 안 보이는 자원(예: 채집 전의 작물)은 숲이 덮으면서 사라진다 — 숲 + 작물 칸이 생기지 않게.
-                    t.TileTypeId = TerrainGenerationSystem.ForestTileId;
+                    CoverGround(ref t, TerrainGenerationSystem.ForestTileId);
                     t.StructureId = string.Empty;
                     grid.SetTile(pos, t);
                     break;
@@ -382,6 +382,22 @@ namespace TacticsECS
             NotifyNeighborProcessors(grid, econ, team, pos, info.Value.Id, -1, log);
 
             if (info.Value.Id == BuildingDefinition.Port || info.Value.ActsAsRoad) CitySystem.RefreshConnections(grid, econ, log);
+        }
+
+        /// <summary>숲·산 칸 아래 맨땅 Id — 기억한 GroundTileId, 없으면 주변 평지(NeighborFieldTileType).</summary>
+        public static string GroundTileType(GridWorld grid, Vector2Int pos)
+        {
+            var ground = grid.GetTile(pos).GroundTileId;
+            return string.IsNullOrEmpty(ground) ? NeighborFieldTileType(grid, pos) : ground;
+        }
+
+        /// <summary>t의 TileTypeId를 tileId로 바꾼다. 바뀌기 전이 평지(육지, 숲·산 아님)면 그 Id를 맨땅(GroundTileId)으로 기억한다.</summary>
+        public static void CoverGround(ref TileData t, string tileId)
+        {
+            bool field = t.Terrain == TerrainType.Land && !string.IsNullOrEmpty(t.TileTypeId) &&
+                         t.TileTypeId != TerrainGenerationSystem.ForestTileId && t.TileTypeId != TerrainGenerationSystem.MountainTileId;
+            if (field) t.GroundTileId = t.TileTypeId;
+            t.TileTypeId = tileId;
         }
 
         /// <summary>숲을 없앤 뒤 칸에 쓸 평지 타일 Id — 주변 8칸에서 가장 흔한 평지 타입(바이옴에 맞게 초원/사막

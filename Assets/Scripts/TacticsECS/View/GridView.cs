@@ -76,9 +76,13 @@ namespace TacticsECS
             for (int x = 0; x < grid.Width; x++)
             {
                 var p = new Vector2Int(x, y); int i = grid.Index(p); string type = grid.GetTileType(p);
+                // 숲·산 칸은 그 아래 맨땅(GroundTileId)을 바닥으로 그린다 — 종족 평지 색을 따른다.
+                string groundId = grid.GetTile(p).GroundTileId;
+                string landType = (type == TerrainGenerationSystem.ForestTileId || type == TerrainGenerationSystem.MountainTileId) &&
+                                  !string.IsNullOrEmpty(groundId) && PixelSpriteCatalog.Has("Ground." + groundId) ? groundId : type;
                 string ground = grid.GetTerrain(p) == TerrainType.Water
                     ? (type == TerrainGenerationSystem.OceanTileId ? "Ocean" : "Water")
-                    : (PixelSpriteCatalog.Has("Ground." + type) ? type : "Grass");
+                    : (PixelSpriteCatalog.Has("Ground." + landType) ? landType : "Grass");
                 _ground.SetTile(new Vector3Int(x, y, 0), TileFor("Ground." + ground));
                 _tileViews[i].Init(p, grid.GetTerrain(p), type);
                 Replace(ref _shores[i], CreateShore(grid, p, _tileViews[i].transform));

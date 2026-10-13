@@ -48,8 +48,10 @@ namespace TacticsECS
                 var p = candidates[i];
                 if (rule.Kind == StartRuleKind.Tile)
                 {
-                    grid.SetTerrain(p, rule.TerrainType);
-                    grid.SetTileType(p, rule.Target);
+                    var t = grid.GetTile(p);
+                    TileImprovementSystem.CoverGround(ref t, rule.Target);
+                    t.Terrain = rule.TerrainType;
+                    grid.SetTile(p, t);
                     if (!string.IsNullOrEmpty(grid.GetStructure(p))) grid.SetStructure(p, string.Empty); // 바뀐 지형에 안 맞는 자원 제거
                 }
                 else grid.SetStructure(p, rule.Target);

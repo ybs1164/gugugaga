@@ -1207,7 +1207,7 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>cells를 노이즈 점수(+작은 랜덤) 내림차순으로 정렬해 상위 count칸의 TileTypeId를 tileId로 바꾸고,
+        /// <summary>cells를 노이즈 점수(+작은 랜덤) 내림차순으로 정렬해 상위 count칸의 TileTypeId를 tileId로 바꾸고(원래 평지는 맨땅으로 기억),
         /// 나머지 칸 목록을 반환한다.</summary>
         private static List<Vector2Int> AssignTopByNoise(GridWorld grid, List<Vector2Int> cells, int count, string tileId, float frequency, int seedOffset, Random rng)
         {
@@ -1219,7 +1219,12 @@ namespace TacticsECS
             var remaining = new List<Vector2Int>(cells.Count);
             for (int i = 0; i < scored.Count; i++)
             {
-                if (i < count) grid.SetTileType(scored[i].Pos, tileId);
+                if (i < count)
+                {
+                    var t = grid.GetTile(scored[i].Pos);
+                    TileImprovementSystem.CoverGround(ref t, tileId);
+                    grid.SetTile(scored[i].Pos, t);
+                }
                 else remaining.Add(scored[i].Pos);
             }
             return remaining;

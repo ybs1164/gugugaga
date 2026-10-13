@@ -21,7 +21,7 @@ Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 �
 ## VisualId 접두사
 | 접두사 | 대상 | 코드가 만드는 키 |
 |---|---|---|
-| `Ground.` | 지면 타일 | `Ground.<TileTypeId>`, 없으면 `Ground.Grass` |
+| `Ground.` | 지면 타일 | `Ground.<TileTypeId>`(숲·산 칸은 그 아래 맨땅 `Ground.<GroundTileId>`), 없으면 `Ground.Grass` |
 | `Terrain.` | 숲·산·바위·구름 오버레이 | `Terrain.Cloud`(시야) 등 |
 | `Structure.` | 구조물 | `Structure.<StructureId>` |
 | `Building.` | 건물 | `Building.<건물 Id>` |

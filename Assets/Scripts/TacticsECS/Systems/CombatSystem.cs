@@ -94,6 +94,33 @@ namespace TacticsECS
         public static int CalculateSplashDamage(EntityWorld world, int attackerId, int targetId) =>
             CalculateDamage(world, attackerId, targetId) / Mathf.Max(1, GameRules.Combat.SplashDivisor);
 
+        /// <summary>스플래시·짓밟기 공용(docs/spec/game/combat.md#공격-후): center 주변 8칸(체비셰프 1, center 자신 제외)의 적에게
+        /// CalculateSplashDamage만큼 피해를 준다. 평화조약 상대는 건너뛰고, 맞은 상대와는 전쟁 상태가 되며, 숨은 유닛은 드러난다. 반격은 없다.</summary>
+        public static void ApplySplashAround(GridWorld grid, EntityWorld world, int actorId, Vector2Int center)
+        {
+            var team = world.Get<Team>(actorId);
+            for (int i = 0; i < world.EntityCount; i++)
+            {
+                if (!UnitQueries.IsAlive(world, i) || world.Get<Team>(i) == team) continue;
+                var pos = world.Get<GridPosition>(i).Value;
+                if (Mathf.Max(Mathf.Abs(pos.x - center.x), Mathf.Abs(pos.y - center.y)) != 1) continue;
+                if (DiplomacySystem.HasPeaceTreaty(grid.Economy, team, world.Get<Team>(i))) continue;
+                DiplomacySystem.DeclareWar(grid.Economy, team, world.Get<Team>(i));
+                TaskSystem.RecordAttack(grid.Economy, team);
+                var hp = world.Get<Hp>(i);
+                hp.Value = Mathf.Max(0, hp.Value - CalculateSplashDamage(world, actorId, i));
+                world.Set(i, hp);
+                world.Set(i, new Accelerated { Value = false });
+                PrayerSystem.OnHit(world, i);
+                StealthSystem.Reveal(world, i);
+                if (!UnitQueries.IsAlive(world, i))
+                {
+                    grid.RemoveOccupant(pos);
+                    VeteranSystem.RecordKill(world, actorId);
+                }
+            }
+        }
+
         private static double HealthRatio(int hp, int maxHp) => maxHp <= 0 ? 1.0 : (double)Mathf.Max(0, hp) / maxHp;
 
         /// <summary>.5 올림 반올림(Math.Round의 은행가 반올림이면 전사 vs 전사 4.5가 4가 되어 위키 5와 달라진다).</summary>

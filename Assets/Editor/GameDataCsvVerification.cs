@@ -392,9 +392,12 @@ namespace TacticsECS.EditorTools
             int bomber = UnitFactorySystem.CreateFromCsv(g4, w4, Team.Player, splasher, new Vector2Int(0, 2));
             int main = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(3, 2));
             int side = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(3, 3));
+            int diag = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(4, 3));
+            int far = Spawn(g4, w4, rows, "infantry", Team.Enemy, new Vector2Int(5, 2));
             int expectedSplash = CombatSystem.CalculateDamage(w4, bomber, side) / 2;
             Check(CombatSystem.TryAttack(g4, w4, bomber, main, out d, out _) && w4.Get<Hp>(side).Value == 10 - expectedSplash && expectedSplash > 0,
                 $"splash = half of the computed damage ({expectedSplash})");
+            Check(w4.Get<Hp>(diag).Value < 10 && w4.Get<Hp>(far).Value == 10, "splash hits the 8 tiles around the target (diagonal yes, 2 away no)");
 
             // 슈퍼 유닛: 거인은 훈련 불가, 레벨 5+ 보상으로 소환, 점수 50.
             var econ2 = new EconomyWorld { TechNodes = GameDataLoader.LoadTechNodes(), UnitRows = rows };

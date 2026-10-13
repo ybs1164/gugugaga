@@ -71,10 +71,10 @@ namespace TacticsECS
                 world.Set(targetId, new Frozen { Value = true });
             }
 
-            // 스플래시: 공격자가 이 패시브를 가졌다면, 대상(생사 무관 — 마지막 위치 기준) 주변 1블록 내의
-            // 다른 적 유닛(공격자 기준)에게도 같은 방식으로 피해를 입힌다.
+            // 스플래시: 공격자가 이 패시브를 가졌다면, 대상(생사 무관 — 마지막 위치 기준) 주변 8칸의 적에게도
+            // 짓밟기와 같은 규칙으로 피해를 입힌다.
             if (UnitActionQueries.Find<SplashAction>(world, actorId) != null)
-                ApplySplashDamage(grid, world, actorId, targetId);
+                CombatSystem.ApplySplashAround(grid, world, actorId, world.Get<GridPosition>(targetId).Value);
 
             return true;
         }
@@ -94,32 +94,6 @@ namespace TacticsECS
             bool stomp = UnitActionQueries.Find<StompAction>(world, actorId) != null;
             bool changedForm = EmbarkSystem.ApplyAfterMove(grid, world, actorId);
             if (!changedForm && stomp) StompSystem.Apply(grid, world, actorId);
-        }
-
-        private static void ApplySplashDamage(GridWorld grid, EntityWorld world, int actorId, int primaryTargetId)
-        {
-            var center = world.Get<GridPosition>(primaryTargetId).Value;
-            var attackerTeam = world.Get<Team>(actorId);
-
-            for (int i = 0; i < world.EntityCount; i++)
-            {
-                if (i == primaryTargetId || !UnitQueries.IsAlive(world, i)) continue;
-                if (world.Get<Team>(i) == attackerTeam) continue;
-                if (PathfindingSystem.Distance(center, world.Get<GridPosition>(i).Value) > 1) continue;
-
-                int splashDamage = CombatSystem.CalculateSplashDamage(world, actorId, i);
-                var splashHp = world.Get<Hp>(i);
-                splashHp.Value = Mathf.Max(0, splashHp.Value - splashDamage);
-                world.Set(i, splashHp);
-                world.Set(i, new Accelerated { Value = false });
-                PrayerSystem.OnHit(world, i);
-
-                if (!UnitQueries.IsAlive(world, i))
-                {
-                    grid.RemoveOccupant(world.Get<GridPosition>(i).Value);
-                    VeteranSystem.RecordKill(world, actorId);
-                }
-            }
         }
     }
 }

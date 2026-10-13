@@ -5,7 +5,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 종족(Tribes.csv)을 팀에 적용한다: 시작 별, 연구 가능한 기술(기술 그룹), 처음부터 해금된 기술, 시작 유닛.
-    /// 지형 쪽(팀마다 종족 영역 바이옴 / 수도 주변 시작 조건)은 RegionBiomes/StartCondition으로 꺼내 지형 생성에 넘긴다.
+    /// 지형 쪽(팀마다 종족 지형 묶음 / 수도 주변 시작 조건)은 RegionBiomes/StartCondition으로 꺼내 지형 생성에 넘긴다.
     /// 자체 상태는 없다 — 결과는 EconomyWorld(Resources/Tech/StartUnitIds)에만 남는다.
     /// 규칙: docs/spec/game/tribe.md
     /// </summary>
@@ -53,101 +53,42 @@ namespace TacticsECS
             return rows;
         }
 
-        /// <summary>팀마다 영역 하나(CitySystem.Teams 순서) — 그 팀 종족의 영역 바이옴, 종족이 없으면 첫 바이옴 그대로.</summary>
-        public static List<BiomeCsvRow> RegionBiomes(IReadOnlyList<TribeRow?> tribesPerTeam, IReadOnlyList<BiomeCsvRow> biomes)
+        /// <summary>TribeTerrain.csv에서 종족을 고르지 않은 팀(또는 묶음이 없는 종족)이 쓰는 묶음 Id.</summary>
+        public const string DefaultTerrainId = "Default";
+
+        /// <summary>팀마다 영역 하나(CitySystem.Teams 순서) — 그 팀 종족의 지형 묶음(TribeTerrain.csv). 종족이 없거나 묶음이 없으면
+        /// Default 묶음, 그것도 없으면 첫 묶음.</summary>
+        public static List<BiomeCsvRow> RegionBiomes(IReadOnlyList<TribeRow?> tribesPerTeam, IReadOnlyList<BiomeCsvRow> terrains)
         {
             var regions = new List<BiomeCsvRow>();
-            if (biomes == null || biomes.Count == 0) return regions;
+            if (terrains == null || terrains.Count == 0) return regions;
             foreach (var tribe in tribesPerTeam)
-                regions.Add(tribe is TribeRow t ? RegionBiome(t, biomes) : biomes[0]);
+                regions.Add(Terrain(tribe?.Id, terrains));
             return regions;
         }
 
-        /// <summary>종족의 기본 바이옴(Id가 없으면 첫 바이옴).</summary>
-        public static BiomeCsvRow BaseBiome(TribeRow tribe, IReadOnlyList<BiomeCsvRow> biomes)
+        /// <summary>Id가 같은 지형 묶음 → Default 묶음 → 첫 묶음.</summary>
+        public static BiomeCsvRow Terrain(string tribeId, IReadOnlyList<BiomeCsvRow> terrains)
         {
-            foreach (var b in biomes)
-                if (b.Id == tribe.Biome) return b;
-            return biomes[0];
-        }
-
-        /// <summary>종족 영역 바이옴 — 기본 바이옴을 복제해 평지 타일을 GroundTile로 바꾸고 배수를 곱한다. 원본 바이옴은 그대로 둔다.</summary>
-        public static BiomeCsvRow RegionBiome(TribeRow tribe, IReadOnlyList<BiomeCsvRow> biomes)
-        {
-            var src = BaseBiome(tribe, biomes);
-            string field = FieldTileId(src);
-            string ground = string.IsNullOrEmpty(tribe.GroundTile) || field == null ? field : tribe.GroundTile;
-            string Swap(string id) => id == field ? ground : id;
-            string[] SwapAll(string[] ids)
+            BiomeCsvRow fallback = null;
+            foreach (var b in terrains)
             {
-                if (ids == null) return null;
-                var r = new string[ids.Length];
-                for (int i = 0; i < ids.Length; i++) r[i] = Swap(ids[i]);
-                return r;
+                if (tribeId != null && b.Id == tribeId) return b;
+                if (fallback == null && b.Id == DefaultTerrainId) fallback = b;
             }
-
-            var biome = new BiomeCsvRow
-            {
-                Id = src.Id, Name = src.Name, NoiseType = src.NoiseType, Frequency = src.Frequency, Octaves = src.Octaves,
-                SeedOffset = src.SeedOffset, InnerRadius = src.InnerRadius,
-                MountainRate = src.MountainRate * tribe.MountainRate,
-                ForestRate = src.ForestRate * tribe.ForestRate,
-            };
-            foreach (var e in src.Tiles)
-            {
-                var t = e;
-                t.TileId = Swap(e.TileId);
-                t.ExcludeAdjacent = SwapAll(e.ExcludeAdjacent);
-                biome.Tiles.Add(t);
-            }
-            foreach (var e in src.Structures)
-            {
-                var s = e;
-                s.AllowedTileTypes = SwapAll(e.AllowedTileTypes);
-                float rate = ResourceRate(tribe, e.StructureId);
-                s.InnerRate = e.InnerRate * rate;
-                s.OuterRate = e.OuterRate * rate;
-                biome.Structures.Add(s);
-            }
-            return biome;
+            return fallback ?? terrains[0];
         }
-
-        /// <summary>바이옴의 평지 = 첫 Land 타일 엔트리(없으면 null).</summary>
-        public static string FieldTileId(BiomeCsvRow biome)
-        {
-            foreach (var t in biome.Tiles)
-                if (t.TerrainType == TerrainType.Land) return t.TileId;
-            return null;
-        }
-
-        public const string FruitId = "Resource_Fruit";
-        public const string CropId = "Resource_Crop";
-        public const string AnimalId = "Resource_Animal";
-        public const string MetalId = "Resource_Metal";
-        public const string FishId = "Resource_Fish";
-
-        /// <summary>자원 구조물 Id에 맞는 종족 배수(자원이 아니면 1).</summary>
-        public static float ResourceRate(TribeRow tribe, string structureId) => structureId switch
-        {
-            FruitId => tribe.FruitRate,
-            CropId => tribe.CropRate,
-            AnimalId => tribe.AnimalRate,
-            MetalId => tribe.MetalRate,
-            FishId => tribe.FishRate,
-            _ => 1f,
-        };
 
         /// <summary>종족의 시작 조건(없으면 null).</summary>
         public static StartConditionRow? StartCondition(TribeRow tribe) =>
             tribe.StartConditionIndex >= 0 && tribe.StartConditionIndex < GameTables.StartConditions.Length
                 ? GameTables.StartConditions[tribe.StartConditionIndex] : (StartConditionRow?)null;
 
-        /// <summary>샌드박스 정보 칸용 요약 한 줄: 바이옴/시작 기술/별/유닛/시작 조건.</summary>
-        public static string Summary(TribeRow tribe, IReadOnlyList<BiomeCsvRow> biomes, IReadOnlyList<UnitCsvRow> unitRows)
+        /// <summary>샌드박스 정보 칸용 요약 한 줄: 시작 기술/별/유닛/시작 조건.</summary>
+        public static string Summary(TribeRow tribe, IReadOnlyList<UnitCsvRow> unitRows)
         {
             var sb = new StringBuilder();
             sb.Append(tribe.Name).Append(": ");
-            sb.Append(biomes != null && biomes.Count > 0 ? BaseBiome(tribe, biomes).Name : "?").Append(" / ");
             var techs = new List<string>();
             foreach (var t in tribe.StartTechs ?? new int[0])
                 if (t >= 0 && t < GameTables.Techs.Length) techs.Add(GameTables.Techs[t].Name);

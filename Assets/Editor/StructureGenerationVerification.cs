@@ -12,7 +12,6 @@ namespace TacticsECS.EditorTools
     /// </summary>
     public static class StructureGenerationVerification
     {
-        private const string SampleCsvRelativePath = "Assets/Resources/Tables/Biomes.csv";
 
         public static void Run()
         {
@@ -198,7 +197,7 @@ namespace TacticsECS.EditorTools
         /// <summary>같은 시드로 두 번 생성하면 완전히 같은 구조물/지형이 나오는지(결정론적) 확인한다 — 모든 맵 타입.</summary>
         private static bool VerifyDeterministicSeed()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = TerrainGenerationVerification.SampleTerrains();
             bool ok = true;
             foreach (TerrainGenerationSystem.MapShapeMode mode in System.Enum.GetValues(typeof(TerrainGenerationSystem.MapShapeMode)))
             {
@@ -421,7 +420,7 @@ namespace TacticsECS.EditorTools
         /// 이내, 물고기는 얕은 물에만, 등대는 항상 4개.</summary>
         private static bool VerifySampleStarfishAndRuinRules()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = TerrainGenerationVerification.SampleTerrains();
             bool ok = true;
             int seed = 1300, starfish = 0, ruins = 0, resources = 0;
             foreach (TerrainGenerationSystem.MapShapeMode mode in System.Enum.GetValues(typeof(TerrainGenerationSystem.MapShapeMode)))
@@ -538,7 +537,7 @@ namespace TacticsECS.EditorTools
         private static bool VerifyLakesVillageConnections()
         {
             bool ok = true;
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = TerrainGenerationVerification.SampleTerrains();
             int seed = 1400, maps = 0;
             foreach (int size in new[] { 11, 14, 16, 20 })
                 for (int rep = 0; rep < 3; rep++)

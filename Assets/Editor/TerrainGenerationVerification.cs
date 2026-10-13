@@ -13,7 +13,21 @@ namespace TacticsECS.EditorTools
     /// </summary>
     public static class TerrainGenerationVerification
     {
-        private const string SampleCsvRelativePath = "Assets/Resources/Tables/Biomes.csv";
+        private const string SampleCsvRelativePath = "Assets/Resources/Tables/TribeTerrain.csv";
+
+        /// <summary>종족 지형 표에서 바탕이 서로 다른 세 묶음(평원 Default·사막 Oumaji·고지대 XinXi) — 영역 수가 곧 수도 수라
+        /// 표 전체(종족 수 + 1)를 작은 시험 맵에 넣지 않고 이 셋으로 생성한다.</summary>
+        internal static readonly string[] SampleTerrainIds = { "Default", "Oumaji", "XinXi" };
+
+        internal static List<BiomeCsvRow> SampleTerrains()
+        {
+            var all = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var picked = new List<BiomeCsvRow>();
+            foreach (var id in SampleTerrainIds)
+                foreach (var b in all)
+                    if (b.Id == id) { picked.Add(b); break; }
+            return picked;
+        }
 
         /// <summary>옛 형식(한 행 = 한 바이옴, Tiles/Structures 칸에 ";" 묶음) 호환 확인용 — 규칙 6 전환 전 sample_biomes.csv의 Grassland 행.</summary>
 
@@ -227,7 +241,7 @@ namespace TacticsECS.EditorTools
         /// <summary>같은 시드로 두 번 생성하면 완전히 같은 결과가 나오는지(결정론적) 확인한다.</summary>
         private static bool VerifyDeterministicSeed()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             var gridA = new GridWorld(16, 16, 1f);
             var gridB = new GridWorld(16, 16, 1f);
             TerrainGenerationSystem.Generate(gridA, biomes, seed: 777);
@@ -249,12 +263,12 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>Assets/Resources/Tables/Biomes.csv 3바이옴을 넓은 그리드에 실제로 생성해서 예외 없이 끝나고
+        /// <summary>종족 지형 표의 샘플 3묶음(SampleTerrains)을 넓은 그리드에 실제로 생성해서 예외 없이 끝나고
         /// 모든 칸이 채워지는지 확인하는 통합 스모크 테스트(각 바이옴이 CountPerTiles로 개수를 정하므로
         /// 정확한 개수 하한 검증은 VerifySingleBiomeRules가 모호함 없이 다룬다).</summary>
         private static bool VerifyMultiBiomeSmoke()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             var grid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(grid, biomes, seed: 2024);
 
@@ -339,7 +353,7 @@ namespace TacticsECS.EditorTools
         /// 유의미하게 달라지는지 비교한다.</summary>
         private static bool VerifyWetnessMultiplier()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
 
             var dryGrid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(dryGrid, biomes, seed: 999, wetnessMultiplier: 0.1f);
@@ -382,7 +396,7 @@ namespace TacticsECS.EditorTools
         /// (4) 같은 시드면 같은 결과가 나오는지.</summary>
         private static bool VerifyPangeaShape()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             var grid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Pangea, targetWaterFraction: 0.5f);
 
@@ -450,7 +464,7 @@ namespace TacticsECS.EditorTools
         /// 그대로 목표치로 쓴다.</summary>
         private static bool VerifyOtherMapShapes()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             bool ok = true;
 
             ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, targetWaterFraction: 0.275f, tolerance: 0.15f, seed: 111);
@@ -607,7 +621,7 @@ namespace TacticsECS.EditorTools
         /// Waterworld만 없음), 있는 경우 서로/수도로부터 최소 거리 2, 가장자리 여백 1을 지켜야 한다.</summary>
         private static bool VerifyPreTerrainVillagePlanning()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             bool ok = true;
 
             ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f, seed: 601);
@@ -708,7 +722,7 @@ namespace TacticsECS.EditorTools
         /// 한다(마스크 경로는 GenerateMapShapeLandMask의 보호 보너스로, Freeform은 ForceLandAt으로 보장).</summary>
         private static bool VerifyGuaranteedLandAtReservedPositions()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             var modes = new[]
             {
                 (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f),
@@ -754,7 +768,7 @@ namespace TacticsECS.EditorTools
         /// <summary>sample_biomes.csv를 count개가 될 때까지 복제한다(Id만 바꿔서) — 수도 4/9개 케이스 검증용.</summary>
         private static List<BiomeCsvRow> SampleBiomesOfCount(int count)
         {
-            var sample = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var sample = SampleTerrains();
             var result = new List<BiomeCsvRow>();
             for (int i = 0; i < count; i++)
             {
@@ -945,7 +959,7 @@ namespace TacticsECS.EditorTools
             { Debug.LogError("[TerrainGenerationVerification] MountainRate/ForestRate=0 should disable the forest/mountain layer"); ok = false; }
 
             var sampleGrid = new GridWorld(20, 20, 1f);
-            TerrainGenerationSystem.Generate(sampleGrid, BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath)), seed: 43);
+            TerrainGenerationSystem.Generate(sampleGrid, SampleTerrains(), seed: 43);
             int sampleMountains = CountTileType(sampleGrid, TerrainGenerationSystem.MountainTileId);
             int sampleForests = CountTileType(sampleGrid, TerrainGenerationSystem.ForestTileId);
             if (sampleMountains == 0 || sampleForests == 0)
@@ -959,7 +973,7 @@ namespace TacticsECS.EditorTools
         /// 깊은 바다(Ocean)여야 한다(구조물 단계가 지형을 바꾼 뒤까지 포함).</summary>
         private static bool VerifyWaterDepthClassification()
         {
-            var biomes = BiomeCsvSerializer.Parse(ReadCsv(SampleCsvRelativePath));
+            var biomes = SampleTerrains();
             bool ok = true;
             int seed = 1001, ocean = 0, shallow = 0;
             foreach (var (mode, water) in AllModes)

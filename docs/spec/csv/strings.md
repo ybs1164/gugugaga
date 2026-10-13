@@ -32,7 +32,6 @@
 | `Unit.<Id>.Name` (신화 유닛) | [MythicUnits](faith-punches.md#mythicunitscsv--신화-유닛) → `Units.csv` |
 | `FaithPunch.<Id>.Name`, `.Desc` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) |
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |
-| `Biome.<Biome>.Name` | [Biomes](biomes.md) `Biome` 행. 불러온 바이옴 파일의 `Name`보다 앞선다 |
 | `Structure.<StructureId>.Name`, `.Desc` | 타일 구조물(`StructureDefinition`) |
 | `Action.<행동>.Name`, `.Tooltip` | 유닛 행동·패시브 — [unit](../game/unit.md#행동과-패시브) |
 | `UI.<화면>.<이름>` | 화면 문구(버튼·안내·로그). `<화면>`은 그 문구를 쓰는 View/System |

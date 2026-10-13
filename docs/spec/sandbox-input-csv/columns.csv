@@ -1,30 +1,4 @@
 ﻿Format,Column,Type,Required,Default,AppliesTo,Description
-Table.Biomes,Kind,Biome/Tile/Structure,선택,Biome,전부,행 종류
-Table.Biomes,Biome,문자열,필수,(필수),전부,소속 바이옴 Id. Biome 행이 없으면 기본값 바이옴이 만들어진다
-Table.Biomes,Name,문자열,선택,Biome,Biome,표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 번역 표 Biome.<Biome>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다)
-Table.Biomes,NoiseType,문자열,선택,Perlin,Biome,노이즈 종류. Perlin만 지원
-Table.Biomes,Frequency,실수,선택,0,Biome,노이즈 주파수
-Table.Biomes,Octaves,정수,선택,0,Biome,노이즈 옥타브
-Table.Biomes,SeedOffset,정수,선택,0,Biome,이 바이옴 노이즈장의 시드 오프셋
-Table.Biomes,InnerRadius,정수,선택,0,Biome,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용)
-Table.Biomes,MountainRate,실수,선택,0,Biome,산 레이어 바이옴 배수(종족 배수와 곱함). 0이면 산 없음
-Table.Biomes,ForestRate,실수,선택,0,Biome,숲 레이어 바이옴 배수(종족 배수와 곱함). 0이면 숲 레이어 없음
-Table.Biomes,Entry,문자열,선택,,"Tile, Structure",
-Table.Biomes,TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형
-Table.Biomes,InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정)
-Table.Biomes,OuterWeight,실수,선택,0,Tile,Outer 영역 가중치
-Table.Biomes,Weight,실수,선택,0,Structure,
-Table.Biomes,MinCount,정수,선택,0,"Tile, Structure",
-Table.Biomes,CountPerTiles,실수,선택,0,"Tile, Structure",
-Table.Biomes,MinDistance,정수,선택,0,"Tile, Structure",
-Table.Biomes,EdgeMargin,정수,선택,0,"Tile, Structure",
-Table.Biomes,MaxDistanceFromCity,정수,선택,0,Structure,
-Table.Biomes,MaxWaterFractionOnLakes,실수,선택,없음,Structure,
-Table.Biomes,FillRemaining,불리언,선택,false,Structure,
-Table.Biomes,InnerRate,실수,선택,0,Structure,
-Table.Biomes,OuterRate,실수,선택,0,Structure,
-Table.Biomes,AllowedTile{n},TileTypeId,선택,없음,Structure,
-Table.Biomes,Exclude{n},Id,선택,없음,"Tile, Structure",
 Table.Buildings,Index,정수,O,,,배열 위치. TechUnlocks BuildingIndex가 가리킨다
 Table.Buildings,Id,문자열,O,,,타일에 저장되는 건물 키. 코드가 특별 취급하는 Id는 바꾸지 않는다: Farm Mine LumberHut Windmill Forge Sawmill Market Port Road Bridge
 Table.Buildings,Cost,정수,,0,,별
@@ -144,23 +118,40 @@ Table.TileActions,Population,정수,,0,,주인 도시 인구 증가
 Table.TileActions,StarsGain,정수,,0,,즉시 얻는 별
 Table.TileActions,Wiki,메모,,,,로더 무시
 Table.TileActions,Note,메모,,,,로더 무시
+Table.TribeTerrain,Kind,Tribe/Tile/Structure,선택,Tribe,전부,행 종류
+Table.TribeTerrain,Tribe,종족 Id 또는 Default,필수,(필수),전부,소속 묶음. Tribe 행이 없으면 기본값 묶음이 만들어진다
+Table.TribeTerrain,Name,문자열,선택,Tribe,Tribe,표시 이름. 기본 표는 비우고 번역 표 Tribe.<Tribe>.Name을 쓴다(번역이 있으면 이 칸보다 앞선다)
+Table.TribeTerrain,NoiseType,문자열,선택,Perlin,Tribe,노이즈 종류. Perlin만 지원
+Table.TribeTerrain,Frequency,실수,선택,0,Tribe,노이즈 주파수
+Table.TribeTerrain,Octaves,정수,선택,0,Tribe,노이즈 옥타브
+Table.TribeTerrain,SeedOffset,정수,선택,0,Tribe,이 묶음 노이즈장의 시드 오프셋
+Table.TribeTerrain,InnerRadius,정수,선택,0,Tribe,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용)
+Table.TribeTerrain,MountainRate,실수,선택,0,Tribe,산 레이어 배수(1 = 기준 비율). 0이면 산 없음
+Table.TribeTerrain,ForestRate,실수,선택,0,Tribe,숲 레이어 배수(1 = 기준 비율). 0이면 숲 레이어 없음
+Table.TribeTerrain,Entry,문자열,선택,,"Tile, Structure",
+Table.TribeTerrain,TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형
+Table.TribeTerrain,InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정)
+Table.TribeTerrain,OuterWeight,실수,선택,0,Tile,Outer 영역 가중치
+Table.TribeTerrain,Weight,실수,선택,0,Structure,
+Table.TribeTerrain,MinCount,정수,선택,0,"Tile, Structure",
+Table.TribeTerrain,CountPerTiles,실수,선택,0,"Tile, Structure",
+Table.TribeTerrain,MinDistance,정수,선택,0,"Tile, Structure",
+Table.TribeTerrain,EdgeMargin,정수,선택,0,"Tile, Structure",
+Table.TribeTerrain,MaxDistanceFromCity,정수,선택,0,Structure,
+Table.TribeTerrain,MaxWaterFractionOnLakes,실수,선택,없음,Structure,
+Table.TribeTerrain,FillRemaining,불리언,선택,false,Structure,
+Table.TribeTerrain,InnerRate,실수,선택,0,Structure,
+Table.TribeTerrain,OuterRate,실수,선택,0,Structure,
+Table.TribeTerrain,AllowedTile{n},TileTypeId,선택,없음,Structure,
+Table.TribeTerrain,Exclude{n},Id,선택,없음,"Tile, Structure",
 Table.Tribes,Index,정수,O,,,배열 위치
 Table.Tribes,Id,문자열,O,,,종족 이름표. 이름·설명은 번역 표 Tribe.<Id>.Name/.Desc
-Table.Tribes,Biome,바이옴 Id,,첫 바이옴,,종족 영역의 기본 바이옴(biomes의 Biome). 없는 Id면 첫 바이옴
-Table.Tribes,GroundTile,TileTypeId,,바이옴 평지,,바이옴 평지(첫 Land 타일)를 대신할 타일. 화면 표시는 sprites의 Ground.<GroundTile>
 Table.Tribes,TechGroupIndex,TechGroups Index,,-1,,연구 가능한 기술 묶음
 Table.Tribes,StartTech{n},Techs Index,,없음,,처음부터 해금된 기술
 Table.Tribes,StartStars,정수,,GameRules.csv Economy.StartingStars,,시작 별
 Table.Tribes,StartCapitalLevel,정수,,1,,시작 수도 레벨(1 이상). 시작 레벨까지의 보상은 지급하지 않음
 Table.Tribes,StartUnit{n},Units Index,,없음,,수도에 받는 시작 유닛
 Table.Tribes,StartConditionIndex,StartConditions Index,,-1,,수도 주변 시작 조건. -1 = 없음
-Table.Tribes,MountainRate,실수 ≥ 0,,1,,바이옴 MountainRate/ForestRate에 곱하는 배수
-Table.Tribes,ForestRate,실수 ≥ 0,,1,,바이옴 MountainRate/ForestRate에 곱하는 배수
-Table.Tribes,FruitRate,실수 ≥ 0,,1,,Resource_Fruit/Resource_Crop/Resource_Animal/Resource_Metal/Resource_Fish 행의 InnerRate/OuterRate에 곱하는 배수
-Table.Tribes,CropRate,실수 ≥ 0,,1,,Resource_Fruit/Resource_Crop/Resource_Animal/Resource_Metal/Resource_Fish 행의 InnerRate/OuterRate에 곱하는 배수
-Table.Tribes,AnimalRate,실수 ≥ 0,,1,,Resource_Fruit/Resource_Crop/Resource_Animal/Resource_Metal/Resource_Fish 행의 InnerRate/OuterRate에 곱하는 배수
-Table.Tribes,MetalRate,실수 ≥ 0,,1,,Resource_Fruit/Resource_Crop/Resource_Animal/Resource_Metal/Resource_Fish 행의 InnerRate/OuterRate에 곱하는 배수
-Table.Tribes,FishRate,실수 ≥ 0,,1,,Resource_Fruit/Resource_Crop/Resource_Animal/Resource_Metal/Resource_Fish 행의 InnerRate/OuterRate에 곱하는 배수
 Table.Tribes,Wiki,메모,,,,로더 무시
 Table.Tribes,Note,메모,,,,로더 무시
 Table.StartConditions,Index,정수,O,,,배열 위치

@@ -50,7 +50,7 @@ namespace TacticsECS.EditorTools
             Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 53, $"25 techs / 53 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
             Check(GameTables.Tribes.Length == 12 && GameTables.TechGroups.Length == 12, "12 regular tribes, one tech group each");
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
-            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Select(b => b.Id).ToList());
+            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadTribeTerrain().Select(b => b.Id).ToList());
             Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
             Check(GameTables.Units.Length == 11 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 23, "units 11 + mythic samples / boats 7 / buildings 23");
             Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
@@ -181,11 +181,11 @@ namespace TacticsECS.EditorTools
             ArrayTableCsvSerializer.ParseTechGroups("Index,Id,Tech1\n0,A,1\n2,B,x\n", errors);
             Check(errors.Any(e => e.Contains("Index")) && errors.Any(e => e.Contains("'x'")), "index gap + non-integer index reported: " + string.Join(" | ", errors));
 
-            var tribes = new[] { new TribeRow { Index = 0, Id = "T", Biome = "Nowhere", MountainRate = -1f, TechGroupIndex = 0, StartTechs = new[] { 3 }, StartUnits = new[] { 99 }, StartConditionIndex = 5 } };
+            var tribes = new[] { new TribeRow { Index = 0, Id = "T", TechGroupIndex = 0, StartTechs = new[] { 3 }, StartUnits = new[] { 99 }, StartConditionIndex = 5 } };
             var groups = new[] { new TechGroupRow { Index = 0, Id = "G", Techs = new[] { 0, 1 } } };
             var w = ArrayTableValidationSystem.Validate(GameTables.TechUnlocks, GameTables.Techs, groups, tribes,
-                GameTables.StartConditions, GameTables.StartConditionRules, biomeIds: new[] { "Grassland" }, unitCount: 11);
-            Check(w.Any(x => x.Contains("Biome 'Nowhere'")) && w.Any(x => x.Contains("배수")) && w.Any(x => x.Contains("StartUnit")) && w.Any(x => x.Contains("StartConditionIndex")) &&
+                GameTables.StartConditions, GameTables.StartConditionRules, terrainIds: new[] { TribeSystem.DefaultTerrainId }, unitCount: 11);
+            Check(w.Any(x => x.Contains("TribeTerrain.csv")) && w.Any(x => x.Contains("StartUnit")) && w.Any(x => x.Contains("StartConditionIndex")) &&
                   w.Any(x => x.Contains("기술 그룹")), "out-of-range tribe references + start tech outside group reported: " + string.Join(" | ", w));
         }
 
@@ -223,7 +223,7 @@ namespace TacticsECS.EditorTools
             var econ2 = NewEconomy();
             TribeSystem.Apply(econ2, Team.Player, luxidoor, econ2.UnitRows);
             Check(econ2.Tech[Team.Player].Unlocked.Count == 0 && econ2.Resources[Team.Player].Stars == 2, "Luxidoor: no start tech, 2 stars");
-            Check(!string.IsNullOrEmpty(TribeSystem.Summary(oumaji, GameDataLoader.LoadDefaultBiomes(), econ.UnitRows)), "tribe summary text");
+            Check(!string.IsNullOrEmpty(TribeSystem.Summary(oumaji, econ.UnitRows)), "tribe summary text");
         }
 
         private static void VerifyStartingUnits()
@@ -302,10 +302,10 @@ namespace TacticsECS.EditorTools
 
         private static void VerifyGenerateFromOutline()
         {
-            var biomes = GameDataLoader.LoadDefaultBiomes();
-            Check(biomes.Count == 3, "default biome table has 3 biomes");
+            var biomes = GameDataLoader.LoadTribeTerrain();
+            Check(biomes.Count == GameTables.Tribes.Length + 1, "tribe terrain table = one block per tribe + Default");
             if (biomes.Count == 0) return;
-            var desert = biomes.First(b => b.Id == "Desert");
+            var desert = biomes.First(b => b.Id == "Oumaji");
             var allowed = new HashSet<string>(desert.Tiles.Select(t => t.TileId))
                 { TerrainGenerationSystem.ForestTileId, TerrainGenerationSystem.MountainTileId, TerrainGenerationSystem.OceanTileId };
 
@@ -331,7 +331,7 @@ namespace TacticsECS.EditorTools
                 Check(onlyDesert && filled, $"{mode}: single-biome selection fills only that biome's tiles (+forest/mountain/ocean)");
 
                 // 같은 아웃라인, 다른 바이옴 -> 모양은 그대로.
-                var highland = biomes.First(b => b.Id == "Highland");
+                var highland = biomes.First(b => b.Id == "XinXi");
                 TerrainGenerationSystem.GenerateFromOutline(grid, new List<BiomeCsvRow> { highland, desert }, outline, 456);
                 Check(Enumerable.Range(0, 256).All(i => grid.GetTerrain(new Vector2Int(i % 16, i / 16)) == (outline.LandMask[i] ? TerrainType.Land : TerrainType.Water)),
                     $"{mode}: refilling with other biomes keeps the shape");

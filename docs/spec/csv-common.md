@@ -31,8 +31,8 @@
 ## 표 형식 두 가지
 | 형식 | 행을 가리키는 방법 | 사용 표 |
 |---|---|---|
-| 키형 | 문자열 `Id`(중복 금지) | 타일 행동, 과업, 바이옴, 규칙(`Key`) |
-| 배열형 | 정수 `Index` | `Assets/Resources/Tables/` 중 바이옴 표를 뺀 전부 |
+| 키형 | 문자열 `Id`(중복 금지) | 타일 행동, 과업, 종족 지형(`Tribe`), 규칙(`Key`) |
+| 배열형 | 정수 `Index` | `Assets/Resources/Tables/` 중 종족 지형 표를 뺀 전부 |
 
 배열형 규칙:
 - 첫 컬럼 `Index`는 0부터 1씩 빈틈없이 — 행 순서와 같아야 한다(다르면 오류).
@@ -47,4 +47,4 @@
 | `TileClass` | `Field`, `Forest`, `Mountain`, `ShallowWater`, `Ocean` | 건설·행동 배치 조건용 지형. 타일에서 계산된다(저장 안 함) — [tile](game/tile.md#지형) |
 | 해금 키 | `Category.Target` 문자열 | 기술이 여는 것. 형식과 Category 목록은 [tech](csv/tech.md#해금-키) |
 | StructureId | `Capital`, `Village`, `Ruin`, `Resource_*`, `Lighthouse`, `Starfish` | 타일 위 구조물 — [tile](game/tile.md#구조물) |
-| TileTypeId | 바이옴 CSV의 `Entry` + `Ocean` | 세부 타일 종류 — [biomes](csv/biomes.md) |
+| TileTypeId | 종족 지형 CSV의 `Entry` + `Ocean` | 세부 타일 종류 — [tribe-terrain](csv/tribe-terrain.md) |

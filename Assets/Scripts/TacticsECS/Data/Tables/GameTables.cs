@@ -27,9 +27,8 @@ namespace TacticsECS
         /// <summary>배 표. 행은 Boats에, 종류별로 나눈 것은 NavalUnitDefinition에 담긴다.</summary>
         public const string BoatsPath = Folder + "Boats";
 
-        /// <summary>샌드박스에서 바이옴 CSV를 따로 불러오지 않았을 때 쓰는 기본 바이옴 표.
-        /// 종족의 BiomeIndex는 이 표(또는 불러온 표)의 Biome 행 순서를 가리킨다.</summary>
-        public const string DefaultBiomesPath = Folder + "Biomes";
+        /// <summary>종족 지형 표(롱 포맷) — 종족 Id마다 영역 지형 묶음 하나, 종족 없는 팀은 Default 묶음. 로더: BiomeCsvSerializer.</summary>
+        public const string TribeTerrainPath = Folder + "TribeTerrain";
 
         public static TechUnlockRow[] TechUnlocks = new TechUnlockRow[0];
         public static TechRow[] Techs = new TechRow[0];

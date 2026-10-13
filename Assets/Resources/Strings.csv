@@ -199,9 +199,6 @@ StartCondition.None.Desc,수도 주변 추가 규칙 없음,No extra rules aroun
 StartCondition.DrylandsCoast.Name,건조지대 해안 수도,Drylands Coastal Capital
 StartCondition.DrylandsCoast.Desc,Drylands 맵에서 수도 옆에 물 {StartRule.DrylandsWater.Count}칸 + 각 칸에 물고기,"On Drylands maps, {StartRule.DrylandsWater.Count} water tiles next to the capital, each with fish"
 # 바이옴 (Biomes.csv),,
-Biome.Grassland.Name,평원,Grassland
-Biome.Desert.Name,사막,Desert
-Biome.Highland.Name,고지대,Highland
 # 구조물 (StructureDefinition),,
 Structure.Capital.Name,수도,Capital
 Structure.Capital.Desc,이 지역을 다스리는 도시의 중심입니다.,The center of the city that rules this region.
@@ -253,7 +250,7 @@ UI.Sandbox.StartHint,CSV별 파일 선택으로 데이터를 바꾼 뒤 지형 �
 UI.Sandbox.MapTypeOption,{0} ({1}%),{0} ({1}%)
 UI.Sandbox.WetnessLabel,{0} 물 {1}%,{0} water {1}%
 UI.Sandbox.TribeInfoLine,{0} {1},{0} {1}
-UI.Sandbox.TribeInfoEmpty,"종족을 고르면 시작 별/기술/유닛, 영역 지형(바이옴·평지 색·지형 배수), 수도 주변 시작 조건이 적용됩니다. 고르지 않은 팀은 기본 바이옴.","Picking a tribe applies its starting stars/tech/units, its region terrain (biome, field color, terrain rates) and the start conditions around its capital. Teams without a tribe use the default biome."
+UI.Sandbox.TribeInfoEmpty,"종족을 고르면 시작 별/기술/유닛, 영역 지형(TribeTerrain.csv의 종족 묶음), 수도 주변 시작 조건이 적용됩니다. 고르지 않은 팀은 Default 묶음.","Picking a tribe applies its starting stars/tech/units, its region terrain (its block in TribeTerrain.csv) and the start conditions around its capital. Teams without a tribe use the Default block."
 UI.Sandbox.OutlineDone,"1차 지형: 물 {0}% (목표 {1}%, {2}), 수도 {3}, 사전 마을 {4}. ""지형 생성""으로 바이옴을 채우세요.","Outline: water {0}% (target {1}%, {2}), capitals {3}, planned villages {4}. Fill it with biomes via ""Generate Terrain""."
 UI.Sandbox.UnitsLoaded,옛 형식 유닛 파일에서 {0}개 유닛을 불러왔습니다(팔레트만 바뀜).,Loaded {0} units from an old-format unit file (palette only).
 UI.Sandbox.LoadFailed,불러오기 실패: {0},Load failed: {0}
@@ -266,7 +263,7 @@ UI.Sandbox.TablesDefault,기본 표를 다시 읽었습니다.,Reloaded the defa
 UI.Sandbox.TablesExported,표 {0}개를 {1}에 내보냈습니다.,Exported {0} tables to {1}.
 UI.Sandbox.TechLoadLocked,잠긴 채 남는 해금 {0}개.,{0} unlocks stay locked.
 UI.Sandbox.TechLoadFailed,기술트리 불러오기 실패: {0},Tech tree load failed: {0}
-UI.Sandbox.NoBiomes,바이옴이 없습니다. 표 폴더의 Tables/Biomes.csv를 확인하세요.,No biomes. Check Tables/Biomes.csv in the table folder.
+UI.Sandbox.NoBiomes,종족 지형이 없습니다. 표 폴더의 Tables/TribeTerrain.csv를 확인하세요.,No tribe terrain. Check Tables/TribeTerrain.csv in the table folder.
 UI.Sandbox.RegionTribes,종족 영역 {0},tribe regions {0}
 UI.Sandbox.TerrainDone,"지형 생성: {0}, {1}x{2}, {3} 물 {4}% ({5}){6}, seed={7}.","Terrain: {0}, {1}x{2}, {3} water {4}% ({5}){6}, seed={7}."
 UI.Sandbox.OutlineKept,1차 지형 유지,outline kept

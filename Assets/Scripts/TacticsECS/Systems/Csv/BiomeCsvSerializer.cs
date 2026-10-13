@@ -10,37 +10,37 @@ namespace TacticsECS
     /// CSV 텍스트 <-> BiomeCsvRow 목록 변환만 담당하는 순수 파서/작성기(Unity 오브젝트를 몰라서 배치모드 CLI에서도 왕복 검증 가능).
     ///
     /// 형식(CLAUDE.md 규칙 6 — 한 칸에 한 값): 한 행이 바이옴 하나, 또는 그 바이옴의 타일 엔트리 하나, 또는 구조물 엔트리 하나인
-    /// "롱 포맷" 표다. Kind 컬럼(Biome/Tile/Structure)이 행 종류, Biome 컬럼이 소속 바이옴 Id다. 행 종류마다 쓰지 않는 컬럼은 비운다.
-    ///   - Biome 행: Name, NoiseType, Frequency, Octaves, SeedOffset, InnerRadius, MountainRate, ForestRate
+    /// "롱 포맷" 표(Tables/TribeTerrain.csv)다. Kind 컬럼(Tribe/Tile/Structure)이 행 종류, Tribe 컬럼이 소속 종족 Id(Tribes.csv Id,
+    /// 종족 없는 팀은 Default)다. 한 종족 묶음 = BiomeCsvRow 하나. 행 종류마다 쓰지 않는 컬럼은 비운다.
+    ///   - Tribe 행: Name, NoiseType, Frequency, Octaves, SeedOffset, InnerRadius, MountainRate, ForestRate
     ///   - Tile 행: Entry(TileId), TerrainType, InnerWeight, OuterWeight, MinCount, CountPerTiles, MinDistance, EdgeMargin, Exclude1..N
     ///   - Structure 행: Entry(StructureId), AllowedTile1..N, Weight, MinCount, CountPerTiles, MinDistance, EdgeMargin,
     ///     MaxDistanceFromCity, MaxWaterFractionOnLakes(비우면 제약 없음), FillRemaining, Exclude1..N, InnerRate, OuterRate
     /// 여러 값(ExcludeAdjacent/AllowedTileTypes)은 번호 붙은 반복 컬럼으로 나열한다. 필드 의미는 BiomeCsvRow.cs 주석 참고.
-    ///
-    /// 옛 형식(Tiles/Structures 한 칸에 ";" 엔트리, ":" 필드, "|" 목록을 묶은 한 행 = 한 바이옴)도 헤더에 Tiles 컬럼이 있으면
     /// </summary>
     public static class BiomeCsvSerializer
     {
-        public const string KindBiome = "Biome";
+        public const string KindTribe = "Tribe";
+        public const string KeyColumn = "Tribe";
         public const string KindTile = "Tile";
         public const string KindStructure = "Structure";
 
 
         private static readonly string[] FixedHeader =
         {
-            "Kind", "Biome", "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "MountainRate", "ForestRate",
+            "Kind", KeyColumn, "Name", "NoiseType", "Frequency", "Octaves", "SeedOffset", "InnerRadius", "MountainRate", "ForestRate",
             "Entry", "TerrainType", "InnerWeight", "OuterWeight", "Weight", "MinCount", "CountPerTiles", "MinDistance", "EdgeMargin",
             "MaxDistanceFromCity", "MaxWaterFractionOnLakes", "FillRemaining", "InnerRate", "OuterRate"
         };
 
-        /// <summary>헤더 이름 기반으로 읽는다(CsvTableReader — 순서 무관, # 주석 행 허용). Tile/Structure 행은 같은 Biome Id의 바이옴에
-        /// 붙는다(Biome 행이 없으면 기본값 바이옴을 만든다). 값이 비어있거나 형식이 잘못된 칸은 그 타입의 기본값으로 채운다(손으로
+        /// <summary>헤더 이름 기반으로 읽는다(CsvTableReader — 순서 무관, # 주석 행 허용). Tile/Structure 행은 같은 Tribe Id의 묶음에
+        /// 붙는다(Tribe 행이 없으면 기본값 묶음을 만든다). 값이 비어있거나 형식이 잘못된 칸은 그 타입의 기본값으로 채운다(손으로
         /// 편집하다 실수해도 예외 없이 불러와지게 — 잘못된 칸은 errors를 주면 기록된다).</summary>
-        public static List<BiomeCsvRow> Parse(string csvText, List<string> errors = null, string name = "biomes.csv")
+        public static List<BiomeCsvRow> Parse(string csvText, List<string> errors = null, string name = "TribeTerrain.csv")
         {
             if (string.IsNullOrWhiteSpace(csvText)) return new List<BiomeCsvRow>();
             var t = CsvTableReader.Parse(name, csvText);
-            CsvTableReader.CheckColumns(t, new[] { "Kind", "Biome" }, FixedHeader, errors, new[] { "AllowedTile", "Exclude" });
+            CsvTableReader.CheckColumns(t, new[] { "Kind", KeyColumn }, FixedHeader, errors, new[] { "AllowedTile", "Exclude" });
 
             var rows = new List<BiomeCsvRow>();
             BiomeCsvRow Find(string id)
@@ -52,13 +52,13 @@ namespace TacticsECS
 
             for (int r = 0; r < t.Rows.Count; r++)
             {
-                string kind = CsvTableReader.Get(t, r, "Kind", KindBiome);
-                string biomeId = CsvTableReader.Get(t, r, "Biome");
-                if (biomeId.Length == 0) { CsvTableReader.Report(t, r, "Biome", "바이옴 Id가 비어 있음", errors); continue; }
-                var biome = Find(biomeId);
-                if (string.Equals(kind, KindBiome, StringComparison.OrdinalIgnoreCase))
+                string kind = CsvTableReader.Get(t, r, "Kind", KindTribe);
+                string tribeId = CsvTableReader.Get(t, r, KeyColumn);
+                if (tribeId.Length == 0) { CsvTableReader.Report(t, r, KeyColumn, "종족 Id가 비어 있음", errors); continue; }
+                var biome = Find(tribeId);
+                if (string.Equals(kind, KindTribe, StringComparison.OrdinalIgnoreCase))
                 {
-                    biome.Name = LocalizationSystem.Name("Biome", biomeId, CsvTableReader.Get(t, r, "Name"));
+                    biome.Name = LocalizationSystem.Name(ArrayTableCsvSerializer.TribeStringTable, tribeId, CsvTableReader.Get(t, r, "Name"));
                     biome.NoiseType = CsvTableReader.Get(t, r, "NoiseType", "Perlin");
                     biome.Frequency = CsvTableReader.GetFloat(t, r, "Frequency", 0f, errors);
                     biome.Octaves = CsvTableReader.GetInt(t, r, "Octaves", 0, errors);
@@ -102,7 +102,7 @@ namespace TacticsECS
                         OuterRate = CsvTableReader.GetFloat(t, r, "OuterRate", 0f, errors),
                     });
                 }
-                else CsvTableReader.Report(t, r, "Kind", $"알 수 없는 행 종류 '{kind}' (가능: {KindBiome}/{KindTile}/{KindStructure})", errors);
+                else CsvTableReader.Report(t, r, "Kind", $"알 수 없는 행 종류 '{kind}' (가능: {KindTribe}/{KindTile}/{KindStructure})", errors);
             }
             return rows;
         }
@@ -135,7 +135,7 @@ namespace TacticsECS
             {
                 Line(new[]
                 {
-                    KindBiome, b.Id ?? string.Empty, b.Name ?? string.Empty, b.NoiseType ?? "Perlin", F(b.Frequency), I(b.Octaves), I(b.SeedOffset),
+                    KindTribe, b.Id ?? string.Empty, b.Name ?? string.Empty, b.NoiseType ?? "Perlin", F(b.Frequency), I(b.Octaves), I(b.SeedOffset),
                     I(b.InnerRadius), F(b.MountainRate), F(b.ForestRate)
                 }, null, null);
                 foreach (var e in b.Tiles)

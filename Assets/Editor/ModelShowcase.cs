@@ -196,7 +196,7 @@ namespace TacticsECS.EditorTools
         /// <summary>실제 지형 생성으로 만든 맵 한 장 — 구름(오른쪽 위 일부), 도시 2개와 도로 몇 칸 포함. 맵 전체의 렌더러/삼각형 수를 남긴다.</summary>
         private static void ShotMap(string outDir, StringBuilder metrics)
         {
-            var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", "Assets/Resources/Tables/Biomes.csv")));
+            var biomes = TerrainGenerationVerification.SampleTerrains();
             var grid = new GridWorld(12, 12, TileSize);
             var anchors = TerrainGenerationSystem.Generate(grid, biomes, 1, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.5f, out var suburbs, out var planned);
             StructureGenerationSystem.Generate(grid, biomes, anchors, 1, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);

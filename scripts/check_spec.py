@@ -146,7 +146,6 @@ def check_string_keys():
                               ("TileAction", res / "TileActions.csv", "Id"), ("Task", res / "Tasks.csv", "Id"),
                               ("CityReward", res / "CityRewards.csv", "Reward")):
         expected += [f"{prefix}.{i}.Name" for i in ids(path, col)]
-    expected += [f"Biome.{i}.Name" for i in ids(tables / "Biomes.csv", "Biome", lambda r: r.get("Kind") == "Biome")]
     hud = (ROOT / "Assets/Scripts/TacticsECS/View/BattleHud.cs").read_text(encoding="utf-8-sig")
     expected += [f"Action.{flag}.Tooltip" for flag in re.findall(r'\(ActionType\.(\w+), "\w+"\)', hud)]
     for key in sorted(set(expected) - keys):

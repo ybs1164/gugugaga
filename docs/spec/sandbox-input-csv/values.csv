@@ -35,7 +35,6 @@ VisualId 접두사,Icon.,"아이콘 / Icon.<이름>(기술 Icon, 행동 배지)"
 VisualId 접두사,UI.,"UI 도형 / UI.Missing(없는 키 대체), UI.Solid, UI.Shadow"
 키 규칙,Language.Name,언어 선택 버튼에 보이는 그 언어의 이름
 키 규칙,Unit.<Id>.Name,Units·Boats 행 이름. 샌드박스 유닛 파일의 Name보다 앞선다
-키 규칙,Biome.<Biome>.Name,Biomes Biome 행. 불러온 바이옴 파일의 Name보다 앞선다
 키 규칙,UI.<화면>.<이름>,화면 문구(버튼·안내·로그). <화면>은 그 문구를 쓰는 View/System
 자리표시자,{컬럼},그 문구가 설명하는 행(<표>.<Id>.Desc)의 CSV 칸 — 컬럼 이름 그대로 / Building.Farm.Desc의 {Population}
 자리표시자,{표.Id.컬럼},"다른 표의 행. 표: Building(Cost Population PopulationPerAdjacent), TileAction(Cost Population StarsGain), Task(Threshold), CityReward(Amount), Unit — 유닛·배(Cost MaxHp Defense Move.Range Attack.Attack Attack.Range), Tech(CostBase CostPerCity), Tribe(StartStars), StartRule — 시작 조건 규칙 Id(Count MinDistance MaxDistance) / {Building.Mine.Cost}"

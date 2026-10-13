@@ -15,8 +15,8 @@
 헤더보다 많은 칸,경고 후 무시 — 대개 인용하지 않은 쉼표가 값을 끊은 것
 잘못된 값,[GameData] 파일:줄 컬럼: 내용 경고 후 그 칸만 기본값. 게임은 멈추지 않는다
 공통/관련 표,"Terrain1, Terrain2 … 처럼 필요한 만큼 늘리고, 빈 칸은 건너뛴다."
-키형,"문자열 Id(중복 금지) / 타일 행동, 과업, 바이옴, 규칙(Key)"
-배열형,정수 Index / Assets/Resources/Tables/ 중 바이옴 표를 뺀 전부
+키형,"문자열 Id(중복 금지) / 타일 행동, 과업, 종족 지형(Tribe), 규칙(Key)"
+배열형,정수 Index / Assets/Resources/Tables/ 중 종족 지형 표를 뺀 전부
 공통/관련 표,배열형 규칙:
 공통/관련 표,첫 컬럼 Index는 0부터 1씩 빈틈없이 — 행 순서와 같아야 한다(다르면 오류).
 공통/관련 표,"다른 표 참조는 그 표의 Index(컬럼 이름 …Index), -1 또는 빈 칸 = 없음."
@@ -25,7 +25,7 @@
 TerrainType,"Land, Water / 이동 판정용 지형. 유닛 Domain과 같아야 들어간다"
 TileClass,"Field, Forest, Mountain, ShallowWater, Ocean / 건설·행동 배치 조건용 지형. 타일에서 계산된다(저장 안 함) — tile"
 해금 키,Category.Target 문자열 / 기술이 여는 것. 형식과 Category 목록은 tech
-TileTypeId,바이옴 CSV의 Entry + Ocean / 세부 타일 종류 — biomes
+TileTypeId,종족 지형 CSV의 Entry + Ocean / 세부 타일 종류 — tribe-terrain
 공통/관련 표,Key·Note가 아닌 열이 전부 언어 열이다. 언어를 더하려면 열(예: ja)을 추가하고 Language.Name 행에 그 언어 이름을 적는다 — 언어 버튼이 헤더 순서대로 돈다.
 공통/관련 표,"칸 안의 \n은 줄바꿈. {0}, {1} …은 코드가 채우는 값(string.Format) — 번역문에서도 같은 번호를 쓴다."
 공통/관련 표,문구에 수치를 옮겨 적지 않는다 — 자리표시자로 CSV 값을 가리킨다.

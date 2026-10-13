@@ -1,10 +1,10 @@
 # 맵 생성
 
-값: [바이옴 CSV](../csv/biomes.md), [시작 조건 CSV](../csv/tribes.md), [게임 규칙 CSV](../csv/game-rules.md) `Map.*`. 코드: `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem`.
+값: [종족 지형 CSV](../csv/tribe-terrain.md), [시작 조건 CSV](../csv/tribes.md), [게임 규칙 CSV](../csv/game-rules.md) `Map.*`. 코드: `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem`.
 위키 조사 요약: [reference/PolytopiaMapGeneration](../../reference/PolytopiaMapGeneration.md) — 코드 주석의 "원문 N절"은 이 문서의 절 번호다.
 
 ## 입력
-- 바이옴 CSV, 팀별 종족(영역 지형 — [tribe](tribe.md#영역-지형)), 맵 크기(정사각형 변 길이 — `BattleController.MapSizePresets`), 맵 타입, 시드.
+- 종족 지형 CSV, 팀별 종족(영역 지형 — [tribe](tribe.md#영역-지형)), 맵 크기(정사각형 변 길이 — `BattleController.MapSizePresets`), 맵 타입, 시드.
 - 같은 입력이면 항상 같은 맵(시드 하나로 지형·구조물 전체 결정).
 
 ## 맵 타입
@@ -24,10 +24,10 @@
 1. **수도**: 쿼드런트 맵은 구역마다 하나. `Pangea`/`Continents`는 땅을 만든 뒤 서로 가장 멀게.
 2. **지형 전 마을**: 맵 타입에 따라 Suburb·Pre-terrain 마을 위치를 먼저 정한다.
 3. **땅 모양**: 위 표.
-4. **영역 배정**: 수도 하나 = 팀 하나의 영역. 칸마다 가장 가까운 수도 영역의 바이옴(Voronoi) — 그 팀 종족의 영역 바이옴([tribe](tribe.md#영역-지형)).
-5. **타일 채우기**: 바이옴 `MinCount`/`CountPerTiles` 먼저, 나머지는 Inner/Outer 가중치 × 노이즈. Inner = 가장 가까운 도시에서 `InnerRadius` 이내.
-6. **숲·산 레이어**: 바이옴마다 도시 칸을 뺀 육지에 기준 비율(`Map.MountainFraction`/`Map.ForestFraction`) × `MountainRate`/`ForestRate`만큼 쿼터로.
-7. **물 깊이**: 상하좌우에 육지가 있는 물 = 바이옴의 물 타일(얕은 물), 없으면 `Ocean`.
+4. **영역 배정**: 수도 하나 = 팀 하나의 영역. 칸마다 가장 가까운 수도 영역(Voronoi)의 지형 묶음 — 그 팀 종족의 묶음([tribe](tribe.md#영역-지형)).
+5. **타일 채우기**: 묶음 `MinCount`/`CountPerTiles` 먼저, 나머지는 Inner/Outer 가중치 × 노이즈. Inner = 가장 가까운 도시에서 `InnerRadius` 이내.
+6. **숲·산 레이어**: 영역마다 도시 칸을 뺀 육지에 기준 비율(`Map.MountainFraction`/`Map.ForestFraction`) × `MountainRate`/`ForestRate`만큼 쿼터로.
+7. **물 깊이**: 상하좌우에 육지가 있는 물 = 묶음의 물 타일(얕은 물), 없으면 `Ocean`.
 8. **구조물**(`StructureGenerationSystem`, 순서 고정):
    1. 수도 + 지형 전 마을
    2. Post-terrain 마을 — 자리가 없을 때까지. 외딴 섬 마을(`Pangea`/`Continents`/`Waterworld`). `Lakes`는 수도마다 육로로 닿는 마을이 `Map.LakesRequiredVillages`개 이상이 되도록 육지 다리(최대 `Map.LakesMaxBridgesPerCapital`개)

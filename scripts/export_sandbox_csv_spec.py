@@ -43,7 +43,7 @@ for path in sorted((ROOT / 'docs/spec/csv').glob('*.md')):
             if mode == 'column' and current:
                 names = re.findall(r'`([^`]+)`', cells[0])
                 for name in names:
-                    if path.name == 'biomes.md' and len(cells) == 5:
+                    if path.name == 'tribe-terrain.md' and len(cells) == 5:
                         typ, default, applies, desc = cells[1:]
                         required = '필수' if '(필수)' in default else '선택'
                     elif len(cells) == 5:
@@ -77,7 +77,7 @@ for path in tables:
     relative = path.removeprefix('Assets/Resources/')
     route = 'Sandbox CSV 목록: 해당 항목의 파일 선택'
     detect = '선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관'
-    manifest.append([key,relative,path,route,detect,'한 행 = 바이옴/타일/구조물' if Path(path).stem == 'Biomes' else '한 행 = 데이터 항목','미선택 시 기본 파일'])
+    manifest.append([key,relative,path,route,detect,'한 행 = 종족 묶음/타일/구조물' if Path(path).stem == 'TribeTerrain' else '한 행 = 데이터 항목','미선택 시 기본 파일'])
     seen = set()
     for row in specs[path]:
         if row[0] in seen: continue
@@ -91,7 +91,7 @@ for path in tables:
 
 write('formats.csv',['Format','ResourceRelativePath','DefaultCsvPath','InputRoute','Detection','RowStructure','Notes'],manifest)
 # 생성 폴더 안의 더 이상 지원하지 않는 명세 파일만 정리한다.
-for name in ('LegacyBiomes', 'sample_units', 'TechTree', 'ModelPalette', 'BuildingModels', 'TerrainModels', 'UnitModels'):
+for name in ('Biomes', 'LegacyBiomes', 'sample_units', 'TechTree', 'ModelPalette', 'BuildingModels', 'TerrainModels', 'UnitModels'):
     stale = (OUT / (name + '.spec.csv')).resolve()
     assert stale.parent == OUT.resolve()
     if stale.exists():
@@ -109,7 +109,7 @@ for source in ('docs/spec/game/unit.md', 'docs/spec/csv-common.md'):
 write('values.csv',['Section','Value','Description'],[r[1:] for r in values if 'Structure' not in r[2] and '구조물' not in r[3]])
 
 rules = []
-for section in ('docs/spec/csv-common.md','docs/spec/csv/tech.md','docs/spec/csv/units.md','docs/spec/csv/biomes.md','docs/spec/csv/strings.md'):
+for section in ('docs/spec/csv-common.md','docs/spec/csv/tech.md','docs/spec/csv/units.md','docs/spec/csv/tribe-terrain.md','docs/spec/csv/strings.md'):
     for line in (ROOT / section).read_text(encoding='utf-8').splitlines():
         if line.startswith('- ') or line.startswith('배열형 규칙:'):
             rules.append(['공통/관련 표',clean(line.removeprefix('- ')),section])
@@ -151,5 +151,5 @@ for path in OUT.glob('*.csv'):
     with path.open(encoding='utf-8-sig', newline='') as f:
         data = list(csv.reader(f, strict=True))
     assert all(len(r) == len(data[0]) for r in data), path
-assert next(r for r in columns if r[:2] == ['Table.Biomes', 'Kind'])[5] == '전부'
+assert next(r for r in columns if r[:2] == ['Table.TribeTerrain', 'Kind'])[5] == '전부'
 print('CSV specification validation: OK; all existing input headers covered')

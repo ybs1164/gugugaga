@@ -172,8 +172,8 @@ namespace TacticsECS
         /// <summary>생성한 지형의 팀별 수도 자리(영역 i = CitySystem.Teams[i]) — 전투 시작 때 그 팀 수도가 된다.</summary>
         private readonly Dictionary<Team, Vector2Int> _tribeCapitals = new Dictionary<Team, Vector2Int>();
 
-        /// <summary>지금 표 폴더의 바이옴 표(없으면 Resources/Tables/Biomes.csv) — 종족 영역 바이옴의 기본 바이옴.</summary>
-        private List<BiomeCsvRow> _defaultBiomes;
+        /// <summary>지금 표 폴더의 종족 지형 표(없으면 Resources/Tables/TribeTerrain.csv) — 팀 영역 지형 묶음.</summary>
+        private List<BiomeCsvRow> _tribeTerrain;
 
         private CityResourceHud _cityResourceHud;
         private FaithHud _faithHud;
@@ -466,7 +466,7 @@ namespace TacticsECS
 
         // ---------- Sandbox: 습도 탭(1차 지형) · 종족 탭 ----------
 
-        private List<BiomeCsvRow> ActiveBiomes() => _defaultBiomes ??= GameDataLoader.LoadDefaultBiomes(SandboxTables);
+        private List<BiomeCsvRow> ActiveBiomes() => _tribeTerrain ??= GameDataLoader.LoadTribeTerrain(SandboxTables);
 
         private TribeRow? TribeOf(Team team) =>
             _tribeByTeam.TryGetValue(team, out int i) && TribeSystem.IsValid(i) ? GameTables.Tribes[i] : (TribeRow?)null;
@@ -483,13 +483,12 @@ namespace TacticsECS
 
         private void RefreshTribeInfo()
         {
-            var biomes = ActiveBiomes();
             var unitRows = CurrentUnitRows();
             var lines = new List<string>();
             foreach (var team in CitySystem.Teams)
             {
                 var tribe = TribeOf(team);
-                if (tribe != null) lines.Add(LocalizationSystem.F("UI.Sandbox.TribeInfoLine", TeamName(team), TribeSystem.Summary(tribe.Value, biomes, unitRows)));
+                if (tribe != null) lines.Add(LocalizationSystem.F("UI.Sandbox.TribeInfoLine", TeamName(team), TribeSystem.Summary(tribe.Value, unitRows)));
             }
             foreach (var team in CitySystem.Teams)
             {
@@ -668,7 +667,7 @@ namespace TacticsECS
             RefreshTribeInfo();
         }
 
-        /// <summary>팀마다 영역 하나(CitySystem.Teams 순서) — 그 팀 종족의 영역 바이옴(TribeSystem.RegionBiomes).</summary>
+        /// <summary>팀마다 영역 하나(CitySystem.Teams 순서) — 그 팀 종족의 지형 묶음(TribeSystem.RegionBiomes).</summary>
         private List<BiomeCsvRow> ResolveRegionBiomes() =>
             TribeSystem.RegionBiomes(CitySystem.Teams.Select(TribeOf).ToList(), ActiveBiomes());
 
@@ -752,7 +751,7 @@ namespace TacticsECS
             }
             s_tableFolder = source.Folder;
             var errors = GameDataLoader.LoadAll(source);
-            _defaultBiomes = null;
+            _tribeTerrain = null;
             foreach (var team in CitySystem.Teams)
                 if (!TribeSystem.IsValid(_tribeByTeam[team])) _tribeByTeam[team] = -1;
             foreach (var team in CitySystem.Teams)
@@ -794,7 +793,7 @@ namespace TacticsECS
 
         /// <summary>바이옴으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와 다르면 먼저 그리드 자체를 다시 만든다
         /// (RebuildGridForSize). 이미 유닛이 놓인 칸은 생성 시스템이 건드리지 않으므로 배치 중에 눌러도 안전하다.
-        /// 매번 새 시드로 수도/사전 마을 자리와 육지/물 모양을 생성한 뒤 팀마다 종족 영역 바이옴(ResolveRegionBiomes)으로 채운다.
+        /// 매번 새 시드로 수도/사전 마을 자리와 육지/물 모양을 생성한 뒤 팀마다 종족 지형 묶음(ResolveRegionBiomes)으로 채운다.
         /// 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지 적용한다.</summary>
         private void HandleGenerateTerrain()
         {

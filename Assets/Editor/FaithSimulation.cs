@@ -17,7 +17,7 @@ namespace TacticsECS.EditorTools
     public static class FaithSimulation
     {
         private const int MaxTurns = 100;
-        private const string BiomeCsv = "Assets/Resources/Tables/Biomes.csv";
+        private const string BiomeCsv = "Assets/Resources/Tables/TribeTerrain.csv";
 
         /// <summary>판마다 맵 시드의 시작값. 환경 변수 FAITH_SIM_SEED로 바꿔 다른 시드 묶음을 돌릴 수 있다(기본 11).</summary>
         private static int SeedOffset => int.TryParse(System.Environment.GetEnvironmentVariable("FAITH_SIM_SEED"), out var v) ? v : 11;

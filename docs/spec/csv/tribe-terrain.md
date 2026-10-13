@@ -1,23 +1,24 @@
-# 바이옴 CSV
+# 종족 지형 CSV
 
-파일: `Assets/Resources/Tables/Biomes.csv`
-Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면(또는 표 폴더에 있으면) 그 파일이 대신 쓰인다. 실제 지형 반영은 지형 생성 버튼으로 수행한다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md).
+파일: `Assets/Resources/Tables/TribeTerrain.csv`
+Sandbox의 `Tables/TribeTerrain.csv` 항목에서 다른 파일을 고르면(또는 표 폴더에 있으면) 그 파일이 대신 쓰인다. 실제 지형 반영은 지형 생성 버튼으로 수행한다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md), [tribe](../game/tribe.md#영역-지형).
 
-롱 포맷: 한 행이 바이옴 하나, 또는 그 바이옴의 타일 엔트리 하나, 또는 구조물 엔트리 하나다. 행 종류마다 안 쓰는 칸은 비운다.
-[tribes](tribes.md)의 `Biome`이 `Biome` Id로 가리킨다(종족이 없는 팀은 첫 바이옴). 첫 `Land` 타일 행이 그 바이옴의 **평지** — 종족 `GroundTile`이 이 Id를 바꿔 쓴다. 종족 배수는 [tribe](../game/tribe.md#영역-지형).
+롱 포맷: 한 행이 종족 묶음 하나(`Tribe` 행), 또는 그 묶음의 타일 엔트리 하나, 또는 구조물 엔트리 하나다. 행 종류마다 안 쓰는 칸은 비운다.
+묶음 Id = [tribes](tribes.md)의 `Id`. 종족을 고르지 않은 팀과 묶음이 없는 종족은 `Default` 묶음(없으면 첫 묶음)을 쓴다.
+첫 `Land` 타일 행이 그 묶음의 **평지**다 — 종족마다 다른 평지 Id를 쓰면 색만 다른 맨땅이 된다([sprites](sprites.md)의 `Ground.<Id>`).
 
 | 컬럼 | 타입 | 기본 | 쓰는 행 | 뜻 |
 |---|---|---|---|---|
-| `Kind` | `Biome`/`Tile`/`Structure` | `Biome` | 전부 | 행 종류 |
-| `Biome` | 문자열 | (필수) | 전부 | 소속 바이옴 Id. `Biome` 행이 없으면 기본값 바이옴이 만들어진다 |
-| `Name` | 문자열 | `Biome` | Biome | 표시 이름 — 불러온 바이옴 파일용. 기본 표는 비우고 [번역 표](strings.md#키-규칙) `Biome.<Biome>.Name`을 쓴다(번역이 있으면 이 칸보다 앞선다) |
-| `NoiseType` | 문자열 | `Perlin` | Biome | 노이즈 종류. `Perlin`만 지원 |
-| `Frequency` | 실수 | 0 | Biome | 노이즈 주파수 |
-| `Octaves` | 정수 | 0 | Biome | 노이즈 옥타브 |
-| `SeedOffset` | 정수 | 0 | Biome | 이 바이옴 노이즈장의 시드 오프셋 |
-| `InnerRadius` | 정수 | 0 | Biome | 가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용) |
-| `MountainRate` | 실수 | 0 | Biome | 산 레이어 바이옴 배수(종족 배수와 곱함). 0이면 산 없음 |
-| `ForestRate` | 실수 | 0 | Biome | 숲 레이어 바이옴 배수(종족 배수와 곱함). 0이면 숲 레이어 없음 |
+| `Kind` | `Tribe`/`Tile`/`Structure` | `Tribe` | 전부 | 행 종류 |
+| `Tribe` | 종족 Id 또는 `Default` | (필수) | 전부 | 소속 묶음. `Tribe` 행이 없으면 기본값 묶음이 만들어진다 |
+| `Name` | 문자열 | `Tribe` | Tribe | 표시 이름. 기본 표는 비우고 [번역 표](strings.md#키-규칙) `Tribe.<Tribe>.Name`을 쓴다(번역이 있으면 이 칸보다 앞선다) |
+| `NoiseType` | 문자열 | `Perlin` | Tribe | 노이즈 종류. `Perlin`만 지원 |
+| `Frequency` | 실수 | 0 | Tribe | 노이즈 주파수 |
+| `Octaves` | 정수 | 0 | Tribe | 노이즈 옥타브 |
+| `SeedOffset` | 정수 | 0 | Tribe | 이 묶음 노이즈장의 시드 오프셋 |
+| `InnerRadius` | 정수 | 0 | Tribe | 가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용) |
+| `MountainRate` | 실수 | 0 | Tribe | 산 레이어 배수(1 = 기준 비율). 0이면 산 없음 |
+| `ForestRate` | 실수 | 0 | Tribe | 숲 레이어 배수(1 = 기준 비율). 0이면 숲 레이어 없음 |
 | `Entry` | 문자열 | | Tile, Structure | Tile: TileTypeId / Structure: StructureId |
 | `TerrainType` | `TerrainType` | `Land` | Tile | 이 타일의 이동 지형 |
 | `InnerWeight` | 실수 | 0 | Tile | Inner 영역 가중치(노이즈로 보정) |
@@ -30,7 +31,7 @@ Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면(또는 �
 | `MaxDistanceFromCity` | 정수 | 0 | Structure | >0이면 가장 가까운 도시에서 이 거리 이내만 |
 | `MaxWaterFractionOnLakes` | 실수 | 없음 | Structure | Lakes 맵에서 물 위에 놓일 수 있는 비율 상한(0~1). 비우면 제약 없음 |
 | `FillRemaining` | 불리언 | false | Structure | 개수 무시하고 자리가 없을 때까지 놓는다 |
-| `InnerRate` | 실수 | 0 | Structure | >0이면 자원 — 도시 거리 1 칸 중 이 비율을 채운다 |
+| `InnerRate` | 실수 | 0 | Structure | >0이면 자원 — 도시 거리 1 칸 중 이 비율을 채운다. 같은 타일 묶음 안 비율 합이 1을 넘으면 앞쪽 행부터 칸을 가져간다 |
 | `OuterRate` | 실수 | 0 | Structure | 자원 — 도시 거리 2 칸 중 이 비율 |
 | `AllowedTile{n}` | TileTypeId | 없음 | Structure | 놓일 수 있는 타일. **비우면 어디에도 안 놓인다**. 깊은 바다는 `Ocean` |
 | `Exclude{n}` | Id | 없음 | Tile, Structure | Tile: 상하좌우로 붙을 수 없는 TileTypeId / Structure: 8방향으로 붙을 수 없는 StructureId |

@@ -188,7 +188,7 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>표 키(Tables/Biomes)의 파일 이름만(Biomes.csv) — 폴더는 보이지 않는다.</summary>
+        /// <summary>표 키(Tables/Tribes)의 파일 이름만(Tribes.csv) — 폴더는 보이지 않는다.</summary>
         private static string CsvFileName(string key) => System.IO.Path.GetFileName(key) + ".csv";
 
         /// <summary>"맵 크기" 버튼 라벨을 현재 선택된 프리셋으로 갱신한다(BattleController.HandleMapSizeCycle이

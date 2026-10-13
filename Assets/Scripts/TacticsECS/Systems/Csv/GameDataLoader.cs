@@ -25,7 +25,7 @@ namespace TacticsECS
             TileActionDefinition.CsvResourcePath, CityRewardDefinition.CsvResourcePath, TaskDefinition.CsvResourcePath,
             GameTables.UnitsPath, GameTables.BoatsPath, GameTables.BuildingsPath,
             GameTables.TechUnlocksPath, GameTables.TechsPath, GameTables.TechSlotsPath, GameTables.TechTreeLayoutPath, GameTables.TechGroupsPath,
-            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.DefaultBiomesPath,
+            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath,
         };
 
         public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
@@ -74,7 +74,7 @@ namespace TacticsECS
             GameTables.Gods = ArrayTableCsvSerializer.ParseGods(Read(GameTables.GodsPath, errors, source), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
-            errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(LoadDefaultBiomes(source).Select(b => b.Id).ToList()));
+            errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(LoadTribeTerrain(source).Select(b => b.Id).ToList()));
         }
 
         public static void LoadStrings(List<string> errors) => LoadStrings(errors, TableSource.Resources);
@@ -97,10 +97,10 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>기본 바이옴 표(Tables/Biomes.csv — 표 폴더에 있으면 그 파일). 없으면 빈 목록.</summary>
-        public static List<BiomeCsvRow> LoadDefaultBiomes(TableSource source = default)
+        /// <summary>종족 지형 표(Tables/TribeTerrain.csv — 표 폴더에 있으면 그 파일). 없으면 빈 목록.</summary>
+        public static List<BiomeCsvRow> LoadTribeTerrain(TableSource source = default)
         {
-            var text = Read(GameTables.DefaultBiomesPath, null, source);
+            var text = Read(GameTables.TribeTerrainPath, null, source);
             return text.Length > 0 ? BiomeCsvSerializer.Parse(text) : new List<BiomeCsvRow>();
         }
 

@@ -138,7 +138,8 @@ namespace TacticsECS
                 if (tile.OwnerTeam != TileData.NoOwner)
                 {
                     var edges = new List<Vector2Int>();
-                    foreach (var d in Directions) { var n = p+d; if (!grid.InBounds(n) || grid.GetTile(n).OwnerTeam != tile.OwnerTeam) edges.Add(d); }
+                    // Ally and enemy territory merge into one area: only its outer edge (next to unowned/off-map) gets a border.
+                    foreach (var d in Directions) { var n = p+d; if (!grid.InBounds(n) || grid.GetTile(n).OwnerTeam == TileData.NoOwner) edges.Add(d); }
                     if (edges.Count > 0)
                     {
                         if (overlay == null) { overlay = new GameObject("Territory"); overlay.transform.SetParent(view.transform, false); }

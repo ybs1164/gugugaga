@@ -24,10 +24,12 @@ namespace TacticsECS
                 PixelSpriteCatalog.Rectangle(parent,"Level",pip,new Vector2(.0625f,.0625f),color,PixelSpriteCatalog.OverlayOrder-10);
             }
         }
-        public static void AddBorders(Transform parent, IEnumerable<Vector2Int> edges, Color teamColor)
+        public static void AddBorders(Transform parent, IEnumerable<Vector2Int> edges, IEnumerable<Vector2Int> corners, Color teamColor)
         {
             foreach (var e in edges) PixelSpriteCatalog.Rectangle(parent,"Border",new Vector2(e.x,e.y)*.46875f,
                 e.y != 0 ? new Vector2(1,.0625f) : new Vector2(.0625f,1),teamColor,PixelSpriteCatalog.OverlayOrder-20);
+            foreach (var c in corners) PixelSpriteCatalog.Rectangle(parent,"BorderCorner",new Vector2(c.x,c.y)*.46875f,
+                new Vector2(.0625f,.0625f),teamColor,PixelSpriteCatalog.OverlayOrder-20);
         }
     }
 }

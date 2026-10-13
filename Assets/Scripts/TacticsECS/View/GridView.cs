@@ -21,6 +21,7 @@ namespace TacticsECS
         private Tilemap _ground, _fog;
         private readonly Dictionary<string, Tile> _tiles = new Dictionary<string, Tile>();
         private static readonly Vector2Int[] Directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
+        private static readonly Vector2Int[] Diagonals = { new Vector2Int(1,1), new Vector2Int(1,-1), new Vector2Int(-1,-1), new Vector2Int(-1,1) };
         public Tilemap Ground => _ground;
 
         public void Build(GridWorld grid, GameObject landTilePrefab = null, GameObject waterTilePrefab = null)
@@ -137,13 +138,15 @@ namespace TacticsECS
                 }
                 if (tile.OwnerTeam != TileData.NoOwner)
                 {
-                    var edges = new List<Vector2Int>();
-                    // Ally and enemy territory merge into one area: only its outer edge (next to unowned/off-map) gets a border.
-                    foreach (var d in Directions) { var n = p+d; if (!grid.InBounds(n) || grid.GetTile(n).OwnerTeam == TileData.NoOwner) edges.Add(d); }
-                    if (edges.Count > 0)
+                    var edges = new List<Vector2Int>(); var corners = new List<Vector2Int>();
+                    bool Same(Vector2Int n) => grid.InBounds(n) && grid.GetTile(n).OwnerTeam == tile.OwnerTeam;
+                    foreach (var d in Directions) if (!Same(p+d)) edges.Add(d);
+                    // Inner corner: both side neighbours carry the border past this tile's corner, so fill the gap between them.
+                    foreach (var c in Diagonals) if (Same(p+new Vector2Int(c.x,0)) && Same(p+new Vector2Int(0,c.y)) && !Same(p+c)) corners.Add(c);
+                    if (edges.Count > 0 || corners.Count > 0)
                     {
                         if (overlay == null) { overlay = new GameObject("Territory"); overlay.transform.SetParent(view.transform, false); }
-                        BuildingMarkerView.AddBorders(overlay.transform, edges, tint);
+                        BuildingMarkerView.AddBorders(overlay.transform, edges, corners, tint);
                     }
                 }
                 Replace(ref _overlays[i], overlay);

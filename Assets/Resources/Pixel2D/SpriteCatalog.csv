@@ -5,6 +5,18 @@ Ground.Mountain,Town,0,0,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
 Ground.Sand,Town,1,2,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
 Ground.Rock,Town,1,2,16,16,0,0,1,0,0,FFFFFF,0,,CC0 original
 Ground.Snow,Pattern/Solid,0,0,16,16,0,0,1,0,0,E7F0F4,0,,Original pattern
+Ground.Field_XinXi,Pattern/Solid,0,0,16,16,0,0,1,0,0,B7C29A,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Imperius,Pattern/Solid,0,0,16,16,0,0,1,0,0,9CCB6E,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Bardur,Pattern/Solid,0,0,16,16,0,0,1,0,0,7E9A5E,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Oumaji,Pattern/Solid,0,0,16,16,0,0,1,0,0,E6D28E,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Kickoo,Pattern/Solid,0,0,16,16,0,0,1,0,0,8FDCA0,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Hoodrick,Pattern/Solid,0,0,16,16,0,0,1,0,0,C9A65C,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Luxidoor,Pattern/Solid,0,0,16,16,0,0,1,0,0,BFA3D6,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Vengir,Pattern/Solid,0,0,16,16,0,0,1,0,0,A39890,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Zebasi,Pattern/Solid,0,0,16,16,0,0,1,0,0,CDBB70,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_AiMo,Pattern/Solid,0,0,16,16,0,0,1,0,0,D8E4E8,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Quetzali,Pattern/Solid,0,0,16,16,0,0,1,0,0,74B86A,0,,Tribe field (Tribes.csv GroundTile)
+Ground.Field_Yadakk,Pattern/Solid,0,0,16,16,0,0,1,0,0,D6AE7E,0,,Tribe field (Tribes.csv GroundTile)
 Ground.Water,Pattern/Water,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
 Ground.Ocean,Pattern/Ocean,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
 Terrain.Forest,Farm,3,0,16,32,-6,5,1,0,0,FFFFFF,0,,CC0 original

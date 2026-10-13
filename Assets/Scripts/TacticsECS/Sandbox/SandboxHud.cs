@@ -25,7 +25,6 @@ namespace TacticsECS
         public event Action<int> OnUnitSelected;
         public event Action<Team> OnTeamSelected;
         public event Action OnStartBattleClicked;
-        public event Action<string> OnLoadBiomeClicked;
         /// <summary>"다시 읽기" — 지금 표 폴더(없으면 기본 표)를 다시 읽는다.</summary>
         public event Action OnReloadTablesClicked;
         /// <summary>"기본 표" — 표 폴더를 버리고 Assets/Resources의 기본 표로 돌아간다.</summary>
@@ -34,12 +33,10 @@ namespace TacticsECS
         public event Action OnMapSizeCycleClicked;
         public event Action OnWetnessCycleClicked;
 
-        // 습도 탭(GenerationTab): 맵 타입/물 비율/1차 지형. 바이옴·종족 탭(BiomeTab): 바이옴 선택/팀별 종족.
+        // 습도 탭(GenerationTab): 맵 타입/물 비율/1차 지형. 종족 탭(TribeTab): 팀별 종족·신.
         public event Action<int> OnMapTypeSelected;
         public event Action<float> OnWaterRatioChanged;
         public event Action OnGenerateOutlineClicked;
-        /// <summary>바이옴 드롭다운에서 바이옴 하나를 켜거나 끈다 — 바이옴 목록 Index. -1 = 선택을 모두 지우고 자동으로.</summary>
-        public event Action<int> OnBiomeToggled;
         /// <summary>종족 Index(Tribes.csv), -1 = 종족 없음.</summary>
         public event Action<Team, int> OnTribeSelected;
 
@@ -59,11 +56,10 @@ namespace TacticsECS
         private Text _mapSizeLabel;
         private Text _wetnessLabel;
         private GameObject _generationTab;
-        private GameObject _biomeTab;
+        private GameObject _tribeTab;
         private Dropdown _mapTypeDropdown;
         private Slider _waterSlider;
         private Text _waterValueText;
-        private Dropdown _biomeDropdown;
         private Dropdown _playerTribeDropdown;
         private Dropdown _enemyTribeDropdown;
         private Dropdown _playerGodDropdown;
@@ -151,7 +147,7 @@ namespace TacticsECS
                 else OnWetnessCycleClicked?.Invoke();
             });
             _wetnessLabel = wetnessButtonTransform.Find("Label").GetComponent<Text>();
-            WireOptionalButton(panel, "바이옴종족Button", () => { if (_biomeTab != null) ToggleTab(_biomeTab); });
+            WireOptionalButton(panel, "종족Button", () => { if (_tribeTab != null) ToggleTab(_tribeTab); });
 
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
 
@@ -214,11 +210,10 @@ namespace TacticsECS
             SetLabel(toolbar, "내보내기Button", "UI.SandboxHud.Export");
             SetLabel(toolbar, "플레이어Button", "UI.SandboxHud.Player");
             SetLabel(toolbar, "적Button", "UI.SandboxHud.Enemy");
-            SetLabel(toolbar, "바이옴불러오기Button", "UI.SandboxHud.LoadBiomes");
             SetLabel(toolbar, "기술불러오기Button", "UI.SandboxHud.Reload");
             SetLabel(toolbar, "기술내보내기Button", "UI.SandboxHud.ResetTables");
             SetLabel(toolbar, "지형생성Button", "UI.SandboxHud.GenerateTerrain");
-            SetLabel(toolbar, "바이옴종족Button", "UI.SandboxHud.BiomeTabButton");
+            SetLabel(toolbar, "종족Button", "UI.SandboxHud.TribeTabButton");
             var tab = _canvas.Find("GenerationTab");
             if (tab != null)
             {
@@ -227,15 +222,14 @@ namespace TacticsECS
                 SetLabel(tab, "WaterLabel", "UI.SandboxHud.Water");
                 SetLabel(tab, "1차지형생성Button", "UI.SandboxHud.GenerateOutline");
             }
-            var biomeTab = _canvas.Find("BiomeTab");
-            if (biomeTab != null)
+            var tribeTab = _canvas.Find("TribeTab");
+            if (tribeTab != null)
             {
-                SetLabel(biomeTab, "Title", "UI.SandboxHud.BiomeTabTitle");
-                SetLabel(biomeTab, "BiomeLabel", "UI.SandboxHud.Biome");
-                SetLabel(biomeTab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
-                SetLabel(biomeTab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
-                SetLabel(biomeTab, "PlayerGodLabel", "UI.SandboxHud.PlayerGod");
-                SetLabel(biomeTab, "EnemyGodLabel", "UI.SandboxHud.EnemyGod");
+                SetLabel(tribeTab, "Title", "UI.SandboxHud.TribeTabTitle");
+                SetLabel(tribeTab, "PlayerTribeLabel", "UI.SandboxHud.PlayerTribe");
+                SetLabel(tribeTab, "EnemyTribeLabel", "UI.SandboxHud.EnemyTribe");
+                SetLabel(tribeTab, "PlayerGodLabel", "UI.SandboxHud.PlayerGod");
+                SetLabel(tribeTab, "EnemyGodLabel", "UI.SandboxHud.EnemyGod");
             }
             SetLabel(_canvas, "StartBattleButton", "UI.SandboxHud.StartBattle");
         }
@@ -250,45 +244,37 @@ namespace TacticsECS
             if (text != null) text.text = LocalizationSystem.T(key);
         }
 
-        // ---------- 습도 탭 / 바이옴·종족 탭 (툴바 오른쪽 같은 자리, 한 번에 하나만 열림) ----------
+        // ---------- 습도 탭 / 종족 탭 (툴바 오른쪽 같은 자리, 한 번에 하나만 열림) ----------
 
         /// <summary>tab을 열고 닫는다. 열 때는 다른 탭을 닫는다 — 두 탭은 같은 자리에 뜬다.</summary>
         private void ToggleTab(GameObject tab)
         {
             bool open = !tab.activeSelf;
             if (_generationTab != null) _generationTab.SetActive(false);
-            if (_biomeTab != null) _biomeTab.SetActive(false);
+            if (_tribeTab != null) _tribeTab.SetActive(false);
             tab.SetActive(open);
         }
 
         private void WireGenerationTab(Transform canvas)
         {
             var tab = canvas.Find("GenerationTab");
-            var biomeTab = canvas.Find("BiomeTab");
-            if (tab == null || biomeTab == null) { Debug.LogWarning("[SandboxHud] GenerationTab/BiomeTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            var tribeTab = canvas.Find("TribeTab");
+            if (tab == null || tribeTab == null) { Debug.LogWarning("[SandboxHud] GenerationTab/TribeTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
             _generationTab = tab.gameObject;
-            _biomeTab = biomeTab.gameObject;
+            _tribeTab = tribeTab.gameObject;
             _mapTypeDropdown = tab.Find("MapTypeDropdown").GetComponent<Dropdown>();
             _waterSlider = tab.Find("WaterSlider").GetComponent<Slider>();
             _waterValueText = tab.Find("WaterValue").GetComponent<Text>();
-            _biomeDropdown = biomeTab.Find("BiomeDropdown").GetComponent<Dropdown>();
-            _playerTribeDropdown = biomeTab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
-            _enemyTribeDropdown = biomeTab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
-            _tribeInfoText = biomeTab.Find("TribeInfo").GetComponent<Text>();
+            _playerTribeDropdown = tribeTab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
+            _enemyTribeDropdown = tribeTab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
+            _tribeInfoText = tribeTab.Find("TribeInfo").GetComponent<Text>();
             // 신 드롭다운은 나중에 추가돼 옛 프리팹(UIPrefabSetup.GenerateSandboxOnly 전)에는 없을 수 있다.
-            _playerGodDropdown = biomeTab.Find("PlayerGodDropdown")?.GetComponent<Dropdown>();
-            _enemyGodDropdown = biomeTab.Find("EnemyGodDropdown")?.GetComponent<Dropdown>();
+            _playerGodDropdown = tribeTab.Find("PlayerGodDropdown")?.GetComponent<Dropdown>();
+            _enemyGodDropdown = tribeTab.Find("EnemyGodDropdown")?.GetComponent<Dropdown>();
 
             _mapTypeDropdown.onValueChanged.AddListener(i => OnMapTypeSelected?.Invoke(i));
             _waterSlider.onValueChanged.AddListener(v => { _waterValueText.text = Percent(v); OnWaterRatioChanged?.Invoke(v); });
             tab.Find("1차지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateOutlineClicked?.Invoke());
-            // 0번(요약 줄)은 늘 선택된 값으로 두어, 같은 바이옴을 다시 눌러도 onValueChanged가 오게 한다(SetBiomeOptions).
-            _biomeDropdown.onValueChanged.AddListener(i =>
-            {
-                _biomeDropdown.SetValueWithoutNotify(0);
-                if (i == 1) OnBiomeToggled?.Invoke(-1);
-                else if (i >= BiomeOptionOffset) OnBiomeToggled?.Invoke(i - BiomeOptionOffset);
-            });
             _playerTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Player, i - 1));
             _enemyTribeDropdown.onValueChanged.AddListener(i => OnTribeSelected?.Invoke(Team.Enemy, i - 1));
             if (_playerGodDropdown != null) _playerGodDropdown.onValueChanged.AddListener(i => OnGodSelected?.Invoke(Team.Player, i - 1));
@@ -315,26 +301,6 @@ namespace TacticsECS
             if (_waterSlider == null) return;
             _waterSlider.SetValueWithoutNotify(value);
             _waterValueText.text = Percent(value);
-        }
-
-        /// <summary>바이옴 드롭다운의 바이옴 줄이 시작하는 Index — 0번은 지금 선택 요약, 1번은 "자동으로 되돌리기".</summary>
-        private const int BiomeOptionOffset = 2;
-
-        /// <summary>바이옴 드롭다운(여러 개 선택): 0번은 지금 선택 요약(늘 선택된 값), 1번은 자동으로 되돌리기, 그 뒤로 바이옴마다 켜짐/꺼짐 표시가 붙은 줄.
-        /// 요약 줄은 칸이 좁아 짧은 이름(shortNames)만 쓴다. selected가 비어 있으면 자동.</summary>
-        public void SetBiomeOptions(IReadOnlyList<string> biomeNames, IReadOnlyList<string> shortNames, ICollection<int> selected)
-        {
-            var picked = new List<string>();
-            for (int i = 0; i < shortNames.Count; i++)
-                if (selected.Contains(i)) picked.Add(shortNames[i]);
-            var options = new List<string>
-            {
-                picked.Count > 0 ? LocalizationSystem.F("UI.SandboxHud.BiomeSelected", picked.Count, string.Join(", ", picked)) : LocalizationSystem.T("UI.SandboxHud.BiomeAuto"),
-                LocalizationSystem.T("UI.SandboxHud.BiomeClear"),
-            };
-            for (int i = 0; i < biomeNames.Count; i++)
-                options.Add(LocalizationSystem.F(selected.Contains(i) ? "UI.SandboxHud.BiomeOptionOn" : "UI.SandboxHud.BiomeOptionOff", biomeNames[i]));
-            SetOptions(_biomeDropdown, options, 0);
         }
 
         /// <summary>종족 드롭다운 두 개: 0번은 "종족 없음", 그 뒤로 종족 이름들. selected는 종족 Index(-1 = 없음).</summary>

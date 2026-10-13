@@ -1,10 +1,10 @@
 # 바이옴 CSV
 
 파일: `Assets/Resources/Tables/Biomes.csv`
-Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면 그 파일이 대신 쓰인다. 실제 지형 반영은 지형 생성 버튼으로 수행한다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md).
+Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면(또는 표 폴더에 있으면) 그 파일이 대신 쓰인다. 실제 지형 반영은 지형 생성 버튼으로 수행한다. 로더: `BiomeCsvSerializer.Parse` → `BiomeCsvRow`. 규칙: [map](../game/map.md).
 
 롱 포맷: 한 행이 바이옴 하나, 또는 그 바이옴의 타일 엔트리 하나, 또는 구조물 엔트리 하나다. 행 종류마다 안 쓰는 칸은 비운다.
-`Biome` 행 순서가 바이옴 Index — [tribes](tribes.md)의 `BiomeIndex`가 가리킨다.
+[tribes](tribes.md)의 `Biome`이 `Biome` Id로 가리킨다(종족이 없는 팀은 첫 바이옴). 첫 `Land` 타일 행이 그 바이옴의 **평지** — 종족 `GroundTile`이 이 Id를 바꿔 쓴다. 종족 배수는 [tribe](../game/tribe.md#영역-지형).
 
 | 컬럼 | 타입 | 기본 | 쓰는 행 | 뜻 |
 |---|---|---|---|---|
@@ -16,8 +16,8 @@ Sandbox의 `Tables/Biomes.csv` 항목에서 다른 파일을 고르면 그 파�
 | `Octaves` | 정수 | 0 | Biome | 노이즈 옥타브 |
 | `SeedOffset` | 정수 | 0 | Biome | 이 바이옴 노이즈장의 시드 오프셋 |
 | `InnerRadius` | 정수 | 0 | Biome | 가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용) |
-| `MountainRate` | 실수 | 0 | Biome | 산 레이어 배수. 0이면 산 없음 |
-| `ForestRate` | 실수 | 0 | Biome | 숲 레이어 배수. 0이면 숲 레이어 없음 |
+| `MountainRate` | 실수 | 0 | Biome | 산 레이어 바이옴 배수(종족 배수와 곱함). 0이면 산 없음 |
+| `ForestRate` | 실수 | 0 | Biome | 숲 레이어 바이옴 배수(종족 배수와 곱함). 0이면 숲 레이어 없음 |
 | `Entry` | 문자열 | | Tile, Structure | Tile: TileTypeId / Structure: StructureId |
 | `TerrainType` | `TerrainType` | `Land` | Tile | 이 타일의 이동 지형 |
 | `InnerWeight` | 실수 | 0 | Tile | Inner 영역 가중치(노이즈로 보정) |

@@ -154,8 +154,20 @@ namespace TacticsECS
         public string Name;
         public string Description;
 
-        /// <summary>바이옴 CSV(Kind=Biome 행 순서, 기본 Resources/Tables/Biomes.csv)의 Index.</summary>
-        public int BiomeIndex;
+        /// <summary>종족 영역의 기본 바이옴 Id(Biomes.csv의 Biome). 비었거나 없는 Id면 첫 바이옴.</summary>
+        public string Biome;
+
+        /// <summary>바이옴 평지(첫 Land 타일)를 대신할 TileTypeId. 비면 바이옴 평지 그대로.</summary>
+        public string GroundTile;
+
+        /// <summary>지형·자원 배수(1 = 바이옴 그대로). 규칙: docs/spec/game/tribe.md</summary>
+        public float MountainRate;
+        public float ForestRate;
+        public float FruitRate;
+        public float CropRate;
+        public float AnimalRate;
+        public float MetalRate;
+        public float FishRate;
 
         /// <summary>TechGroups Index.</summary>
         public int TechGroupIndex;

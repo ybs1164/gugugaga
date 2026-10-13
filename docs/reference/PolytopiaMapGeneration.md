@@ -253,7 +253,7 @@ Pre-terrain 마을 수 = (floor(맵 가로/3)^2 - (수도 수 + Suburb 수)) * �
 | 자원은 도시/마을 2칸 이내에서만(3절) | ✅ | 모든 도시 기준 거리 1/2, 마을 단계 뒤에 배치 |
 | 물고기 = 얕은 물의 50%(3절) | ✅ | `Resource_Fish`, 얕은 물/깊은 바다 자동 분류 |
 | 물고기: 국경 안 깊은 바다에도 | ✕ | 국경 개념 없음 |
-| 종족 배수, 산 → 숲 → 평지 순서(4절) | ✅ | `MountainRate`/`ForestRate` + 자원 비율 직접 조정 |
+| 종족 배수, 산 → 숲 → 평지 순서(4절) | ✅ | 바이옴 × 종족 배수(`Tribes.csv` `MountainRate`…`FishRate`) — [tribe](../spec/game/tribe.md#영역-지형) |
 | 물 배수(Oumaji/Kickoo/Aquarion) | ✕ | 원문도 "실제로는 반영 안 됨/버그"라고 명시 |
 | 생성 순서 수도 → 마을 → 지형 → 자원 → 유적/불가사리(5절) | ✅ | 지형 시스템 + 구조물 시스템 단계별 처리 |
 | 쿼드런트 4/9/16(6절) | ✅ | Drylands/Lakes/Archipelago/Waterworld |

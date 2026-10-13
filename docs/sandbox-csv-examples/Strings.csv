@@ -253,9 +253,7 @@ UI.Sandbox.StartHint,CSV별 파일 선택으로 데이터를 바꾼 뒤 지형 �
 UI.Sandbox.MapTypeOption,{0} ({1}%),{0} ({1}%)
 UI.Sandbox.WetnessLabel,{0} 물 {1}%,{0} water {1}%
 UI.Sandbox.TribeInfoLine,{0} {1},{0} {1}
-UI.Sandbox.TribeInfoEmpty,"종족을 고르면 시작 별/기술/유닛, 종족 바이옴, 수도 주변 시작 조건이 적용됩니다.","Picking a tribe applies its starting stars/tech/units, its biome and the start conditions around its capital."
-UI.Sandbox.BiomeOnly,"고른 바이옴 '{0}'만으로 채웁니다. ""지형 생성""을 누르세요(1차 지형이 있으면 그 모양 그대로).","Fills the map with the picked biomes '{0}' only. Press ""Generate Terrain"" (keeps the current outline if there is one)."
-UI.Sandbox.BiomeAuto,자동: 전체 바이옴(종족이 있으면 종족 바이옴)으로 채웁니다.,Auto: fills with all biomes (tribe biomes if tribes are picked).
+UI.Sandbox.TribeInfoEmpty,"종족을 고르면 시작 별/기술/유닛, 영역 지형(바이옴·평지 색·지형 배수), 수도 주변 시작 조건이 적용됩니다. 고르지 않은 팀은 기본 바이옴.","Picking a tribe applies its starting stars/tech/units, its region terrain (biome, field color, terrain rates) and the start conditions around its capital. Teams without a tribe use the default biome."
 UI.Sandbox.OutlineDone,"1차 지형: 물 {0}% (목표 {1}%, {2}), 수도 {3}, 사전 마을 {4}. ""지형 생성""으로 바이옴을 채우세요.","Outline: water {0}% (target {1}%, {2}), capitals {3}, planned villages {4}. Fill it with biomes via ""Generate Terrain""."
 UI.Sandbox.UnitsLoaded,옛 형식 유닛 파일에서 {0}개 유닛을 불러왔습니다(팔레트만 바뀜).,Loaded {0} units from an old-format unit file (palette only).
 UI.Sandbox.LoadFailed,불러오기 실패: {0},Load failed: {0}
@@ -268,14 +266,8 @@ UI.Sandbox.TablesDefault,기본 표를 다시 읽었습니다.,Reloaded the defa
 UI.Sandbox.TablesExported,표 {0}개를 {1}에 내보냈습니다.,Exported {0} tables to {1}.
 UI.Sandbox.TechLoadLocked,잠긴 채 남는 해금 {0}개.,{0} unlocks stay locked.
 UI.Sandbox.TechLoadFailed,기술트리 불러오기 실패: {0},Tech tree load failed: {0}
-UI.Sandbox.BiomeLoadNoRows,바이옴 불러오기 실패: Biome 행이 없습니다.,Biome load failed: no Biome rows.
-UI.Sandbox.BiomesLoaded,{0}개 바이옴을 불러왔습니다. 습도 탭의 바이옴 목록에서 하나를 골라 규칙을 확인할 수 있습니다.,Loaded {0} biomes. Pick one from the biome list in the wetness tab to check its rules.
-UI.Sandbox.BiomeTribeWarnings,종족 바이옴 참조 경고 {0}개(콘솔).,{0} tribe biome reference warnings (console).
-UI.Sandbox.BiomeLoadFailed,바이옴 불러오기 실패: {0},Biome load failed: {0}
-UI.Sandbox.NoBiomes,"바이옴이 없습니다. ""바이옴 불러오기""로 바이옴 CSV를 불러오세요.","No biomes. Load a biome CSV with ""Load Biomes""."
+UI.Sandbox.NoBiomes,바이옴이 없습니다. 표 폴더의 Tables/Biomes.csv를 확인하세요.,No biomes. Check Tables/Biomes.csv in the table folder.
 UI.Sandbox.RegionTribes,종족 영역 {0},tribe regions {0}
-UI.Sandbox.RegionSingle,고른 바이옴 '{0}',picked biomes '{0}'
-UI.Sandbox.RegionCount,바이옴 {0}개,{0} biomes
 UI.Sandbox.TerrainDone,"지형 생성: {0}, {1}x{2}, {3} 물 {4}% ({5}){6}, seed={7}.","Terrain: {0}, {1}x{2}, {3} water {4}% ({5}){6}, seed={7}."
 UI.Sandbox.OutlineKept,1차 지형 유지,outline kept
 UI.Sandbox.OutlineNew,새 1차 지형,new outline
@@ -364,28 +356,20 @@ UI.SandboxHud.Load,표 불러오기,Load Tables
 UI.SandboxHud.Export,표 내보내기,Export Tables
 UI.SandboxHud.Player,플레이어,Player
 UI.SandboxHud.Enemy,적,Enemy
-UI.SandboxHud.LoadBiomes,바이옴 불러오기,Load Biomes
 UI.SandboxHud.Reload,다시 읽기,Reload
 UI.SandboxHud.ResetTables,기본 표,Defaults
 UI.SandboxHud.GenerateTerrain,지형 생성,Generate Terrain
 UI.SandboxHud.MapSize,크기: {0} ({1}x{1}),Size: {0} ({1}x{1})
 UI.SandboxHud.Wetness,습도 탭: {0},Wetness tab: {0}
 UI.SandboxHud.TabTitle,습도 탭 — 맵 타입 · 1차 지형,Wetness tab — map type · outline
-UI.SandboxHud.BiomeTabButton,바이옴 · 종족,Biomes · tribes
-UI.SandboxHud.BiomeTabTitle,바이옴 · 종족 선택,Pick biomes · tribes
+UI.SandboxHud.TribeTabButton,종족 · 신,Tribes · gods
+UI.SandboxHud.TribeTabTitle,종족 · 신 선택 (영역 지형은 종족이 정함),Pick tribes · gods (tribes set region terrain)
 UI.SandboxHud.MapType,맵 타입,Map type
 UI.SandboxHud.Water,물 비율,Water ratio
 UI.SandboxHud.GenerateOutline,1차 지형 생성 (육지/물 아웃라인),Generate outline (land/water)
-UI.SandboxHud.Biome,바이옴,Biome
 UI.SandboxHud.PlayerTribe,종족(아군),Tribe (ally)
 UI.SandboxHud.EnemyTribe,종족(적),Tribe (enemy)
-UI.SandboxHud.BiomeAuto,자동 (전체 / 종족 바이옴),Auto (all / tribe biomes)
-UI.SandboxHud.BiomeSelected,선택 {0}개: {1},{0} picked: {1}
-UI.SandboxHud.BiomeClear,선택 지우기 (자동),Clear picks (auto)
-UI.SandboxHud.BiomeOptionOn,[v] {0},[v] {0}
-UI.SandboxHud.BiomeOptionOff,[ ] {0},[ ] {0}
 UI.SandboxHud.NoTribe,종족 없음 (기본 규칙),No tribe (default rules)
-UI.SandboxHud.PickBiomeCsv,불러올 바이옴 CSV 선택,Choose a biome CSV to load
 UI.SandboxHud.PickTableCsv,표 폴더의 CSV 하나 선택 (옛 유닛·기술트리 파일도 가능),Choose any CSV in a table folder (old unit/tech tree files work too)
 UI.SandboxHud.PickExportFolder,표를 내보낼 폴더 선택,Choose a folder to export the tables to
 UI.SandboxHud.PaletteRow,{0} (HP{1}/{2}),{0} (HP{1}/{2})

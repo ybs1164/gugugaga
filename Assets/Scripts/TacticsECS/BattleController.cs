@@ -127,7 +127,6 @@ namespace TacticsECS
         private SandboxHud _sandboxHud;
         private UnitPlacementController _placementController;
         private bool _placementActive;
-        private List<BiomeCsvRow> _loadedBiomes;
 
         /// <summary>샌드박스 "표 불러오기"로 옛 단일 파일 기술트리(TechTree.csv 형식)를 읽었을 때만 채워진다. null이면 지금 표(기술 표들).
         /// 유닛/바이옴과 달리 "다시 시작"(HandleReturnToSetup)해도 유지한다 — 같은 트리로 여러 판을 시험하기 위함.</summary>
@@ -161,22 +160,19 @@ namespace TacticsECS
         /// <summary>습도 탭 슬라이더 — 1차 지형(아웃라인)의 목표 물 비율. 맵 타입을 고르면 그 타입의 대표값으로 돌아간다.</summary>
         private float _waterRatio = WetnessPresets[WetnessBaselineIndex].Wetness;
 
-        /// <summary>습도 탭 바이옴 드롭다운에서 고른 바이옴(바이옴 목록 Index, 오름차순). 비어 있으면 자동(전체 바이옴, 종족이 있으면 종족 바이옴).</summary>
-        private readonly SortedSet<int> _biomeSelection = new SortedSet<int>();
-
-        /// <summary>습도 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
+        /// <summary>종족 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
         private readonly Dictionary<Team, int> _tribeByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
 
-        /// <summary>바이옴·종족 탭 신 드롭다운(Gods.csv Index, -1 = 없음). 팀이 고른 신은 그 팀 신전 패시브를 정한다. "다시 시작"해도 유지한다.</summary>
+        /// <summary>종족 탭 신 드롭다운(Gods.csv Index, -1 = 없음). 팀이 고른 신은 그 팀 신전 패시브를 정한다. "다시 시작"해도 유지한다.</summary>
         private readonly Dictionary<Team, int> _godByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
 
         /// <summary>마지막 1차 지형. "지형 생성"은 설정(크기/수도 수/맵 타입/물 비율)이 같으면 이 아웃라인 위에 바이옴만 다시 채운다.</summary>
         private TerrainOutlineData? _outline;
 
-        /// <summary>종족 모드로 생성한 지형의 팀별 수도 자리(영역 i = CitySystem.Teams[i]) — 전투 시작 때 그 팀 수도가 된다.</summary>
+        /// <summary>생성한 지형의 팀별 수도 자리(영역 i = CitySystem.Teams[i]) — 전투 시작 때 그 팀 수도가 된다.</summary>
         private readonly Dictionary<Team, Vector2Int> _tribeCapitals = new Dictionary<Team, Vector2Int>();
 
-        /// <summary>바이옴 CSV를 불러오지 않았을 때 쓰는 기본 바이옴 표(Resources/Tables/Biomes.csv).</summary>
+        /// <summary>지금 표 폴더의 바이옴 표(없으면 Resources/Tables/Biomes.csv) — 종족 영역 바이옴의 기본 바이옴.</summary>
         private List<BiomeCsvRow> _defaultBiomes;
 
         private CityResourceHud _cityResourceHud;
@@ -366,7 +362,6 @@ namespace TacticsECS
             _placementActive = false;
             _sandboxHud = null;
             _placementController = null;
-            _loadedBiomes = null;
             _outline = null;
             _tribeCapitals.Clear();
             _cityResourceHud = null;
@@ -403,7 +398,6 @@ namespace TacticsECS
             _sandboxHud.OnUnitSelected += HandleSandboxUnitSelected;
             _sandboxHud.OnTeamSelected += HandleSandboxTeamSelected;
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
-            _sandboxHud.OnLoadBiomeClicked += HandleBiomeLoad;
             _sandboxHud.OnReloadTablesClicked += ReloadSandboxCsv;
             _sandboxHud.OnResetTablesClicked += () => { s_csvFiles.Clear(); ApplyTables(null); };
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
@@ -415,7 +409,6 @@ namespace TacticsECS
             _sandboxHud.OnMapTypeSelected += HandleMapTypeSelected;
             _sandboxHud.OnWaterRatioChanged += HandleWaterRatioChanged;
             _sandboxHud.OnGenerateOutlineClicked += HandleGenerateOutline;
-            _sandboxHud.OnBiomeToggled += HandleBiomeToggled;
             _sandboxHud.OnTribeSelected += HandleTribeSelected;
             _sandboxHud.OnGodSelected += HandleGodSelected;
 
@@ -424,7 +417,6 @@ namespace TacticsECS
             _sandboxHud.SetMapTypeOptions(WetnessPresets.Select(p => LocalizationSystem.F("UI.Sandbox.MapTypeOption", MapTypeName(p.Name), Mathf.RoundToInt(p.Wetness * 100f))).ToList(), _selectedWetnessIndex);
             _sandboxHud.SetWaterRatio(_waterRatio);
             RefreshWetnessLabel();
-            RefreshBiomeOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
             _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
@@ -472,9 +464,9 @@ namespace TacticsECS
             }
         }
 
-        // ---------- Sandbox: 습도 탭(1차 지형 · 바이옴 선택 · 종족) ----------
+        // ---------- Sandbox: 습도 탭(1차 지형) · 종족 탭 ----------
 
-        private List<BiomeCsvRow> ActiveBiomes() => _loadedBiomes ?? (_defaultBiomes ??= GameDataLoader.LoadDefaultBiomes(SandboxTables));
+        private List<BiomeCsvRow> ActiveBiomes() => _defaultBiomes ??= GameDataLoader.LoadDefaultBiomes(SandboxTables);
 
         private TribeRow? TribeOf(Team team) =>
             _tribeByTeam.TryGetValue(team, out int i) && TribeSystem.IsValid(i) ? GameTables.Tribes[i] : (TribeRow?)null;
@@ -488,13 +480,6 @@ namespace TacticsECS
         private static string MapTypeName(string preset) => LocalizationSystem.T("UI.MapType." + preset, preset);
 
         private static string MapSizeName(int index) => LocalizationSystem.T("UI.MapSize." + MapSizePresets[index].Name, MapSizePresets[index].Name);
-
-        private void RefreshBiomeOptions()
-        {
-            var biomes = ActiveBiomes();
-            _biomeSelection.RemoveWhere(i => i >= biomes.Count);
-            _sandboxHud.SetBiomeOptions(biomes.Select(b => $"{b.Name} ({b.Id})").ToList(), biomes.Select(b => b.Name).ToList(), _biomeSelection);
-        }
 
         private void RefreshTribeInfo()
         {
@@ -531,26 +516,6 @@ namespace TacticsECS
         {
             _waterRatio = Mathf.Clamp01(value);
             RefreshWetnessLabel();
-        }
-
-        /// <summary>바이옴 하나를 선택에 넣거나 뺀다(-1 = 모두 빼고 자동).</summary>
-        private void HandleBiomeToggled(int index)
-        {
-            var biomes = ActiveBiomes();
-            if (index < 0) _biomeSelection.Clear();
-            else if (index < biomes.Count && !_biomeSelection.Remove(index)) _biomeSelection.Add(index);
-            RefreshBiomeOptions();
-            var selected = SelectedBiomes();
-            _sandboxHud.SetStatus(selected.Count > 0
-                ? LocalizationSystem.F("UI.Sandbox.BiomeOnly", string.Join(", ", selected.Select(b => b.Name)))
-                : LocalizationSystem.T("UI.Sandbox.BiomeAuto"));
-        }
-
-        /// <summary>드롭다운에서 고른 바이옴들(목록 순서). 비어 있으면 자동.</summary>
-        private List<BiomeCsvRow> SelectedBiomes()
-        {
-            var biomes = ActiveBiomes();
-            return _biomeSelection.Where(i => i < biomes.Count).Select(i => biomes[i]).ToList();
         }
 
         // ---------- 신앙 펀치 ----------
@@ -703,20 +668,9 @@ namespace TacticsECS
             RefreshTribeInfo();
         }
 
-        /// <summary>종족이 하나라도 있으면 팀마다 영역 하나(종족 바이옴 — 바이옴을 골랐으면 고른 바이옴을 팀 순서대로 돌려 씀).
-        /// 종족이 없으면 고른 바이옴마다 영역 하나(하나만 골랐으면 그 바이옴 영역 2개 — 수도 2개), 자동이면 불러온 바이옴 전부(바이옴마다 수도 하나).</summary>
-        private List<BiomeCsvRow> ResolveRegionBiomes(out bool perTeam)
-        {
-            var biomes = ActiveBiomes();
-            var selected = SelectedBiomes();
-            perTeam = AnyTribe();
-            if (perTeam)
-                return CitySystem.Teams.Select((team, i) => selected.Count > 0 ? selected[i % selected.Count]
-                    : TribeOf(team) is TribeRow t ? TribeSystem.RegionBiome(t, biomes) : biomes[0]).ToList();
-            if (selected.Count == 1) return new List<BiomeCsvRow> { selected[0], selected[0] };
-            if (selected.Count > 1) return selected;
-            return new List<BiomeCsvRow>(biomes);
-        }
+        /// <summary>팀마다 영역 하나(CitySystem.Teams 순서) — 그 팀 종족의 영역 바이옴(TribeSystem.RegionBiomes).</summary>
+        private List<BiomeCsvRow> ResolveRegionBiomes() =>
+            TribeSystem.RegionBiomes(CitySystem.Teams.Select(TribeOf).ToList(), ActiveBiomes());
 
         private bool EnsureGridSize()
         {
@@ -732,7 +686,7 @@ namespace TacticsECS
         private void HandleGenerateOutline()
         {
             if (!EnsureGridSize()) return;
-            var regions = ResolveRegionBiomes(out _);
+            var regions = ResolveRegionBiomes();
             var mode = ResolveShapeMode(WetnessPresets[_selectedWetnessIndex].Name);
             int seed = System.Environment.TickCount;
             var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, mode, _waterRatio);
@@ -799,8 +753,6 @@ namespace TacticsECS
             s_tableFolder = source.Folder;
             var errors = GameDataLoader.LoadAll(source);
             _defaultBiomes = null;
-            _loadedBiomes = null;
-            _biomeSelection.Clear();
             foreach (var team in CitySystem.Teams)
                 if (!TribeSystem.IsValid(_tribeByTeam[team])) _tribeByTeam[team] = -1;
             foreach (var team in CitySystem.Teams)
@@ -808,7 +760,6 @@ namespace TacticsECS
 
             _sandboxHud.RefreshLabels();
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
-            RefreshBiomeOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
             _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
             RefreshTribeInfo();
@@ -841,40 +792,10 @@ namespace TacticsECS
         /// 경고로 남기고, 상태 줄에는 개수만 보인다 — 경고가 있어도 읽을 수 있는 만큼은 적용한다.</summary>
 
 
-        /// <summary>바이옴 CSV를 불러오기만 한다 — 실제 지형 생성은 "지형 생성" 버튼(HandleGenerateTerrain)을
-        /// 눌러야 실행된다(불러오기와 생성을 분리해, 같은 바이옴 목록으로 여러 번 재생성해볼 수 있게).</summary>
-        private void HandleBiomeLoad(string path)
-        {
-            try
-            {
-                var csvText = System.IO.File.ReadAllText(path);
-                var biomes = BiomeCsvSerializer.Parse(csvText);
-                if (biomes.Count == 0)
-                {
-                    _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.BiomeLoadNoRows"));
-                    return;
-                }
-                _loadedBiomes = biomes;
-                _biomeSelection.Clear();
-                RefreshBiomeOptions();
-                RefreshTribeInfo();
-                var tribeWarnings = ArrayTableValidationSystem.ValidateLoaded(biomeCount: biomes.Count).Where(w => w.Contains("BiomeIndex")).ToList();
-                foreach (var w in tribeWarnings) Debug.LogWarning("[Tribes] " + w);
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.BiomesLoaded", biomes.Count) +
-                                      (tribeWarnings.Count > 0 ? " " + LocalizationSystem.F("UI.Sandbox.BiomeTribeWarnings", tribeWarnings.Count) : string.Empty));
-            }
-            catch (System.Exception e)
-            {
-                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.BiomeLoadFailed", e.Message));
-            }
-        }
-
         /// <summary>바이옴으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와 다르면 먼저 그리드 자체를 다시 만든다
         /// (RebuildGridForSize). 이미 유닛이 놓인 칸은 생성 시스템이 건드리지 않으므로 배치 중에 눌러도 안전하다.
-        /// 매번 새 시드로 수도/사전 마을 자리와 육지/물 모양을 생성한 뒤 영역별 바이옴
-        /// (ResolveRegionBiomes — 자동/단일 바이옴/종족 바이옴)으로 채운다.
-        /// 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지
-        /// 적용한다. 바이옴 CSV를 불러오지 않았으면 기본 바이옴 표(Resources/Tables/Biomes.csv)를 쓴다.</summary>
+        /// 매번 새 시드로 수도/사전 마을 자리와 육지/물 모양을 생성한 뒤 팀마다 종족 영역 바이옴(ResolveRegionBiomes)으로 채운다.
+        /// 이어서 구조물(StructureGenerationSystem), 종족의 수도 주변 시작 조건(StartConditionSystem)까지 적용한다.</summary>
         private void HandleGenerateTerrain()
         {
             if (ActiveBiomes().Count == 0)
@@ -886,37 +807,33 @@ namespace TacticsECS
 
             var mapTypeName = WetnessPresets[_selectedWetnessIndex].Name;
             var shapeMode = ResolveShapeMode(mapTypeName);
-            var regions = ResolveRegionBiomes(out bool perTeam);
+            var regions = ResolveRegionBiomes();
             int seed = System.Guid.NewGuid().GetHashCode();
             var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, shapeMode, _waterRatio);
             _outline = outline;
             var anchors = TerrainGenerationSystem.GenerateFromOutline(_grid, regions, outline, seed);
             StructureGenerationSystem.Generate(_grid, regions, anchors, seed, outline.Suburbs, outline.PlannedVillages, shapeMode);
 
-            // 종족 모드: 영역 i = CitySystem.Teams[i]. 그 팀 종족의 시작 조건을 수도 주변에 적용하고, 전투 시작 때 그 자리를 수도로 쓴다.
+            // 영역 i = CitySystem.Teams[i]. 그 팀 종족의 시작 조건을 수도 주변에 적용하고, 전투 시작 때 그 자리를 수도로 쓴다.
             _tribeCapitals.Clear();
             int startChanges = 0;
-            if (perTeam)
+            for (int i = 0; i < CitySystem.Teams.Length && i < anchors.Length; i++)
             {
-                for (int i = 0; i < CitySystem.Teams.Length && i < anchors.Length; i++)
-                {
-                    var team = CitySystem.Teams[i];
-                    _tribeCapitals[team] = anchors[i];
-                    var tribe = TribeOf(team);
-                    var condition = tribe != null ? TribeSystem.StartCondition(tribe.Value) : null;
-                    if (condition != null)
-                        startChanges += StartConditionSystem.Apply(_grid, anchors[i], condition.Value, GameTables.StartConditionRules, mapTypeName, seed + i);
-                }
-                if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(_grid, regions, anchors);
+                var team = CitySystem.Teams[i];
+                _tribeCapitals[team] = anchors[i];
+                var tribe = TribeOf(team);
+                var condition = tribe != null ? TribeSystem.StartCondition(tribe.Value) : null;
+                if (condition != null)
+                    startChanges += StartConditionSystem.Apply(_grid, anchors[i], condition.Value, GameTables.StartConditionRules, mapTypeName, seed + i);
             }
+            if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(_grid, regions, anchors);
 
             // 구조물 단계가 지형을 바꿀 수 있으므로(외딴 섬 마을, Lakes 육지 다리, 얕은 물/깊은 바다 재분류)
             // 지형 표시는 구조물 생성까지 끝난 뒤에 갱신한다.
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
-            string regionText = perTeam ? LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", regions.Select(b => b.Name)))
-                : _biomeSelection.Count > 0 ? LocalizationSystem.F("UI.Sandbox.RegionSingle", string.Join(", ", SelectedBiomes().Select(b => b.Name))) : LocalizationSystem.F("UI.Sandbox.RegionCount", regions.Count);
+            string regionText = LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", CitySystem.Teams.Select(t => TribeOf(t)?.Name ?? LocalizationSystem.T("UI.SandboxHud.NoTribe"))));
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TerrainDone", regionText, _grid.Width, _grid.Height, MapTypeName(mapTypeName),
                 Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T("UI.Sandbox.OutlineNew"),
                 startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));
@@ -1575,8 +1492,8 @@ namespace TacticsECS
             RefreshEconomyViews(false);
         }
 
-        /// <summary>종족 모드로 생성한 지형이면 팀마다 자기 영역의 수도 자리(_tribeCapitals)를 수도로 세운다 — 시작 조건이 그 수도 주변에
-        /// 적용됐으므로. 나머지 팀은 InitializeCapitals의 기본 규칙(유닛 무게중심에서 가장 가까운 수도)을 따른다.</summary>
+        /// <summary>생성한 지형이면 팀마다 자기 영역의 수도 자리(_tribeCapitals)를 수도로 세운다 — 시작 조건이 그 수도 주변에
+        /// 적용됐으므로. 지형을 생성하지 않았으면 InitializeCapitals의 기본 규칙(유닛 무게중심에서 가장 가까운 수도)을 따른다.</summary>
         private void FoundTribeCapitals()
         {
             foreach (var kv in _tribeCapitals)

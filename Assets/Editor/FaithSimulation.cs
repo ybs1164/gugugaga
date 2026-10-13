@@ -82,7 +82,8 @@ namespace TacticsECS.EditorTools
             GameDataLoader.LoadAll();
             _ok = true;
             Violations.Clear();
-            var biomes = BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", BiomeCsv)));
+            // 팀마다 영역 하나 — 종족 없이(첫 바이옴, 배수 1) 1:1.
+            var biomes = TribeSystem.RegionBiomes(new TribeRow?[CitySystem.Teams.Length], BiomeCsvSerializer.Parse(File.ReadAllText(Path.Combine(Application.dataPath, "..", BiomeCsv))));
             var units = new List<UnitCsvRow>(GameTables.Units);
             var techNodes = GameDataLoader.LoadTechNodes();
             var outDir = Path.Combine(Application.dataPath, "..", "Logs", "FaithSimulation");

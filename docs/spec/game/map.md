@@ -4,7 +4,7 @@
 위키 조사 요약: [reference/PolytopiaMapGeneration](../../reference/PolytopiaMapGeneration.md) — 코드 주석의 "원문 N절"은 이 문서의 절 번호다.
 
 ## 입력
-- 바이옴 CSV, 맵 크기(정사각형 변 길이 — `BattleController.MapSizePresets`), 맵 타입, 시드.
+- 바이옴 CSV, 팀별 종족(영역 지형 — [tribe](tribe.md#영역-지형)), 맵 크기(정사각형 변 길이 — `BattleController.MapSizePresets`), 맵 타입, 시드.
 - 같은 입력이면 항상 같은 맵(시드 하나로 지형·구조물 전체 결정).
 
 ## 맵 타입
@@ -15,7 +15,7 @@
 | `Lakes` | 노이즈 마스크, 테두리는 육지 |
 | `Continents` | 서로 떨어진 대륙을 키움(대륙 사이 물 1칸 이상) |
 | `Pangea` | 중앙 대륙 |
-| `Archipelago` | 바이옴 수만큼 섬 중심 |
+| `Archipelago` | 영역(팀) 수만큼 섬 중심 |
 | `Waterworld` | 거의 물, 도시 자리만 육지 |
 
 마스크를 쓰는 타입은 목표 물 비율을 정확히 맞춘다. 수도 주변과 미리 정한 마을 칸은 비율보다 우선해 육지가 된다.
@@ -24,7 +24,7 @@
 1. **수도**: 쿼드런트 맵은 구역마다 하나. `Pangea`/`Continents`는 땅을 만든 뒤 서로 가장 멀게.
 2. **지형 전 마을**: 맵 타입에 따라 Suburb·Pre-terrain 마을 위치를 먼저 정한다.
 3. **땅 모양**: 위 표.
-4. **바이옴 배정**: 칸마다 가장 가까운 수도의 바이옴(Voronoi). 종족이 있으면 그 종족의 `BiomeIndex`.
+4. **영역 배정**: 수도 하나 = 팀 하나의 영역. 칸마다 가장 가까운 수도 영역의 바이옴(Voronoi) — 그 팀 종족의 영역 바이옴([tribe](tribe.md#영역-지형)).
 5. **타일 채우기**: 바이옴 `MinCount`/`CountPerTiles` 먼저, 나머지는 Inner/Outer 가중치 × 노이즈. Inner = 가장 가까운 도시에서 `InnerRadius` 이내.
 6. **숲·산 레이어**: 바이옴마다 도시 칸을 뺀 육지에 기준 비율(`Map.MountainFraction`/`Map.ForestFraction`) × `MountainRate`/`ForestRate`만큼 쿼터로.
 7. **물 깊이**: 상하좌우에 육지가 있는 물 = 바이옴의 물 타일(얕은 물), 없으면 `Ocean`.

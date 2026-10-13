@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace TacticsECS
@@ -73,7 +74,7 @@ namespace TacticsECS
             GameTables.Gods = ArrayTableCsvSerializer.ParseGods(Read(GameTables.GodsPath, errors, source), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
-            errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(biomeCount: LoadDefaultBiomes(source).Count));
+            errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(LoadDefaultBiomes(source).Select(b => b.Id).ToList()));
         }
 
         public static void LoadStrings(List<string> errors) => LoadStrings(errors, TableSource.Resources);

@@ -7,8 +7,8 @@ Frequency,실수,선택,0,Biome,노이즈 주파수
 Octaves,정수,선택,0,Biome,노이즈 옥타브
 SeedOffset,정수,선택,0,Biome,이 바이옴 노이즈장의 시드 오프셋
 InnerRadius,정수,선택,0,Biome,가장 가까운 도시에서 이 거리 이내 = Inner(타일 가중치용)
-MountainRate,실수,선택,0,Biome,산 레이어 배수. 0이면 산 없음
-ForestRate,실수,선택,0,Biome,숲 레이어 배수. 0이면 숲 레이어 없음
+MountainRate,실수,선택,0,Biome,산 레이어 바이옴 배수(종족 배수와 곱함). 0이면 산 없음
+ForestRate,실수,선택,0,Biome,숲 레이어 바이옴 배수(종족 배수와 곱함). 0이면 숲 레이어 없음
 Entry,문자열,선택,,"Tile, Structure",
 TerrainType,TerrainType,선택,Land,Tile,이 타일의 이동 지형
 InnerWeight,실수,선택,0,Tile,Inner 영역 가중치(노이즈로 보정)

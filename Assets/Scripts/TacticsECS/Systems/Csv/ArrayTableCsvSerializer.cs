@@ -208,10 +208,13 @@ namespace TacticsECS
             return rows;
         }
 
+        /// <summary>Tribes.csv 배수 열 — 순서대로 TribeRow.MountainRate … FishRate.</summary>
+        public static readonly string[] TribeRateColumns = { "MountainRate", "ForestRate", "FruitRate", "CropRate", "AnimalRate", "MetalRate", "FishRate" };
+
         public static TribeRow[] ParseTribes(string text, List<string> errors = null)
         {
             var t = Begin("Tribes.csv", text, new[] { "Index", "Id" },
-                new[] { "BiomeIndex", "TechGroupIndex", "StartStars", "StartCapitalLevel", "StartConditionIndex", "Wiki", "Note" },
+                new[] { "Biome", "GroundTile", "TechGroupIndex", "StartStars", "StartCapitalLevel", "StartConditionIndex" }.Concat(TribeRateColumns).Concat(new[] { "Wiki", "Note" }).ToArray(),
                 new[] { "StartTech", "StartUnit" }, errors);
             var rows = new TribeRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
@@ -223,7 +226,15 @@ namespace TacticsECS
                     Id = id,
                     Name = LocalizationSystem.Name(TribeStringTable, id),
                     Description = LocalizationSystem.Desc(TribeStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
-                    BiomeIndex = CsvTableReader.GetInt(t, r, "BiomeIndex", -1, errors),
+                    Biome = CsvTableReader.Get(t, r, "Biome"),
+                    GroundTile = CsvTableReader.Get(t, r, "GroundTile"),
+                    MountainRate = CsvTableReader.GetFloat(t, r, "MountainRate", 1f, errors),
+                    ForestRate = CsvTableReader.GetFloat(t, r, "ForestRate", 1f, errors),
+                    FruitRate = CsvTableReader.GetFloat(t, r, "FruitRate", 1f, errors),
+                    CropRate = CsvTableReader.GetFloat(t, r, "CropRate", 1f, errors),
+                    AnimalRate = CsvTableReader.GetFloat(t, r, "AnimalRate", 1f, errors),
+                    MetalRate = CsvTableReader.GetFloat(t, r, "MetalRate", 1f, errors),
+                    FishRate = CsvTableReader.GetFloat(t, r, "FishRate", 1f, errors),
                     TechGroupIndex = CsvTableReader.GetInt(t, r, "TechGroupIndex", -1, errors),
                     StartTechs = GetIndexList(t, r, "StartTech", errors),
                     StartStars = CsvTableReader.GetInt(t, r, "StartStars", GameRules.Economy.StartingStars, errors),
@@ -403,17 +414,18 @@ namespace TacticsECS
             int techCount = CsvTableReader.MaxCount(rows, r => r.StartTechs?.Length ?? 0);
             int unitCount = CsvTableReader.MaxCount(rows, r => r.StartUnits?.Length ?? 0);
             var sb = new StringBuilder();
-            sb.AppendLine(string.Join(",", new[] { "Index", "Id", "BiomeIndex", "TechGroupIndex" }
+            sb.AppendLine(string.Join(",", new[] { "Index", "Id", "Biome", "GroundTile", "TechGroupIndex" }
                 .Concat(CsvTableReader.ListHeader("StartTech", techCount)).Append("StartStars").Append("StartCapitalLevel")
-                .Concat(CsvTableReader.ListHeader("StartUnit", unitCount)).Append("StartConditionIndex")));
+                .Concat(CsvTableReader.ListHeader("StartUnit", unitCount)).Append("StartConditionIndex").Concat(TribeRateColumns)));
             foreach (var r in rows)
             {
-                var cells = new List<string> { I(r.Index), Q(r.Id), I(r.BiomeIndex), I(r.TechGroupIndex) };
+                var cells = new List<string> { I(r.Index), Q(r.Id), Q(r.Biome), Q(r.GroundTile), I(r.TechGroupIndex) };
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartTechs), techCount));
                 cells.Add(I(r.StartStars));
                 cells.Add(I(r.StartCapitalLevel));
                 cells.AddRange(CsvTableReader.ListCells(Ints(r.StartUnits), unitCount));
                 cells.Add(I(r.StartConditionIndex));
+                cells.AddRange(new[] { r.MountainRate, r.ForestRate, r.FruitRate, r.CropRate, r.AnimalRate, r.MetalRate, r.FishRate }.Select(F));
                 sb.AppendLine(string.Join(",", cells));
             }
             return sb.ToString();
@@ -452,6 +464,7 @@ namespace TacticsECS
         /// <summary>-1(없음)은 빈 칸으로.</summary>
         private static string Opt(int v) => v < 0 ? string.Empty : I(v);
         private static string I(int v) => v.ToString(CultureInfo.InvariantCulture);
+        private static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
         private static string Q(string s) => CsvTableReader.Quote(s);
     }
 }

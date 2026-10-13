@@ -1,13 +1,13 @@
-Index,Id,BiomeIndex,TechGroupIndex,StartTech1,StartStars,StartCapitalLevel,StartUnit1,StartConditionIndex,Wiki
-0,XinXi,2,0,0,7,1,0,0,Climbing/Warrior/7
-1,Imperius,0,1,5,5,1,0,0,Organization/Warrior/5
-2,Bardur,0,2,15,5,1,0,0,Hunting/Warrior/5
-3,Oumaji,1,3,10,6,1,3,0,Riding/Rider/6
-4,Kickoo,0,4,20,5,1,0,1,Fishing/Warrior/5
-5,Hoodrick,0,5,17,7,1,5,0,Archery/Archer/7
-6,Luxidoor,0,6,,2,3,0,1,None/Warrior/2
-7,Vengir,2,7,4,5,1,2,0,Smithery/Swordsman/5
-8,Zebasi,1,8,7,5,1,0,0,Farming/Warrior/5
-9,AiMo,2,9,3,5,1,7,0,Philosophy/Mind Bender/5
-10,Quetzali,0,10,6,7,1,1,0,Strategy/Defender/7
-11,Yadakk,1,11,12,7,1,0,0,Roads/Warrior/7
+Index,Id,Biome,GroundTile,TechGroupIndex,StartTech1,StartStars,StartCapitalLevel,StartUnit1,StartConditionIndex,MountainRate,ForestRate,FruitRate,CropRate,AnimalRate,MetalRate,FishRate,Wiki
+0,XinXi,Highland,Field_XinXi,0,0,7,1,0,0,1.5,1,1,1,1,1.5,1,Climbing/Warrior/7
+1,Imperius,Grassland,Field_Imperius,1,5,5,1,0,0,1,1,2,1,0.5,1,1,Organization/Warrior/5
+2,Bardur,Grassland,Field_Bardur,2,15,5,1,0,0,1,0.8,1,0,1,1,1,Hunting/Warrior/5
+3,Oumaji,Desert,Field_Oumaji,3,10,6,1,3,0,0.5,0.2,1,1,0.2,1,1,Riding/Rider/6
+4,Kickoo,Grassland,Field_Kickoo,4,20,5,1,0,1,0.5,1,1,1,1,1,1.5,Fishing/Warrior/5
+5,Hoodrick,Grassland,Field_Hoodrick,5,17,7,1,5,0,0.5,1.5,1,1,1,1,1,Archery/Archer/7
+6,Luxidoor,Grassland,Field_Luxidoor,6,,2,3,0,1,1,1,1,1,1,1,1,None/Warrior/2
+7,Vengir,Highland,Field_Vengir,7,4,5,1,2,0,1,1,0.1,1,0.1,2,0.1,Smithery/Swordsman/5
+8,Zebasi,Desert,Field_Zebasi,8,7,5,1,0,0,0.5,0.5,0.5,1,1,1,1,Farming/Warrior/5
+9,AiMo,Highland,Field_AiMo,9,3,5,1,7,0,1.5,1,1,0.1,1,1,1,Philosophy/Mind Bender/5
+10,Quetzali,Grassland,Field_Quetzali,10,6,7,1,1,0,1,1,2,0.1,1,1,1,Strategy/Defender/7
+11,Yadakk,Desert,Field_Yadakk,11,12,7,1,0,0,0.5,0.5,1.5,1,1,1,1,Roads/Warrior/7

@@ -50,7 +50,7 @@ namespace TacticsECS.EditorTools
             Check(GameTables.Techs.Length == 25 && GameTables.TechUnlocks.Length == 53, $"25 techs / 53 unlocks (got {GameTables.Techs.Length}/{GameTables.TechUnlocks.Length})");
             Check(GameTables.Tribes.Length == 12 && GameTables.TechGroups.Length == 12, "12 regular tribes, one tech group each");
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
-            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Count);
+            var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadDefaultBiomes().Select(b => b.Id).ToList());
             Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
             Check(GameTables.Units.Length == 11 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 23, "units 11 + mythic samples / boats 7 / buildings 23");
             Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
@@ -181,11 +181,11 @@ namespace TacticsECS.EditorTools
             ArrayTableCsvSerializer.ParseTechGroups("Index,Id,Tech1\n0,A,1\n2,B,x\n", errors);
             Check(errors.Any(e => e.Contains("Index")) && errors.Any(e => e.Contains("'x'")), "index gap + non-integer index reported: " + string.Join(" | ", errors));
 
-            var tribes = new[] { new TribeRow { Index = 0, Id = "T", BiomeIndex = 9, TechGroupIndex = 0, StartTechs = new[] { 3 }, StartUnits = new[] { 99 }, StartConditionIndex = 5 } };
+            var tribes = new[] { new TribeRow { Index = 0, Id = "T", Biome = "Nowhere", MountainRate = -1f, TechGroupIndex = 0, StartTechs = new[] { 3 }, StartUnits = new[] { 99 }, StartConditionIndex = 5 } };
             var groups = new[] { new TechGroupRow { Index = 0, Id = "G", Techs = new[] { 0, 1 } } };
             var w = ArrayTableValidationSystem.Validate(GameTables.TechUnlocks, GameTables.Techs, groups, tribes,
-                GameTables.StartConditions, GameTables.StartConditionRules, biomeCount: 3, unitCount: 11);
-            Check(w.Any(x => x.Contains("BiomeIndex")) && w.Any(x => x.Contains("StartUnit")) && w.Any(x => x.Contains("StartConditionIndex")) &&
+                GameTables.StartConditions, GameTables.StartConditionRules, biomeIds: new[] { "Grassland" }, unitCount: 11);
+            Check(w.Any(x => x.Contains("Biome 'Nowhere'")) && w.Any(x => x.Contains("배수")) && w.Any(x => x.Contains("StartUnit")) && w.Any(x => x.Contains("StartConditionIndex")) &&
                   w.Any(x => x.Contains("기술 그룹")), "out-of-range tribe references + start tech outside group reported: " + string.Join(" | ", w));
         }
 
@@ -358,11 +358,12 @@ namespace TacticsECS.EditorTools
             Check(tab != null, "SandboxHud prefab has GenerationTab (습도 탭)");
             if (tab == null) return;
             Check(tab.Find("MapTypeDropdown")?.GetComponent<Dropdown>() != null, "GenerationTab/MapTypeDropdown is a Dropdown");
-            var biomeTab = prefab.transform.Find("Canvas/BiomeTab");
-            Check(biomeTab != null && prefab.transform.Find("Canvas/Toolbar/바이옴종족Button") != null, "SandboxHud prefab has BiomeTab + toolbar button");
-            if (biomeTab == null) return;
-            foreach (var name in new[] { "BiomeDropdown", "PlayerTribeDropdown", "EnemyTribeDropdown" })
-                Check(biomeTab.Find(name)?.GetComponent<Dropdown>() != null, $"BiomeTab/{name} is a Dropdown");
+            var tribeTab = prefab.transform.Find("Canvas/TribeTab");
+            Check(tribeTab != null && prefab.transform.Find("Canvas/Toolbar/종족Button") != null, "SandboxHud prefab has TribeTab + toolbar button");
+            if (tribeTab == null) return;
+            Check(tribeTab.Find("BiomeDropdown") == null, "biome picker removed (tribes decide region biomes)");
+            foreach (var name in new[] { "PlayerTribeDropdown", "EnemyTribeDropdown" })
+                Check(tribeTab.Find(name)?.GetComponent<Dropdown>() != null, $"TribeTab/{name} is a Dropdown");
             Check(tab.Find("WaterSlider")?.GetComponent<Slider>() != null, "GenerationTab/WaterSlider is a Slider");
             Check(tab.Find("1차지형생성Button")?.GetComponent<Button>() != null, "GenerationTab outline button");
         }

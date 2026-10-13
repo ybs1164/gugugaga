@@ -43,7 +43,7 @@ namespace TacticsECS.EditorTools
         public static void Run()
         {
             Verify();
-            Debug.Log("[WikiParityVerification] ALL PASS: capital start, Juggernaut embark/move/disembark, embassy lifecycle, temple score");
+            Debug.Log("[WikiParityVerification] ALL PASS: capital start, Juggernaut embark/move/disembark, friendly pass-through, embassy lifecycle, temple score");
         }
 
         public static void VerifyAndBuild()
@@ -70,6 +70,7 @@ namespace TacticsECS.EditorTools
             Require(GameDataLoader.LoadAll().Count == 0, "CSV load errors");
             VerifyCapital();
             VerifyJuggernaut();
+            VerifyFriendlyPassThrough();
             VerifyEmbassy();
             VerifyTemple();
         }
@@ -112,6 +113,24 @@ namespace TacticsECS.EditorTools
             Ready(world, giant);
             Require(MovementSystem.TryMove(grid, world, giant, new Vector2Int(5, 4)) && world.Get<Hp>(other).Value == 4, "land giant has no stomp");
             Require(PixelSpriteCatalog.Has("Boat.juggernaut"), "juggernaut visual");
+        }
+
+        // 규칙: docs/spec/game/movement.md#들어갈-수-있는-칸 — 아군(도시 위 포함)은 지나가되 멈추지 못하고, 적은 지나가지 못한다.
+        private static void VerifyFriendlyPassThrough()
+        {
+            var grid = Grid(); var world = new EntityWorld(); var econ = Economy(); grid.Economy = econ;
+            CitySystem.FoundCity(grid, econ, new Vector2Int(3, 2), Team.Player, false, "Village");
+            int rider = Unit(grid, world, Team.Player, "cavalry", 2, 2);
+            Unit(grid, world, Team.Player, "infantry", 3, 2); // 아군 도시 위의 아군
+            PathfindingSystem.GetReachable(grid, world, new Vector2Int(2, 2), rider, out var reach);
+            Require(reach.Contains(new Vector2Int(4, 2)) && !reach.Contains(new Vector2Int(3, 2)), "pass through friendly unit on city, cannot stop on it");
+            Require(MovementSystem.TryMove(grid, world, rider, new Vector2Int(4, 2)), "move past friendly unit");
+
+            var grid2 = Grid(); var world2 = new EntityWorld(); grid2.Economy = Economy();
+            int rider2 = Unit(grid2, world2, Team.Player, "cavalry", 2, 2);
+            Unit(grid2, world2, Team.Enemy, "infantry", 3, 2);
+            PathfindingSystem.GetReachable(grid2, world2, new Vector2Int(2, 2), rider2, out var reach2);
+            Require(!reach2.Contains(new Vector2Int(4, 2)), "enemy unit still blocks");
         }
 
         private static void VerifyEmbassy()

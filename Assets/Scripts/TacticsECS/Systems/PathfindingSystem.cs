@@ -14,7 +14,7 @@ namespace TacticsECS
     ///     내부 비용은 2배(일반 2, 도로 1)로, 이동력도 2배로 계산한다.
     ///   - 험지(숲/산, 도로가 없는 숲)에 들어가면 그 턴에는 더 못 간다(들어가는 것은 가능).
     ///   - 적 유닛과 인접한 칸(Zone of Control)에 들어가면 더 못 간다. 은신(Hide)/유닛 무시 패시브는 예외(위키 Hide).
-    ///   - 은신 유닛은 적 유닛을 지나갈 수 있지만 그 칸에 멈출 수는 없다. 잠행(Creep)은 숲에서 멈추지 않고 도로 보너스도 없다(산은 멈춤).
+    ///   - 아군 유닛은 지나갈 수 있지만 그 칸에 멈출 수는 없다. 은신 유닛은 적 유닛도 그렇게 지나간다. 잠행(Creep)은 숲에서 멈추지 않고 도로 보너스도 없다(산은 멈춤).
     ///   - 숨은 적(StealthSystem)은 모르는 것으로 친다: 길을 막지도, 영향권을 만들지도 않고, 그 칸도 목적지 후보가 된다 — 실제로 들어가려
     ///     하면 MoveAction.Execute가 이동을 취소하고 그 적을 드러낸다(위키 Cloak, 행동 소모 없음).
     ///   - 구름(아직 탐험하지 않은 칸, VisionSystem)에는 들어갈 수 없다.
@@ -32,7 +32,7 @@ namespace TacticsECS
         /// <summary>
         /// start에서 selfUnitId의 실효 이동 거리(MovementSystem.EffectiveMoveRange — 가속 보너스 포함)
         /// 이내로 이동 가능한 모든 타일을 계산한다(도로 0.5 비용/험지·ZoC 정지/구름/다리/항구 규칙 포함 — 클래스 설명).
-        /// IgnoreUnitBlockingAction이 없으면 다른 유닛이 서 있는 타일은 통과/정지 모두 불가(자기 자신은 예외),
+        /// IgnoreUnitBlockingAction이 없으면 다른 유닛이 서 있는 타일에는 멈출 수 없고, 적 유닛 칸은 지나가지도 못한다(IsBlockedByOccupant),
         /// AllowDiagonalAction이 있으면 8방향, 없으면 4방향으로 탐색한다.
         /// 반환값은 각 타일의 직전 타일(경로 역추적용), reachableSet은 도달 가능한 타일 전체.
         /// </summary>
@@ -46,7 +46,7 @@ namespace TacticsECS
             bool hide = UnitActionQueries.Find<HideAction>(world, selfUnitId) != null;
             bool ignoreZoc = ignoreUnitBlocking || hide;
             var team = world.Get<Team>(selfUnitId);
-            var passOnly = new HashSet<Vector2Int>(); // 지나갈 수만 있고 멈출 수 없는 칸(은신 유닛이 지나는 적 유닛 칸)
+            var passOnly = new HashSet<Vector2Int>(); // 지나갈 수만 있고 멈출 수 없는 칸(다른 유닛이 서 있는 칸)
 
             var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
             var cost = new Dictionary<Vector2Int, int> { [start] = 0 };
@@ -70,7 +70,7 @@ namespace TacticsECS
                         int occ = grid.GetOccupant(next);
                         bool occupiedByOther = occ != TileData.NoOccupant && occ != selfUnitId && UnitQueries.IsAlive(world, occ);
                         if (occupiedByOther && StealthSystem.IsHiddenFrom(world, occ, team)) stop = true; // 모르는 칸 — 들어가 보면 드러난다
-                        else if (occupiedByOther && !ignoreUnitBlocking) passOnly.Add(next);
+                        else if (occupiedByOther && !ignoreUnitBlocking) passOnly.Add(next); // 아군/은신이 지나는 적 칸
 
                         int nc = c + (IsRoadStep(grid, world, selfUnitId, cur, next) ? RoadStepCost : StepCost);
                         if (nc > budget || (cost.TryGetValue(next, out var old) && old <= nc)) continue;
@@ -159,9 +159,8 @@ namespace TacticsECS
             return false;
         }
 
-        /// <summary>tile의 점유자가 selfUnitId의 이동(지나가기)을 막는지 판정한다(빈 타일/자기 자신은 막지 않음).
-        /// ignoreUnitBlocking이면 누구든 무시하고, 은신(HideAction) 유닛은 적 팀 점유자를 지나갈 수 있다(위키 Hide — 아군은 못 지나감).
-        /// 숨은 적은 모르는 것으로 쳐서 막지 않는다(들어가려 하면 MoveAction.Execute가 드러낸다). GetReachable(경로 탐색)과
+        /// <summary>tile의 점유자가 selfUnitId의 이동(지나가기)을 막는지 판정한다 — 규칙: docs/spec/game/movement.md#들어갈-수-있는-칸.
+        /// 막는 것은 보이는 적 유닛뿐이다(빈 타일/자기 자신/아군은 막지 않음). GetReachable(경로 탐색)과
         /// MoveAction.Execute(실제 이동)가 이 판정을 공유한다 — 멈출 수 있는지는 따로(GetReachable의 passOnly, MoveAction의 점유 확인).</summary>
         public static bool IsBlockedByOccupant(GridWorld grid, EntityWorld world, int selfUnitId, Vector2Int tile, bool ignoreUnitBlocking)
         {
@@ -169,8 +168,9 @@ namespace TacticsECS
             if (occ == TileData.NoOccupant || occ == selfUnitId) return false;
             if (ignoreUnitBlocking) return false;
             var selfTeam = world.Get<Team>(selfUnitId);
+            if (world.Get<Team>(occ) == selfTeam) return false;
             if (StealthSystem.IsHiddenFrom(world, occ, selfTeam)) return false;
-            if (world.Get<Team>(occ) != selfTeam && UnitActionQueries.Find<HideAction>(world, selfUnitId) != null) return false;
+            if (UnitActionQueries.Find<HideAction>(world, selfUnitId) != null) return false;
             return true;
         }
     }

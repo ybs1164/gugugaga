@@ -94,6 +94,11 @@ namespace TacticsECS
             "배치 단계에서 SandboxHud의 \"전투 시작\" 버튼을 누르면 지금과 동일한 턴제 전투로 이어진다.")]
         [SerializeField] private bool sandboxMode;
 
+        [Header("Quick Play")]
+        [Tooltip("켜면 설정 화면 없이 곧바로 한 판을 시작한다: 맵 크기는 gridWidth에 가장 가까운 프리셋, 양 팀 종족·신은 무작위, " +
+            "지형 생성 후 바로 전투. \"다시 시작\"은 새 맵으로 다시 시작한다. 모바일 씬(Assets/Scenes/Mobile.unity)용.")]
+        [SerializeField] private bool quickPlay;
+
         [Header("City Resources")]
         [Tooltip("도시 발전 자원(별/인구/별/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
             "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
@@ -123,6 +128,7 @@ namespace TacticsECS
         private BattleHud _hud;
         private Camera _cam;
         private PixelCamera _pixelCamera;
+        private readonly PointerGestures _gestures = new PointerGestures();
 
         private SandboxHud _sandboxHud;
         private UnitPlacementController _placementController;
@@ -319,10 +325,28 @@ namespace TacticsECS
             spawnerGo.transform.SetParent(transform, false);
             _spawner = spawnerGo.AddComponent<UnitSpawner>();
 
-            if (sandboxMode)
+            if (quickPlay)
+                StartQuickPlay();
+            else if (sandboxMode)
                 StartPlacementPhase();
             else
                 BeginDemoBattle();
+        }
+
+        /// <summary>빠른 시작: 샌드박스의 "지형 생성" → "전투 시작"을 설정 화면 없이 이어서 한다. 종족·신은 판마다 무작위.</summary>
+        private void StartQuickPlay()
+        {
+            var rng = new System.Random();
+            foreach (var team in CitySystem.Teams)
+            {
+                _tribeByTeam[team] = GameTables.Tribes.Length > 0 ? rng.Next(GameTables.Tribes.Length) : -1;
+                _godByTeam[team] = GameTables.Gods.Length > 0 ? rng.Next(GameTables.Gods.Length) : -1;
+            }
+            _tribeTerrain = null;
+            InitMapSizeSelection();
+            HandleGenerateTerrain();
+            _unitRows = LoadFallbackUnitRows();
+            BeginBattle();
         }
 
         private void BeginDemoBattle()
@@ -547,10 +571,10 @@ namespace TacticsECS
         }
 
         /// <summary>대상 칸 선택: 영향 범위를 하이라이트하고 확인 화면을 띄운다. 다른 칸을 다시 누르면 대상이 바뀐다.</summary>
-        private void HandlePunchClick()
+        private void HandlePunchClick(Vector2 screenPos)
         {
             if (_punchPhase != PunchPhase.Targeting && _punchPhase != PunchPhase.Confirm) return;
-            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos)) return;
+            if (!TryScreenToGridPos(screenPos, out var pos)) return;
             PreviewPunchTarget(pos);
         }
 
@@ -799,7 +823,8 @@ namespace TacticsECS
         {
             if (ActiveBiomes().Count == 0)
             {
-                _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.NoBiomes"));
+                if (_sandboxHud != null) _sandboxHud.SetStatus(LocalizationSystem.T("UI.Sandbox.NoBiomes"));
+                else Debug.LogError("[BattleController] " + LocalizationSystem.T("UI.Sandbox.NoBiomes"));
                 return;
             }
             if (!EnsureGridSize()) return;
@@ -832,6 +857,7 @@ namespace TacticsECS
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
 
+            if (_sandboxHud == null) return; // 빠른 시작(quickPlay)은 상태 줄이 없다
             string regionText = LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", CitySystem.Teams.Select(t => TribeOf(t)?.Name ?? LocalizationSystem.T("UI.SandboxHud.NoTribe"))));
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.TerrainDone", regionText, _grid.Width, _grid.Height, MapTypeName(mapTypeName),
                 Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T("UI.Sandbox.OutlineNew"),
@@ -1061,10 +1087,25 @@ namespace TacticsECS
         }
 
         /// <summary>
-        /// 키보드 팬 + 마우스 휠 줌. 턴/전투 상태와 무관하게 항상 동작한다(순수 카메라 뷰 조작이므로).
+        /// 키보드 팬 + 마우스 휠 줌 + 끌기 팬 + 두 손가락 핀치 줌(_gestures). 턴/전투 상태와 무관하게 항상 동작한다(순수 카메라 뷰 조작이므로).
         /// </summary>
         private void HandleCameraControl()
         {
+            if (_gestures.PanDelta != Vector2.zero && _cam.pixelHeight > 0)
+            {
+                // 화면을 끈 만큼 지도가 손가락을 따라오도록 초점을 반대로 옮긴다.
+                float worldPerPixel = 2f * _cam.orthographicSize / _cam.pixelHeight;
+                _cameraFocus -= (_cameraRight * _gestures.PanDelta.x + _cameraForwardFlat * _gestures.PanDelta.y) * worldPerPixel;
+                ClampCameraFocus();
+                ApplyCameraTransform();
+            }
+
+            if (!Mathf.Approximately(_gestures.PinchRatio, 1f))
+            {
+                _pixelCamera.RequestedSize = Mathf.Clamp(_pixelCamera.RequestedSize / _gestures.PinchRatio, minOrthoSize, maxOrthoSize);
+                _pixelCamera.Apply();
+            }
+
             if (Keyboard.current != null)
             {
                 var move = Vector2.zero;
@@ -1315,12 +1356,12 @@ namespace TacticsECS
 
         private void Update()
         {
+            // HUD 버튼(BattleHud/SandboxHud, uGUI) 위에서 시작한 누름은 탭·팬이 되지 않는다(PointerGestures).
+            _gestures.Update();
             HandleCameraControl();
 
-            if (Mouse.current == null) return;
+            // 안드로이드 뒤로 가기 버튼도 Esc로 들어온다.
             if (_punchPhase != PunchPhase.None && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { CancelPunch(); return; }
-            // HUD 버튼(BattleHud/SandboxHud, uGUI) 위 클릭은 그리드 클릭으로 새지 않게 막는다.
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
             if (_placementActive)
             {
@@ -1335,13 +1376,13 @@ namespace TacticsECS
 
             if (_punchPhase != PunchPhase.None)
             {
-                if (Mouse.current.rightButton.wasPressedThisFrame) CancelPunch();
-                else if (Mouse.current.leftButton.wasPressedThisFrame) HandlePunchClick();
+                if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame) CancelPunch();
+                else if (_gestures.Tapped) HandlePunchClick(_gestures.TapPosition);
                 return;
             }
 
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-                HandleClick();
+            if (_gestures.Tapped)
+                HandleClick(_gestures.TapPosition);
         }
 
         /// <summary>Intersect the XY view plane and use one cell-boundary policy for placement, battle and hover.</summary>
@@ -1355,7 +1396,9 @@ namespace TacticsECS
         /// 패널을 띄운다. 전투 중(FocusTile)의 클릭 방식과 트리거만 다를 뿐 조회 로직은 같다.</summary>
         private void UpdateStructureHover()
         {
-            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var pos))
+            // 커서가 HUD 위에 있으면 패널을 그대로 둔다(패널 위로 커서를 옮겨도 사라지지 않게).
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+            if (!_gestures.HasPointer || !TryScreenToGridPos(_gestures.PointerPosition, out var pos))
             {
                 _sandboxHud.HideStructurePanel();
                 return;
@@ -1373,9 +1416,9 @@ namespace TacticsECS
         /// 선택 취소 없이 곧바로 클릭한 칸으로 포커스를 옮긴다. 한 칸에 유닛과 도시/건물/구조물이 겹쳐 있으면
         /// 같은 칸을 다시 누를 때마다 유닛 → 칸(도시/건물) → 유닛 … 순서로 포커스가 하나씩 넘어간다.
         /// </summary>
-        private void HandleClick()
+        private void HandleClick(Vector2 screenPos)
         {
-            if (!TryScreenToGridPos(Mouse.current.position.ReadValue(), out var gridPos)) return;
+            if (!TryScreenToGridPos(screenPos, out var gridPos)) return;
             if (!VisionSystem.IsExplored(_grid, Team.Player, gridPos)) { ClearSelection(); return; } // 구름 칸
 
             int occupantId = _grid.GetOccupant(gridPos);

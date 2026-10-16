@@ -40,10 +40,11 @@
 | 이동 | [movement](game/movement.md) | [units](csv/units.md) | `PathfindingSystem`, `MovementSystem` |
 | 시야·은신·침투 | [vision](game/vision.md) | [game-rules](csv/game-rules.md) `Vision.*` | `VisionSystem`, `StealthSystem`, `InfiltrationSystem` |
 | 턴·별 | [turn](game/turn.md) | [game-rules](csv/game-rules.md) | `TurnSystem`, `CityResourceSystem` |
-| 신앙 | [faith](game/faith.md) | [gods](csv/gods.md), [faith-punches](csv/faith-punches.md) (신앙 펀치·신화 유닛), [buildings](csv/buildings.md) `FaithCap`, [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `PrayerSystem`, `TemplePassiveSystem`, `FaithPunchSystem`, `MythicSystem`, `View/FaithHud`, `View/FaithPunchHud` |
+| 신앙 | [faith](game/faith.md) | [gods](csv/gods.md), [faith-punches](csv/faith-punches.md) (신앙 펀치·신화 유닛), [buildings](csv/buildings.md) `FaithCap`, [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `PrayerSystem`, `TemplePassiveSystem`, `FaithPunchSystem`, `MythicSystem`, `View/FaithPunchHud` |
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md), [tribe-terrain](csv/tribe-terrain.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
 | AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI`, `FaithAI` |
+| 한 판 흐름·저장·화면 배치 | [session](game/session.md) | [strings](csv/strings.md) `UI.Title.*`·`UI.Menu.*`·`UI.Result.*`·`UI.Hud.*` | `SaveSystem`, `GraphSerializer`, `View/BattleHud`, `View/TitleHud`, `View/TechTreeHud`, `View/UiScale` |
 | 화면 표시 | — | [sprites](csv/sprites.md) | `View/PixelSpriteCatalog` |
 | 화면 문구·언어 | — | [strings](csv/strings.md) | `LocalizationSystem`, `View/LanguagePreference` |
 

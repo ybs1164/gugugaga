@@ -145,7 +145,6 @@ namespace TacticsECS.EditorTools
                     EnemyAI.RunTurn(grid, world, econ, team, (List<Vector2Int>)Call("CaptureTargets", team));
                     Call("RefreshEconomyViews", false);
                     Call("RefreshAllViews");
-                    Call("RefreshRoster");
                     ScanEvents(dir, team, null, hpBefore, seen);
                     // 신앙 장면을 끝까지 보여 주려고, 첫 신앙 펀치를 찍은 뒤(또는 15턴 뒤) 두 팀에 평화 조약을 건다 — 정복으로 판이 일찍 끝나지 않게.
                     if (!peace && (Shots.ContainsKey("07_first_punch") || turn >= 15))

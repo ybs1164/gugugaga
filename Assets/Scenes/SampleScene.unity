@@ -489,8 +489,7 @@ MonoBehaviour:
   skeletonMagePrefab: {fileID: 7618103252866758234, guid: b1388736d97c61148b01a1298cf990df, type: 3}
   stressTestExtraUnitsPerTeam: 0
   sandboxMode: 0
-  cityResourceHudPrefab: {fileID: 0}
-  techTreeHudPrefab: {fileID: 0}
+  quickPlay: 0
   cameraPanSpeed: 10
   zoomSensitivity: 0.02
   minOrthoSize: 2

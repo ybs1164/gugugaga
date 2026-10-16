@@ -57,12 +57,14 @@ Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 �
 - 배에 탄 유닛은 `Boat.<배 Id>` 위에 유닛을 올린 합성 한 장이다.
 
 ## UI 해상도
-코드: `View/PixelUIScaler`, `View/PixelUISkin`. 그림 생성: `scripts/author_pixel_ui.py`.
-- 모든 UI 픽셀 그림은 화면에서 한 픽셀이 `PixelUIScaler.TexelSize`(화면 높이 ÷ `PixelUIScaler.ReferenceHeight`, 반올림, 최소 1) 화면 픽셀이다 — 기본 줌의 월드 픽셀과 같은 크기. 캔버스 배율(`CanvasScaler`)이 정수가 아니어도 그렇다.
+코드: `View/UiScale`, `View/PixelUIScaler`, `View/PixelUISkin`. 그림 생성: `scripts/author_pixel_ui.py`.
+- 캔버스 배율(UI 1단위 = 화면 몇 픽셀, `UiScale.ScaleFactor`)은 "1280x720 화면에 맞춘 배율"(가로·세로 비의 기하평균)과 "실제 크기 배율"(dpi ÷ 160, 1단위 ≈ 1dp) 중 큰 값이다. PC 모니터는 앞의 값(1080p = 1.5), 휴대폰은 뒤의 값이 이긴다. dpi를 모르면 96으로 본다. 모든 HUD 캔버스가 이 규칙 하나를 쓴다.
+- 캔버스 바로 아래 `Safe` 자식은 안전 영역(`Screen.safeArea`)에 맞춘다 — 코드로 만드는 화면은 모두 그 안에 놓인다.
+- 모든 UI 픽셀 그림은 화면에서 한 픽셀이 `UiScale.TexelSize`(배율 × 720/540, 반올림, 최소 1) 화면 픽셀이다 — 배율이 커지면 틀·아이콘도 같이 커진다. 캔버스 배율이 정수가 아니어도 그렇다.
 - 틀(`Sheets/Panel`, `Button`, `Badge`)은 9-slice(`Image.Type.Sliced`, 테두리 `PixelUIScaler.FrameBorder`)로 늘리고, 테두리는 월드와 같은 색·두께(`PixelSpriteComposer.Outline`, `Stroke`)다. 그림은 회색조라 `Image.color`로 칠한다.
 - 아이콘(`Icon.*`)은 `Scale` 1로 합성하고 그린 픽셀만 남겨 자른 뒤, UI에서는 원래 픽셀 크기 그대로 놓는다(배치된 자리의 가운데 기준). 늘리거나 줄이지 않으므로 아이콘을 놓는 자리는 그 크기를 감안해 잡는다.
 - 글자(Jua 폰트)는 픽셀 그림이 아니라 이 규칙 밖이다.
-- 기술트리 열기 버튼은 자원 바 오른쪽에 놓아 점수 줄과 겹치지 않는다. 기술트리 배경은 뒤쪽 맵이 희미하게만 보이도록 표시하고, 상세 설명은 줄바꿈과 내용에 따른 높이 확장으로 해금 상태·버튼 위에 표시한다.
+- 프로젝트는 선형 색 공간이라 어두운 반투명 상자가 알파 값보다 훨씬 비쳐 보인다 — 글을 읽는 패널·창 배경은 불투명하게 칠한다(`UiKit.PanelColor`). 화면 배치는 [session](../game/session.md#화면-배치).
 
 ## 픽셀 패턴
 새 그림은 `Assets/Resources/Pixel2D/Patterns/<이름>.txt`에 팔레트(`문자=RRGGBB`)와 픽셀 행으로 쓴다. 생성 도구: `scripts/author_pixel_patterns.py`, `Assets/Editor/Pixel2DSetup.cs`.

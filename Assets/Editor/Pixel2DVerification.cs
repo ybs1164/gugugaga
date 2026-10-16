@@ -306,7 +306,7 @@ namespace TacticsECS.EditorTools
                     CaptureCamera(Camera.main,"docs/images/pixel2d/SandboxGenerated.png",1920,1080,true);
                     var tech=controller.GetComponentInChildren<TechTreeHud>(true);
                     Check(tech!=null,"sandbox has a tech tree");
-                    tech.transform.Find("Canvas/Panel").gameObject.SetActive(true);
+                    tech.Open();
                     CaptureCamera(Camera.main,"docs/images/pixel2d/TechTree.png",1920,1080,true);
                 }
                 Check(controller.GetComponentsInChildren<UnitView>().Length > 0 || name=="Sandbox","scene startup");
@@ -339,10 +339,10 @@ namespace TacticsECS.EditorTools
             camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.12f,.17f,.23f);
             CaptureCamera(camera,"docs/images/pixel2d/catalog.png",1920,1080,false);
         }
-        /// <summary>Every pixel-art Image shows one art pixel as exactly PixelUIScaler.TexelSize screen pixels.</summary>
+        /// <summary>Every pixel-art Image shows one art pixel as exactly UiScale.TexelSize screen pixels.</summary>
         private static void CheckUiTexels(Canvas canvas)
         {
-            int texel = PixelUIScaler.TexelSize(canvas.pixelRect.height);
+            int texel = UiScale.TexelSize(canvas.scaleFactor);
             float scale = canvas.scaleFactor;
             foreach (var image in canvas.GetComponentsInChildren<Image>(true))
             {
@@ -373,7 +373,7 @@ namespace TacticsECS.EditorTools
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                 {
                     if(canvas.renderMode!=RenderMode.ScreenSpaceOverlay) continue;
-                    canvas.renderMode=RenderMode.ScreenSpaceCamera; canvas.worldCamera=camera; canvas.planeDistance=1; canvas.sortingOrder=Mathf.Max(canvas.sortingOrder,PixelSpriteCatalog.FogOrder+5000); // 오버레이처럼 맵 스프라이트(안개 등) 위에 그린다
+                    canvas.renderMode=RenderMode.ScreenSpaceCamera; canvas.worldCamera=camera; canvas.planeDistance=1; canvas.sortingOrder+=PixelSpriteCatalog.FogOrder+5000; // 오버레이처럼 맵 스프라이트(안개 등) 위에, 캔버스끼리의 앞뒤(대화 상자 > HUD)는 그대로
                 }
                 Canvas.ForceUpdateCanvases();
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) PixelUIScaler.Apply(canvas);

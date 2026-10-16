@@ -95,18 +95,13 @@ namespace TacticsECS
         [SerializeField] private bool sandboxMode;
 
         [Header("Quick Play")]
-        [Tooltip("켜면 설정 화면 없이 곧바로 한 판을 시작한다: 맵 크기는 gridWidth에 가장 가까운 프리셋, 양 팀 종족·신은 무작위, " +
-            "지형 생성 후 바로 전투. \"다시 시작\"은 새 맵으로 다시 시작한다. 모바일 씬(Assets/Scenes/Mobile.unity)용.")]
+        [Tooltip("켜면 샌드박스 설정 대신 시작 화면(이어하기/새로하기 → 종족 고르기)으로 시작하는 한 판: 맵 크기는 gridWidth에 가장 가까운 프리셋, " +
+            "상대 종족과 양 팀 신은 무작위, 지형 생성 후 바로 전투. 내 턴마다 자동 저장. 모바일 씬(Assets/Scenes/Mobile.unity)용. 규칙: docs/spec/game/session.md")]
         [SerializeField] private bool quickPlay;
 
-        [Header("City Resources")]
-        [Tooltip("도시 발전 자원(별/인구/별/신앙) 표시 바 프리팹. 비워두면 생성 자체를 건너뛴다 — " +
-            "지금은 커스텀(샌드박스 배치) 화면에만 연결돼 있다. Assets/Prefabs/UI/CityResourceBar.prefab.")]
-        [SerializeField] private CityResourceHud cityResourceHudPrefab;
-        // 시작 별/신앙 최대치는 인스펙터가 아니라 Assets/Resources/GameRules.csv(Economy.*)에서 온다.
-        [Tooltip("기술트리 패널 프리팹. 비워두면 생성 자체를 건너뛴다 — cityResourceHudPrefab과 같은 블록 " +
-            "에서만 초기화된다(도시 별이 있어야 의미가 있으므로). Assets/Prefabs/UI/TechTreePanel.prefab.")]
-        [SerializeField] private TechTreeHud techTreeHudPrefab;
+        /// <summary>경제(도시/영토/기술/신앙)를 쓰는 전투인지 — 샌드박스와 빠른 한 판. 데모 씬(SampleScene)은 순수 전투다.
+        /// 시작 별/신앙 최대치는 인스펙터가 아니라 Assets/Resources/GameRules.csv(Economy.*)에서 온다.</summary>
+        private bool EconomyMode => sandboxMode || quickPlay;
 
         [Header("Camera (Pixel 2D)")]
 
@@ -181,9 +176,10 @@ namespace TacticsECS
         /// <summary>지금 표 폴더의 종족 지형 표(없으면 Resources/Tables/TribeTerrain.csv) — 팀 영역 지형 묶음.</summary>
         private List<BiomeCsvRow> _tribeTerrain;
 
-        private CityResourceHud _cityResourceHud;
-        private FaithHud _faithHud;
         private FaithPunchHud _faithPunchHud;
+        private TitleHud _titleHud;
+        /// <summary>ReturnToSetup 뒤 SetupBattle이 첫 화면 대신 종족 고르기를 바로 연다(결과·메뉴의 "새 게임").</summary>
+        private bool _openTribeSelectOnSetup;
 
         // 신앙 펀치 진행: 목록 → 대상 고르기 → 확인. None이 아니면 그리드 클릭은 펀치 대상 선택에 쓰인다.
         private enum PunchPhase { None, List, Targeting, Confirm }
@@ -195,7 +191,6 @@ namespace TacticsECS
         /// <summary>신화 유닛 액티브 능력으로 연 펀치면 그 유닛 id, 아니면 -1.</summary>
         private int _punchMythicId = -1;
         private TechTreeHud _techTreeHud;
-        private ActionMenuHud _actionMenu;
 
         /// <summary>경제(도시/영토/자원/기술) 상태. cityResourceHudPrefab이 배정된 화면(Sandbox)에서 전투가 시작될
         /// 때(BeginBattle) 만들어지고, 그 전(배치 단계)이나 경제 없는 씬(SampleScene)에서는 null이다 — null이면
@@ -271,27 +266,12 @@ namespace TacticsECS
             _hud = Instantiate(hudPrefab, transform);
             _hud.name = "BattleHud";
             _hud.Init();
-            _hud.OnDefendClicked += HandleDefendClicked;
-            _hud.OnHealClicked += HandleHealClicked;
-            _hud.OnSelfDestructClicked += HandleSelfDestructClicked;
-            _hud.OnWaitClicked += HandleWaitClicked;
-            _hud.OnPrayClicked += HandlePrayClicked;
+            _hud.OnMenuClicked += OpenMenu;
             _hud.OnDeselectClicked += ClearSelection;
-            _hud.OnRestartClicked += HandleReturnToSetup;
-            _hud.OnLanguageClicked += HandleLanguageClicked;
+            _hud.SetEconomyVisible(EconomyMode);
 
-            if (cityResourceHudPrefab != null)
+            if (EconomyMode)
             {
-                _cityResourceHud = Instantiate(cityResourceHudPrefab, transform);
-                _cityResourceHud.name = "CityResourceHud";
-                _cityResourceHud.Init();
-
-                var faithGo = new GameObject("FaithHud");
-                faithGo.transform.SetParent(transform, false);
-                _faithHud = faithGo.AddComponent<FaithHud>();
-                _faithHud.Init(_hud.UiFont);
-                _faithHud.OnClicked += OpenPunchList;
-
                 var punchGo = new GameObject("FaithPunchHud");
                 punchGo.transform.SetParent(transform, false);
                 _faithPunchHud = punchGo.AddComponent<FaithPunchHud>();
@@ -299,21 +279,16 @@ namespace TacticsECS
                 _faithPunchHud.OnPunchSelected += HandlePunchSelected;
                 _faithPunchHud.OnConfirmClicked += HandlePunchConfirm;
                 _faithPunchHud.OnCancelClicked += CancelPunch;
+                _hud.OnFaithClicked += OpenPunchList;
+
+                var techGo = new GameObject("TechTreeHud");
+                techGo.transform.SetParent(transform, false);
+                _techTreeHud = techGo.AddComponent<TechTreeHud>();
+                _techTreeHud.Init(_hud.UiFont, CurrentTechNodes());
+                _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
+                _hud.OnTechClicked += () => { ClearSelection(); CancelPunch(); _techTreeHud.Toggle(); };
                 RefreshCityResources();
-
-                if (techTreeHudPrefab != null)
-                {
-                    _techTreeHud = Instantiate(techTreeHudPrefab, transform);
-                    _techTreeHud.name = "TechTreeHud";
-                    _techTreeHud.Init(CurrentTechNodes());
-                    _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
-                    RefreshTechTree();
-                }
-
-                var menuGo = new GameObject("ActionMenuHud");
-                menuGo.transform.SetParent(transform, false);
-                _actionMenu = menuGo.AddComponent<ActionMenuHud>();
-                _actionMenu.Init(_hud.UiFont);
+                RefreshTechTree();
             }
 
             // 카메라를 유닛 스폰보다 먼저 배치한다 — UnitView가 스폰 시점에 머리 위 체력 표시를
@@ -326,22 +301,23 @@ namespace TacticsECS
             _spawner = spawnerGo.AddComponent<UnitSpawner>();
 
             if (quickPlay)
-                StartQuickPlay();
+                ShowTitle(_openTribeSelectOnSetup);
             else if (sandboxMode)
                 StartPlacementPhase();
             else
                 BeginDemoBattle();
         }
 
-        /// <summary>빠른 시작: 샌드박스의 "지형 생성" → "전투 시작"을 설정 화면 없이 이어서 한다. 종족·신은 판마다 무작위.</summary>
-        private void StartQuickPlay()
+        /// <summary>빠른 한 판 시작: 샌드박스의 "지형 생성" → "전투 시작"을 설정 화면 없이 이어서 한다. 플레이어 종족은 시작 화면에서 고른 것
+        /// (TitleHud.RandomTribe면 무작위), 상대 종족(가능하면 플레이어와 다르게)과 양 팀 신은 무작위.</summary>
+        private void StartQuickPlay(int playerTribe)
         {
             var rng = new System.Random();
+            int tribes = GameTables.Tribes.Length;
+            _tribeByTeam[Team.Player] = TribeSystem.IsValid(playerTribe) ? playerTribe : tribes > 0 ? rng.Next(tribes) : -1;
+            _tribeByTeam[Team.Enemy] = tribes > 1 ? (_tribeByTeam[Team.Player] + 1 + rng.Next(tribes - 1)) % tribes : _tribeByTeam[Team.Player];
             foreach (var team in CitySystem.Teams)
-            {
-                _tribeByTeam[team] = GameTables.Tribes.Length > 0 ? rng.Next(GameTables.Tribes.Length) : -1;
                 _godByTeam[team] = GameTables.Gods.Length > 0 ? rng.Next(GameTables.Gods.Length) : -1;
-            }
             _tribeTerrain = null;
             InitMapSizeSelection();
             HandleGenerateTerrain();
@@ -357,12 +333,12 @@ namespace TacticsECS
 
         private void BeginBattle()
         {
-            if (_cityResourceHud != null) InitEconomy();
+            if (EconomyMode) InitEconomy();
+            FocusStartCamera();
             _hud.OnEndTurnClicked += EndTurn;
             // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
             // 그 전에 _hud가 준비돼 있어야 한다.
             _turnState = TurnSystem.StartTurn(_world, Team.Player, 1);
-            RefreshRoster();
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
         }
 
@@ -372,8 +348,12 @@ namespace TacticsECS
         /// 화면)으로 되돌아가는 것이고, 데모 모드에서는 데모 편성을 다시 스폰하는 것과 같다. Camera.main
         /// (Awake에서 한 번만 찾거나 만듦)과 EventSystem(BattleHud.EnsureEventSystem, transform 밖에 생성됨)은
         /// 이 자식 파괴 대상이 아니라 그대로 재사용된다.</summary>
-        private void HandleReturnToSetup()
+        private void HandleReturnToSetup() => ReturnToSetup(false);
+
+        /// <summary>toTribeSelect면 빠른 한 판에서 첫 화면 대신 종족 고르기부터(결과·메뉴의 "새 게임").</summary>
+        private void ReturnToSetup(bool toTribeSelect)
         {
+            _openTribeSelectOnSetup = toTribeSelect;
             for (int i = transform.childCount - 1; i >= 0; i--)
                 Destroy(transform.GetChild(i).gameObject);
 
@@ -388,12 +368,10 @@ namespace TacticsECS
             _placementController = null;
             _outline = null;
             _tribeCapitals.Clear();
-            _cityResourceHud = null;
-            _faithHud = null;
             _faithPunchHud = null;
+            _titleHud = null;
             _punchPhase = PunchPhase.None;
             _techTreeHud = null;
-            _actionMenu = null;
             _econ = null;
             _unitRows = null;
             _menuTile = null;
@@ -645,7 +623,6 @@ namespace TacticsECS
             if (mythicId >= 0 && _viewsById.TryGetValue(mythicId, out var mythicView)) mythicView.Refresh(_world, mythicId);
 
             CancelPunch();
-            RefreshRoster();
             RefreshEconomyViews(result.TerrainChanged);
             CheckBattleEnd();
         }
@@ -955,8 +932,7 @@ namespace TacticsECS
         private void SetBattleOnlyHudVisible(bool visible)
         {
             _hud.SetBattlePanelsVisible(visible);
-            if (_cityResourceHud != null) _cityResourceHud.gameObject.SetActive(visible);
-            if (_faithHud != null) _faithHud.gameObject.SetActive(visible);
+            if (_techTreeHud != null && !visible) _techTreeHud.Close();
             if (_faithPunchHud != null && !visible) CancelPunch();
         }
 
@@ -974,7 +950,6 @@ namespace TacticsECS
                 if (_viewsById.TryGetValue(id, out var view))
                     view.Refresh(_world, id);
             }
-            RefreshRoster();
             if (_econ != null) TaskSystem.EndTurn(_econ, _turnState.ActiveTeam);
 
             _turnState = TurnSystem.EndTurn(_world, _turnState);
@@ -1059,6 +1034,25 @@ namespace TacticsECS
             _cam.transparencySortAxis = Vector3.up;
             var cameraData = _cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (cameraData != null) cameraData.renderPostProcessing = false;
+            ApplyCameraTransform();
+        }
+
+        /// <summary>전투 시작 카메라: 내 수도(없으면 맵 가운데)를 비추고, 한 칸이 손가락으로 집을 만한 크기(UiScale.MinTileInches) 이상이 되게 확대한다 —
+        /// PC처럼 화면이 맵을 다 담고도 칸이 충분히 크면 맵 전체가 보이는 줌 그대로.</summary>
+        private void FocusStartCamera() => FocusStartCameraFor(_cam.pixelHeight);
+
+        /// <summary>pixelHeight: 카메라가 그릴 화면 높이(에디트 모드 캡처는 실제 화면과 다른 크기로 그리므로 따로 넘긴다).</summary>
+        private void FocusStartCameraFor(float pixelHeight)
+        {
+            PositionCamera();
+            if (_econ != null)
+            {
+                int capital = CitySystem.FindCapital(_econ, Team.Player);
+                if (capital >= 0) _cameraFocus = PixelCoordinates.GridToWorld(_grid, _econ.Cities[capital].Position);
+            }
+            float fingerSize = pixelHeight * tileSize / (2f * UiScale.Dpi * UiScale.MinTileInches);
+            _pixelCamera.RequestedSize = Mathf.Clamp(Mathf.Min(_pixelCamera.RequestedSize, fingerSize), minOrthoSize, maxOrthoSize);
+            ClampCameraFocus();
             ApplyCameraTransform();
         }
 
@@ -1170,30 +1164,18 @@ namespace TacticsECS
 
             if (team == Team.Enemy && !_battleOver)
                 StartCoroutine(RunEnemyTurnRoutine());
+            else if (team == Team.Player) SaveGame(); // 내 턴이 시작될 때마다 자동 저장(빠른 한 판만)
         }
 
-        /// <summary>RefreshRoster와 같은 방식 — 인구 사용량(populationUsed)은 CityResourceData가 아니라
-        /// EntityWorld 쪽 값이라 매번 다시 세어서 넘긴다.</summary>
+        /// <summary>상단 막대의 별·유닛 수·점수·신앙. 유닛 수(populationUsed)는 CityResourceData가 아니라 EntityWorld 쪽 값이라 매번 다시 센다.</summary>
         private void RefreshCityResources()
         {
-            if (_cityResourceHud == null) return;
-            int populationUsed = CityResourceSystem.CountPopulation(_world, Team.Player);
-            var resources = _econ != null ? _econ.Resources[Team.Player] : CityResourceData.Create(0, 0, false);
-            _cityResourceHud.SetResources(resources, populationUsed);
-            _cityResourceHud.SetScoreLine(_econ != null
-                ? LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy))
-                : string.Empty);
-            RefreshFaith(resources);
-        }
-
-        private void RefreshFaith(CityResourceData resources)
-        {
-            if (_faithHud == null) return;
-            _faithHud.SetFaith(resources.Faith, resources.MaxFaith);
-            _faithHud.SetStatus(_econ != null ? GreatTempleSystem.StatusLine(_world, _econ, Team.Player, _econ.Turn) : string.Empty);
-            if (_econ == null) { _faithHud.SetIncomePreview(0, 0); return; }
-            int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out int rank);
-            _faithHud.SetIncomePreview(gain, rank);
+            if (_hud == null || _econ == null) return;
+            var resources = _econ.Resources[Team.Player];
+            _hud.SetResources(resources, CityResourceSystem.CountPopulation(_world, Team.Player));
+            _hud.SetScoreLine(LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)));
+            int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out _);
+            _hud.SetFaith(resources.Faith, resources.MaxFaith, gain, GreatTempleSystem.StatusLine(_world, _econ, Team.Player, _econ.Turn));
         }
 
         private void RefreshTechTree()
@@ -1234,7 +1216,6 @@ namespace TacticsECS
             var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
             if (_econ != null) RefreshEconomyViews(false);
             RefreshAllViews();
-            RefreshRoster();
 
             foreach (var entry in entries)
             {
@@ -1263,7 +1244,6 @@ namespace TacticsECS
                 int after = UnitQueries.IsAlive(_world, kv.Key) ? _world.Get<Hp>(kv.Key).Value : 0;
                 if (kv.Value - after > 0 && _world.Get<Team>(kv.Key) == Team.Player) view.ShowDamagePopup(kv.Value - after);
             }
-            RefreshRoster();
         }
 
         private void RefreshAllViews()
@@ -1286,10 +1266,6 @@ namespace TacticsECS
                 kv.Value.SetVisible(visible);
             }
         }
-
-        /// <summary>좌상단 유닛 로스터를 현재 EntityWorld 상태로 다시 그린다. 체력이 바뀌거나(공격/치유/
-        /// 자폭/대기) 유닛이 죽는 모든 행동 직후 호출한다.</summary>
-        private void RefreshRoster() => _hud.SetRoster(_world);
 
         /// <summary>지금 살아있는 모든 유닛의 체력을 id별로 찍어둔다. 자폭/턴 종료 자동 대기처럼 한 번의
         /// 호출로 여러 유닛의 체력이 한꺼번에 바뀌는 행동에서, 실행 전후 차이로 데미지 팝업/회복량을
@@ -1332,24 +1308,206 @@ namespace TacticsECS
 
         private void CheckBattleEnd()
         {
-            if (_econ != null && _econ.FaithWinner >= 0 && !_battleOver)
+            if (_battleOver) return;
+            if (_econ != null && _econ.FaithWinner >= 0)
             {
-                _battleOver = true;
-                ClearSelection();
-                _hud.SetEndTurnVisible(false);
                 _hud.AddLogEntry(LocalizationSystem.T("UI.GreatTemple.Log.Victory"));
-                _hud.ShowBattleEnd(playerWon: _econ.FaithWinner == (int)Team.Player);
+                EndBattle(_econ.FaithWinner == (int)Team.Player, "UI.Result.FaithVictory");
                 return;
             }
             bool playerAlive = !HasTeamLost(Team.Player);
             bool enemyAlive = !HasTeamLost(Team.Enemy);
-            if (!playerAlive || !enemyAlive)
+            if (!playerAlive || !enemyAlive) EndBattle(playerAlive, "UI.Result.Conquest");
+        }
+
+        /// <summary>승패가 정해졌다: 저장을 지우고(끝난 판은 이어할 수 없다) 결과 창을 띄운다. 규칙: docs/spec/game/session.md</summary>
+        private void EndBattle(bool playerWon, string reasonKey)
+        {
+            _battleOver = true;
+            ClearSelection();
+            CancelPunch();
+            if (_techTreeHud != null) _techTreeHud.Close();
+            _hud.SetEndTurnVisible(false);
+            if (quickPlay) SaveSystem.Delete(SavePath);
+            ShowResult(playerWon, reasonKey);
+        }
+
+        private void ShowResult(bool playerWon, string reasonKey)
+        {
+            var body = new System.Text.StringBuilder();
+            body.Append(LocalizationSystem.T(playerWon ? reasonKey + ".Win" : reasonKey + ".Lose"));
+            int turn = _econ != null ? _econ.Turn : _turnState.TurnNumber;
+            body.Append('\n').Append(LocalizationSystem.F("UI.Result.Turns", turn));
+            if (_econ != null)
+                body.Append('\n').Append(LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)));
+
+            var buttons = new List<ActionMenuOption>();
+            if (quickPlay)
             {
-                _battleOver = true;
-                ClearSelection();
-                _hud.SetEndTurnVisible(false);
-                _hud.ShowBattleEnd(playerWon: playerAlive);
+                buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.NewGame"), Enabled = true, Primary = true, OnClick = () => ReturnToSetup(true) });
+                buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.MainMenu"), Enabled = true, OnClick = () => ReturnToSetup(false) });
             }
+            else buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Battle.Restart"), Enabled = true, Primary = true, OnClick = HandleReturnToSetup });
+            buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Result.ViewMap"), Enabled = true, OnClick = _hud.HideDialog });
+            _hud.ShowDialog(LocalizationSystem.T(playerWon ? "UI.Battle.Victory" : "UI.Battle.Defeat"), body.ToString(), buttons,
+                playerWon ? BattleHud.PlayerAccent : BattleHud.EnemyAccent);
+        }
+
+        // ---------- 메뉴 ----------
+
+        /// <summary>상단 막대 "메뉴"(또는 Esc/뒤로 가기): 계속 · 새 게임 · 언어 · 메인 화면(빠른 한 판). 끝난 판이면 결과 창을 다시 보인다.</summary>
+        private void OpenMenu()
+        {
+            ClearSelection();
+            CancelPunch();
+            if (_techTreeHud != null) _techTreeHud.Close();
+            var buttons = new List<ActionMenuOption>
+            {
+                new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.Resume"), Enabled = true, Primary = true, OnClick = _hud.HideDialog },
+            };
+            if (quickPlay)
+            {
+                buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.NewGame"), Enabled = true, OnClick = ConfirmNewGame });
+                buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.MainMenu"), Detail = null, Enabled = true, OnClick = () => { SaveGame(); ReturnToSetup(false); } });
+            }
+            else buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Battle.Restart"), Enabled = true, OnClick = HandleReturnToSetup });
+            buttons.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.Title.Language", LocalizationSystem.LanguageName(StringTable.Language)), Enabled = true, OnClick = HandleLanguageClicked });
+            _hud.ShowDialog(LocalizationSystem.T("UI.Menu.Title"), quickPlay && !_battleOver ? LocalizationSystem.T("UI.Menu.SavedHint") : null, buttons);
+        }
+
+        /// <summary>진행 중인 판이 있으면 새 판을 시작하기 전에 한 번 묻는다(저장은 새 판의 첫 턴에 덮어쓴다).</summary>
+        private void ConfirmNewGame()
+        {
+            if (_battleOver || _econ == null) { ReturnToSetup(true); return; }
+            _hud.ShowDialog(LocalizationSystem.T("UI.Menu.NewGame"), LocalizationSystem.T("UI.Menu.NewGameConfirm"), new List<ActionMenuOption>
+            {
+                new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.NewGameYes"), Enabled = true, Primary = true, OnClick = () => ReturnToSetup(true) },
+                new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.Back"), Enabled = true, OnClick = OpenMenu },
+            });
+        }
+
+        // ---------- 시작 화면 · 저장 · 이어하기 (빠른 한 판) ----------
+
+        /// <summary>저장 파일 하나(빠른 한 판 전용). 규칙: docs/spec/game/session.md</summary>
+        private static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quickplay.sav");
+
+        private void ShowTitle(bool tribeSelect)
+        {
+            if (_titleHud == null)
+            {
+                var go = new GameObject("TitleHud");
+                go.transform.SetParent(transform, false);
+                _titleHud = go.AddComponent<TitleHud>();
+                var unitRows = LoadFallbackUnitRows();
+                _titleHud.Init(_hud.UiFont, GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList());
+                _titleHud.OnContinueClicked += ContinueGame;
+                _titleHud.OnStartClicked += tribe => { _titleHud.Hide(); StartQuickPlay(tribe); };
+                _titleHud.OnLanguageClicked += HandleLanguageClicked;
+            }
+            var save = SaveSystem.TryRead(SavePath, out _);
+            string detail = null;
+            if (save != null)
+            {
+                string tribe = TribeSystem.IsValid(save.PlayerTribe) ? GameTables.Tribes[save.PlayerTribe].Name : LocalizationSystem.T("UI.Common.Player");
+                detail = LocalizationSystem.F("UI.Title.ContinueDetail", tribe, save.Turn.TurnNumber);
+            }
+            _titleHud.ShowTitle(save != null, detail);
+            if (tribeSelect) _titleHud.ShowTribeSelect();
+        }
+
+        /// <summary>지금 판을 저장한다(빠른 한 판, 경제가 시작됐고 끝나지 않은 판만). 적 턴 도중이면 저장하지 않는다 — 그 턴을 시작한 시점의
+        /// 저장(내 턴 시작)이 남아 있다.</summary>
+        private void SaveGame()
+        {
+            if (!quickPlay || _econ == null || _battleOver || _turnState.ActiveTeam != Team.Player) return;
+            try
+            {
+                SaveSystem.Write(SavePath, new SaveGameData
+                {
+                    Grid = _grid, World = _world, Economy = _econ, Turn = _turnState,
+                    TribeByTeam = new Dictionary<Team, int>(_tribeByTeam), GodByTeam = new Dictionary<Team, int>(_godByTeam),
+                    CameraFocus = _cameraFocus, CameraSize = _pixelCamera != null ? _pixelCamera.RequestedSize : 0f,
+                    PlayerTribe = _tribeByTeam[Team.Player],
+                });
+            }
+            catch (System.Exception e) { Debug.LogError("[BattleController] save failed: " + e); }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) SaveGame(); // 휴대폰에서 앱이 백그라운드로 가면 그대로 꺼질 수 있다
+        }
+
+        private void OnApplicationQuit() => SaveGame();
+
+        private void ContinueGame()
+        {
+            var save = SaveSystem.TryRead(SavePath, out string error);
+            if (save == null)
+            {
+                Debug.LogWarning("[BattleController] cannot continue: " + error);
+                ShowTitle(false);
+                return;
+            }
+            _titleHud.Hide();
+            LoadGame(save);
+        }
+
+        /// <summary>저장한 판으로 바꾼다. SetupBattle이 만든 빈 그리드·화면 위에 데이터를 갈아 끼우고, 화면(타일·유닛·HUD)을 그 데이터로 다시 그린다.
+        /// 게임 규칙은 하나도 실행하지 않는다(턴 시작 수입 등은 저장 전에 이미 반영됐다).</summary>
+        private void LoadGame(SaveGameData save)
+        {
+            foreach (var view in _viewsById.Values) if (view != null) DestroySafe(view.gameObject);
+            _viewsById.Clear();
+            DestroySafe(_gridView.gameObject);
+
+            _grid = save.Grid;
+            _world = save.World;
+            _econ = save.Economy;
+            _turnState = save.Turn;
+            gridWidth = _grid.Width;
+            gridHeight = _grid.Height;
+            foreach (var kv in save.TribeByTeam) _tribeByTeam[kv.Key] = kv.Value;
+            foreach (var kv in save.GodByTeam) _godByTeam[kv.Key] = kv.Value;
+            _unitRows = _econ.UnitRows;
+
+            var gridViewGo = new GameObject("GridView");
+            gridViewGo.transform.SetParent(transform, false);
+            _gridView = gridViewGo.AddComponent<GridView>();
+            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
+            PositionCamera();
+
+            for (int id = 0; id < _world.EntityCount; id++)
+                if (UnitQueries.IsAlive(_world, id)) AttachLoadedView(id);
+
+            if (_techTreeHud != null)
+                _techTreeHud.SetNodes(AnyTribe() ? TechGroupSystem.Filter(_econ.TechNodes, _econ.Tech[Team.Player].Allowed) : _econ.TechNodes);
+            _hud.OnEndTurnClicked += EndTurn;
+            _hud.SetTurn(_turnState.ActiveTeam, _turnState.TurnNumber);
+            _hud.SetEndTurnVisible(_turnState.ActiveTeam == Team.Player);
+            _gridView.RefreshTerrain(_grid);
+            RefreshEconomyViews(true);
+            RefreshAllViews();
+
+            _cameraFocus = save.CameraFocus;
+            if (save.CameraSize > 0f) _pixelCamera.RequestedSize = Mathf.Clamp(save.CameraSize, minOrthoSize, maxOrthoSize);
+            ClampCameraFocus();
+            ApplyCameraTransform();
+            if (_turnState.ActiveTeam == Team.Enemy) StartCoroutine(RunEnemyTurnRoutine());
+        }
+
+        /// <summary>불러온 엔티티에 화면만 붙인다(엔티티 값은 그대로).</summary>
+        private void AttachLoadedView(int id)
+        {
+            var row = MythicSystem.FindUnitRow(_econ, _world.GetOrDefault<UnitTypeId>(id).Value);
+            if (row == null || !BasePrefabsByName().TryGetValue(row.BaseVisual, out var basePrefab) || basePrefab == null)
+            {
+                Debug.LogWarning($"[BattleController] 불러온 유닛 {id}의 View를 만들 수 없습니다(CSV 행 또는 BaseVisual 프리팹 없음).");
+                return;
+            }
+            var view = _spawner.AttachCsvView(_grid, _world, id, basePrefab, row);
+            _viewsById[id] = view;
+            view.Refresh(_world, id);
         }
 
         // ---------- Input ----------
@@ -1360,8 +1518,11 @@ namespace TacticsECS
             _gestures.Update();
             HandleCameraControl();
 
-            // 안드로이드 뒤로 가기 버튼도 Esc로 들어온다.
-            if (_punchPhase != PunchPhase.None && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { CancelPunch(); return; }
+            // 시작 화면·대화 상자가 열려 있으면 지도 입력은 받지 않는다(누름은 화면 쪽 버튼이 받는다).
+            if (_titleHud != null && _titleHud.IsOpen) return;
+            // 안드로이드 뒤로 가기 버튼도 Esc로 들어온다: 가장 위에 열린 것부터 닫고, 아무것도 없으면 메뉴.
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { HandleBack(); return; }
+            if (_hud.IsDialogOpen || (_techTreeHud != null && _techTreeHud.IsOpen)) return;
 
             if (_placementActive)
             {
@@ -1383,6 +1544,15 @@ namespace TacticsECS
 
             if (_gestures.Tapped)
                 HandleClick(_gestures.TapPosition);
+        }
+
+        private void HandleBack()
+        {
+            if (_hud.IsDialogOpen) { _hud.HideDialog(); return; }
+            if (_punchPhase != PunchPhase.None) { CancelPunch(); return; }
+            if (_techTreeHud != null && _techTreeHud.IsOpen) { _techTreeHud.Close(); return; }
+            if (_hud.IsInspectorOpen) { ClearSelection(); return; }
+            if (!_placementActive) OpenMenu();
         }
 
         /// <summary>Intersect the XY view plane and use one cell-boundary policy for placement, battle and hover.</summary>
@@ -1456,36 +1626,27 @@ namespace TacticsECS
             else FocusTile(gridPos);
         }
 
-        /// <summary>유닛에 포커스: 이번 턴 움직일 수 있는 아군이면 선택(이동/공격 하이라이트 + 유닛 메뉴), 그 밖의
-        /// 유닛(적, 행동을 마친 아군)은 정보 패널만 보여준다.</summary>
+        /// <summary>유닛에 포커스: 이번 턴 움직일 수 있는 아군이면 선택(이동/공격 하이라이트 + 행동 목록), 그 밖의
+        /// 유닛(적, 행동을 마친 아군)은 정보만 보여준다.</summary>
         private void FocusUnit(int unitId)
         {
             var pos = _world.Get<GridPosition>(unitId).Value;
             bool own = _world.Get<Team>(unitId) == Team.Player;
             if (own && !(_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
-            {
                 SelectUnit(unitId);
-                ShowUnitMenu(unitId);
-            }
             else
             {
                 ClearSelection();
-                _hud.ShowUnitPanel(_world, unitId);
-                // 뗏목 업그레이드는 행동을 쓰지 않아 승선한 그 턴에도 할 수 있다(위키 Raft).
-                if (own && EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId) ShowUnitMenu(unitId);
+                ShowUnitInspector(unitId);
             }
             _focusPos = pos;
             _focusLayer = FocusLayer.Unit;
         }
 
-        /// <summary>칸에 포커스: 유닛 선택을 풀고 구조물 정보 패널(아직 기술이 없어 숨겨진 자원은 없는 것처럼
-        /// 취급)과, 경제가 켜져 있으면 그 칸의 도시/건설 메뉴를 띄운다.</summary>
+        /// <summary>칸에 포커스: 유닛 선택을 풀고 칸 정보(구조물 — 아직 기술이 없어 숨겨진 자원은 없는 것처럼 — 과 도시/건설 행동)를 보인다.</summary>
         private void FocusTile(Vector2Int pos)
         {
             ClearSelection();
-            string structureId = VisibleStructure(pos);
-            if (!string.IsNullOrEmpty(structureId))
-                _hud.ShowStructurePanel(structureId);
             ShowTileMenu(pos);
             _focusPos = pos;
             _focusLayer = FocusLayer.Tile;
@@ -1629,7 +1790,6 @@ namespace TacticsECS
                 if (!string.IsNullOrEmpty(entry.SpawnUnitId)) SpawnEconomyUnit(entry.Team, entry.SpawnUnitId, entry.Position, entry.CityIndex, entry.SpawnVeteran, entry.SpawnBoatId);
                 _hud.AddLogEntry(FormatEconomyEntry(entry));
             }
-            if (log.Count > 0) RefreshRoster();
         }
 
         private string FormatEconomyEntry(EconomyLogEntry e)
@@ -1675,13 +1835,13 @@ namespace TacticsECS
             return true;
         }
 
-        private bool CanUseEconomyMenu => _econ != null && _actionMenu != null && !_battleOver && _turnState.ActiveTeam == Team.Player;
+        private bool CanUseEconomyMenu => _econ != null && !_battleOver && _turnState.ActiveTeam == Team.Player;
 
         /// <summary>메뉴 버튼으로 무언가를 한 뒤 같은 대상의 메뉴를 새 상태로 다시 그린다.</summary>
         private void RefreshMenu()
         {
             if (!CanUseEconomyMenu) return;
-            if (_state == SelectState.UnitSelected && _selectedUnitId >= 0) ShowUnitMenu(_selectedUnitId);
+            if (_state == SelectState.UnitSelected && _selectedUnitId >= 0) ShowUnitInspector(_selectedUnitId);
             else if (_menuTile.HasValue) ShowTileMenu(_menuTile.Value);
         }
 
@@ -1689,8 +1849,15 @@ namespace TacticsECS
         /// (TileImprovementSystem.GetOptions). 보여줄 것이 없으면 메뉴를 닫는다.</summary>
         private void ShowTileMenu(Vector2Int pos)
         {
-            if (!CanUseEconomyMenu) return;
-            if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) { _actionMenu.Hide(); return; }
+            if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) { _hud.HideInspector(); return; }
+            string structureId = VisibleStructure(pos);
+            if (!CanUseEconomyMenu)
+            {
+                // 경제 없는 전투(데모)나 적 턴: 구조물 정보만.
+                if (!string.IsNullOrEmpty(structureId)) _hud.ShowTile(LocalizationSystem.T("UI.TileMenu.Info"), null, structureId, null);
+                else _hud.HideInspector();
+                return;
+            }
             _menuTile = pos;
             var options = new List<ActionMenuOption>();
             string title;
@@ -1785,12 +1952,12 @@ namespace TacticsECS
 
             AddGreatTempleOption(options, pos, tile);
 
-            if (cityIndex < 0 && options.Count == 0 && string.IsNullOrEmpty(tile.BuildingId) && !tile.HasRoad)
+            if (cityIndex < 0 && options.Count == 0 && string.IsNullOrEmpty(tile.BuildingId) && !tile.HasRoad && string.IsNullOrEmpty(structureId))
             {
-                _actionMenu.Hide();
+                _hud.HideInspector();
                 return;
             }
-            _actionMenu.Show(title, body.ToString(), options);
+            _hud.ShowTile(title, body.ToString(), structureId, options);
         }
 
         /// <summary>자기 영토의 빈 평지 칸에서 대신전 건설 항목을 보인다 — 과업·별·자리가 모자라면 이유와 함께 비활성.</summary>
@@ -1837,11 +2004,20 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>유닛 메뉴: 점령/유적 탐험/해산, 그리고 우리 도시 위라면 그 도시 메뉴로 가는 버튼.</summary>
-        private void ShowUnitMenu(int unitId)
+        /// <summary>유닛 정보 패널: 능력치와, 고른 아군이면 그 유닛이 할 수 있는 행동(방어/치유/자폭/대기/기도) + 경제 행동(점령/유적 탐험/해산 …,
+        /// 우리 도시 위라면 그 도시로 가는 줄). 적·행동을 마친 아군은 정보만(뗏목 업그레이드는 행동을 쓰지 않아 예외 — 위키 Raft).</summary>
+        private void ShowUnitInspector(int unitId)
         {
-            if (!CanUseEconomyMenu) return;
             var options = new List<ActionMenuOption>();
+            bool own = _world.Get<Team>(unitId) == Team.Player;
+            bool selected = _state == SelectState.UnitSelected && _selectedUnitId == unitId;
+            if (selected) AddUnitActionOptions(options, unitId);
+            string title = _viewsById.TryGetValue(unitId, out var labelView) ? labelView.Label : LocalizationSystem.T("UI.Common.Unit");
+            if (!CanUseEconomyMenu || !own || (!selected && EmbarkSystem.NavalUnitId(_world, unitId) != NavalUnitDefinition.RaftId))
+            {
+                _hud.ShowUnit(_world, unitId, title, _econ != null ? UnitHomeLine(unitId) : TeamName(_world.Get<Team>(unitId)), options);
+                return;
+            }
             var pos = _world.Get<GridPosition>(unitId).Value;
 
             if (MythicSystem.CanUseActive(_world, unitId))
@@ -1892,19 +2068,48 @@ namespace TacticsECS
             if (city >= 0 && _econ.Cities[city].Owner == Team.Player)
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.ManageCity"), Detail = _econ.Cities[city].Name, Enabled = true, OnClick = () => FocusTile(pos) });
 
-            // 소속 도시(위키 City "Units will show which city they belong to").
+            _hud.ShowUnit(_world, unitId, title, UnitHomeLine(unitId), options);
+        }
+
+        /// <summary>소속 도시(위키 City "Units will show which city they belong to")·베테랑 진행, 신화 유닛이면 남은 턴.</summary>
+        private string UnitHomeLine(int unitId)
+        {
+            if (MythicSystem.IsMythic(_world, unitId)) return LocalizationSystem.F("UI.Mythic.Info", _world.Get<Mythic>(unitId).TurnsLeft);
             int home = CitySystem.HomeOf(_world, unitId);
             string homeText = home >= 0 && home < _econ.Cities.Count ? LocalizationSystem.F("UI.UnitMenu.Home", _econ.Cities[home].Name) : LocalizationSystem.T("UI.UnitMenu.NoHome");
             homeText += VeteranSystem.IsVeteran(_world, unitId) ? " · " + LocalizationSystem.T("UI.UnitMenu.Veteran")
                 : VeteranSystem.CannotBePromoted(_world, unitId) ? string.Empty
                 : " · " + LocalizationSystem.F("UI.UnitMenu.Kills", _world.GetOrDefault<Kills>(unitId).Value, GameRules.Veteran.KillsRequired);
-            if (MythicSystem.IsMythic(_world, unitId)) homeText = LocalizationSystem.F("UI.Mythic.Info", _world.Get<Mythic>(unitId).TurnsLeft);
-            _actionMenu.Show(_viewsById.TryGetValue(unitId, out var view) ? view.Label : LocalizationSystem.T("UI.Common.Unit"), homeText, options);
+            return homeText;
+        }
+
+        /// <summary>고른 유닛의 기본 행동 줄 — 이번 턴 아직 행동하지 않았고 그 유닛이 가진 것만(대기는 움직이지 않았을 때만, 기도는 PrayerSystem).
+        /// 행동 이름·설명은 번역 표 Action.&lt;행동&gt;.Name/Tooltip.</summary>
+        private void AddUnitActionOptions(List<ActionMenuOption> options, int unitId)
+        {
+            if (_world.Get<HasActed>(unitId).Value) return;
+            var available = _world.Get<AvailableActions>(unitId).Value;
+            if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
+            if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
+            var actions = new (ActionType Flag, System.Action Handler)[]
+            {
+                (ActionType.Defend, HandleDefendClicked),
+                (ActionType.Heal, HandleHealClicked),
+                (ActionType.SelfDestruct, HandleSelfDestructClicked),
+                (ActionType.Wait, HandleWaitClicked),
+                (ActionType.Pray, HandlePrayClicked),
+            };
+            foreach (var a in actions)
+            {
+                if ((available & a.Flag) == 0) continue;
+                options.Add(new ActionMenuOption { Label = BattleHud.ActionName(a.Flag), Detail = BattleHud.ActionTooltip(a.Flag), Enabled = true, OnClick = a.Handler });
+            }
         }
 
         /// <summary>다음 언어로 바꿔 저장하고 씬을 다시 연다 — 표 이름·프리팹 글자·이미 만든 도시 이름까지 한 번에 바뀌도록(진행 중 전투는 처음부터).</summary>
         private void HandleLanguageClicked()
         {
+            SaveGame();
             LanguagePreference.Save(LocalizationSystem.NextLanguage(StringTable.Language));
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
         }
@@ -1989,7 +2194,6 @@ namespace TacticsECS
             if (!CanUseEconomyMenu || !VeteranSystem.Promote(_world, unitId)) return;
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Promote, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[unitId].Refresh(_world, unitId);
-            RefreshRoster();
             RecomputeHighlightsIfSelected(unitId);
             RefreshMenu();
         }
@@ -2023,7 +2227,6 @@ namespace TacticsECS
         {
             _selectedUnitId = unitId;
             _state = SelectState.UnitSelected;
-            if (_hud != null) _hud.HideStructurePanel();
             RecomputeHighlights();
         }
 
@@ -2031,11 +2234,6 @@ namespace TacticsECS
         {
             _gridView.ClearHighlights();
             int unitId = _selectedUnitId;
-
-            var available = _world.Get<AvailableActions>(unitId).Value;
-            // 대기(회복)는 이번 턴 움직이지 않은 유닛만(위키 Recover — WaitAction.CanExecute).
-            if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
-            if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
 
             _reachableTiles = null;
             var move = UnitActionQueries.Find<MoveAction>(_world, unitId);
@@ -2061,9 +2259,7 @@ namespace TacticsECS
                 _gridView.HighlightAttack(_attackableTargets.Select(id => _world.Get<GridPosition>(id).Value));
             }
 
-            _hud.ShowUnitPanel(_world, unitId);
-            _hud.SetDeselectVisible(true);
-            _hud.SetUnitActions(available, _world.Get<HasActed>(unitId).Value);
+            ShowUnitInspector(unitId);
         }
 
         private void MoveSelectedUnit(Vector2Int pos)
@@ -2074,7 +2270,6 @@ namespace TacticsECS
                 if (_viewsById.TryGetValue(entry.Key, out var view) && _world.Get<Hp>(entry.Key).Value < entry.Value)
                     view.ShowDamagePopup(entry.Value - _world.Get<Hp>(entry.Key).Value);
             RefreshAllViews();
-            RefreshRoster();
             CheckBattleEnd();
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
@@ -2085,7 +2280,6 @@ namespace TacticsECS
                 RefreshEconomyViews(false);
             }
             RecomputeHighlights();
-            ShowUnitMenu(_selectedUnitId);
             _focusPos = pos;
             _focusLayer = FocusLayer.Unit;
         }
@@ -2116,7 +2310,6 @@ namespace TacticsECS
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
             _viewsById[attackerId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(targetId).Value));
-            RefreshRoster();
             RefreshEconomyViews(false);
 
             CheckBattleEnd();
@@ -2145,7 +2338,6 @@ namespace TacticsECS
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)
                 _viewsById[id].Refresh(_world, id);
-            RefreshRoster();
 
             ClearSelection();
         }
@@ -2180,7 +2372,6 @@ namespace TacticsECS
             _viewsById[unitId].Refresh(_world, unitId);
             foreach (var id in damagedIds)
                 _viewsById[id].Refresh(_world, id);
-            RefreshRoster();
             // 유닛이 사라지면 점수/시야/도시 포위(수입) 상태가 바뀐다.
             RefreshEconomyViews(false);
 
@@ -2199,7 +2390,6 @@ namespace TacticsECS
             int healed = _world.Get<Hp>(unitId).Value - hpBefore;
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Wait, TargetId = BattleLogEntry.NoTarget, Amount = healed }));
             _viewsById[unitId].Refresh(_world, unitId);
-            RefreshRoster();
             ClearSelection();
         }
 
@@ -2210,7 +2400,6 @@ namespace TacticsECS
             if (!PrayerSystem.Pray(_grid, _world, unitId)) return;
 
             _viewsById[unitId].Refresh(_world, unitId);
-            RefreshRoster();
             RefreshCityResources();
             ClearSelection();
         }
@@ -2222,16 +2411,9 @@ namespace TacticsECS
             _reachableTiles = null;
             _attackableTargets = null;
             if (_gridView != null) _gridView.ClearHighlights();
-            if (_actionMenu != null) _actionMenu.Hide();
             _menuTile = null;
             _focusPos = null;
-            if (_hud != null)
-            {
-                _hud.HideUnitPanel();
-                _hud.HideStructurePanel();
-                _hud.SetDeselectVisible(false);
-                _hud.SetUnitActions(ActionType.None, hasActed: true);
-            }
+            if (_hud != null) _hud.HideInspector();
         }
     }
 }

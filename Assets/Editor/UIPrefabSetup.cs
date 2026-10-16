@@ -47,36 +47,6 @@ namespace TacticsECS.EditorTools
         private static readonly Color PanelBackground = new Color(0.08f, 0.09f, 0.11f, 0.85f);
         private static readonly Color SandboxPanelBackground = new Color(0.08f, 0.09f, 0.11f, 0.92f);
         private static readonly Color ButtonIdle = new Color(0.16f, 0.17f, 0.20f, 0.95f);
-        private static readonly Color PassiveBadgeBg = new Color(0.42f, 0.24f, 0.55f, 0.95f);
-
-        /// <summary>BattleHud의 패시브 배지 표(아이콘). BattleHud.cs의 같은 이름 표와 값이 어긋나면
-        /// 배지가 안 만들어지므로, 패시브를 추가할 땐 두 곳 다 갱신해야 한다. 툴팁 문구는 번역 표(BattleHud.ActionTooltip).</summary>
-        private static readonly (ActionType Flag, string Icon)[] PassiveDefs =
-        {
-            (ActionType.Counter, "counter"),
-            (ActionType.Charge, "charge"),
-            (ActionType.Retreat, "retreat"),
-            (ActionType.Ambush, "ambush"),
-            (ActionType.Infiltrate, "infiltrate"),
-            (ActionType.Herd, "herd"),
-            (ActionType.Convert, "convert"),
-            (ActionType.Combo, "combo"),
-            (ActionType.Scout, "scout"),
-            (ActionType.Splash, "splash"),
-            (ActionType.Stiff, "stiff"),
-            (ActionType.Freeze, "freeze"),
-        };
-
-        /// <summary>BattleHud의 선택적 행동 버튼 표. BattleHud.cs의 같은 이름 표와 값이 어긋나면 버튼
-        /// 이름(Find 경로)이 안 맞아 WireActionButtons가 실패한다.</summary>
-        private static readonly (ActionType Flag, string Icon)[] OptionalActionDefs =
-        {
-            (ActionType.Defend, "guard"),
-            (ActionType.Heal, "heal"),
-            (ActionType.SelfDestruct, "selfdestruct"),
-            (ActionType.Wait, "hp"),
-            (ActionType.Pray, "heal"),
-        };
 
         /// <summary>프리팹에 구울 글자 — 번역 표 원문(ko). 실행 중에는 각 HUD가 지금 언어로 다시 채운다.</summary>
         private static string Src(string key) => LocalizationSystem.Source(key);
@@ -99,16 +69,34 @@ namespace TacticsECS.EditorTools
             var paletteButton = GeneratePaletteButton(font);
             var battleHud = GenerateBattleHud(eventSystem, font);
             var sandboxHud = GenerateSandboxHud(paletteButton, font);
-            var cityResourceBar = GenerateCityResourceBar(font);
-            var techTreePanel = GenerateTechTreePanel(font);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             PatchUnitPrefabs(hpDisplay, damagePopup);
-            AssignToScenes(battleHud, sandboxHud, cityResourceBar, techTreePanel);
+            DeleteRetiredPrefabs();
+            AssignToScenes(battleHud, sandboxHud);
 
-            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud/CityResourceBar/TechTreePanel prefabs created under " + UiFolderPath);
+            Debug.Log("[UIPrefabSetup] Done: HpDisplay/DamagePopup/EventSystem/PaletteButton/BattleHud/SandboxHud prefabs created under " + UiFolderPath);
+        }
+
+        /// <summary>전투 HUD 프리팹만 다시 만든다(계층은 BattleHud.Init이 코드로 만들므로 루트·참조만) — 다른 프리팹은 건드리지 않는다.
+        /// unity run . -- -executeMethod TacticsECS.EditorTools.UIPrefabSetup.GenerateBattleHudOnly</summary>
+        public static void GenerateBattleHudOnly()
+        {
+            GameDataLoader.LoadStrings(new System.Collections.Generic.List<string>());
+            var battleHud = GenerateBattleHud(AssetDatabase.LoadAssetAtPath<GameObject>(UiFolderPath + "/EventSystem.prefab"), LoadUiFont());
+            AssetDatabase.SaveAssets();
+            DeleteRetiredPrefabs();
+            AssignToScenes(battleHud, AssetDatabase.LoadAssetAtPath<GameObject>(UiFolderPath + "/SandboxHud.prefab"));
+            Debug.Log("[UIPrefabSetup] BattleHud regenerated");
+        }
+
+        /// <summary>예전에 따로 만들던 자원 바·기술트리 프리팹 — 지금은 BattleHud·TechTreeHud가 코드로 만든다.</summary>
+        private static void DeleteRetiredPrefabs()
+        {
+            foreach (var name in new[] { "CityResourceBar", "TechTreePanel" })
+                AssetDatabase.DeleteAsset($"{UiFolderPath}/{name}.prefab");
         }
 
         public static void GenerateSandboxOnly()
@@ -290,21 +278,12 @@ namespace TacticsECS.EditorTools
 
         // ---------- BattleHud ----------
 
+        /// <summary>루트(BattleHud 컴포넌트 + EventSystem 프리팹·폰트 참조)만 굽는다. 화면 계층은 BattleHud.Init이 코드로 만든다 —
+        /// PC·모바일 공용 배치가 화면 크기에 따라 달라지므로(UiScale).</summary>
         private static GameObject GenerateBattleHud(GameObject eventSystemPrefab, Font font)
         {
             var root = new GameObject("BattleHud");
             var hud = root.AddComponent<BattleHud>();
-
-            var canvasRoot = CreateCanvas(root.transform);
-            BuildTurnBadge(font, canvasRoot);
-            BuildUnitRoster(canvasRoot);
-            BuildActionLog(canvasRoot);
-            BuildUnitPanel(font, canvasRoot);
-            BuildStructurePanel(font, canvasRoot);
-            BuildActionButtons(canvasRoot);
-            BuildTooltip(font, canvasRoot);
-            BuildBattleEndPanel(font, canvasRoot);
-
             SetPrivateField(hud, "eventSystemPrefab", eventSystemPrefab);
             SetPrivateField(hud, "uiFont", font);
             EditorUtility.SetDirty(hud);
@@ -313,305 +292,6 @@ namespace TacticsECS.EditorTools
             var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             return saved;
-        }
-
-        private static void BuildTurnBadge(Font font, Transform root)
-        {
-            var panel = CreateRect("TurnBadge", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 1f);
-            panel.pivot = new Vector2(0f, 1f);
-            panel.anchoredPosition = new Vector2(16f, -16f);
-            panel.sizeDelta = new Vector2(92f, 44f);
-            CreatePanelImage(panel, PlayerAccent);
-
-            CreateIconPlaceholder("Icon", panel, 28f, new Vector2(8f, -8f));
-            var number = CreateNumberText(font, "Number", panel, new Vector2(44f, -8f), new Vector2(40f, 32f));
-            number.fontSize = 24;
-            number.alignment = TextAnchor.MiddleCenter;
-        }
-
-        // ---------- 유닛 상태 로스터 (좌상단, TurnBadge 바로 아래) ----------
-        // 뼈대(배경/Viewport/Content/Scrollbar)만 여기서 만든다. 행(유닛 하나당 아이콘+숫자)은 유닛 수가
-        // 계속 바뀌는 진짜 동적 데이터라 BattleHud.SetRoster가 코드로 그때그때 만든다.
-
-        private const float RosterPanelWidth = 118f;
-        /// <summary>BattleHud.RosterContentMinHeight와 같아야 한다.</summary>
-        private const float RosterPanelHeight = 140f;
-        private const float RosterScrollbarWidth = 5f;
-
-        private static void BuildUnitRoster(Transform root)
-        {
-            BuildScrollPanel("UnitRoster", root,
-                anchor: new Vector2(0f, 1f), pivot: new Vector2(0f, 1f),
-                anchoredPos: new Vector2(16f, -68f), // TurnBadge(높이 44, y -16~-60) 바로 아래
-                size: new Vector2(RosterPanelWidth, RosterPanelHeight),
-                background: PanelBackground, scrollbarWidth: RosterScrollbarWidth);
-        }
-
-        // ---------- 행동 로그 (우상단) ----------
-        // 스크롤 없이 최근 줄만 유지하는 킬피드 방식(BattleHud.AddLogEntry)이라 Viewport/ScrollRect가
-        // 필요 없다 — 배경 패널 + Content(줄이 붙는 곳)만 있으면 된다.
-
-        private const float LogPanelWidth = 260f;
-        private const float LogPanelHeight = 190f;
-
-        private static void BuildActionLog(Transform root)
-        {
-            var panel = CreateRect("ActionLog", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(1f, 1f);
-            panel.pivot = new Vector2(1f, 1f);
-            panel.anchoredPosition = new Vector2(-16f, -16f);
-            panel.sizeDelta = new Vector2(LogPanelWidth, LogPanelHeight);
-            CreatePanelImage(panel, PanelBackground);
-            panel.gameObject.AddComponent<RectMask2D>();
-
-            var content = CreateRect("Content", panel);
-            content.anchorMin = Vector2.zero;
-            content.anchorMax = Vector2.one;
-            content.offsetMin = new Vector2(8f, 6f);
-            content.offsetMax = new Vector2(-8f, -6f);
-        }
-
-        private static void BuildUnitPanel(Font font, Transform root)
-        {
-            var panel = CreateRect("UnitPanel", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
-            panel.pivot = new Vector2(0f, 0f);
-            panel.anchoredPosition = new Vector2(16f, 16f);
-            panel.sizeDelta = new Vector2(150f, 206f);
-            CreatePanelImage(panel, PanelBackground);
-
-            var accent = CreateRect("Accent", panel);
-            accent.anchorMin = new Vector2(0f, 0f);
-            accent.anchorMax = new Vector2(0f, 1f);
-            accent.pivot = new Vector2(0f, 0.5f);
-            accent.sizeDelta = new Vector2(5f, 0f);
-            accent.anchoredPosition = Vector2.zero;
-            CreatePanelImage(accent, PlayerAccent);
-
-            const float rowH = 30f;
-            float top = -8f;
-
-            CreateIconPlaceholder("HpIcon", panel, 22f, new Vector2(14f, top));
-            CreateNumberText(font, "HpText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            var hpBarBg = CreateRect("HpBarBg", panel);
-            hpBarBg.anchorMin = hpBarBg.anchorMax = new Vector2(0f, 1f);
-            hpBarBg.pivot = new Vector2(0f, 1f);
-            hpBarBg.anchoredPosition = new Vector2(14f, top - 22f);
-            hpBarBg.sizeDelta = new Vector2(122f, 6f);
-            CreatePanelImage(hpBarBg, new Color(1f, 1f, 1f, 0.15f));
-
-            var hpBarFill = CreateRect("HpBarFill", hpBarBg);
-            hpBarFill.anchorMin = Vector2.zero;
-            hpBarFill.anchorMax = new Vector2(1f, 1f);
-            hpBarFill.offsetMin = Vector2.zero;
-            hpBarFill.offsetMax = Vector2.zero;
-            CreatePanelImage(hpBarFill, HpColorScale.ForFraction(1f));
-
-            top -= rowH + 10f;
-            CreateIconPlaceholder("AttackIcon", panel, 22f, new Vector2(14f, top));
-            CreateNumberText(font, "AttackText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIconPlaceholder("DefenseIcon", panel, 22f, new Vector2(14f, top));
-            CreateNumberText(font, "DefenseText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIconPlaceholder("MoveIcon", panel, 22f, new Vector2(14f, top));
-            CreateNumberText(font, "MoveText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            top -= rowH;
-            CreateIconPlaceholder("RangeIcon", panel, 22f, new Vector2(14f, top));
-            CreateNumberText(font, "RangeText", panel, new Vector2(42f, top + 3f), new Vector2(96f, 24f));
-
-            // 다음 top(-168)이 곧 패시브 배지 줄 위치다 — BattleHud.PassiveRowTop 상수와 값이 같아야 한다.
-            top -= rowH;
-            foreach (var def in PassiveDefs)
-                CreatePassiveBadgePlaceholder(panel, def.Icon, BattleHud.ActionTooltip(def.Flag));
-        }
-
-        /// <summary>구조물 정보 패널(이름 + 설명 한두 줄) — BattleHud(전투 중, 타일 클릭)와 SandboxHud
-        /// (전투 시작 전, 타일 호버) 양쪽에서 똑같이 쓰는 뼈대라 공용 메서드로 뺐다. BattleHud에서는
-        /// UnitPanel과 같은 좌하단 자리를 쓰는데 — 유닛이 선택되면 이 패널은 숨겨지므로
-        /// (BattleController.SelectUnit) 화면 위치가 겹쳐도 상관없다. SandboxHud에서는 Toolbar/Palette가
-        /// 왼쪽 위 칸을 이미 쓰고 있어 좌하단이 비어 있다. UnitPanel(150폭)보다 넓게(280) 잡은 건
-        /// Description이 한 줄 넘게 줄바꿈될 수 있어서다.</summary>
-        private static void BuildStructurePanel(Font font, Transform root)
-        {
-            var panel = CreateRect("StructurePanel", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
-            panel.pivot = new Vector2(0f, 0f);
-            panel.anchoredPosition = new Vector2(16f, 16f);
-            panel.sizeDelta = new Vector2(280f, 96f);
-            CreatePanelImage(panel, PanelBackground);
-
-            var accent = CreateRect("Accent", panel);
-            accent.anchorMin = new Vector2(0f, 0f);
-            accent.anchorMax = new Vector2(0f, 1f);
-            accent.pivot = new Vector2(0f, 0.5f);
-            accent.sizeDelta = new Vector2(5f, 0f);
-            accent.anchoredPosition = Vector2.zero;
-            CreatePanelImage(accent, PlayerAccent);
-
-            var name = CreateRect("NameText", panel);
-            name.anchorMin = new Vector2(0f, 1f);
-            name.anchorMax = new Vector2(1f, 1f);
-            name.pivot = new Vector2(0f, 1f);
-            name.anchoredPosition = new Vector2(16f, -10f);
-            name.sizeDelta = new Vector2(-28f, 28f);
-            var nameText = name.gameObject.AddComponent<Text>();
-            nameText.font = font;
-            nameText.fontSize = 22;
-            nameText.color = Color.white;
-            nameText.alignment = TextAnchor.UpperLeft;
-            nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
-
-            var description = CreateRect("DescriptionText", panel);
-            description.anchorMin = new Vector2(0f, 0f);
-            description.anchorMax = new Vector2(1f, 1f);
-            description.offsetMin = new Vector2(16f, 10f);
-            description.offsetMax = new Vector2(-12f, -40f);
-            var descriptionText = description.gameObject.AddComponent<Text>();
-            descriptionText.font = font;
-            descriptionText.fontSize = 16;
-            descriptionText.color = new Color(1f, 1f, 1f, 0.85f);
-            descriptionText.alignment = TextAnchor.UpperLeft;
-            descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            descriptionText.verticalOverflow = VerticalWrapMode.Overflow;
-        }
-
-        private static void CreatePassiveBadgePlaceholder(Transform parent, string iconName, string tooltip)
-        {
-            var rect = CreateRect("Passive_" + iconName, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = new Vector2(26f, 26f);
-
-            var bg = rect.gameObject.AddComponent<Image>();
-            bg.color = PassiveBadgeBg;
-
-            var iconRect = CreateRect("Icon", rect);
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(4f, 4f);
-            iconRect.offsetMax = new Vector2(-4f, -4f);
-            var icon = iconRect.gameObject.AddComponent<Image>();
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-
-            AddTooltipTrigger(rect.gameObject, tooltip);
-        }
-
-        private static void BuildActionButtons(Transform root)
-        {
-            CreateIconButton(root, "EndTurnButton", new Vector2(-16f, 16f), ButtonIdle, Src("UI.Battle.EndTurnTooltip"));
-
-            foreach (var def in OptionalActionDefs)
-                CreateIconButton(root, def.Flag + "Button", Vector2.zero, ButtonIdle, BattleHud.ActionTooltip(def.Flag));
-
-            CreateIconButton(root, "DeselectButton", Vector2.zero, ButtonIdle, Src("UI.Battle.DeselectTooltip"));
-        }
-
-        private static void CreateIconButton(Transform root, string name, Vector2 anchoredPosFromBottomRight, Color bg, string tooltip)
-        {
-            var rect = CreateRect(name, root);
-            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.sizeDelta = new Vector2(52f, 52f);
-            rect.anchoredPosition = anchoredPosFromBottomRight;
-
-            var bgImage = CreatePanelImage(rect, bg);
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = bgImage;
-
-            var iconRect = CreateRect("Icon", rect);
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(10f, 10f);
-            iconRect.offsetMax = new Vector2(-10f, -10f);
-            var icon = iconRect.gameObject.AddComponent<Image>();
-            icon.preserveAspect = true;
-            icon.raycastTarget = false;
-
-            AddTooltipTrigger(rect.gameObject, tooltip);
-        }
-
-        private static void BuildTooltip(Font font, Transform root)
-        {
-            var panel = CreateRect("Tooltip", root);
-            panel.anchorMin = panel.anchorMax = new Vector2(1f, 0f);
-            panel.pivot = new Vector2(1f, 0f);
-            panel.anchoredPosition = new Vector2(-16f, 16f + 52f + 10f);
-            panel.sizeDelta = new Vector2(360f, 56f);
-            CreatePanelImage(panel, PanelBackground);
-
-            var textRect = CreateRect("Text", panel);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(10f, 4f);
-            textRect.offsetMax = new Vector2(-10f, -4f);
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 15;
-            text.alignment = TextAnchor.MiddleRight;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-
-            panel.gameObject.SetActive(false);
-        }
-
-        private static void BuildBattleEndPanel(Font font, Transform root)
-        {
-            var panel = CreateRect("BattleEnd", root);
-            panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.one;
-            panel.offsetMin = Vector2.zero;
-            panel.offsetMax = Vector2.zero;
-            CreatePanelImage(panel, new Color(0f, 0f, 0f, 0.55f));
-
-            var iconRect = CreateRect("Icon", panel);
-            iconRect.anchorMin = iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-            iconRect.pivot = new Vector2(0.5f, 0f);
-            iconRect.sizeDelta = new Vector2(120f, 120f);
-            iconRect.anchoredPosition = new Vector2(0f, 10f);
-            var icon = iconRect.gameObject.AddComponent<Image>();
-            icon.preserveAspect = true;
-
-            var textRect = CreateRect("Label", panel);
-            textRect.anchorMin = textRect.anchorMax = new Vector2(0.5f, 0.5f);
-            textRect.pivot = new Vector2(0.5f, 1f);
-            textRect.sizeDelta = new Vector2(400f, 50f);
-            textRect.anchoredPosition = Vector2.zero;
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 36;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-
-            var restartRect = CreateRect("RestartButton", panel);
-            restartRect.anchorMin = restartRect.anchorMax = new Vector2(0.5f, 0.5f);
-            restartRect.pivot = new Vector2(0.5f, 1f);
-            restartRect.sizeDelta = new Vector2(180f, 44f);
-            restartRect.anchoredPosition = new Vector2(0f, -60f);
-            var restartBg = CreatePanelImage(restartRect, ButtonIdle);
-            var restartButton = restartRect.gameObject.AddComponent<Button>();
-            restartButton.targetGraphic = restartBg;
-
-            var restartLabelRect = CreateRect("Label", restartRect);
-            restartLabelRect.anchorMin = Vector2.zero;
-            restartLabelRect.anchorMax = Vector2.one;
-            restartLabelRect.offsetMin = Vector2.zero;
-            restartLabelRect.offsetMax = Vector2.zero;
-            var restartLabel = restartLabelRect.gameObject.AddComponent<Text>();
-            restartLabel.font = font;
-            restartLabel.fontSize = 18;
-            restartLabel.alignment = TextAnchor.MiddleCenter;
-            restartLabel.color = Color.white;
-            restartLabel.text = Src("UI.Battle.Restart");
-
-            panel.gameObject.SetActive(false);
         }
 
         // ---------- SandboxHud ----------
@@ -930,6 +610,52 @@ namespace TacticsECS.EditorTools
             scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
         }
 
+        /// <summary>SandboxHud의 구조물 정보 패널(이름 + 설명 한두 줄, 전투 시작 전 타일 호버). Toolbar/Palette가 왼쪽 위를
+        /// 쓰고 있어 좌하단에 둔다. Description이 한 줄 넘게 줄바꿈될 수 있어 폭을 넉넉히(280) 잡았다.</summary>
+        private static void BuildStructurePanel(Font font, Transform root)
+        {
+            var panel = CreateRect("StructurePanel", root);
+            panel.anchorMin = panel.anchorMax = new Vector2(0f, 0f);
+            panel.pivot = new Vector2(0f, 0f);
+            panel.anchoredPosition = new Vector2(16f, 16f);
+            panel.sizeDelta = new Vector2(280f, 96f);
+            CreatePanelImage(panel, PanelBackground);
+
+            var accent = CreateRect("Accent", panel);
+            accent.anchorMin = new Vector2(0f, 0f);
+            accent.anchorMax = new Vector2(0f, 1f);
+            accent.pivot = new Vector2(0f, 0.5f);
+            accent.sizeDelta = new Vector2(5f, 0f);
+            accent.anchoredPosition = Vector2.zero;
+            CreatePanelImage(accent, PlayerAccent);
+
+            var name = CreateRect("NameText", panel);
+            name.anchorMin = new Vector2(0f, 1f);
+            name.anchorMax = new Vector2(1f, 1f);
+            name.pivot = new Vector2(0f, 1f);
+            name.anchoredPosition = new Vector2(16f, -10f);
+            name.sizeDelta = new Vector2(-28f, 28f);
+            var nameText = name.gameObject.AddComponent<Text>();
+            nameText.font = font;
+            nameText.fontSize = 22;
+            nameText.color = Color.white;
+            nameText.alignment = TextAnchor.UpperLeft;
+            nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            var description = CreateRect("DescriptionText", panel);
+            description.anchorMin = new Vector2(0f, 0f);
+            description.anchorMax = new Vector2(1f, 1f);
+            description.offsetMin = new Vector2(16f, 10f);
+            description.offsetMax = new Vector2(-12f, -40f);
+            var descriptionText = description.gameObject.AddComponent<Text>();
+            descriptionText.font = font;
+            descriptionText.fontSize = 16;
+            descriptionText.color = new Color(1f, 1f, 1f, 0.85f);
+            descriptionText.alignment = TextAnchor.UpperLeft;
+            descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            descriptionText.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+
         private static void BuildSandboxStartButton(Font font, Transform root)
         {
             var rect = CreateRect("StartBattleButton", root);
@@ -953,248 +679,6 @@ namespace TacticsECS.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = Src("UI.SandboxHud.StartBattle");
-        }
-
-        // ---------- CityResourceBar (도시 별/인구/별, 재사용 가능한 독립 프리팹) ----------
-
-        /// <summary>표시 순서. CityResourceHud.SetResources가 채우는 순서와 일치해야 한다.</summary>
-        private static readonly string[] CityResourceDefs = { "Stars", "Population" };
-
-        private const float CityResourceSlotWidth = 140f;
-        private const float CityResourceBarHeight = 40f;
-
-        /// <summary>다른 프리팹/씬을 변경하지 않고 통합 자원 바를 생성한 뒤 기존 검증을 실행한다(Unity CLI 전용).</summary>
-        public static void GenerateCityResourceBarAndVerify()
-        {
-            GameDataLoader.LoadStrings(new System.Collections.Generic.List<string>());
-            GenerateCityResourceBar(LoadUiFont());
-            AssetDatabase.SaveAssets();
-            VerificationSuite.Run();
-        }
-
-
-        /// <summary>BattleHud와 독립된 별도 프리팹으로 만든다 — 특정 화면(BattleHud)에 종속되지 않고,
-        /// 자원 표시가 필요한 어느 씬/화면에나 그대로 갖다 놓을 수 있게 하기 위함(사용자 요청: 재사용
-        /// 가능한 프리팹).</summary>
-        private static GameObject GenerateCityResourceBar(Font font)
-        {
-            var root = new GameObject("CityResourceBar");
-            var hud = root.AddComponent<CityResourceHud>();
-
-            var canvasRoot = CreateCanvas(root.transform);
-            BuildCityResourceBar(font, canvasRoot);
-
-            SetPrivateField(hud, "uiFont", font);
-            EditorUtility.SetDirty(hud);
-
-            string path = $"{UiFolderPath}/CityResourceBar.prefab";
-            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-            Object.DestroyImmediate(root);
-            return saved;
-        }
-
-        private static void BuildCityResourceBar(Font font, Transform root)
-        {
-            var bar = CreateRect("Bar", root);
-            bar.anchorMin = bar.anchorMax = new Vector2(0.5f, 1f);
-            bar.pivot = new Vector2(0.5f, 1f);
-            bar.anchoredPosition = new Vector2(0f, -16f);
-            bar.sizeDelta = new Vector2(CityResourceSlotWidth * CityResourceDefs.Length, CityResourceBarHeight);
-            CreatePanelImage(bar, PanelBackground);
-
-            for (int i = 0; i < CityResourceDefs.Length; i++)
-            {
-                var def = CityResourceDefs[i];
-                var slot = CreateRect(def, bar);
-                slot.anchorMin = slot.anchorMax = new Vector2(0f, 0.5f);
-                slot.pivot = new Vector2(0f, 0.5f);
-                slot.sizeDelta = new Vector2(CityResourceSlotWidth, CityResourceBarHeight);
-                slot.anchoredPosition = new Vector2(i * CityResourceSlotWidth, 0f);
-
-                if (def == "Stars")
-                {
-                    var label = CreateNumberText(font, "Icon", slot, new Vector2(8f, -10f), new Vector2(24f, 20f));
-                    label.text = Src("UI.CityResource.StarsIcon");
-                    label.color = new Color(0.95f, 0.80f, 0.25f);
-                    label.fontSize = 18;
-                }
-                else CreateIconPlaceholder("Icon", slot, 24f, new Vector2(8f, -8f));
-                var number = CreateNumberText(font, "Number", slot, new Vector2(38f, -10f), new Vector2(96f, 20f));
-                number.fontSize = 16;
-            }
-        }
-
-        // ---------- TechTreePanel (기술트리, 5갈래 x 1+2+2티어, 재사용 가능한 독립 프리팹) ----------
-
-        // 노드 배치(중앙 허브 + 갈래별 방사형)는 TechTreeHud.Init이 CSV 노드 목록으로 런타임에 만든다. 이 패널만
-        // 기준 해상도를 세로로 더 키운다 — 25개 노드 + 라벨이 겹치지 않을 공간이 1280x720으로는 부족해서다.
-        private static readonly Vector2 TechCanvasReferenceResolution = new Vector2(1280f, 950f);
-        private const float TechTreeCenterY = 100f; // Detail 패널 공간을 아래에 남기기 위해 위로.
-        private const float TechDetailWidth = 620f;
-        private const float TechDetailHeight = 160f;
-        /// <summary>전체 화면을 덮는 모달이라 다른 HUD 캔버스(모두 0, ActionMenuHud 5)보다 위에 그린다 —
-        /// 같은 0이면 BattleHud의 행동 로그(우상단)가 닫기 버튼을 가린다.</summary>
-        private const int TechCanvasSortingOrder = 10;
-
-        /// <summary>CityResourceBar와 마찬가지로 BattleHud와 독립된 별도 프리팹으로 만든다 — 도시 자원
-        /// 화면이 있는 곳이라면 어디든 그대로 갖다 놓을 수 있게 하기 위함이다. 노드는 굽지 않는다(CSV 기반이라
-        /// TechTreeHud.Init이 런타임에 만든다) — 기술을 추가/삭제해도 이 프리팹은 다시 만들 필요가 없다.</summary>
-        private static GameObject GenerateTechTreePanel(Font font)
-        {
-            var root = new GameObject("TechTreePanel");
-            var hud = root.AddComponent<TechTreeHud>();
-
-            var canvasRoot = CreateCanvas(root.transform);
-            canvasRoot.GetComponent<CanvasScaler>().referenceResolution = TechCanvasReferenceResolution;
-            canvasRoot.GetComponent<Canvas>().sortingOrder = TechCanvasSortingOrder;
-            BuildTechTreeToggleButton(font, canvasRoot);
-            var panel = BuildTechTreeContent(font, canvasRoot);
-            panel.gameObject.SetActive(false);
-
-            SetPrivateField(hud, "uiFont", font);
-            EditorUtility.SetDirty(hud);
-
-            string path = $"{UiFolderPath}/TechTreePanel.prefab";
-            var saved = PrefabUtility.SaveAsPrefabAsset(root, path);
-            Object.DestroyImmediate(root);
-            return saved;
-        }
-
-        private static void BuildTechTreeToggleButton(Font font, Transform root)
-        {
-            var rect = CreateRect("ToggleButton", root);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(300f, -16f); // 자원 바 오른쪽: 점수 줄과 별도 영역
-            rect.sizeDelta = new Vector2(96f, 30f);
-
-            var bg = CreatePanelImage(rect, ButtonIdle);
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = bg;
-
-            var textRect = CreateRect("Label", rect);
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textRect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 15;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = Src("UI.TechTree.Toggle");
-        }
-
-        private static RectTransform BuildTechTreeContent(Font font, Transform root)
-        {
-            var panel = CreateRect("Panel", root);
-            panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.one;
-            panel.offsetMin = Vector2.zero;
-            panel.offsetMax = Vector2.zero;
-            CreatePanelImage(panel, new Color(0.12f, 0.13f, 0.15f, 0.94f));
-
-            var closeRect = CreateRect("CloseButton", panel);
-            closeRect.anchorMin = closeRect.anchorMax = new Vector2(1f, 1f);
-            closeRect.pivot = new Vector2(1f, 1f);
-            closeRect.anchoredPosition = new Vector2(-16f, -16f);
-            closeRect.sizeDelta = new Vector2(36f, 36f);
-            var closeBg = CreatePanelImage(closeRect, ButtonIdle);
-            var closeButton = closeRect.gameObject.AddComponent<Button>();
-            closeButton.targetGraphic = closeBg;
-            var closeLabelRect = CreateRect("Label", closeRect);
-            closeLabelRect.anchorMin = Vector2.zero;
-            closeLabelRect.anchorMax = Vector2.one;
-            closeLabelRect.offsetMin = Vector2.zero;
-            closeLabelRect.offsetMax = Vector2.zero;
-            var closeLabel = closeLabelRect.gameObject.AddComponent<Text>();
-            closeLabel.font = font;
-            closeLabel.fontSize = 20;
-            closeLabel.alignment = TextAnchor.MiddleCenter;
-            closeLabel.color = Color.white;
-            closeLabel.text = "X";
-
-            var tree = CreateRect("Tree", panel);
-            tree.anchorMin = tree.anchorMax = new Vector2(0.5f, 0.5f);
-            tree.pivot = new Vector2(0.5f, 0.5f);
-            tree.anchoredPosition = new Vector2(0f, TechTreeCenterY);
-            tree.sizeDelta = new Vector2(700f, 700f); // 실제 배치는 자식들의 anchoredPosition이 결정한다.
-
-            // 노드/연결선/허브는 여기서 굽지 않는다 — 기술 목록이 CSV(Assets/Resources/TechTree.csv)라 행 수가
-            // 바뀔 수 있어 TechTreeHud.Init(nodes)가 런타임에 같은 방사형 규칙으로 만든다. 여기는 빈 컨테이너만.
-            BuildTechTreeDetail(font, panel);
-
-            return panel;
-        }
-
-        /// <summary>선택된 노드의 이름/효과/해금 가능 여부/비용을 보여주는 하단 상세 패널.
-        /// TechTreeHud.SelectNode/RefreshDetail이 채운다.</summary>
-        private static void BuildTechTreeDetail(Font font, Transform panel)
-        {
-            var detail = CreateRect("Detail", panel);
-            detail.anchorMin = new Vector2(0.5f, 0f);
-            detail.anchorMax = new Vector2(0.5f, 0f);
-            detail.pivot = new Vector2(0.5f, 0f);
-            detail.anchoredPosition = new Vector2(0f, 20f);
-            detail.sizeDelta = new Vector2(TechDetailWidth, TechDetailHeight);
-            CreatePanelImage(detail, PanelBackground);
-
-            var name = CreateRect("Name", detail);
-            name.anchorMin = name.anchorMax = new Vector2(0f, 1f);
-            name.pivot = new Vector2(0f, 1f);
-            name.anchoredPosition = new Vector2(14f, -10f);
-            name.sizeDelta = new Vector2(TechDetailWidth - 28f, 26f);
-            var nameText = name.gameObject.AddComponent<Text>();
-            nameText.font = font;
-            nameText.fontSize = 18;
-            nameText.alignment = TextAnchor.MiddleLeft;
-            nameText.color = Color.white;
-
-            var effect = CreateRect("Effect", detail);
-            effect.anchorMin = effect.anchorMax = new Vector2(0f, 1f);
-            effect.pivot = new Vector2(0f, 1f);
-            effect.anchoredPosition = new Vector2(14f, -40f);
-            effect.sizeDelta = new Vector2(TechDetailWidth - 28f, 76f);
-            var effectText = effect.gameObject.AddComponent<Text>();
-            effectText.font = font;
-            effectText.fontSize = 13;
-            effectText.alignment = TextAnchor.UpperLeft;
-            effectText.color = new Color(1f, 1f, 1f, 0.85f);
-            effectText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            effectText.verticalOverflow = VerticalWrapMode.Overflow;
-
-            var status = CreateRect("Status", detail);
-            status.anchorMin = status.anchorMax = new Vector2(0f, 0f);
-            status.pivot = new Vector2(0f, 0f);
-            status.anchoredPosition = new Vector2(14f, 10f);
-            status.sizeDelta = new Vector2(230f, 34f);
-            var statusText = status.gameObject.AddComponent<Text>();
-            statusText.font = font;
-            statusText.fontSize = 13;
-            statusText.alignment = TextAnchor.MiddleLeft;
-            statusText.color = new Color(1f, 0.85f, 0.4f);
-            statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
-
-            var unlockRect = CreateRect("UnlockButton", detail);
-            unlockRect.anchorMin = unlockRect.anchorMax = new Vector2(1f, 0f);
-            unlockRect.pivot = new Vector2(1f, 0f);
-            unlockRect.anchoredPosition = new Vector2(-14f, 10f);
-            unlockRect.sizeDelta = new Vector2(120f, 34f);
-            var unlockBg = CreatePanelImage(unlockRect, PlayerAccent);
-            var unlockButton = unlockRect.gameObject.AddComponent<Button>();
-            unlockButton.targetGraphic = unlockBg;
-
-            var unlockLabelRect = CreateRect("Label", unlockRect);
-            unlockLabelRect.anchorMin = Vector2.zero;
-            unlockLabelRect.anchorMax = Vector2.one;
-            unlockLabelRect.offsetMin = Vector2.zero;
-            unlockLabelRect.offsetMax = Vector2.zero;
-            var unlockLabel = unlockLabelRect.gameObject.AddComponent<Text>();
-            unlockLabel.font = font;
-            unlockLabel.fontSize = 15;
-            unlockLabel.alignment = TextAnchor.MiddleCenter;
-            unlockLabel.color = Color.white;
-            unlockLabel.text = Src("UI.TechTree.Unlock");
         }
 
         // ---------- 공용 빌딩 블록 ----------
@@ -1227,58 +711,16 @@ namespace TacticsECS.EditorTools
             return img;
         }
 
-        private static Image CreateIconPlaceholder(string name, Transform parent, float size, Vector2 anchoredPos)
-        {
-            var rect = CreateRect(name, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = new Vector2(size, size);
-            rect.anchoredPosition = anchoredPos;
-
-            var img = rect.gameObject.AddComponent<Image>();
-            img.preserveAspect = true;
-            return img;
-        }
-
-        private static Text CreateNumberText(Font font, string name, Transform parent, Vector2 anchoredPos, Vector2 size)
-        {
-            var rect = CreateRect(name, parent);
-            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-            rect.pivot = new Vector2(0f, 1f);
-            rect.sizeDelta = size;
-            rect.anchoredPosition = anchoredPos;
-
-            var text = rect.gameObject.AddComponent<Text>();
-            text.font = font;
-            text.fontSize = 18;
-            text.alignment = TextAnchor.MiddleLeft;
-            text.color = Color.white;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            return text;
-        }
-
-        /// <summary>Text(툴팁 문구)만 여기서 굽는다 — OnEnter/OnExit(델리게이트)는 프리팹에 저장할 수
-        /// 없으니 BattleHud.Init()이 인스턴스화 직후 런타임에 잇는다.</summary>
-        private static void AddTooltipTrigger(GameObject go, string tooltipText)
-        {
-            var trigger = go.AddComponent<TooltipTrigger>();
-            trigger.Text = tooltipText;
-        }
-
         // ---------- 씬 연결 / 공용 유틸 ----------
 
-        /// <summary>cityResourceBarPrefab/techTreePanelPrefab은 커스텀(샌드박스 배치) 화면에만 연결한다 —
-        /// 데모 전투 씬(SampleScene)에는 배정하지 않으므로 null로 남는다(BattleController가 null 체크 후
-        /// 생성 자체를 건너뛴다).</summary>
-        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab, GameObject techTreePanelPrefab)
+        private static void AssignToScenes(GameObject battleHudPrefab, GameObject sandboxHudPrefab)
         {
-            AssignToScene(ScenePath, battleHudPrefab, sandboxHudPrefab, null, null);
-            if (AssetDatabase.LoadAssetAtPath<Object>(SandboxScenePath) != null)
-                AssignToScene(SandboxScenePath, battleHudPrefab, sandboxHudPrefab, cityResourceBarPrefab, techTreePanelPrefab);
+            foreach (var scenePath in new[] { ScenePath, SandboxScenePath, MobileSceneSetup.MobileScenePath })
+                if (AssetDatabase.LoadAssetAtPath<Object>(scenePath) != null)
+                    AssignToScene(scenePath, battleHudPrefab, sandboxHudPrefab);
         }
 
-        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab, GameObject cityResourceBarPrefab, GameObject techTreePanelPrefab)
+        private static void AssignToScene(string scenePath, GameObject battleHudPrefab, GameObject sandboxHudPrefab)
         {
             var scene = EditorSceneManager.OpenScene(scenePath);
             var controller = Object.FindFirstObjectByType<BattleController>(FindObjectsInactive.Include);
@@ -1289,11 +731,7 @@ namespace TacticsECS.EditorTools
             }
 
             SetPrivateField(controller, "hudPrefab", battleHudPrefab.GetComponent<BattleHud>());
-            SetPrivateField(controller, "sandboxHudPrefab", sandboxHudPrefab.GetComponent<SandboxHud>());
-            if (cityResourceBarPrefab != null)
-                SetPrivateField(controller, "cityResourceHudPrefab", cityResourceBarPrefab.GetComponent<CityResourceHud>());
-            if (techTreePanelPrefab != null)
-                SetPrivateField(controller, "techTreeHudPrefab", techTreePanelPrefab.GetComponent<TechTreeHud>());
+            if (sandboxHudPrefab != null) SetPrivateField(controller, "sandboxHudPrefab", sandboxHudPrefab.GetComponent<SandboxHud>());
             EditorUtility.SetDirty(controller);
 
             EditorSceneManager.MarkSceneDirty(scene);

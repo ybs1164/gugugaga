@@ -4,31 +4,32 @@ using UnityEngine.UI;
 namespace TacticsECS
 {
     /// <summary>
-    /// Keeps every pixel-art Image on a canvas at one texel size: <see cref="TexelSize"/> screen pixels per art pixel,
-    /// the same as a world pixel at default zoom, whatever the canvas scale. Rules: docs/spec/csv/sprites.md#ui-해상도
+    /// 루트 캔버스 하나의 배율과 도트 그림 크기를 맞춘다. 캔버스 배율은 <see cref="UiScale.ScaleFactor"/>(PC·모바일 공용 규칙),
+    /// 모든 도트 그림은 한 텍셀이 <see cref="UiScale.TexelSize"/> 화면 픽셀. 캔버스 바로 아래 "Safe" 자식이 있으면 안전 영역(노치·제스처 바 제외)에 맞춘다.
+    /// 규칙: docs/spec/csv/sprites.md#ui-해상도
     /// </summary>
     [RequireComponent(typeof(Canvas))]
     public class PixelUIScaler : MonoBehaviour
     {
         /// <summary>9-slice border of Panel/Button/Badge, in texels (scripts/author_pixel_ui.py).</summary>
         public const int FrameBorder = 4;
-        /// <summary>Screen height that maps to one screen pixel per texel; 1080p gives 2.</summary>
-        public const float ReferenceHeight = 540f;
+        /// <summary>안전 영역에 맞출 자식 이름(BattleHud 등 코드로 만드는 화면).</summary>
+        public const string SafeAreaName = "Safe";
         private Canvas _canvas;
         private float _appliedScale;
-        private int _appliedTexel, _appliedImages;
-
-        public static int TexelSize(float screenHeight) => Mathf.Max(1, Mathf.RoundToInt(screenHeight / ReferenceHeight));
+        private Rect _appliedPixelRect, _appliedSafe;
+        private int _appliedImages;
 
         private void LateUpdate()
         {
             if (_canvas == null) _canvas = GetComponent<Canvas>();
-            int texel = TexelSize(_canvas.pixelRect.height);
             int images = GetComponentsInChildren<Image>(true).Length;
+            var pixelRect = _canvas.pixelRect;
+            var safe = UiScale.SafeAreaNormalized();
             // Sprites are assigned after Init (Wire*), so also re-check every half second.
-            if (Mathf.Approximately(_canvas.scaleFactor, _appliedScale) && texel == _appliedTexel && images == _appliedImages && Time.frameCount % 30 != 0) return;
+            if (pixelRect == _appliedPixelRect && safe == _appliedSafe && Mathf.Approximately(_canvas.scaleFactor, _appliedScale) && images == _appliedImages && Time.frameCount % 30 != 0) return;
             Apply(_canvas);
-            _appliedScale = _canvas.scaleFactor; _appliedTexel = texel; _appliedImages = images;
+            _appliedScale = _canvas.scaleFactor; _appliedPixelRect = pixelRect; _appliedSafe = safe; _appliedImages = images;
         }
 
         /// <summary>Also called directly in Edit Mode captures, where LateUpdate does not run.</summary>
@@ -36,8 +37,18 @@ namespace TacticsECS
         {
             canvas = canvas.rootCanvas;
             canvas.pixelPerfect = true;
-            float scale = canvas.scaleFactor;
-            int texel = TexelSize(canvas.pixelRect.height);
+            var pixelRect = canvas.pixelRect;
+            float scale = UiScale.ScaleFactor(pixelRect.width, pixelRect.height);
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler != null)
+            {
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+                scaler.scaleFactor = scale;
+            }
+            canvas.scaleFactor = scale; // 에디트 모드에서는 CanvasScaler가 돌지 않는다
+            ApplySafeArea(canvas);
+
+            int texel = UiScale.TexelSize(scale);
             foreach (var image in canvas.GetComponentsInChildren<Image>(true))
             {
                 var sprite = image.sprite;
@@ -60,6 +71,16 @@ namespace TacticsECS
                     element = image.gameObject.AddComponent<LayoutElement>();
                 if (element != null) { element.preferredWidth = element.minWidth = size.x; element.preferredHeight = element.minHeight = size.y; }
             }
+        }
+
+        private static void ApplySafeArea(Canvas canvas)
+        {
+            var safeRoot = canvas.transform.Find(SafeAreaName) as RectTransform;
+            if (safeRoot == null) return;
+            var safe = UiScale.SafeAreaNormalized();
+            safeRoot.anchorMin = safe.min;
+            safeRoot.anchorMax = safe.max;
+            safeRoot.offsetMin = safeRoot.offsetMax = Vector2.zero;
         }
 
         /// <summary>Adds the scaler to every root canvas under <paramref name="root"/> and applies it once.</summary>

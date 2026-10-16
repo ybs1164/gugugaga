@@ -18,180 +18,155 @@ namespace TacticsECS
     }
 
     /// <summary>
-    /// 신앙 펀치 전용 HUD. 발동 절차에 맞춘 세 화면: 목록(펀치 고르기) → 대상 선택 안내 → 확인(비용·영향·발동/취소).
-    /// 값만 받아 그리고 판정은 모른다(FaithPunchSystem) — 선택·확정·취소는 이벤트로 알린다. FaithHud와 별개의 독립 패널이며
-    /// 프리팹 없이 코드로 만든다. 규칙: docs/spec/game/faith.md
+    /// 신앙 펀치 전용 패널. 발동 절차에 맞춘 세 화면: 목록(펀치 고르기) → 대상 선택 안내 → 확인(비용·영향·발동/취소).
+    /// 값만 받아 그리고 판정은 모른다(FaithPunchSystem) — 선택·확정·취소는 이벤트로 알린다. 자리는 BattleHud 정보 패널과 같다
+    /// (오른쪽, 상단 막대 아래 ~ 턴 종료 위). 펀치를 여는 동안 정보 패널은 닫혀 있다. 규칙: docs/spec/game/faith.md
     /// </summary>
     public class FaithPunchHud : MonoBehaviour
     {
-        private const float PanelWidth = 340f;
-        private const float RightOffset = -16f;
-        private const float TopOffset = -212f; // 오른쪽 행동 로그 바로 아래
-        private const float CardHeight = 58f;
-
-        private static readonly Color PanelColor = new Color(0.08f, 0.09f, 0.11f, 0.97f);
-        private static readonly Color CardColor = new Color(0.16f, 0.17f, 0.20f, 0.95f);
-        private static readonly Color Accent = new Color(0.93f, 0.80f, 0.35f);
-        private static readonly Color Muted = new Color(1f, 1f, 1f, 0.55f);
+        public const int SortingOrder = 5;
+        private const float Pad = 10f;
+        private const float CardHeight = 64f;
+        private const float ButtonHeight = 44f;
 
         public event Action<int> OnPunchSelected;
         public event Action OnConfirmClicked;
         public event Action OnCancelClicked;
 
         private Font _font;
+        private RectTransform _area;
         private RectTransform _panel;
         private RectTransform _content;
-        private readonly List<GameObject> _dynamic = new List<GameObject>();
+        private float _height;
 
         public void Init(Font font)
         {
             _font = font;
-            var canvasGo = new GameObject("Canvas");
-            canvasGo.transform.SetParent(transform, false);
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 5; // 다른 HUD 위
-            canvasGo.AddComponent<GraphicRaycaster>();
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1280f, 720f);
-            scaler.matchWidthOrHeight = 0.5f;
+            var safe = UiKit.CreateCanvas(transform, SortingOrder, out _);
+            _area = UiKit.Rect("Area", safe);
+            _area.anchorMin = new Vector2(1f, 0f);
+            _area.anchorMax = new Vector2(1f, 1f);
+            _area.pivot = new Vector2(1f, 1f);
+            _area.offsetMin = new Vector2(-UiKit.Gap - UiKit.SidePanelWidth, UiKit.Gap * 2f + UiKit.EndTurnSize.y);
+            _area.offsetMax = new Vector2(-UiKit.Gap, -UiKit.TopBarHeight - UiKit.Gap);
 
-            _panel = NewRect("Panel", canvasGo.transform);
-            _panel.anchorMin = _panel.anchorMax = new Vector2(1f, 1f);
-            _panel.pivot = new Vector2(1f, 1f);
-            _panel.anchoredPosition = new Vector2(RightOffset, TopOffset);
-            _panel.sizeDelta = new Vector2(PanelWidth, 100f);
-            _panel.gameObject.AddComponent<Image>().color = PanelColor;
-            _content = _panel;
+            _panel = UiKit.Rect("Panel", _area);
+            _panel.anchorMin = new Vector2(0f, 1f);
+            _panel.anchorMax = new Vector2(1f, 1f);
+            _panel.pivot = new Vector2(0.5f, 1f);
+            _panel.offsetMin = new Vector2(0f, -100f);
+            _panel.offsetMax = Vector2.zero;
+            UiKit.Panel(_panel, UiKit.PanelColor);
+            _content = UiKit.ScrollList(UiKit.Stretch(UiKit.Rect("Scroll", _panel), 4f, 4f, 4f, 4f), out _);
 
             PixelUISkin.Apply(gameObject);
+            Canvas.willRenderCanvases += Fit;
             Hide();
         }
+
+        private void OnDestroy() => Canvas.willRenderCanvases -= Fit;
 
         public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
 
         public void Hide()
         {
-            Clear();
-            if (_panel != null) _panel.gameObject.SetActive(false);
+            if (_panel == null) return;
+            UiKit.ClearChildren(_content);
+            _panel.gameObject.SetActive(false);
         }
 
-        /// <summary>1단계: 펀치 카드 목록. 비활성 카드는 눌러도 반응이 없고 이유를 보여준다. message가 있으면 목록 대신 그 안내만.</summary>
+        /// <summary>1단계: 펀치 카드 목록. 비활성 카드는 눌러도 반응이 없고 이유를 보여준다. message가 있으면 목록 위에 안내.</summary>
         public void ShowList(IReadOnlyList<FaithPunchOption> options, string message = null)
         {
-            Begin();
-            float y = -8f;
-            AddText("Title", LocalizationSystem.T("UI.FaithPunch.Title"), 16, Accent, TextAnchor.MiddleLeft, new Vector2(10f, y), new Vector2(PanelWidth - 20f, 22f));
-            y -= 26f;
-            if (!string.IsNullOrEmpty(message))
-            {
-                AddText("Message", message, 13, Muted, TextAnchor.UpperLeft, new Vector2(10f, y), new Vector2(PanelWidth - 20f, 36f));
-                y -= 40f;
-            }
+            float y = Begin(LocalizationSystem.T("UI.FaithPunch.Title"), UiKit.FaithColor);
+            if (!string.IsNullOrEmpty(message)) y = Paragraph(message, y, UiKit.MutedText);
             for (int i = 0; i < options.Count; i++)
             {
                 int index = i;
                 var o = options[i];
-                var card = AddButton("Card" + i, new Vector2(8f, y), new Vector2(PanelWidth - 16f, CardHeight), o.Enabled, () => OnPunchSelected?.Invoke(index));
-                AddText("Name", o.Name, 15, o.Enabled ? Color.white : Muted, TextAnchor.UpperLeft, new Vector2(8f, -4f), new Vector2(PanelWidth - 110f, 20f), card);
-                AddText("Cost", LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost), 13, o.Enabled ? Accent : Muted, TextAnchor.UpperRight, new Vector2(PanelWidth - 110f, -5f), new Vector2(86f, 20f), card);
+                var card = UiKit.Button(_content, "Card" + i, _font, string.Empty, UiKit.ButtonColor, () => OnPunchSelected?.Invoke(index));
+                UiKit.SetEnabled(card, o.Enabled, UiKit.ButtonColor);
+                var label = UiKit.Label(card);
+                label.alignment = TextAnchor.MiddleLeft;
+                UiKit.Stretch(label.rectTransform, 10f, 2f, 70f, 2f);
                 string line = o.Enabled || string.IsNullOrEmpty(o.Reason) ? o.Description : o.Reason;
-                AddText("Desc", line, 12, Muted, TextAnchor.UpperLeft, new Vector2(8f, -25f), new Vector2(PanelWidth - 32f, 30f), card);
-                y -= CardHeight + 4f;
+                var muted = ColorUtility.ToHtmlStringRGB(UiKit.MutedText);
+                label.text = $"{o.Name}\n<size={UiKit.SmallText - 1}><color=#{muted}>{line}</color></size>";
+                label.color = o.Enabled ? Color.white : UiKit.DisabledText;
+                // 설명이 여러 줄이면 카드를 그만큼 키운다.
+                float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SidePanelWidth - 8f - (Pad - 4f) * 2f - 80f) + 14f);
+                UiKit.Row((RectTransform)card.transform, y, h, Pad - 4f, Pad - 4f);
+                var cost = UiKit.Text(card.transform, "Cost", _font, UiKit.SmallText, TextAnchor.MiddleRight, o.Enabled ? UiKit.FaithColor : UiKit.DisabledText);
+                cost.text = LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost);
+                UiKit.Place(cost.rectTransform, new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(64f, CardHeight));
+                y += h + 4f;
             }
-            AddButton("Close", new Vector2(8f, y), new Vector2(PanelWidth - 16f, 28f), true, () => OnCancelClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Close"));
-            y -= 32f;
-            Finish(-y + 4f);
+            y = Button(LocalizationSystem.T("UI.FaithPunch.Close"), y, true, () => OnCancelClicked?.Invoke());
+            Finish(y);
         }
 
         /// <summary>2단계: 대상 칸을 고르라는 안내와 취소 버튼.</summary>
         public void ShowTargeting(string hint)
         {
-            Begin();
-            AddText("Hint", hint, 14, Color.white, TextAnchor.UpperLeft, new Vector2(10f, -8f), new Vector2(PanelWidth - 20f, 40f));
-            AddButton("Cancel", new Vector2(8f, -52f), new Vector2(PanelWidth - 16f, 28f), true, () => OnCancelClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Cancel"));
-            Finish(86f);
+            float y = Begin(hint, Color.white);
+            y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
+            Finish(y);
         }
 
         /// <summary>3단계: 확인. summary는 무엇이 어디에 영향을 주는지, costLine은 신앙 변화. canConfirm이 false면 이유(reason)를 보여주고 발동은 막는다.</summary>
         public void ShowConfirm(string summary, string costLine, bool canConfirm, string reason)
         {
-            Begin();
-            AddText("Summary", summary, 14, Color.white, TextAnchor.UpperLeft, new Vector2(10f, -8f), new Vector2(PanelWidth - 20f, 36f));
-            AddText("Cost", canConfirm ? costLine : reason, 13, canConfirm ? Accent : new Color(1f, 0.55f, 0.5f), TextAnchor.UpperLeft, new Vector2(10f, -36f), new Vector2(PanelWidth - 20f, 22f));
-            float half = (PanelWidth - 24f) / 2f;
-            AddButton("Confirm", new Vector2(8f, -64f), new Vector2(half, 28f), canConfirm, () => OnConfirmClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Confirm"));
-            AddButton("Cancel", new Vector2(16f + half, -64f), new Vector2(half, 28f), true, () => OnCancelClicked?.Invoke(), LocalizationSystem.T("UI.FaithPunch.Cancel"));
-            Finish(100f);
+            float y = Begin(summary, Color.white);
+            y = Paragraph(canConfirm ? costLine : reason, y, canConfirm ? UiKit.FaithColor : new Color(1f, 0.55f, 0.5f));
+            y = Button(LocalizationSystem.T("UI.FaithPunch.Confirm"), y, canConfirm, () => OnConfirmClicked?.Invoke(), primary: true);
+            y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
+            Finish(y);
         }
 
         // ---------- 그리기 도우미 ----------
 
-        private void Begin()
+        private float Begin(string title, Color color)
         {
-            Clear();
+            UiKit.ClearChildren(_content);
             _panel.gameObject.SetActive(true);
+            var text = UiKit.Text(_content, "Title", _font, UiKit.BodyText + 1, TextAnchor.UpperLeft, color);
+            text.text = title;
+            float h = Mathf.Max(24f, UiKit.PreferredHeight(text, UiKit.SidePanelWidth - 8f - Pad * 2f));
+            UiKit.Row(text.rectTransform, Pad, h, Pad, Pad);
+            return Pad + h + 6f;
         }
 
-        private void Finish(float height) => _panel.sizeDelta = new Vector2(PanelWidth, height);
-
-        private void Clear()
+        private float Paragraph(string body, float y, Color color)
         {
-            foreach (var go in _dynamic)
-            {
-                if (go == null) continue;
-                if (Application.isPlaying) Destroy(go); else DestroyImmediate(go); // 에디트 모드 캡처 검증에서도 쓴다
-            }
-            _dynamic.Clear();
+            var text = UiKit.Text(_content, "Body", _font, UiKit.SmallText + 1, TextAnchor.UpperLeft, color);
+            text.text = body;
+            float h = UiKit.PreferredHeight(text, UiKit.SidePanelWidth - 8f - Pad * 2f);
+            UiKit.Row(text.rectTransform, y, h, Pad, Pad);
+            return y + h + 6f;
         }
 
-        private RectTransform AddButton(string name, Vector2 topLeft, Vector2 size, bool enabled, Action onClick, string label = null)
+        private float Button(string label, float y, bool enabled, Action onClick, bool primary = false)
         {
-            var rt = NewRect(name, _content);
-            _dynamic.Add(rt.gameObject);
-            Place(rt, topLeft, size);
-            var img = rt.gameObject.AddComponent<Image>();
-            img.color = enabled ? CardColor : new Color(CardColor.r, CardColor.g, CardColor.b, 0.5f);
-            var button = rt.gameObject.AddComponent<Button>();
-            button.targetGraphic = img;
-            button.interactable = enabled;
-            button.onClick.AddListener(() => onClick());
-            if (label != null)
-                AddText("Label", label, 14, enabled ? Color.white : Muted, TextAnchor.MiddleCenter, Vector2.zero, size, rt);
-            return rt;
+            var color = primary ? UiKit.PrimaryColor : UiKit.ButtonColor;
+            var button = UiKit.Button(_content, label, _font, label, color, onClick);
+            UiKit.Row((RectTransform)button.transform, y, ButtonHeight, Pad - 4f, Pad - 4f);
+            UiKit.SetEnabled(button, enabled, color);
+            return y + ButtonHeight + 4f;
         }
 
-        private Text AddText(string name, string text, int size, Color color, TextAnchor anchor, Vector2 topLeft, Vector2 box, RectTransform parent = null)
+        private void Finish(float y)
         {
-            var rt = NewRect(name, parent != null ? parent : _content);
-            if (parent == null) _dynamic.Add(rt.gameObject);
-            Place(rt, topLeft, box);
-            var t = rt.gameObject.AddComponent<Text>();
-            t.font = _font;
-            t.fontSize = size;
-            t.alignment = anchor;
-            t.color = color;
-            t.text = text;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.raycastTarget = false;
-            return t;
+            _height = y + Pad - 4f;
+            UiKit.SetContentHeight(_content, _height);
+            Fit();
+            PixelUIScaler.Attach(gameObject);
         }
 
-        private static RectTransform NewRect(string name, Transform parent)
+        private void Fit()
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
-        }
-
-        /// <summary>부모 왼쪽 위 모서리 기준(아래로 내려갈수록 y가 음수).</summary>
-        private static void Place(RectTransform rt, Vector2 topLeft, Vector2 size)
-        {
-            rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
-            rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = topLeft;
-            rt.sizeDelta = size;
+            if (_panel == null || _area == null) return;
+            float height = Mathf.Min(_height + 8f, _area.rect.height);
+            if (Mathf.Abs(-_panel.offsetMin.y - height) > 0.5f) _panel.offsetMin = new Vector2(0f, -height);
         }
     }
 }

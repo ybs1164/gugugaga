@@ -1121,7 +1121,9 @@ namespace TacticsECS
             if (Mouse.current != null)
             {
                 float scroll = Mouse.current.scroll.ReadValue().y;
-                if (!Mathf.Approximately(scroll, 0f))
+                // 패널 위에서 굴린 휠은 그 목록을 스크롤한다(지도 확대 아님).
+                bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+                if (!Mathf.Approximately(scroll, 0f) && !overUi)
                 {
                     _pixelCamera.RequestedSize = Mathf.Clamp(
                         _pixelCamera.RequestedSize - scroll * zoomSensitivity,
@@ -1516,7 +1518,9 @@ namespace TacticsECS
         {
             // HUD 버튼(BattleHud/SandboxHud, uGUI) 위에서 시작한 누름은 탭·팬이 되지 않는다(PointerGestures).
             _gestures.Update();
-            HandleCameraControl();
+            // 시작 화면·기술 트리·대화 상자가 지도를 덮고 있으면 지도 카메라는 그대로(기술 트리는 자기 나무를 끌고 확대한다).
+            bool covered = (_titleHud != null && _titleHud.IsOpen) || (_techTreeHud != null && _techTreeHud.IsOpen) || (_hud != null && _hud.IsDialogOpen);
+            if (!covered) HandleCameraControl();
 
             // 시작 화면·대화 상자가 열려 있으면 지도 입력은 받지 않는다(누름은 화면 쪽 버튼이 받는다).
             if (_titleHud != null && _titleHud.IsOpen) return;

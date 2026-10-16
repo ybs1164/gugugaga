@@ -17,7 +17,8 @@ namespace TacticsECS.EditorTools
     /// <summary>
     /// 모바일 씬(Mobile.unity) Play 모드 스모크 테스트 — 한 판의 흐름 전체(docs/spec/game/session.md):
     /// 시작 화면(저장 없음 → 이어하기 꺼짐) → 종족 고르기 → 시작, 가상 터치스크린으로 끌기 팬·핀치 줌·탭 선택,
-    /// 턴 종료 뒤 다음 내 턴에 자동 저장, 메인 화면 → 이어하기(적이 움직인 뒤의 상태가 그대로인지), 결과의 "새 게임"처럼 종족 고르기부터 다시 시작.
+    /// 턴 종료 뒤 다음 내 턴에 자동 저장, 메인 화면 → 이어하기(적이 움직인 뒤의 상태가 그대로인지), 기술 트리 끌기·핀치(지도는 그대로),
+    /// 결과의 "새 게임"처럼 종족 고르기부터 다시 시작.
     /// 시작할 때 이어하기 파일(Application.persistentDataPath/quickplay.sav)을 지운다.
     /// Pixel2DPlayVerification과 같은 방식(SessionState로 도메인 리로드 뒤 이어서 진행). Play 모드라 unity run이 아니라 에디터 실행 파일로:
     /// "&lt;Unity&gt;/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/mobile_play.log -executeMethod TacticsECS.EditorTools.MobilePlayVerification.Run
@@ -188,20 +189,89 @@ namespace TacticsECS.EditorTools
                         string loaded = Snapshot(controller);
                         if (loaded != _snapshot) throw new Exception($"continue state differs:\n saved  {_snapshot}\n loaded {loaded}");
                         Debug.Log("[MobilePlayVerification] save/continue PASS: " + loaded.Split('\n')[0]);
-                        Call(controller, "ReturnToSetup", true); // 결과 창·메뉴의 "새 게임"
+                        Press(controller, "TechButton");
                         break;
                     case 14:
-                        Press(controller, "StartButton");
+                        // 기술 트리: 한 손가락으로 끌면 나무가 따라오고(ScrollRect), 지도 카메라는 그대로다.
+                        var tech = Field<TechTreeHud>(controller, "_techTreeHud");
+                        if (!tech.IsOpen) throw new Exception("tech tree did not open");
+                        _treeBefore = TreeContent(tech).anchoredPosition;
+                        _focusBefore = Field<Vector3>(controller, "_cameraFocus");
+                        // 배치모드 에디터는 창 포커스가 없어 EventSystem이 가상 터치를 UI로 보내지 않는다 — 나무 창 맨 위 물체(레이캐스트 결과)에
+                        // 끌기 이벤트를 직접 보낸다. 받는 쪽(부모로 올라가 ScrollRect)과 나무를 옮길 수 있는지는 실제와 같다.
+                        DragUi(TreePoint(tech), new Vector2(60f, 40f));
                         break;
                     case 15:
+                    case 16:
+                        break; // 관성 이동이 멈출 시간
+                    case 17:
+                        tech = Field<TechTreeHud>(controller, "_techTreeHud");
+                        var moved = TreeContent(tech).anchoredPosition - _treeBefore;
+                        if (moved.x <= 1f || moved.y <= 1f) throw new Exception("tech tree drag did not move the tree: " + moved);
+                        if (Field<Vector3>(controller, "_cameraFocus") != _focusBefore) throw new Exception("map camera moved under the tech tree");
+                        _sizeBefore = tech.Zoom;
+                        Touch(1, TouchPhase.Began, TreePoint(tech) - new Vector2(30f, 0f));
+                        Touch(2, TouchPhase.Began, TreePoint(tech) + new Vector2(30f, 0f));
+                        break;
+                    case 18:
+                        tech = Field<TechTreeHud>(controller, "_techTreeHud");
+                        Touch(1, TouchPhase.Moved, TreePoint(tech) - new Vector2(90f, 0f));
+                        Touch(2, TouchPhase.Moved, TreePoint(tech) + new Vector2(90f, 0f));
+                        break;
+                    case 19:
+                        tech = Field<TechTreeHud>(controller, "_techTreeHud");
+                        Touch(1, TouchPhase.Ended, TreePoint(tech) - new Vector2(90f, 0f));
+                        Touch(2, TouchPhase.Ended, TreePoint(tech) + new Vector2(90f, 0f));
+                        break;
+                    case 20:
+                        tech = Field<TechTreeHud>(controller, "_techTreeHud");
+                        if (tech.Zoom <= _sizeBefore) throw new Exception($"tech tree pinch did not zoom in ({_sizeBefore} -> {tech.Zoom})");
+                        Debug.Log($"[MobilePlayVerification] tech tree drag/pinch PASS: zoom {_sizeBefore:F2} -> {tech.Zoom:F2}");
+                        tech.Close();
+                        Call(controller, "ReturnToSetup", true); // 결과 창·메뉴의 "새 게임"
+                        break;
+                    case 21:
+                        Press(controller, "StartButton");
+                        break;
+                    case 22:
                         CheckQuickPlayStarted(controller, "new game");
-                        Finish(!_failed, "title / tribe pick / drag pan / pinch zoom / tap select / end turn autosave / save-continue / new game");
+                        Finish(!_failed, "title / tribe pick / drag pan / pinch zoom / tap select / end turn autosave / save-continue / tech tree drag+pinch / new game");
                         return;
                 }
                 _phase++;
                 _nextTime = EditorApplication.timeSinceStartup + Step;
             }
             catch (Exception e) { Debug.LogException(e); Finish(false, e.Message); }
+        }
+
+        private static Vector2 _treeBefore;
+
+        /// <summary>그 화면 점에서 시작해 delta만큼 끄는 UI 끌기(누름 → 시작 → 끌기 → 끝). 맨 위에 맞은 물체에서 처리할 곳을 부모로 찾아 올라간다(uGUI와 같다).</summary>
+        private static void DragUi(Vector2 start, Vector2 delta)
+        {
+            var es = UnityEngine.EventSystems.EventSystem.current;
+            var hits = new List<UnityEngine.EventSystems.RaycastResult>();
+            var data = new UnityEngine.EventSystems.PointerEventData(es) { position = start, pressPosition = start, button = UnityEngine.EventSystems.PointerEventData.InputButton.Left };
+            es.RaycastAll(data, hits);
+            if (hits.Count == 0) throw new Exception("nothing under " + start);
+            data.pointerCurrentRaycast = data.pointerPressRaycast = hits[0];
+            var handler = UnityEngine.EventSystems.ExecuteEvents.GetEventHandler<UnityEngine.EventSystems.IDragHandler>(hits[0].gameObject);
+            if (handler == null) throw new Exception("no drag handler above " + hits[0].gameObject.name);
+            UnityEngine.EventSystems.ExecuteEvents.Execute(handler, data, UnityEngine.EventSystems.ExecuteEvents.initializePotentialDrag);
+            UnityEngine.EventSystems.ExecuteEvents.Execute(handler, data, UnityEngine.EventSystems.ExecuteEvents.beginDragHandler);
+            data.position = start + delta;
+            data.delta = delta;
+            UnityEngine.EventSystems.ExecuteEvents.Execute(handler, data, UnityEngine.EventSystems.ExecuteEvents.dragHandler);
+            UnityEngine.EventSystems.ExecuteEvents.Execute(handler, data, UnityEngine.EventSystems.ExecuteEvents.endDragHandler);
+        }
+
+        private static RectTransform TreeContent(TechTreeHud tech) => (RectTransform)tech.transform.Find("Canvas/Safe/Tree/Content");
+
+        /// <summary>기술 트리 나무 창 가운데의 화면 좌표(오버레이 캔버스라 카메라 없음).</summary>
+        private static Vector2 TreePoint(TechTreeHud tech)
+        {
+            var viewport = (RectTransform)tech.transform.Find("Canvas/Safe/Tree");
+            return RectTransformUtility.WorldToScreenPoint(null, viewport.TransformPoint(viewport.rect.center));
         }
 
         /// <summary>대화 상자 버튼은 모두 이름이 "Button"이라 글자로 찾는다 — 그 버튼에 고유 이름을 붙여 Press로 누를 수 있게 한다.</summary>

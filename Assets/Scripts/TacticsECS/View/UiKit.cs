@@ -6,7 +6,9 @@ namespace TacticsECS
 {
     /// <summary>
     /// 코드로 만드는 화면(BattleHud, TechTreeHud, FaithPunchHud, TitleHud)이 함께 쓰는 색·크기·부품.
-    /// 크기는 UI 단위(<see cref="UiScale"/>가 화면 픽셀로 바꾼다)로, 가장 좁은 화면(휴대폰 가로 약 900x400)에서도 맞도록 정했다.
+    /// 크기는 UI 단위(<see cref="UiScale"/>가 화면 픽셀로 바꾼다)다. 배치는 두 가지: 넓은 배치(PC, 휴대폰 가로 약 900x400 이상 —
+    /// 정보 패널이 오른쪽 열)와 좁은 배치(폭 CompactWidth 미만, 휴대폰 세로 약 430x960 — 상단 막대 두 줄, 정보 패널은 아래 시트).
+    /// 각 화면은 캔버스를 그리기 직전(Canvas.willRenderCanvases)에 지금 폭을 보고 배치를 다시 고른다 — 화면을 돌려도 따라간다.
     /// </summary>
     public static class UiKit
     {
@@ -29,6 +31,78 @@ namespace TacticsECS
         public const float TopBarHeight = 48f;
         public const float SidePanelWidth = 300f;
         public static readonly Vector2 EndTurnSize = new Vector2(150f, 56f);
+
+        /// <summary>안전 영역 폭이 이보다 좁으면 좁은 배치.</summary>
+        public const float CompactWidth = 700f;
+        /// <summary>좁은 배치에서 아래 시트가 차지할 수 있는 화면 높이 비율.</summary>
+        public const float CompactSheetMaxFraction = 0.5f;
+
+        public static bool IsCompact(RectTransform safe) => safe != null && safe.rect.width > 1f && safe.rect.width < CompactWidth;
+
+        /// <summary>상단 막대 높이 — 좁은 배치는 두 줄.</summary>
+        public static float TopBarHeightFor(bool compact) => compact ? TopBarHeight * 2f : TopBarHeight;
+
+        /// <summary>정보 패널·신앙 펀치가 쓰는 칸. 넓은 배치: 오른쪽 열(상단 막대 아래 ~ 턴 종료 위). 좁은 배치: 아래(턴 종료 위)부터 화면 절반까지, 폭 전체.</summary>
+        public static void LayoutSheetArea(RectTransform area, bool compact)
+        {
+            float bottom = Gap * 2f + EndTurnSize.y;
+            if (compact)
+            {
+                area.anchorMin = Vector2.zero;
+                area.anchorMax = new Vector2(1f, CompactSheetMaxFraction);
+                area.pivot = new Vector2(0.5f, 0f);
+                area.offsetMin = new Vector2(Gap, bottom);
+                area.offsetMax = new Vector2(-Gap, 0f);
+            }
+            else
+            {
+                area.anchorMin = new Vector2(1f, 0f);
+                area.anchorMax = new Vector2(1f, 1f);
+                area.pivot = new Vector2(1f, 1f);
+                area.offsetMin = new Vector2(-Gap - SidePanelWidth, bottom);
+                area.offsetMax = new Vector2(-Gap, -TopBarHeight - Gap);
+            }
+        }
+
+        /// <summary>칸 안의 패널: 넓은 배치는 위에 매달고 좁은 배치는 아래에 앉힌다. 높이 = 내용 높이, 단 칸을 넘지 않게(넘으면 스크롤).</summary>
+        public static void FitSheet(RectTransform area, RectTransform panel, float contentHeight, bool compact)
+        {
+            float a = compact ? 0f : 1f;
+            panel.anchorMin = new Vector2(0f, a);
+            panel.anchorMax = new Vector2(1f, a);
+            panel.pivot = new Vector2(0.5f, a);
+            panel.anchoredPosition = Vector2.zero;
+            float height = area.rect.height > 1f ? Mathf.Min(contentHeight, area.rect.height) : contentHeight;
+            if (Mathf.Abs(panel.sizeDelta.y - height) > 0.5f || Mathf.Abs(panel.sizeDelta.x) > 0.5f) panel.sizeDelta = new Vector2(0f, height);
+        }
+
+        /// <summary>패널 글자 줄바꿈을 잴 폭(칸 폭을 아직 모르면 넓은 배치의 열 폭).</summary>
+        public static float SheetWidth(RectTransform area) => area != null && area.rect.width > 1f ? area.rect.width : SidePanelWidth;
+
+        /// <summary>오른쪽 열(넓은 배치) 또는 아래 띠(좁은 배치)에 붙는 상세 패널(기술 트리·종족 고르기). top은 위쪽 머리줄 높이.</summary>
+        public static void LayoutDetail(RectTransform detail, bool compact, float top, float compactHeight)
+        {
+            if (compact)
+            {
+                detail.anchorMin = Vector2.zero;
+                detail.anchorMax = new Vector2(1f, 0f);
+                detail.pivot = new Vector2(0.5f, 0f);
+                detail.offsetMin = new Vector2(Gap, Gap);
+                detail.offsetMax = new Vector2(-Gap, Gap + compactHeight);
+            }
+            else
+            {
+                detail.anchorMin = new Vector2(1f, 0f);
+                detail.anchorMax = new Vector2(1f, 1f);
+                detail.pivot = new Vector2(1f, 0.5f);
+                detail.offsetMin = new Vector2(-Gap - SidePanelWidth, Gap);
+                detail.offsetMax = new Vector2(-Gap, -top - Gap);
+            }
+        }
+
+        /// <summary>상세 패널 옆(넓은 배치) 또는 위(좁은 배치)의 나머지 칸(나무·목록).</summary>
+        public static void LayoutMain(RectTransform main, bool compact, float top, float compactDetailHeight) =>
+            Stretch(main, Gap, compact ? Gap * 2f + compactDetailHeight : Gap, compact ? Gap : SidePanelWidth + Gap * 2f, top + Gap);
 
         public const int SmallText = 13;
         public const int BodyText = 16;

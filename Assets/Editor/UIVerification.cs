@@ -191,7 +191,7 @@ namespace TacticsECS.EditorTools
                 city.Stars = 10;
                 instance.SetState(tech, city, cityCount: 1);
 
-                var tree = go.transform.Find("Canvas/Safe/Tree");
+                var tree = go.transform.Find("Canvas/Safe/Tree/Content");
                 var detail = go.transform.Find("Canvas/Safe/Detail");
                 var nameText = detail.Find("Name").GetComponent<Text>();
                 var statusText = detail.Find("Status").GetComponent<Text>();

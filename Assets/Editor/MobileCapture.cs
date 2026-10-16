@@ -32,6 +32,7 @@ namespace TacticsECS.EditorTools
             try
             {
                 Capture("phone", 2400, 1080, 400f, new Rect(0.04f, 0.04f, 0.92f, 0.96f));
+                Capture("portrait", 1080, 2400, 400f, new Rect(0f, 0.02f, 1f, 0.94f)); // 위 카메라 구멍, 아래 제스처 바
                 Capture("pc", 1920, 1080, 96f, new Rect(0f, 0f, 1f, 1f));
             }
             finally

@@ -9,7 +9,7 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// 안드로이드 빌드: 모바일 씬(MobileSceneSetup.MobileScenePath) 하나만 APK로 만든다. 빌드 설정(EditorBuildSettings)의 씬 목록은
-    /// Windows 빌드(Pixel2DBuild)용이라 건드리지 않는다. 안드로이드용 PlayerSettings(패키지 이름, IL2CPP + ARM64, 가로 고정)는
+    /// Windows 빌드(Pixel2DBuild)용이라 건드리지 않는다. 안드로이드용 PlayerSettings(패키지 이름, IL2CPP + ARM64, 자동 회전)는
     /// 빌드할 때마다 여기서 다시 적용해 ProjectSettings에 남긴다 — 에디터에서 손으로 바꿀 필요가 없게.
     /// 사용법(README "실행"): unity build --target Android --execute-method TacticsECS.EditorTools.MobileBuild.Run -o Builds/Android/gugugaga.apk
     /// 인자: -buildOutput &lt;경로&gt;(unity build의 -o가 넘긴다, 없으면 DefaultOutput), -release(개발 빌드 끄기).
@@ -53,9 +53,9 @@ namespace TacticsECS.EditorTools
             PlayerSettings.SetScriptingBackend(android, ScriptingImplementation.IL2CPP);
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
 
-            // 가로 고정(좌/우 가로만 자동 회전). 화면 배치가 1280x720 기준 가로 UI다.
+            // 가로·세로 모두(자동 회전, 거꾸로 세로만 뺀다). 화면은 폭에 따라 넓은/좁은 배치로 바뀐다(UiKit, docs/spec/game/session.md#화면-배치).
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
-            PlayerSettings.allowedAutorotateToPortrait = false;
+            PlayerSettings.allowedAutorotateToPortrait = true;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = true;
             PlayerSettings.allowedAutorotateToLandscapeRight = true;

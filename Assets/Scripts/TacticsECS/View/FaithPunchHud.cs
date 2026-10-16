@@ -20,7 +20,7 @@ namespace TacticsECS
     /// <summary>
     /// 신앙 펀치 전용 패널. 발동 절차에 맞춘 세 화면: 목록(펀치 고르기) → 대상 선택 안내 → 확인(비용·영향·발동/취소).
     /// 값만 받아 그리고 판정은 모른다(FaithPunchSystem) — 선택·확정·취소는 이벤트로 알린다. 자리는 BattleHud 정보 패널과 같다
-    /// (오른쪽, 상단 막대 아래 ~ 턴 종료 위). 펀치를 여는 동안 정보 패널은 닫혀 있다. 규칙: docs/spec/game/faith.md
+    /// (UiKit.LayoutSheetArea — 넓은 배치는 오른쪽 열, 좁은 배치는 아래 시트). 펀치를 여는 동안 정보 패널은 닫혀 있다. 규칙: docs/spec/game/faith.md
     /// </summary>
     public class FaithPunchHud : MonoBehaviour
     {
@@ -34,7 +34,9 @@ namespace TacticsECS
         public event Action OnCancelClicked;
 
         private Font _font;
+        private RectTransform _safe;
         private RectTransform _area;
+        private bool? _compact;
         private RectTransform _panel;
         private RectTransform _content;
         private float _height;
@@ -43,19 +45,11 @@ namespace TacticsECS
         {
             _font = font;
             var safe = UiKit.CreateCanvas(transform, SortingOrder, out _);
+            _safe = safe;
             _area = UiKit.Rect("Area", safe);
-            _area.anchorMin = new Vector2(1f, 0f);
-            _area.anchorMax = new Vector2(1f, 1f);
-            _area.pivot = new Vector2(1f, 1f);
-            _area.offsetMin = new Vector2(-UiKit.Gap - UiKit.SidePanelWidth, UiKit.Gap * 2f + UiKit.EndTurnSize.y);
-            _area.offsetMax = new Vector2(-UiKit.Gap, -UiKit.TopBarHeight - UiKit.Gap);
-
+            UiKit.LayoutSheetArea(_area, false);
             _panel = UiKit.Rect("Panel", _area);
-            _panel.anchorMin = new Vector2(0f, 1f);
-            _panel.anchorMax = new Vector2(1f, 1f);
-            _panel.pivot = new Vector2(0.5f, 1f);
-            _panel.offsetMin = new Vector2(0f, -100f);
-            _panel.offsetMax = Vector2.zero;
+            UiKit.FitSheet(_area, _panel, 100f, false);
             UiKit.Panel(_panel, UiKit.PanelColor);
             _content = UiKit.ScrollList(UiKit.Stretch(UiKit.Rect("Scroll", _panel), 4f, 4f, 4f, 4f), out _);
 
@@ -94,7 +88,7 @@ namespace TacticsECS
                 label.text = $"{o.Name}\n<size={UiKit.SmallText - 1}><color=#{muted}>{line}</color></size>";
                 label.color = o.Enabled ? Color.white : UiKit.DisabledText;
                 // 설명이 여러 줄이면 카드를 그만큼 키운다.
-                float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SidePanelWidth - 8f - (Pad - 4f) * 2f - 80f) + 14f);
+                float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SheetWidth(_area) - 8f - (Pad - 4f) * 2f - 80f) + 14f);
                 UiKit.Row((RectTransform)card.transform, y, h, Pad - 4f, Pad - 4f);
                 var cost = UiKit.Text(card.transform, "Cost", _font, UiKit.SmallText, TextAnchor.MiddleRight, o.Enabled ? UiKit.FaithColor : UiKit.DisabledText);
                 cost.text = LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost);
@@ -131,7 +125,7 @@ namespace TacticsECS
             _panel.gameObject.SetActive(true);
             var text = UiKit.Text(_content, "Title", _font, UiKit.BodyText + 1, TextAnchor.UpperLeft, color);
             text.text = title;
-            float h = Mathf.Max(24f, UiKit.PreferredHeight(text, UiKit.SidePanelWidth - 8f - Pad * 2f));
+            float h = Mathf.Max(24f, UiKit.PreferredHeight(text, UiKit.SheetWidth(_area) - 8f - Pad * 2f));
             UiKit.Row(text.rectTransform, Pad, h, Pad, Pad);
             return Pad + h + 6f;
         }
@@ -140,7 +134,7 @@ namespace TacticsECS
         {
             var text = UiKit.Text(_content, "Body", _font, UiKit.SmallText + 1, TextAnchor.UpperLeft, color);
             text.text = body;
-            float h = UiKit.PreferredHeight(text, UiKit.SidePanelWidth - 8f - Pad * 2f);
+            float h = UiKit.PreferredHeight(text, UiKit.SheetWidth(_area) - 8f - Pad * 2f);
             UiKit.Row(text.rectTransform, y, h, Pad, Pad);
             return y + h + 6f;
         }
@@ -162,11 +156,13 @@ namespace TacticsECS
             PixelUIScaler.Attach(gameObject);
         }
 
+        /// <summary>정보 패널과 같은 자리(UiKit.LayoutSheetArea): 넓은 배치는 오른쪽 열, 좁은 배치는 아래 시트. 높이는 내용만큼.</summary>
         private void Fit()
         {
             if (_panel == null || _area == null) return;
-            float height = Mathf.Min(_height + 8f, _area.rect.height);
-            if (Mathf.Abs(-_panel.offsetMin.y - height) > 0.5f) _panel.offsetMin = new Vector2(0f, -height);
+            bool compact = UiKit.IsCompact(_safe);
+            if (_compact != compact) { _compact = compact; UiKit.LayoutSheetArea(_area, compact); }
+            UiKit.FitSheet(_area, _panel, _height + 8f, compact);
         }
     }
 }

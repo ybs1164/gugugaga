@@ -15,9 +15,9 @@ Unity 6000.3.20f1 턴제 전술·경제 프로토타입(탑다운 픽셀 2D).
 ## 실행
 - `Assets/Scenes/SampleScene.unity`: 데모 전투. `Assets/Scenes/Sandbox.unity`: 샌드박스. `Assets/Scenes/Mobile.unity`: 빠른 한 판(시작 화면 → 이어하기/새로하기·종족 고르기, 가장 작은 맵, 자동 저장 — [한 판 흐름](docs/spec/game/session.md)). 빌드: `Builds/Pixel2D/gugugaga.exe`.
 - 모바일 씬 (다시) 만들기: `unity run . -- -logFile Logs/mobile_scene.log -executeMethod TacticsECS.EditorTools.MobileSceneSetup.Generate` — `Sandbox.unity`를 복제해 빠른 한 판으로 바꾼다.
-- 안드로이드 빌드(`Mobile.unity`만, 개발 빌드 APK. 출시용은 `--args "-release"`. 에디터에 Android Build Support 모듈이 있어야 한다): `unity build --target Android --execute-method TacticsECS.EditorTools.MobileBuild.Run -o Builds/Android/gugugaga.apk` — 패키지 이름·IL2CPP·ARM64·가로 고정은 빌드 때마다 `MobileBuild`가 적용한다.
-- 모바일 화면 점검 캡처(휴대폰 2400x1080·400dpi와 PC 1920x1080 두 벌: 시작 화면·종족 고르기·전투·유닛·수도·기술 트리·신앙·메뉴·결과, 화면 필요. 이어하기 파일을 덮어쓴다): `unity run . -- -logFile Logs/mobile_capture.log -executeMethod TacticsECS.EditorTools.MobileCapture.Run` → `Logs/mobile_capture/`
-- 모바일 씬 검증(시작 화면·종족 고르기, 가상 터치로 끌기·핀치·탭, 턴 종료 자동 저장, 메인 화면 → 이어하기, 새 게임. 이어하기 파일을 지운다). Play 모드를 쓰므로 `unity run`이 아니라 에디터 실행 파일을 `-quit` 없이 부른다(검증이 끝나면 스스로 종료): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/mobile_play.log -executeMethod TacticsECS.EditorTools.MobilePlayVerification.Run`
+- 안드로이드 빌드(`Mobile.unity`만, 개발 빌드 APK. 출시용은 `--args "-release"`. 에디터에 Android Build Support 모듈이 있어야 한다): `unity build --target Android --execute-method TacticsECS.EditorTools.MobileBuild.Run -o Builds/Android/gugugaga.apk` — 패키지 이름·IL2CPP·ARM64·자동 회전(가로·세로)은 빌드 때마다 `MobileBuild`가 적용한다.
+- 모바일 화면 점검 캡처(휴대폰 가로 2400x1080·세로 1080x2400(400dpi)과 PC 1920x1080 세 벌: 시작 화면·종족 고르기·전투·유닛·수도·기술 트리·신앙·메뉴·결과, 화면 필요. 이어하기 파일을 덮어쓴다): `unity run . -- -logFile Logs/mobile_capture.log -executeMethod TacticsECS.EditorTools.MobileCapture.Run` → `Logs/mobile_capture/`
+- 모바일 씬 검증(시작 화면·종족 고르기, 가상 터치로 끌기·핀치·탭, 턴 종료 자동 저장, 메인 화면 → 이어하기, 기술 트리 끌기·핀치, 새 게임. 이어하기 파일을 지운다). Play 모드를 쓰므로 `unity run`이 아니라 에디터 실행 파일을 `-quit` 없이 부른다(검증이 끝나면 스스로 종료): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/mobile_play.log -executeMethod TacticsECS.EditorTools.MobilePlayVerification.Run`
 - 전체 검증:
 
 ```
@@ -32,6 +32,7 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 - 좌클릭(놓을 때 처리): 아군 선택 → 파란 칸 이동 / 빨간 칸 공격. 다른 칸·유닛은 오른쪽 정보 패널(정보 + 할 수 있는 행동 목록). 같은 칸을 다시 누르면 유닛 ↔ 칸 전환. 패널의 X는 선택 해제.
 - 오른쪽 아래 **턴 종료**. 상단 막대 **메뉴**·**기술트리**·신앙. 화면 배치: [session](docs/spec/game/session.md#화면-배치).
 - 카메라: `WASD`/방향키 이동, 휠 줌, 끌기(마우스 왼쪽·한 손가락) 이동, 두 손가락 핀치 줌.
+- 기술 트리: 끌어서 나무를 옮기고 휠·두 손가락 핀치로 확대한다.
 - 터치: 탭 = 좌클릭(손가락을 조금 움직이면 끌기로 본다). 패시브·버튼 설명은 누르고 있는 동안 왼쪽 아래에 보인다.
 - `Esc`(안드로이드 뒤로 가기): 열린 것부터 닫고(대화 상자 → 신앙 펀치 → 기술 트리 → 정보 패널), 없으면 메뉴.
 - 신앙: 상단 막대의 신앙을 누르거나 `F` — 신앙 펀치 목록. 자세한 규칙은 [신앙](docs/spec/game/faith.md).

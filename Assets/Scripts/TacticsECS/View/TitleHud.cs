@@ -37,6 +37,10 @@ namespace TacticsECS
         private GameObject _root;
         private RectTransform _safe;
         private RectTransform _page;
+        /// <summary>종족 고르기 화면의 목록·설명(넓은 배치: 왼쪽·오른쪽 열, 좁은 배치: 위·아래). 첫 화면이면 null.</summary>
+        private RectTransform _tribeList, _tribeDetail;
+        private bool? _compact;
+        private const float CompactDetailHeight = 230f;
         private IReadOnlyList<TribeChoice> _tribes = new List<TribeChoice>();
         private int _selected = RandomTribe;
         private bool _canContinue;
@@ -53,6 +57,7 @@ namespace TacticsECS
             background.SetAsFirstSibling();
             UiKit.Fill(background, BackgroundColor, raycast: true);
             _page = UiKit.Stretch(UiKit.Rect("Page", _safe));
+            Canvas.willRenderCanvases += OnWillRender;
             _root.SetActive(false);
         }
 
@@ -103,15 +108,14 @@ namespace TacticsECS
             title.text = LocalizationSystem.T("UI.Title.PickTribe");
             UiKit.Stretch(title.rectTransform, 96f + UiKit.Gap * 3f, 0f, UiKit.Gap, 0f);
 
-            var listArea = UiKit.Stretch(UiKit.Rect("Tribes", _page), UiKit.Gap, UiKit.Gap, UiKit.SidePanelWidth + UiKit.Gap * 2f, UiKit.TopBarHeight + UiKit.Gap);
+            var listArea = UiKit.Rect("Tribes", _page);
             var content = UiKit.ScrollList(listArea, out _);
 
             var detail = UiKit.Rect("Detail", _page);
-            detail.anchorMin = new Vector2(1f, 0f);
-            detail.anchorMax = new Vector2(1f, 1f);
-            detail.pivot = new Vector2(1f, 0.5f);
-            detail.offsetMin = new Vector2(-UiKit.Gap - UiKit.SidePanelWidth, UiKit.Gap);
-            detail.offsetMax = new Vector2(-UiKit.Gap, -UiKit.TopBarHeight - UiKit.Gap);
+            _tribeList = listArea;
+            _tribeDetail = detail;
+            _compact = null;
+            OnWillRender();
             UiKit.Panel(detail, UiKit.PanelColor);
 
             // 카드 격자: 폭이 정해지기 전이라 열 수는 비율(앵커)로 나눈다 — 2열이면 휴대폰에서도 카드가 충분히 넓다.
@@ -162,8 +166,22 @@ namespace TacticsECS
             EndPage();
         }
 
+        private void OnDestroy() => Canvas.willRenderCanvases -= OnWillRender;
+
+        /// <summary>그리기 직전마다: 종족 고르기 화면이면 넓은/좁은 배치에 맞춰 목록·설명 자리를 고른다(화면을 돌려도 따라간다).</summary>
+        private void OnWillRender()
+        {
+            if (_tribeList == null || _tribeDetail == null) return;
+            bool compact = UiKit.IsCompact(_safe);
+            if (_compact == compact) return;
+            _compact = compact;
+            UiKit.LayoutDetail(_tribeDetail, compact, UiKit.TopBarHeight, CompactDetailHeight);
+            UiKit.LayoutMain(_tribeList, compact, UiKit.TopBarHeight, CompactDetailHeight);
+        }
+
         private void BeginPage()
         {
+            _tribeList = _tribeDetail = null;
             UiKit.ClearChildren(_page);
             _root.SetActive(true);
         }

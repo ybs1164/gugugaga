@@ -378,6 +378,7 @@ namespace TacticsECS.EditorTools
                 Canvas.ForceUpdateCanvases();
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) PixelUIScaler.Apply(canvas);
                 Canvas.ForceUpdateCanvases();
+                Canvas.ForceUpdateCanvases(); // 화면들이 그리기 직전 훅(배치 전환·높이 맞춤)에서 바꾼 자리를 한 번 더 반영
                 foreach(var canvas in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) if(canvas.isRootCanvas) CheckUiTexels(canvas);
             }
             camera.Render();

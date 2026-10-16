@@ -16,6 +16,7 @@ Unity 6000.3.20f1 턴제 전술·경제 프로토타입(탑다운 픽셀 2D).
 - `Assets/Scenes/SampleScene.unity`: 데모 전투. `Assets/Scenes/Sandbox.unity`: 샌드박스. `Assets/Scenes/Mobile.unity`: 모바일용 빠른 한 판(설정 화면 없이 가장 작은 맵, 양 팀 종족·신 무작위, **다시 시작**은 새 맵). 빌드: `Builds/Pixel2D/gugugaga.exe`.
 - 모바일 씬 (다시) 만들기: `unity run . -- -logFile Logs/mobile_scene.log -executeMethod TacticsECS.EditorTools.MobileSceneSetup.Generate` — `Sandbox.unity`를 복제해 빠른 시작으로 바꾼다.
 - 안드로이드 빌드(`Mobile.unity`만, 개발 빌드 APK. 출시용은 `--args "-release"`. 에디터에 Android Build Support 모듈이 있어야 한다): `unity build --target Android --execute-method TacticsECS.EditorTools.MobileBuild.Run -o Builds/Android/gugugaga.apk` — 패키지 이름·IL2CPP·ARM64·가로 고정은 빌드 때마다 `MobileBuild`가 적용한다.
+- 모바일 화면 점검 캡처(휴대폰 2400x1080·세로 첫 화면, 유닛 선택·수도 메뉴·기술 트리·신앙·결과, 화면 필요): `unity run . -- -logFile Logs/mobile_capture.log -executeMethod TacticsECS.EditorTools.MobileCapture.Run` → `Logs/mobile_capture/`
 - 모바일 씬 검증(빠른 시작, 가상 터치로 끌기·핀치·탭, 다시 시작). Play 모드를 쓰므로 `unity run`이 아니라 에디터 실행 파일을 `-quit` 없이 부른다(검증이 끝나면 스스로 종료): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/mobile_play.log -executeMethod TacticsECS.EditorTools.MobilePlayVerification.Run`
 - 전체 검증:
 

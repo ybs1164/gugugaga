@@ -81,7 +81,7 @@ namespace TacticsECS.EditorTools
             SetField("_placementController", null);
             Call("SetBattleOnlyHudVisible", true);
             Call("BeginBattle");
-            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUISkin.Apply(canvas.gameObject);
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUIScaler.Attach(canvas.gameObject);
 
             var econ = Field<EconomyWorld>("_econ");
             var world = Field<EntityWorld>("_world");

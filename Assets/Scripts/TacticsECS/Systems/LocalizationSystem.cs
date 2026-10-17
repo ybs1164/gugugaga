@@ -26,9 +26,6 @@ namespace TacticsECS
 
         public static bool Has(string key) => !string.IsNullOrEmpty(key) && StringTable.Current.ContainsKey(key);
 
-        /// <summary>원문(StringTable.SourceLanguage) 문자열 — 프리팹에 구울 글자(UIPrefabSetup).</summary>
-        public static string Source(string key) =>
-            !string.IsNullOrEmpty(key) && StringTable.Source.TryGetValue(key, out var value) && value.Length > 0 ? value : key;
 
         /// <summary>데이터 표 행의 이름: "&lt;table&gt;.&lt;id&gt;.Name". 번역이 없으면 fallback, 그것도 비면 id.</summary>
         public static string Name(string table, string id, string fallback = null) =>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -81,13 +81,6 @@ namespace TacticsECS.EditorTools
             }
             SaveVisualPrefab("Ground.Grass", "Assets/Prefabs/Tiles/Tile_Land.prefab");
             SaveVisualPrefab("Ground.Water", "Assets/Prefabs/Tiles/Tile_Water.prefab");
-            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/UI" }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                var root = PrefabUtility.LoadPrefabContents(path);
-                try { PixelUISkin.Apply(root); PrefabUtility.SaveAsPrefabAsset(root, path); }
-                finally { PrefabUtility.UnloadPrefabContents(root); }
-            }
             foreach (string path in new[] { "Assets/Scenes/SampleScene.unity", "Assets/Scenes/Sandbox.unity" })
             {
                 var scene = EditorSceneManager.OpenScene(path);

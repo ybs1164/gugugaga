@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -290,7 +290,7 @@ namespace TacticsECS.EditorTools
                 EditorSceneManager.OpenScene("Assets/Scenes/"+name+".unity");
                 var controller=UnityEngine.Object.FindFirstObjectByType<BattleController>();
                 Call(controller,"Awake"); Call(controller,"SetupBattle");
-                foreach(var hud in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUISkin.Apply(hud.gameObject);
+                foreach(var hud in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUIScaler.Attach(hud.gameObject);
                 CaptureCamera(Camera.main,"docs/images/pixel2d/"+name+".png",1920,1080,true);
                 if(name=="SampleScene")
                 {

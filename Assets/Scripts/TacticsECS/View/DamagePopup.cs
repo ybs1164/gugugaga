@@ -7,8 +7,7 @@ namespace TacticsECS
     /// 피해를 입었을 때 잠깐 떠올랐다 사라지는 숫자 라벨(월드 스페이스). 맞은 유닛(UnitView)의 자식이
     /// 아니라 독립된 오브젝트로 스폰된다(UnitView.ShowDamagePopup 참고) — 그래야 그 자리에서 죽어
     /// gameObject가 비활성화되어도(UnitView.Refresh) 라벨은 끊기지 않고 끝까지 애니메이션을 마친다.
-    /// 구조(TextMesh + 폰트)는 Assets/Prefabs/UI/DamagePopup.prefab에 이미 만들어져 있다
-    /// (UIPrefabSetup.GenerateDamagePopup) — 이 스크립트는 Play(text, color)로 받은 값을 띄우고
+    /// 구조(TextMesh + 폰트)는 Assets/Prefabs/UI/DamagePopup.prefab에 있다 — 이 스크립트는 Play(text, color)로 받은 값을 띄우고
     /// 스스로 위치/투명도를 애니메이션한 뒤 자신을 파괴할 뿐이다.
     /// </summary>
     public class DamagePopup : MonoBehaviour

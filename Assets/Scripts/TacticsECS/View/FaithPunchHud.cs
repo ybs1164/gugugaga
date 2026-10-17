@@ -33,40 +33,38 @@ namespace TacticsECS
         public event Action OnConfirmClicked;
         public event Action OnCancelClicked;
 
-        private Font _font;
-        private RectTransform _safe;
-        private RectTransform _area;
+        [Header("화면(프리팹 안)")]
+        [SerializeField] private RectTransform safe;
+        [Tooltip("패널이 차지할 수 있는 칸(UiKit.LayoutSheetArea).")]
+        [SerializeField] private RectTransform area;
+        [SerializeField] private RectTransform panel;
+        [SerializeField] private RectTransform content;
+
+        [Header("부품 프리팹")]
+        [SerializeField] private Text textPrefab;
+        [SerializeField] private Button buttonPrefab;
+        [Tooltip("펀치 카드(버튼 + 오른쪽 Cost 글자). Prefabs/UI/Items/FaithPunchCard.prefab.")]
+        [SerializeField] private Button cardPrefab;
+
         private bool? _compact;
-        private RectTransform _panel;
-        private RectTransform _content;
         private float _height;
 
-        public void Init(Font font)
+        public void Init()
         {
-            _font = font;
-            var safe = UiKit.CreateCanvas(transform, SortingOrder, out _);
-            _safe = safe;
-            _area = UiKit.Rect("Area", safe);
-            UiKit.LayoutSheetArea(_area, false);
-            _panel = UiKit.Rect("Panel", _area);
-            UiKit.FitSheet(_area, _panel, 100f, false);
-            UiKit.Panel(_panel, UiKit.PanelColor);
-            _content = UiKit.ScrollList(UiKit.Stretch(UiKit.Rect("Scroll", _panel), 4f, 4f, 4f, 4f), out _);
-
-            PixelUISkin.Apply(gameObject);
+            PixelUIScaler.Attach(gameObject);
             Canvas.willRenderCanvases += Fit;
             Hide();
         }
 
         private void OnDestroy() => Canvas.willRenderCanvases -= Fit;
 
-        public bool IsOpen => _panel != null && _panel.gameObject.activeSelf;
+        public bool IsOpen => panel != null && panel.gameObject.activeSelf;
 
         public void Hide()
         {
-            if (_panel == null) return;
-            UiKit.ClearChildren(_content);
-            _panel.gameObject.SetActive(false);
+            if (panel == null) return;
+            UiKit.ClearChildren(content);
+            panel.gameObject.SetActive(false);
         }
 
         /// <summary>1단계: 펀치 카드 목록. 비활성 카드는 눌러도 반응이 없고 이유를 보여준다. message가 있으면 목록 위에 안내.</summary>
@@ -78,21 +76,19 @@ namespace TacticsECS
             {
                 int index = i;
                 var o = options[i];
-                var card = UiKit.Button(_content, "Card" + i, _font, string.Empty, UiKit.ButtonColor, () => OnPunchSelected?.Invoke(index));
+                var card = UiKit.Button(cardPrefab, content, "Card" + i, string.Empty, UiKit.ButtonColor, () => OnPunchSelected?.Invoke(index));
                 UiKit.SetEnabled(card, o.Enabled, UiKit.ButtonColor);
                 var label = UiKit.Label(card);
-                label.alignment = TextAnchor.MiddleLeft;
-                UiKit.Stretch(label.rectTransform, 10f, 2f, 70f, 2f);
                 string line = o.Enabled || string.IsNullOrEmpty(o.Reason) ? o.Description : o.Reason;
                 var muted = ColorUtility.ToHtmlStringRGB(UiKit.MutedText);
                 label.text = $"{o.Name}\n<size={UiKit.SmallText - 1}><color=#{muted}>{line}</color></size>";
                 label.color = o.Enabled ? Color.white : UiKit.DisabledText;
                 // 설명이 여러 줄이면 카드를 그만큼 키운다.
-                float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SheetWidth(_area) - 8f - (Pad - 4f) * 2f - 80f) + 14f);
+                float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SheetWidth(area) - 8f - (Pad - 4f) * 2f - 80f) + 14f);
                 UiKit.Row((RectTransform)card.transform, y, h, Pad - 4f, Pad - 4f);
-                var cost = UiKit.Text(card.transform, "Cost", _font, UiKit.SmallText, TextAnchor.MiddleRight, o.Enabled ? UiKit.FaithColor : UiKit.DisabledText);
+                var cost = card.transform.Find("Cost").GetComponent<Text>();
+                cost.color = o.Enabled ? UiKit.FaithColor : UiKit.DisabledText;
                 cost.text = LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost);
-                UiKit.Place(cost.rectTransform, new Vector2(1f, 0.5f), new Vector2(-10f, 0f), new Vector2(64f, CardHeight));
                 y += h + 4f;
             }
             y = Button(LocalizationSystem.T("UI.FaithPunch.Close"), y, true, () => OnCancelClicked?.Invoke());
@@ -121,20 +117,20 @@ namespace TacticsECS
 
         private float Begin(string title, Color color)
         {
-            UiKit.ClearChildren(_content);
-            _panel.gameObject.SetActive(true);
-            var text = UiKit.Text(_content, "Title", _font, UiKit.BodyText + 1, TextAnchor.UpperLeft, color);
+            UiKit.ClearChildren(content);
+            panel.gameObject.SetActive(true);
+            var text = UiKit.Text(textPrefab, content, "Title", UiKit.BodyText + 1, TextAnchor.UpperLeft, color);
             text.text = title;
-            float h = Mathf.Max(24f, UiKit.PreferredHeight(text, UiKit.SheetWidth(_area) - 8f - Pad * 2f));
+            float h = Mathf.Max(24f, UiKit.PreferredHeight(text, UiKit.SheetWidth(area) - 8f - Pad * 2f));
             UiKit.Row(text.rectTransform, Pad, h, Pad, Pad);
             return Pad + h + 6f;
         }
 
         private float Paragraph(string body, float y, Color color)
         {
-            var text = UiKit.Text(_content, "Body", _font, UiKit.SmallText + 1, TextAnchor.UpperLeft, color);
+            var text = UiKit.Text(textPrefab, content, "Body", UiKit.SmallText + 1, TextAnchor.UpperLeft, color);
             text.text = body;
-            float h = UiKit.PreferredHeight(text, UiKit.SheetWidth(_area) - 8f - Pad * 2f);
+            float h = UiKit.PreferredHeight(text, UiKit.SheetWidth(area) - 8f - Pad * 2f);
             UiKit.Row(text.rectTransform, y, h, Pad, Pad);
             return y + h + 6f;
         }
@@ -142,7 +138,7 @@ namespace TacticsECS
         private float Button(string label, float y, bool enabled, Action onClick, bool primary = false)
         {
             var color = primary ? UiKit.PrimaryColor : UiKit.ButtonColor;
-            var button = UiKit.Button(_content, label, _font, label, color, onClick);
+            var button = UiKit.Button(buttonPrefab, content, label, label, color, onClick);
             UiKit.Row((RectTransform)button.transform, y, ButtonHeight, Pad - 4f, Pad - 4f);
             UiKit.SetEnabled(button, enabled, color);
             return y + ButtonHeight + 4f;
@@ -151,7 +147,7 @@ namespace TacticsECS
         private void Finish(float y)
         {
             _height = y + Pad - 4f;
-            UiKit.SetContentHeight(_content, _height);
+            UiKit.SetContentHeight(content, _height);
             Fit();
             PixelUIScaler.Attach(gameObject);
         }
@@ -159,10 +155,10 @@ namespace TacticsECS
         /// <summary>정보 패널과 같은 자리(UiKit.LayoutSheetArea): 넓은 배치는 오른쪽 열, 좁은 배치는 아래 시트. 높이는 내용만큼.</summary>
         private void Fit()
         {
-            if (_panel == null || _area == null) return;
-            bool compact = UiKit.IsCompact(_safe);
-            if (_compact != compact) { _compact = compact; UiKit.LayoutSheetArea(_area, compact); }
-            UiKit.FitSheet(_area, _panel, _height + 8f, compact);
+            if (panel == null || area == null) return;
+            bool compact = UiKit.IsCompact(safe);
+            if (_compact != compact) { _compact = compact; UiKit.LayoutSheetArea(area, compact); }
+            UiKit.FitSheet(area, panel, _height + 8f, compact);
         }
     }
 }

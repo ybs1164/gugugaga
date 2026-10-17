@@ -439,7 +439,7 @@ namespace TacticsECS.EditorTools
         /// 만드는 머티리얼은 메모리에만 존재하는 임시 오브젝트라, 프리팹에 참조만 넣고
         /// PrefabUtility.SaveAsPrefabAsset로 저장하면 에셋이 아닌 참조는 null로 직렬화되어 버린다(그 결과
         /// 렌더러가 null 머티리얼 상태가 되어 Unity 기본 마젠타로 보였다 — 처음 시도에서 겪은 버그).
-        /// UIPrefabSetup.GenerateHpBarBackgroundMaterial과 같은 해결 패턴: 한 번 .mat 에셋으로 저장해두고
+        /// 해결: 한 번 .mat 에셋으로 저장해두고
         /// 재실행 시에는 그대로 재사용한다.</summary>
         private static Material GenerateOrLoadMaterial(string name, Color color)
         {

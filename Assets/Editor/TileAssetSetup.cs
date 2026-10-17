@@ -8,7 +8,7 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// Kenney "Tower Defense Kit"(CC0, Assets/Art/Tiles/Kenney/tile.fbx)의 타일 메시로 Tile_Land/
-    /// Tile_Water 프리팹을 만들어주는 1회성 배치 도구. UIPrefabSetup과 같은 이유로 Unity CLI
+    /// Tile_Water 프리팹을 만들어주는 1회성 배치 도구. Unity CLI
     /// (-executeMethod)로만 실행한다(에디터 GUI 직접 조작 금지 — CLAUDE.md 규칙 1).
     /// 사용법: unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.TileAssetSetup.GenerateAll -quit
     ///
@@ -65,7 +65,7 @@ namespace TacticsECS.EditorTools
         }
 
         /// <summary>SampleScene/Sandbox의 BattleController에 landTilePrefab/waterTilePrefab을 채워 넣는다.
-        /// UIPrefabSetup.AssignToScene과 같은 패턴(SetPrivateField + 씬 저장). Sandbox에는 추가로, 새로
+        /// (SetPrivateField + 씬 저장). Sandbox에는 추가로, 새로
         /// 만든 물 유닛(뗏목/정찰선/충각선/범선)을 실제로 테스트해볼 수 있도록 그리드 한쪽 절반을 물로
         /// 채운 데모 waterTiles도 함께 설정한다(SampleScene의 기존 데모 전투는 건드리지 않는다).</summary>
         private static void AssignToScenes(GameObject landPrefab, GameObject waterPrefab)

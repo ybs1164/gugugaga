@@ -109,7 +109,7 @@ namespace TacticsECS.EditorTools
             SetField("_placementController", null);
             Call("SetBattleOnlyHudVisible", true);
             Call("BeginBattle");
-            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUISkin.Apply(canvas.gameObject);
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) PixelUIScaler.Attach(canvas.gameObject);
 
             // 관전 화면이라 맵 전체를 보이게 한다(안개 해제).
             var grid = Grid;

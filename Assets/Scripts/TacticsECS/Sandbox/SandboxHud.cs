@@ -10,10 +10,8 @@ namespace TacticsECS
     /// 이벤트로만 밖(BattleController)에 알린다. 전투가 시작되면 gameObject를 비활성화해 화면을
     /// BattleHud에 넘긴다.
     ///
-    /// 화면 구조(Canvas 이하 Toolbar/Palette 뼈대/StartBattleButton)는 더 이상 코드로 만들지 않는다.
-    /// Assets/Prefabs/UI/SandboxHud.prefab(UIPrefabSetup.GenerateSandboxHud 참고, Unity CLI
-    /// -executeMethod로만 생성)에 이미 만들어져 있고, 이 컴포넌트는 그 프리팹의 루트에 붙어
-    /// 인스턴스화된다 — Init()은 자식을 이름으로 찾아(Wire*) 참조를 캐싱하고 버튼 클릭 이벤트만 연결한다.
+    /// 화면 구조(Canvas 이하 Toolbar/Palette 뼈대/StartBattleButton)는 Assets/Prefabs/UI/SandboxHud.prefab에 있고,
+    /// 이 컴포넌트는 그 프리팹의 루트에 붙어 인스턴스화된다 — Init()은 자식을 이름으로 찾아(Wire*) 참조를 캐싱하고 버튼 클릭 이벤트만 연결한다.
     /// 팔레트 목록(SetPalette)은 CSV마다 행 수가 달라지는 진짜 동적 데이터라, 행 하나당
     /// Assets/Prefabs/UI/PaletteButton.prefab을 그대로 인스턴스화해서 쓴다.
     /// </summary>
@@ -124,7 +122,7 @@ namespace TacticsECS
             RefreshLabels();
 
             HideStructurePanel();
-            PixelUISkin.Apply(gameObject);
+            PixelUIScaler.Attach(gameObject);
         }
 
         // ---------- 툴바: 표 불러오기/내보내기(OS 탐색기) · 다시 읽기 · 기본 표 + 상태 텍스트 ----------
@@ -259,7 +257,7 @@ namespace TacticsECS
         {
             var tab = canvas.Find("GenerationTab");
             var tribeTab = canvas.Find("TribeTab");
-            if (tab == null || tribeTab == null) { Debug.LogWarning("[SandboxHud] GenerationTab/TribeTab이 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            if (tab == null || tribeTab == null) { Debug.LogWarning("[SandboxHud] GenerationTab/TribeTab이 SandboxHud.prefab에 없습니다."); return; }
             _generationTab = tab.gameObject;
             _tribeTab = tribeTab.gameObject;
             _mapTypeDropdown = tab.Find("MapTypeDropdown").GetComponent<Dropdown>();
@@ -268,7 +266,7 @@ namespace TacticsECS
             _playerTribeDropdown = tribeTab.Find("PlayerTribeDropdown").GetComponent<Dropdown>();
             _enemyTribeDropdown = tribeTab.Find("EnemyTribeDropdown").GetComponent<Dropdown>();
             _tribeInfoText = tribeTab.Find("TribeInfo").GetComponent<Text>();
-            // 신 드롭다운은 나중에 추가돼 옛 프리팹(UIPrefabSetup.GenerateSandboxOnly 전)에는 없을 수 있다.
+            // 신 드롭다운이 없는 프리팹이면 신 고르기만 빠진다.
             _playerGodDropdown = tribeTab.Find("PlayerGodDropdown")?.GetComponent<Dropdown>();
             _enemyGodDropdown = tribeTab.Find("EnemyGodDropdown")?.GetComponent<Dropdown>();
 
@@ -326,12 +324,11 @@ namespace TacticsECS
             if (_tribeInfoText != null) _tribeInfoText.text = text;
         }
 
-        /// <summary>기술트리 버튼은 나중에 추가돼, 옛 프리팹(UIPrefabSetup.GenerateAll을 다시 돌리기 전)에는 없을 수 있다 —
-        /// 없으면 경고만 남기고 나머지 HUD는 그대로 동작하게 한다.</summary>
+        /// <summary>프리팹에 없는 버튼이면 경고만 남기고 나머지 HUD는 그대로 동작하게 한다.</summary>
         private static void WireOptionalButton(Transform panel, string name, UnityEngine.Events.UnityAction onClick)
         {
             var t = panel.Find(name);
-            if (t == null) { Debug.LogWarning($"[SandboxHud] {name}이(가) 프리팹에 없습니다 — UIPrefabSetup.GenerateAll로 다시 생성하세요."); return; }
+            if (t == null) { Debug.LogWarning($"[SandboxHud] {name}이(가) SandboxHud.prefab에 없습니다."); return; }
             t.GetComponent<Button>().onClick.AddListener(onClick);
         }
 

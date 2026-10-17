@@ -92,7 +92,7 @@ namespace TacticsECS.EditorTools
 
         /// <summary>UnitSpawner가 넘긴 label이 UnitView.Label에 그대로 반영되는지(행동 기록 문구에 쓰임),
         /// 그리고 damagePopupPrefab이 실제 유닛 프리팹에 배선되어 DamagePopup 컴포넌트를 갖고 있는지
-        /// (UIPrefabSetup.PatchUnitPrefabs) 확인한다.</summary>
+        /// 확인한다.</summary>
         private static bool VerifyUnitLabelAndDamagePopupWiring()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<UnitView>("Assets/Prefabs/Units/Unit_Melee.prefab");
@@ -180,8 +180,9 @@ namespace TacticsECS.EditorTools
             bool ok = true;
             try
             {
-                var instance = go.AddComponent<TechTreeHud>();
-                instance.Init(AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/Jua-Regular.ttf"), GameDataLoader.LoadTechNodes());
+                var instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<TechTreeHud>("Assets/Prefabs/UI/TechTreeHud.prefab"), go.transform);
+                instance.name = "TechTreeHud";
+                instance.Init(GameDataLoader.LoadTechNodes());
                 instance.Open();
                 if (!instance.IsOpen) { Debug.LogError("[UIVerification] TechTree: Open did not show the panel"); ok = false; }
 
@@ -191,8 +192,8 @@ namespace TacticsECS.EditorTools
                 city.Stars = 10;
                 instance.SetState(tech, city, cityCount: 1);
 
-                var tree = go.transform.Find("Canvas/Safe/Tree/Content");
-                var detail = go.transform.Find("Canvas/Safe/Detail");
+                var tree = instance.transform.Find("Canvas/Safe/Tree/Content");
+                var detail = instance.transform.Find("Canvas/Safe/Detail");
                 var nameText = detail.Find("Name").GetComponent<Text>();
                 var statusText = detail.Find("Status").GetComponent<Text>();
                 var unlockButton = detail.Find("UnlockButton").GetComponent<Button>();

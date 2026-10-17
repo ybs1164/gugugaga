@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace TacticsECS
 {
     /// <summary>
-    /// 코드로 만드는 화면(BattleHud, TechTreeHud, FaithPunchHud, TitleHud)이 함께 쓰는 색·크기·부품.
+    /// 화면(BattleHud, TechTreeHud, FaithPunchHud, TitleHud 프리팹)이 함께 쓰는 색·크기와, 부품 프리팹(Prefabs/UI/Elements)을 꺼내 놓는 도우미.
     /// 크기는 UI 단위(<see cref="UiScale"/>가 화면 픽셀로 바꾼다)다. 배치는 두 가지: 넓은 배치(PC, 휴대폰 가로 약 900x400 이상 —
     /// 정보 패널이 오른쪽 열)와 좁은 배치(폭 CompactWidth 미만, 휴대폰 세로 약 430x960 — 상단 막대 두 줄, 정보 패널은 아래 시트).
     /// 각 화면은 캔버스를 그리기 직전(Canvas.willRenderCanvases)에 지금 폭을 보고 배치를 다시 고른다 — 화면을 돌려도 따라간다.
@@ -109,26 +109,12 @@ namespace TacticsECS
         public const int TitleText = 20;
         public const int HeadlineText = 34;
 
-        /// <summary>오버레이 캔버스 + 안전 영역 루트("Safe", PixelUIScaler가 맞춘다). 반환값이 그 안전 영역이다.</summary>
-        public static RectTransform CreateCanvas(Transform parent, int sortingOrder, out Canvas canvas)
+        /// <summary>부품 프리팹(Assets/Prefabs/UI/Elements) 하나를 parent 아래에 이름을 붙여 꺼낸다.</summary>
+        public static T Spawn<T>(T prefab, Transform parent, string name) where T : Component
         {
-            var canvasGo = new GameObject("Canvas", typeof(RectTransform));
-            canvasGo.transform.SetParent(parent, false);
-            canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = sortingOrder;
-            canvasGo.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-            canvasGo.AddComponent<GraphicRaycaster>();
-            var safe = Rect(PixelUIScaler.SafeAreaName, canvasGo.transform);
-            Stretch(safe);
-            return safe;
-        }
-
-        public static RectTransform Rect(string name, Transform parent)
-        {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            return (RectTransform)go.transform;
+            var instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+            instance.name = name;
+            return instance;
         }
 
         /// <summary>부모를 꽉 채운다(left/bottom/right/top 안쪽 여백).</summary>
@@ -162,62 +148,42 @@ namespace TacticsECS
             return rect;
         }
 
-        public static Image Panel(RectTransform rect, Color color)
+        /// <summary>글자 부품(Text.prefab)을 꺼내 크기·정렬·색을 입힌다.</summary>
+        public static Text Text(Text prefab, Transform parent, string name, int size, TextAnchor anchor, Color? color = null)
         {
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = PixelUISkin.Panel;
-            image.type = Image.Type.Sliced;
-            image.color = color;
-            return image;
-        }
-
-        private static Sprite _white;
-
-        /// <summary>단색 상자용 흰 그림. 그림이 있으면 PixelUISkin이 틀을 씌우지 않고, 점 필터가 아니라 PixelUIScaler도 크기를 건드리지 않는다.</summary>
-        private static Sprite White => _white != null ? _white
-            : _white = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height), new Vector2(0.5f, 0.5f));
-
-        /// <summary>틀 없는 단색 상자(막대·구분선·어두운 배경).</summary>
-        public static Image Fill(RectTransform rect, Color color, bool raycast = false)
-        {
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = White;
-            image.color = color;
-            image.raycastTarget = raycast;
-            return image;
-        }
-
-        public static Text Text(Transform parent, string name, Font font, int size, TextAnchor anchor, Color? color = null)
-        {
-            var rect = Rect(name, parent);
-            var text = rect.gameObject.AddComponent<UnityEngine.UI.Text>();
-            text.font = font;
+            var text = Spawn(prefab, parent, name);
             text.fontSize = size;
             text.alignment = anchor;
             text.color = color ?? Color.white;
-            text.supportRichText = true;
-            text.horizontalOverflow = HorizontalWrapMode.Wrap;
-            text.verticalOverflow = VerticalWrapMode.Overflow;
-            text.raycastTarget = false;
             return text;
         }
 
-        /// <summary>글자 버튼(틀 + 가운데 글자). 크기·위치는 부르는 쪽이 정한다.</summary>
-        public static Button Button(Transform parent, string name, Font font, string label, Color color, Action onClick, int fontSize = BodyText)
+        /// <summary>글자 버튼 부품(Button.prefab: 틀 + 가운데 Label). 크기·위치는 부르는 쪽이 정한다.</summary>
+        public static Button Button(Button prefab, Transform parent, string name, string label, Color color, Action onClick, int fontSize = BodyText)
         {
-            var rect = Rect(name, parent);
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = PixelUISkin.Button;
-            image.type = Image.Type.Sliced;
-            image.color = color;
-            var button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
-            button.targetGraphic = image;
+            var button = Spawn(prefab, parent, name);
+            ((Image)button.targetGraphic).color = color;
             if (onClick != null) button.onClick.AddListener(() => onClick());
-            var text = Text(rect, "Label", font, fontSize, TextAnchor.MiddleCenter);
-            Stretch(text.rectTransform, 6f, 2f, 6f, 2f);
+            var text = Label(button);
+            text.fontSize = fontSize;
             text.text = label;
             return button;
         }
+
+        /// <summary>틀 없는 단색 상자 부품(Fill.prefab — 막대·구분선·강조 줄).</summary>
+        public static Image Fill(Image prefab, Transform parent, string name, Color color)
+        {
+            var image = Spawn(prefab, parent, name);
+            image.color = color;
+            return image;
+        }
+
+        /// <summary>아이콘 부품(Icon.prefab의 Slot/Icon) 그림. 그림은 실행 중에 시트에서 잘라 만드는 것(PixelSpriteCatalog)이라 프리팹에 구울 수 없다 — 꺼낸 뒤 이 이름으로 채운다.
+        /// 크기는 PixelUIScaler가 원래 픽셀 크기로 맞추고, 자리(Slot) 가운데에 남는다.</summary>
+        public static void SetIcon(Image image, string iconName) => image.sprite = IconLibrary.Get(iconName);
+
+        public static void SetContentHeight(RectTransform content, float height) =>
+            content.sizeDelta = new Vector2(content.sizeDelta.x, height);
 
         public static Text Label(Button button) => button.transform.Find("Label").GetComponent<UnityEngine.UI.Text>();
 
@@ -228,40 +194,6 @@ namespace TacticsECS
             var label = button.transform.Find("Label");
             if (label != null) label.GetComponent<UnityEngine.UI.Text>().color = enabled ? Color.white : DisabledText;
         }
-
-        /// <summary>도트 아이콘(PixelUIScaler가 원래 픽셀 크기로 맞춘다). size는 배치용 자리 크기 — 아이콘은 그 자리(Slot) 가운데에 놓여
-        /// PixelUIScaler가 기준점을 가운데로 옮겨도 부모 크기와 상관없이 제자리에 남는다.</summary>
-        public static Image Icon(Transform parent, string name, string iconName, Vector2 anchor, Vector2 position, float size)
-        {
-            var slot = Place(Rect(name + "Slot", parent), anchor, position, new Vector2(size, size));
-            var rect = Place(Rect(name + "Icon", slot), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(size, size));
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = IconLibrary.Get(iconName);
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            return image;
-        }
-
-        /// <summary>세로 스크롤 목록. 반환값은 내용(Content) — 자식은 Row로 위에서부터 쌓고 높이를 SetContentHeight로 알린다.</summary>
-        public static RectTransform ScrollList(RectTransform area, out ScrollRect scroll)
-        {
-            scroll = area.gameObject.AddComponent<ScrollRect>();
-            scroll.horizontal = false;
-            scroll.movementType = ScrollRect.MovementType.Clamped;
-            scroll.scrollSensitivity = 24f;
-            var viewport = Stretch(Rect("Viewport", area));
-            viewport.gameObject.AddComponent<RectMask2D>();
-            // 빈 자리도 끌어서 스크롤되도록 보이지 않는 배경을 깐다.
-            Fill(Stretch(Rect("HitFill", viewport)), Color.clear, raycast: true);
-            var content = Rect("Content", viewport);
-            Row(content, 0f, 0f);
-            scroll.viewport = viewport;
-            scroll.content = content;
-            return content;
-        }
-
-        public static void SetContentHeight(RectTransform content, float height) =>
-            content.sizeDelta = new Vector2(content.sizeDelta.x, height);
 
         /// <summary>그 폭에서 글자가 차지하는 높이(줄바꿈 포함).</summary>
         public static float PreferredHeight(UnityEngine.UI.Text text, float width)

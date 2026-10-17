@@ -76,6 +76,12 @@ namespace TacticsECS
         [SerializeField] private BattleHud hudPrefab;
         [Tooltip("샌드박스 배치 단계 HUD 프리팹. Assets/Prefabs/UI/SandboxHud.prefab.")]
         [SerializeField] private SandboxHud sandboxHudPrefab;
+        [Tooltip("기술 트리 창 프리팹. Assets/Prefabs/UI/TechTreeHud.prefab.")]
+        [SerializeField] private TechTreeHud techTreeHudPrefab;
+        [Tooltip("신앙 펀치 패널 프리팹. Assets/Prefabs/UI/FaithPunchHud.prefab.")]
+        [SerializeField] private FaithPunchHud faithPunchHudPrefab;
+        [Tooltip("시작 화면(이어하기·새로하기·종족 고르기) 프리팹. Assets/Prefabs/UI/TitleHud.prefab.")]
+        [SerializeField] private TitleHud titleHudPrefab;
 
         [Header("Sandbox Extra Visuals")]
         [Tooltip("샌드박스 CSV 전용 추가 BaseVisual 프리팹 — 데모 편성(SpawnDemoFormation)에는 쓰이지 않고, " +
@@ -273,19 +279,17 @@ namespace TacticsECS
 
             if (EconomyMode)
             {
-                var punchGo = new GameObject("FaithPunchHud");
-                punchGo.transform.SetParent(transform, false);
-                _faithPunchHud = punchGo.AddComponent<FaithPunchHud>();
-                _faithPunchHud.Init(_hud.UiFont);
+                _faithPunchHud = Instantiate(faithPunchHudPrefab, transform);
+                _faithPunchHud.name = "FaithPunchHud";
+                _faithPunchHud.Init();
                 _faithPunchHud.OnPunchSelected += HandlePunchSelected;
                 _faithPunchHud.OnConfirmClicked += HandlePunchConfirm;
                 _faithPunchHud.OnCancelClicked += CancelPunch;
                 _hud.OnFaithClicked += OpenPunchList;
 
-                var techGo = new GameObject("TechTreeHud");
-                techGo.transform.SetParent(transform, false);
-                _techTreeHud = techGo.AddComponent<TechTreeHud>();
-                _techTreeHud.Init(_hud.UiFont, CurrentTechNodes());
+                _techTreeHud = Instantiate(techTreeHudPrefab, transform);
+                _techTreeHud.name = "TechTreeHud";
+                _techTreeHud.Init(CurrentTechNodes());
                 _techTreeHud.OnUnlockRequested += HandleTechUnlockRequested;
                 _hud.OnTechClicked += () => { ClearSelection(); CancelPunch(); _techTreeHud.Toggle(); };
                 RefreshCityResources();
@@ -1399,11 +1403,10 @@ namespace TacticsECS
         {
             if (_titleHud == null)
             {
-                var go = new GameObject("TitleHud");
-                go.transform.SetParent(transform, false);
-                _titleHud = go.AddComponent<TitleHud>();
+                _titleHud = Instantiate(titleHudPrefab, transform);
+                _titleHud.name = "TitleHud";
                 var unitRows = LoadFallbackUnitRows();
-                _titleHud.Init(_hud.UiFont, GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList());
+                _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList());
                 _titleHud.OnContinueClicked += ContinueGame;
                 _titleHud.OnStartClicked += tribe => { _titleHud.Hide(); StartQuickPlay(tribe); };
                 _titleHud.OnLanguageClicked += HandleLanguageClicked;

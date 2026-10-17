@@ -50,6 +50,7 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 | `…/Systems`, `…/Systems/Csv` | 게임 로직, CSV 로더 |
 | `…/Actions` | 유닛 행동 |
 | `…/View`, `…/BattleController.cs` | 표시, 입력 → System → View 조율 |
+| `Assets/Prefabs/UI` | HUD 화면 프리팹(원본 — 고칠 때는 프리팹을 고친다), 공용 부품 `Elements`, 목록 줄·카드 `Items` |
 | `Assets/Editor` | CLI용 에셋 생성·검증 |
 | `Assets/Resources` | 게임 데이터 CSV |
 | `scripts` | 픽셀 패턴 생성, spec 검사 |

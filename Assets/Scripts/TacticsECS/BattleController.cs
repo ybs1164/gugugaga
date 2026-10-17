@@ -2092,6 +2092,14 @@ namespace TacticsECS
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Explore"), Detail = LocalizationSystem.T("UI.UnitMenu.ExploreDetail"), Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Starfish", GameRules.Starfish.Stars), Detail = LocalizationSystem.T("UI.UnitMenu.StarfishDetail"), Enabled = true, OnClick = () => HandleStarfish(unitId) });
+            // 약탈: 도시에 적 유닛이 있으면 칸 클릭은 그 유닛 공격이 되므로 메뉴로도 고를 수 있게 한다.
+            foreach (var plunderPos in PlunderSystem.Targets(_grid, _world, _econ, unitId))
+            {
+                var plunderCity = _econ.Cities[CitySystem.FindCityAt(_econ, plunderPos)];
+                var target = plunderPos;
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Plunder", plunderCity.Name, CitySystem.CityStarsIncome(_grid, _world, plunderCity)),
+                    Detail = LocalizationSystem.T("UI.UnitMenu.PlunderDetail"), Enabled = true, OnClick = () => HandlePlunder(unitId, target) });
+            }
             if (TerrainChangeSystem.CanFloodHere(_grid, _world, unitId))
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Flood"), Detail = LocalizationSystem.T("UI.UnitMenu.FloodDetail"), Enabled = true, OnClick = () => HandleTerrainAction(unitId, () => TerrainChangeSystem.FloodHere(_grid, _world, unitId)) });
             if (TerrainChangeSystem.CanBreakIce(_grid, _world, unitId))

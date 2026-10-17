@@ -587,6 +587,8 @@ Action.Skate.Tooltip,스케이트(패시브): 얼음 위에서 이동을 시작�
 Action.Flood.Tooltip,침수(패시브): 서 있는 평지·숲 칸을 침수 지형으로 바꿀 수 있습니다.,Flood (passive): can flood the field or forest tile it stands on.
 Action.Drench.Tooltip,"폭우(패시브): 빈 칸도 공격할 수 있고, 공격한 칸을 침수시킵니다.",Drench (passive): can attack empty tiles and floods the tile it attacks.
 Action.AutoFreeze.Tooltip,자동 빙결(패시브): 이동할 때마다 주변 물을 얼리고 주변 적을 빙결시킵니다.,Auto Freeze (passive): freezes nearby water and enemy units whenever it moves.
+UI.UnitMenu.Plunder,"{0} 약탈 (별 +{1})","Plunder {0} (stars +{1})"
+UI.UnitMenu.PlunderDetail,그 도시의 별 수입을 빼앗고 다음 턴 수입을 막는다(행동 소모).,Takes the city's star income and stops its next income (uses the action).
 UI.UnitMenu.Flood,침수,Flood tile
 UI.UnitMenu.FloodDetail,이 칸을 침수 지형으로 바꾼다(행동 소모).,Turns this tile into flooded terrain (uses the action).
 UI.UnitMenu.BreakIce,얼음 깨기,Break ice

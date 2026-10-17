@@ -28,11 +28,8 @@ Terrain.Cloud,Pattern/Fog,0,0,16,16,0,0,2,0,0,FFFFFF,0,,Original pattern
 UI.Solid,Pattern/Solid,0,0,16,16,0,0,1,0,0,FFFFFF,0,,Original pattern
 UI.Missing,Pattern/Missing,0,0,6,9,-2,-1,2,0,0,FFFFFF,0,,Original pattern
 UI.Shadow,Pattern/Solid,0,0,16,16,0,0,1,0,0,293344,0,,Original pattern
-Structure.Village,Pattern/Hut,0,0,8,8,-6,2,2,0,0,FFFFFF,0,,Original pattern
-Structure.Village,Pattern/Hut,0,0,8,8,6,-4,2,0,1,FFFFFF,0,,Original pattern
-Structure.Capital,Pattern/Hut,0,0,8,8,-6,2,2,0,0,FFFFFF,0,,Original pattern
-Structure.Capital,Pattern/Hut,0,0,8,8,6,-4,2,0,1,FFFFFF,0,,Original pattern
-Structure.Capital,Pattern/Crown,0,0,9,5,-3,17,2,0,2,FFFFFF,0,,Original pattern
+Structure.Village,Units,10,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 120
+Structure.Capital,Units,0,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 115
 Structure.Ruin,Pattern/Ruin,0,0,10,8,0,-4,2,0,0,FFFFFF,0,,Original pattern
 Structure.Resource_Fruit,Pattern/Bush,0,0,10,7,0,-3,2,0,0,FFFFFF,0,,Original pattern
 Structure.Resource_Crop,Pattern/Wheat,0,0,8,8,0,-2,2,0,0,FFFFFF,0,,Original pattern
@@ -52,26 +49,23 @@ Building.Mine,Pattern/Mountain,0,0,14,11,0,-1,2,0,0,FFFFFF,0,,Original pattern
 Building.Mine,Pattern/MineEntrance,0,0,6,5,0,-7,2,0,1,FFFFFF,0,,Original pattern
 Building.Windmill,Pattern/MillTower,0,0,6,9,0,-3,2,0,0,FFFFFF,0,,Original pattern
 Building.Windmill,Pattern/MillSails,0,0,12,12,0,8,2,0,1,FFFFFF,0,,Original pattern
-Building.Forge,Pattern/Chimney,0,0,3,7,5,7,2,0,0,FFFFFF,0,,Original pattern
-Building.Forge,Pattern/StoneHouse,0,0,9,9,-3,-3,2,0,1,FFFFFF,0,,Original pattern
-Building.Market,Pattern/Stall,0,0,10,9,0,-1,2,0,0,FFFFFF,0,,Original pattern
-Building.Port,Pattern/SmallHull,0,0,10,5,0,1,2,0,0,FFFFFF,0,,Original pattern
-Building.Port,Pattern/Dock,0,0,14,4,0,-8,2,0,1,FFFFFF,0,,Original pattern
+Building.Forge,Units,12,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 121
+Building.Market,Units,6,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 118
+Building.Port,Units,4,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 117
 Building.Road,Pattern/Road,0,0,10,6,0,0,2,0,0,FFFFFF,0,,Original pattern
 Building.Bridge,Pattern/Bridge,0,0,14,8,0,0,2,0,0,FFFFFF,0,,Original pattern
-Building.Temple,Pattern/Temple,0,0,10,10,-2,0,2,0,0,FFFFFF,0,,Original pattern
+Building.Temple,Units,14,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 114
 Building.Temple,Pattern/Crown,0,0,9,5,-1,17,2,0,2,FFFFFF,3,,Original pattern
-Building.GreatTemple,Pattern/Temple,0,0,10,10,-2,0,2,0,0,FFFFFF,0,,Original pattern
-Building.GreatTemple,Pattern/Coins,0,0,6,4,6,-8,2,0,1,FFFFFF,0,,Original pattern
+Building.GreatTemple,Units,14,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 114
+Building.GreatTemple,Pattern/Coins,0,0,6,4,6,-10,2,0,1,FFFFFF,0,,Original pattern
 Building.GreatTemple,Pattern/Crown,0,0,9,5,-1,17,2,0,2,FFFFFF,3,,Original pattern
-Building.ForestTemple,Pattern/Temple,0,0,10,10,-2,0,2,0,0,FFFFFF,0,,Original pattern
-Building.ForestTemple,Pattern/Sapling,0,0,5,6,7,-6,2,0,1,FFFFFF,0,,Original pattern
+Building.ForestTemple,Units,12,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 113
 Building.ForestTemple,Pattern/Crown,0,0,9,5,-1,17,2,0,2,FFFFFF,3,,Original pattern
-Building.MountainTemple,Pattern/Temple,0,0,10,10,-2,0,2,0,0,FFFFFF,0,,Original pattern
-Building.MountainTemple,Pattern/Peak,0,0,5,5,7,-7,2,0,1,FFFFFF,0,,Original pattern
+Building.MountainTemple,Units,14,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 114
+Building.MountainTemple,Pattern/Peak,0,0,5,5,7,-9,2,0,1,FFFFFF,0,,Original pattern
 Building.MountainTemple,Pattern/Crown,0,0,9,5,-1,17,2,0,2,FFFFFF,3,,Original pattern
-Building.WaterTemple,Pattern/Temple,0,0,10,10,-2,0,2,0,0,FFFFFF,0,,Original pattern
-Building.WaterTemple,Pattern/Fish,0,0,9,5,3,-7,2,0,1,FFFFFF,0,,Original pattern
+Building.WaterTemple,Units,14,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 114
+Building.WaterTemple,Pattern/Fish,0,0,9,5,3,-9,2,0,1,FFFFFF,0,,Original pattern
 Building.WaterTemple,Pattern/Crown,0,0,9,5,-1,17,2,0,2,FFFFFF,3,,Original pattern
 Building.AltarOfPeace,Pattern/Altar,0,0,8,5,0,-5,2,0,0,FFFFFF,0,,Original pattern
 Building.AltarOfPeace,Pattern/Dove,0,0,5,4,1,6,2,0,1,FFFFFF,0,,Original pattern
@@ -82,59 +76,39 @@ Building.GrandBazaar,Pattern/Tent,0,0,11,8,-3,6,2,0,0,FFFFFF,0,,Original pattern
 Building.GrandBazaar,Pattern/Stall,0,0,10,9,2,-3,2,0,1,FFFFFF,0,,Original pattern
 Building.ParkOfFortune,Pattern/Tree,0,0,8,10,-4,4,2,0,0,FFFFFF,0,,Original pattern
 Building.ParkOfFortune,Pattern/Coins,0,0,6,4,6,-8,2,0,1,FFFFFF,0,,Original pattern
-Building.TowerOfWisdom,Pattern/WizardTower,0,0,6,14,0,2,2,0,0,FFFFFF,0,,Original pattern
-Building.Embassy,Pattern/House,0,0,8,9,-2,-3,2,0,0,FFFFFF,0,,Original pattern
+Building.TowerOfWisdom,Units,10,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 112
+Building.Embassy,Units,8,9,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 119
 Building.Embassy,Pattern/Flag,0,0,5,8,9,8,2,0,1,FFFFFF,0,,Original pattern
-City.Houses,Pattern/House,0,0,8,9,0,-1,2,0,0,FFFFFF,0,1,Original pattern
-City.Houses,Pattern/House,0,0,8,9,-6,5,2,0,0,FFFFFF,2,3,Original pattern
-City.Houses,Pattern/House,0,0,8,9,6,-1,2,0,1,FFFFFF,2,3,Original pattern
-City.Houses,Pattern/House,0,0,8,9,-6,5,2,0,0,FFFFFF,4,,Original pattern
-City.Houses,Pattern/Tower,0,0,6,12,6,8,2,0,0,FFFFFF,4,,Original pattern
-City.Houses,Pattern/House,0,0,8,9,2,-3,2,0,1,FFFFFF,4,,Original pattern
+City.Houses,Units,10,9,32,48,0,8,1,0,0,FFFFFF,0,1,b03AllUnits row 120
+City.Houses,Units,2,9,32,48,0,8,1,0,0,FFFFFF,2,3,b03AllUnits row 116
+City.Houses,Units,8,9,32,48,0,8,1,0,0,FFFFFF,4,5,b03AllUnits row 119
+City.Houses,Units,8,6,32,48,0,8,1,0,0,FFFFFF,6,,b03AllUnits row 111
 City.Capital,Pattern/Crown,0,0,9,5,1,17,2,0,3,FFFFFF,0,,Original pattern
-City.Wall,Pattern/Wall,0,0,14,4,0,-10,2,0,4,FFFFFF,0,,Original pattern
+City.Wall,Units,14,9,32,48,0,8,1,0,4,FFFFFF,0,,b03AllUnits row 122
 City.Workshop,Pattern/Anvil,0,0,7,5,-7,-9,2,0,5,FFFFFF,0,,Original pattern
 City.Park,Pattern/Sapling,0,0,5,6,9,-8,2,0,5,FFFFFF,0,,Original pattern
 City.Embassy,Pattern/Pennant,0,0,4,6,-10,12,2,0,5,FFFFFF,0,,Original pattern
 City.Flag,Pattern/Flag,0,0,5,8,9,12,2,0,6,FFFFFF,0,,Original pattern
-Unit.infantry,Pattern/BodySoldier,0,0,8,14,-2,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.infantry,Pattern/Club,0,0,4,8,8,0,2,0,2,FFFFFF,0,,Original pattern
-Unit.shield,Pattern/Spear,0,0,3,14,7,2,2,0,0,FFFFFF,0,,Original pattern
-Unit.shield,Pattern/BodySoldier,0,0,8,14,-2,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.shield,Pattern/Shield,0,0,6,8,4,-2,2,0,3,FFFFFF,0,,Original pattern
-Unit.gladiator,Pattern/BodyHeavy,0,0,8,14,-2,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.gladiator,Pattern/Sword,0,0,4,8,8,2,2,0,2,FFFFFF,0,,Original pattern
-Unit.archer,Pattern/BodyHood,0,0,8,14,-2,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.archer,Pattern/Bow,0,0,4,10,6,0,2,0,2,FFFFFF,0,,Original pattern
-Unit.cleric,Pattern/BodyRobe,0,0,9,14,-1,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.cleric,Pattern/Staff,0,0,3,13,7,1,2,0,2,FFFFFF,0,,Original pattern
-Unit.spy,Pattern/BodySpy,0,0,10,14,0,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.dagger,Pattern/BodyRogue,0,0,10,14,0,0,2,0,1,FFFFFF,0,,Original pattern
-Unit.dagger,Pattern/Dagger,0,0,3,6,7,-2,2,0,2,FFFFFF,0,,Original pattern
-Unit.giant,Pattern/BodyGiant,0,0,13,18,-1,4,2,0,0,FFFFFF,0,,Original pattern
-Unit.cavalry,Pattern/Horse,0,0,14,9,0,-5,2,0,0,FFFFFF,0,,Original pattern
-Unit.cavalry,Pattern/RiderSoldier,0,0,8,9,-2,9,2,0,1,FFFFFF,0,,Original pattern
-Unit.cavalry,Pattern/Sword,0,0,4,8,10,14,2,0,2,FFFFFF,0,,Original pattern
-Unit.knight,Pattern/Horse,0,0,14,9,0,-5,2,0,0,FFFFFF,0,,Original pattern
-Unit.knight,Pattern/RiderHeavy,0,0,8,10,-2,10,2,0,1,FFFFFF,0,,Original pattern
-Unit.knight,Pattern/Lance,0,0,4,14,10,8,2,0,2,FFFFFF,0,,Original pattern
-Unit.catapult,Pattern/Catapult,0,0,10,11,0,-3,2,0,0,FFFFFF,0,,Original pattern
-Unit.SunAvatar,Pattern/Sun,0,0,6,6,8,16,2,0,0,FFFFFF,0,,Original pattern
-Unit.SunAvatar,Pattern/BodyGiant,0,0,13,18,-1,4,2,0,1,FFE7A0,0,,Original pattern
-Unit.StormTitan,Pattern/BodyGiant,0,0,13,18,-1,4,2,0,0,A9BCE0,0,,Original pattern
-Unit.StormTitan,Pattern/Bolt,0,0,3,6,-11,12,2,0,1,FFFFFF,0,,Original pattern
-Boat.raft,Pattern/Raft,0,0,14,4,0,-10,2,0,0,FFFFFF,0,,Original pattern
-Boat.scout,Pattern/Sail,0,0,5,13,-7,7,2,0,-1,FFFFFF,0,,Original pattern
-Boat.scout,Pattern/Hull,0,0,14,6,0,-8,2,0,0,FFFFFF,0,,Original pattern
-Boat.rammer,Pattern/Hull,0,0,14,6,0,-8,2,0,0,FFFFFF,0,,Original pattern
-Boat.rammer,Pattern/Ram,0,0,4,4,10,-8,2,0,1,FFFFFF,0,,Original pattern
-Boat.bomber,Pattern/Hull,0,0,14,6,0,-8,2,0,0,FFFFFF,0,,Original pattern
-Boat.bomber,Pattern/Mortar,0,0,4,4,-8,0,2,0,1,FFFFFF,0,,Original pattern
-Boat.dinghy,Pattern/SmallHull,0,0,10,5,0,-9,2,0,0,FFFFFF,0,,Original pattern
-Boat.pirate,Pattern/DarkSail,0,0,5,13,-7,7,2,0,-1,FFFFFF,0,,Original pattern
-Boat.pirate,Pattern/DarkHull,0,0,14,6,0,-8,2,0,0,FFFFFF,0,,Original pattern
-Boat.juggernaut,Pattern/MetalHull,0,0,14,7,0,-7,2,0,0,FFFFFF,0,,Original pattern
-Boat.juggernaut,Pattern/Cannon,0,0,6,3,-6,1,2,0,1,FFFFFF,0,,Original pattern
+Unit.infantry,Units,0,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 0
+Unit.shield,Units,4,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 11
+Unit.gladiator,Units,2,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 8
+Unit.archer,Units,8,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 22
+Unit.cleric,Units,6,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 20
+Unit.spy,Units,4,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 32
+Unit.dagger,Units,6,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 33
+Unit.giant,Units,14,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 28
+Unit.cavalry,Units,12,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 25
+Unit.knight,Units,10,0,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 24
+Unit.catapult,Units,8,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 36
+Unit.SunAvatar,Units,2,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 31
+Unit.StormTitan,Units,0,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 29
+Boat.raft,Units,0,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 61
+Boat.dinghy,Units,14,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 60
+Boat.scout,Units,4,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 68
+Boat.rammer,Units,6,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 69
+Boat.bomber,Units,2,6,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 65
+Boat.pirate,Units,10,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 56
+Boat.juggernaut,Units,12,3,32,48,0,8,1,0,0,FFFFFF,0,,b03AllUnits row 57
 Icon.attack,Pattern/Icon_attack,0,0,9,9,0,0,2,0,0,FFFFFF,0,,Original pattern
 Icon.defense,Pattern/Icon_defense,0,0,9,9,0,0,2,0,0,FFFFFF,0,,Original pattern
 Icon.guard,Pattern/Icon_guard,0,0,9,9,0,0,2,0,0,FFFFFF,0,,Original pattern

@@ -7,7 +7,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// Bakes catalog parts into one sprite at native detail resolution (32 px per tile, parts only at integer scale).
-    /// Every part loses its own dark edge ring; the final silhouette gets one thick stroke and a part covering earlier
+    /// Every part loses its own dark edge ring; the final silhouette gets one stroke and a part covering earlier
     /// art gets one separating line of the same width, so outlines never stack.
     /// Rules: docs/spec/csv/sprites.md
     /// </summary>
@@ -15,8 +15,8 @@ namespace TacticsECS
     {
         public const int Tile = 32;
         public const int Headroom = 8;
-        public const int Stroke = 2;
-        public static readonly Color32 Outline = new Color32(42, 25, 27, 255);
+        public const int Stroke = 1; // the reference unit pack's 1 px outline
+        public static readonly Color32 Outline = new Color32(12, 8, 10, 255); // near-black, distinct from art's own black
         /// <summary>Visual ids whose art did not fit the canvas even after nudging (verification reads this).</summary>
         public static readonly HashSet<string> Clipped = new HashSet<string>();
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
@@ -77,7 +77,7 @@ namespace TacticsECS
             }
             CloseGaps(canvas, width, height);
             canvas = OuterStroke(canvas, width, height);
-            ThickenThinLines(canvas, width, height); // one pass: repeating it would creep into the art
+            if (Stroke > 1) ThickenThinLines(canvas, width, height); // one pass: repeating it would creep into the art
 
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
                 { name = "Composite_" + placements[0].VisualId, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
@@ -187,8 +187,8 @@ namespace TacticsECS
 
         /// <summary>
         /// The source's own outline band: dark pixels reachable from outside (8-neighbour) through dark pixels, up to
-        /// <see cref="Stroke"/>+1 source pixels deep. Kenney art draws a 2-3px outline; patterns are saved without one; removing the whole
-        /// band (not just one ring) is what lets every visual end up with the same stroke width.
+        /// <see cref="Stroke"/> source pixels deep. The reference pack draws a 1 px outline; patterns are saved without one;
+        /// removing it and stroking once is what lets every visual end up with the same stroke width.
         /// </summary>
         private static bool[] SourceOutline(Color32[] source, int texWidth, int rx, int ry, int sw, int sh, bool[] opaque)
         {
@@ -207,7 +207,7 @@ namespace TacticsECS
             while (queue.Count > 0)
             {
                 int k = queue.Dequeue(), i = k % sw, j = k / sw;
-                if (depth[k] > Stroke) continue; // Kenney's 2px outline thickens to 3px in places
+                if (depth[k] >= Stroke) continue;
                 for (int oy = -1; oy <= 1; oy++) for (int ox = -1; ox <= 1; ox++)
                 {
                     int ni = i + ox, nj = j + oy, n = nj * sw + ni;

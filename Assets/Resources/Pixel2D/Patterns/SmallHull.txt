@@ -1,9 +1,0 @@
-1=@FFFFFF
-b=A0623C
-n=6E4030
-w=D0935A
-w........w
-wwwwwwwwww
-b11111111b
-.bbbbbbbb.
-..nnnnnn..

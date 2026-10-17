@@ -14,7 +14,6 @@ namespace TacticsECS
         public static readonly Vector2 HpBarSize = new Vector2(.6f,.0625f);
         public const float HpBarLocalY = .46875f; // just above the tallest unit art (tile-filling sprites)
         public const float HpNumberLocalY = .59375f;
-        private const int EmbarkedRiderX = 6, EmbarkedRiderY = 4; // even: keeps Scale 2 art on the shared pixel grid
         private UnitDefinition _definition;
         private GridWorld _grid;
         private GameObject _model;
@@ -26,8 +25,9 @@ namespace TacticsECS
         private Coroutine _attackRoutine, _hitRoutine;
         private bool _visible = true;
         private Vector3 _bodyOrigin;
-        private static readonly Color PlayerColor = new Color(.3f,.6f,1f);
-        private static readonly Color EnemyColor = new Color(1f,.36f,.29f);
+        // Multiply the unit sheet's grey team ramp into the reference pack's blue/red (scripts/author_pixel_patterns.py TEAM_GAIN).
+        public static readonly Color PlayerColor = new Color(.29f,.54f,1f);
+        public static readonly Color EnemyColor = new Color(.97f,0f,.31f);
         private static readonly Color MythicTint = new Color(1f,.86f,.45f);
         public void Init(EntityWorld world, int id, GridWorld grid, string label)
         {
@@ -85,10 +85,8 @@ namespace TacticsECS
             _bodyOrigin = Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;
             string visual = PixelSpriteCatalog.Has(_definition.ModelId) ? _definition.ModelId : "UI.Missing";
-            // Embarked: hull first, rider standing in it, baked into one sprite with one outline style.
-            var body = embarked.Value
-                ? PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+embarked.NavalUnitId), new SpritePlacement(visual,EmbarkedRiderX,EmbarkedRiderY) },team:teamColor)
-                : PixelSpriteComposer.Compose(visual,team:teamColor); // helmets, hoods and sails wear the team colour
+            // Embarked units show the ship alone (the ship sprites fill the tile); team pixels take the team colour.
+            var body = PixelSpriteComposer.Compose(embarked.Value ? "Boat."+embarked.NavalUnitId : visual,team:teamColor);
             var bodyRenderer = _model.GetComponentInChildren<SpriteRenderer>();
             bodyRenderer.sprite = body;
             bodyRenderer.color = world.GetOrDefault<Mythic>(id).Active ? MythicTint : Color.white; // 신화 유닛은 금빛

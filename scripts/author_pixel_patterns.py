@@ -46,71 +46,6 @@ ART = {}
 def art(name, *rows):
     ART[name] = trim(list(rows))
 
-# ---------------------------------------------------------------- units (facing right)
-art('BodySoldier',
-    "....1111....", "...111111...", "..11111112..", "..12222222..", "..zsssssss..",
-    "..zsksssks..", "..zsksssks..", "...zsssss...", "...b1111b...", "..sb1111bs..",
-    "..s2nnnn2s..", "...222222...", "...nn..nn...", "...nn..nn...")
-art('BodyHeavy',
-    "....11......", "...1111.....", "...immmmi...", "..immmmmmi..", "..jiiiiiij..",
-    "..zsksssks..", "..zsksssks..", "...zsssss...", "...jimmij...", "..sjmiimjs..",
-    "..s1nnnn1s..", "...111111...", "...jj..jj...", "...jj..jj...")
-art('BodyHood',
-    "....1111....", "...111111...", "..11111111..", "..112sssss..", "..12skssks..",
-    "..12skssks..", "..112ssss...", "...1112z....", "..sffffffs..", "..sfnnnnfs..",
-    "...ffffff...", "...ff..ff...", "...nn..nn...", "...nn..nn...")
-art('BodySpy',
-    "....1111....", "...111111...", "..11111111..", "..1123zzzz..", "..123zkzkz..",
-    "..112zzzzz..", "..1112zzz1..", "..11111111..", ".1111111112.", ".1111111122.",
-    ".2111111222.", "..22222222..", "...nn..nn...", "...nn..nn...")
-art('BodyRogue',
-    "....nnnn....", "...nnnnnnn..", "..nn111111..", ".11n111111..", ".1.nsssssss.",
-    "...nskssksz.", "...nskssksz.", "....zsssss..", "...b2222b...", "..sb1111bs..",
-    "..sbnnnnbs..", "...bbbbbb...", "...nn..nn...", "...nn..nn...")
-art('BodyRobe',
-    ".....11.....", "....111.....", "...11111....", "..1111111...", ".222222222..",
-    "..zsssssss..", "..zskssks...", "..zWWWWWWW..", "..1WWWWWW1..", "..s11WW11s..",
-    "...111111...", "..11111111..", "..12222221..", "...nn..nn...")
-art('BodyGiant',
-    ".....nnnn.....", "....nnnnnn....", "...nnssssss...", "...nsssssss...", "...nsksssks...",
-    "...nsksssks...", "...zsssssss...", "....zszzzs....", "..sssssssssss.", ".sssssssssssss",
-    ".ssszssssszsss", ".sss.zssssz.ss", ".zss.111111.zs", ".zz..122221.zz", ".....111111...",
-    "....sss..sss..", "....sss..sss..", "....zzz..zzz..")
-art('RiderSoldier',
-    "...1111...", "..111111..", ".11111112.", ".12222222.", ".zsksssks.",
-    ".zsksssks.", "..zsssss..", "..b1111b..", ".sb1111bs.")
-art('RiderHeavy',
-    "...11.....", "..1111....", "..immmmi..", ".immmmmmi.", ".jiiiiiij.",
-    ".zsksssks.", ".zsksssks.", "..zsssss..", "..jimmij..", ".sjmiimjs.")
-art('Horse',
-    "..........nn..", ".........nwww.", "........nwwkww", "........nwwwbb", "nnwwwwwwwwwb..",
-    "nwwwwwwwwwwb..", "n.bwwwwwwwbb..", "..bb.bb.bb.bb.", "..nn.nn.nn.nn.")
-art('Catapult',
-    "........ee", ".......ecx", "......bcc.", ".....bb...", "....bb....", "...bb.....",
-    ".b.bb...b.", ".bwwwwwwb.", "wbbbbbbbbw", "nn111111nn", "xnbbbbbbnx")
-art('Sun', "..g..g", "gggg..", "gYYgg.", "gYYYgg", ".gYYg.", "g.gg.g")
-art('Bolt', "..Y", ".YY", "YYY", ".YY", ".Y.", "Y..")
-art('Sword', ".m..", ".mi.", ".mi.", ".mi.", ".mi.", "hggh", ".bn.", ".nn.")
-art('Club', ".ww.", "wwbw", "wwbb", "wbbb", ".bb.", ".bn.", ".bn.", ".nn.")
-art('Spear', ".m.", "mmi", "mii", ".j.", ".b.", ".b.", ".b.", ".b.", ".b.", ".b.", ".b.", ".n.", ".n.", ".n.")
-art('Lance', ".m..", ".m..", "mmi.", ".j..", ".b11", ".b12", ".b2.", ".b..", ".b..", ".b..", ".b..", ".b..", ".n..", ".n..")
-art('Shield', ".jjjj.", "j1111j", "j1gg2j", "j1gg2j", "j1122j", "j1223j", ".j22j.", "..jj..")
-art('Bow', "ww..", ".bw.", "..bw", "..bw", "..bw", "..bw", "..bw", "..bw", ".bw.", "ww..")
-art('Staff', ".p.", "ppp", "pWp", "ppp", ".b.", ".b.", ".b.", ".b.", ".b.", ".b.", ".b.", ".b.", ".n.")
-art('Dagger', ".m.", ".m.", ".mi", "hgh", ".n.", ".n.")
-
-# ---------------------------------------------------------------- boats
-art('Hull', "ww..........ww", "wwwwwwwwwwwwww", "b111111111111b", ".bbbbbbbbbbbb.", "..bbbbbbbbbb..", "...nnnnnnnn...")
-art('DarkHull', "nn..........nn", "nnnnnnnnnnnnnn", "x111111111111x", ".xxxxxxxxxxxx.", "..xxxxxxxxxx..", "...xxxxxxxx...")
-art('MetalHull', "m............m", "mmmmmmmmmmmmmm", "i111111111111i", "iijiijiijiijii", ".iiiiiiiiiiii.", "..jjjjjjjjjj..", "...jjjjjjjj...")
-art('SmallHull', "w........w", "wwwwwwwwww", "b11111111b", ".bbbbbbbb.", "..nnnnnn..")
-art('Raft', "wwwywwwwwwywww", "bbbubbbbbbubbb", "wwwywwwwwwywww", ".nnnnnnnnnnnn.")
-art('Sail', "n....", "nWW..", "nWWW.", "nWWWG", "n1112", "nWWWG", "nWWWG", "n1112", "nWWG.", "nWG..", "n....", "n....", "n....")
-art('DarkSail', "n....", "nxx..", "nxxx.", "nxxxx", "nWxWx", "nxWxx", "nWxWx", "nxxxx", "nxxx.", "nxx..", "n....", "n....", "n....")
-art('Ram', "mm..", "miim", "iijj", "jj..")
-art('Cannon', "jiiimm", "jjiiii", ".nnn..")
-art('Mortar', ".jj.", "jiij", "jiij", "xjjx")
-
 # ---------------------------------------------------------------- terrain & resources
 art('Tree',
     "..llll..", ".lllllf.", "lllllfff", "llllffff", "lflfffdf",
@@ -132,9 +67,6 @@ art('Lighthouse', "..gg..", ".gYYg.", ".jjjj.", ".WWWW.", ".rrrr.", ".rrrr.", ".
 art('Ruin', "ee........", "ec........", "ec........", "ec....ee..", "ec....ec..", "ec....ec..", "ecc.c.ecc.", "cccccccccc")
 
 # ---------------------------------------------------------------- buildings
-art('Hut', "...yy...", "..yyyy..", ".yyyyuy.", "yyyyyuuy", "uuuuuuuu", ".wwnnww.", ".wwnnww.", ".bbnnbb.")
-art('House', "...11...", "..1111..", ".111112.", "11111122", "33333333", ".LLLLLQ.", ".LaLnnQ.", ".LLLnnQ.", ".bbbnnb.")
-art('Tower', "..11..", ".1111.", "111122", "333333", ".LLLQ.", ".LaLQ.", ".LLLQ.", ".LLLQ.", ".LaLQ.", ".LLLQ.", ".LnnQ.", ".bnnb.")
 art('Crown', "g...g...g", "gg.ggg.gg", "ggggggggg", "gBgrgrgBg", "hhhhhhhhh")
 art('Wall', "ee.ee.ee.ee.ee", "eeeeeeeeeeeeee", "ecceccecceccec", "cccccccccccccc")
 art('Flag', "n1111", "n1112", "n1122", "n1112", "n....", "n....", "n....", "n....")
@@ -151,13 +83,9 @@ art('MillTower', "..bb..", ".bwwb.", ".LLLQ.", ".LLLQ.", ".LaLQ.", "LLLLQQ", "LL
 art('MillSails',
     ".....WW.....", ".....WG.....", ".....WG.....", ".....WG.....", ".....nn.....", "WWWWnnnnWWWW",
     "GGGGnnnnGGGG", ".....nn.....", ".....WG.....", ".....WG.....", ".....WG.....", ".....WG.....")
-art('StoneHouse', "...xxx...", "..xcccx..", ".xcccccx.", "xcccccccx", "xxxxxxxxx", ".eeeeeee.", ".eFFeeee.", ".eFFennc.", ".ccccnnc.")
-art('Chimney', ".Y.", "FYF", "xFx", "xcx", "xcx", "xcx", "xcx")
 art('Stall', "rWrWrWrWrW", "rWrWrWrWrW", "qGqGqGqGqG", ".n......n.", ".n......n.", ".n.gg.ll.n", "wwwwwwwwww", "bbbbbbbbbb", ".n......n.")
-art('Dock', "wwwwwwwwwwwwww", "bbbbbbbbbbbbbb", ".n...n...n...n", ".n...n...n...n")
 art('Road', ".ecceecee.", "eccecceece", "ceeccecece", "ecceceecce", "ceecceecce", ".eceeccec.")
 art('Bridge', "wwwwwwwwwwwwww", "n...n....n...n", "wbwbwbwbwbwbwb", "bwbwbwbwbwbwbw", "wbwbwbwbwbwbwb", "nnnnnnnnnnnnnn", ".n..........n.", ".n..........n.")
-art('Temple', "....gg....", "..gghhgg..", "gggggggggg", "hhhhhhhhhh", ".WxWxxWxW.", ".WxWxxWxW.", ".WxWxxWxW.", ".WxWxxWxW.", "eeeeeeeeee", "cccccccccc")
 art('Peak', "..W..", ".WGc.", ".ccc.", "ecccx", "ccxxx")
 art('Sapling', "..l..", ".llf.", "llffd", ".lfd.", "lffdd", "..n..")
 art('Altar', ".WWWWWW.", "eeeeeeee", ".cccccc.", ".ce..ec.", ".cccccc.")
@@ -167,7 +95,6 @@ art('Obelisk', "..gg..", ".gggh.", ".eeec.", ".WaWc.", ".eeec.", ".eeec.", ".eee
 art('Gate', "eeeeeeeeeeee", "cccccccccccc", "eer......ree", "ecr......rce", "ecq......qce", "ec........ce", "ec........ce", "ec........ce", "ec........ce", "cc........cc")
 art('Tent', ".....n......", "....rWr.....", "...rWrWr....", "..rWrWrWr...", ".rWrWrWrWr..", "rWrWrWrWrWr.", ".bbbnnbbbb..", ".bbbnnbbbb..")
 art('Coins', "..gg..", ".gghg.", "gghggh", "hhhhhh")
-art('WizardTower', "...p..", "..pp..", ".pppp.", "pppppv", "hhhhhh", ".LLLQ.", ".LaLQ.", ".LLLQ.", ".LLLQ.", ".LaLQ.", ".LLLQ.", ".LLLQ.", "LLnnQQ", "bbnnbb")
 art('Missing', "..rrrr..", ".rrWWrr.", ".rr..Wr.", "....Wrr.", "...Wrr..", "...rr...", "........", "...Wr...", "...rr...")
 
 # ---------------------------------------------------------------- icons (9x9, Scale 2 like the world)
@@ -260,16 +187,68 @@ ground('Ocean', 'O', [('J', waves([(3, 4), (11, 9), (5, 13)]))])
 ground('Fog', 'C', [('E', [(x, y) for x in range(2, 8) for y in range(2, 5)] + [(x, y) for x in range(9, 15) for y in range(9, 12)]),
                     ('I', [(x, 5) for x in range(2, 8)] + [(x, 12) for x in range(9, 15)])])
 
-# ---------------------------------------------------------------- write patterns
-def save(name, rows):
-    used = sorted(set(''.join(rows)) - {'.'})
-    lines = [f'{c}={PALETTE[c]}' for c in used] + rows
-    (PATTERNS / f'{name}.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+# ---------------------------------------------------------------- reference unit pack -> Sheets/Units.png
+# Units, boats, houses, towers and the city wall come straight from the pack (32 px cells = one tile, Scale 1).
+# Its 10 columns are team recolours: pixels that differ between the red and blue columns are team pixels, stored
+# as a grey ramp (alpha TEAM_ALPHA) that the composer multiplies by the team colour; everything else is copied.
+# The pack's own 1 px black outline stays in the cell; the composer strips it and draws the shared stroke.
+REF = Path(__file__).resolve().parents[1] / 'Assets/Art/Pixel2D/ThirdParty/b03AllUnits/b03AllUnits.png'
+REF_BG = (168, 208, 160)
+REF_RED, REF_BLUE, REF_BASE = 0, 1, 9      # columns: red, blue, grey
+TEAM_GAIN = 1.28                           # grey ramp x gain x team colour ~ the pack's own red/blue ramps
+TEAM_ALPHA = 254                           # PixelSpriteCatalog.TeamAlpha
+SHEET_COLUMNS = 8
+CELL_HEIGHT = 48                           # 32 px pack cell + headroom: tall art's top outline sits in the row above
+REFERENCE = {   # key -> pack row
+    'Warrior': 0, 'Swordsman': 8, 'Defender': 11, 'Healer': 20, 'Crossbow': 22, 'Knight': 24, 'Rider': 25,
+    'Giant': 28, 'IronGolem': 29, 'WhiteGiant': 31, 'Hood': 32, 'Rogue': 33, 'Catapult': 36,
+    'DarkShip': 56, 'BigShip': 57, 'ShellBoat': 60, 'ShellRaft': 61, 'CannonShip': 65, 'Sailboat': 68, 'RamBoat': 69,
+    'Castle': 111, 'Spire': 112, 'TreeHouse': 113, 'Pagoda': 114, 'Keep': 115, 'Cottage': 116, 'DockHouse': 117,
+    'Workshop': 118, 'Hall': 119, 'Hut': 120, 'Smithy': 121, 'Wall': 122,
+}
 
-for name, rows in ART.items():
-    save(name, rows)
-PALETTE['s'] = 'FFFFFF'
-save('Solid', ['s' * 16] * 16)
+def reference_sheet():
+    from PIL import Image
+    src = Image.open(REF).convert('RGB')
+    keys = list(REFERENCE)
+    out = Image.new('RGBA', (SHEET_COLUMNS * 32, -(-len(keys) // SHEET_COLUMNS) * CELL_HEIGHT), (0, 0, 0, 0))
+    for k, key in enumerate(keys):
+        r = REFERENCE[key]
+        cell = lambda col: src.crop((col * 32, r * 32, col * 32 + 32, r * 32 + 32)).load()
+        red, blue, base = cell(REF_RED), cell(REF_BLUE), cell(REF_BASE)
+        art = {(x, y) for y in range(32) for x in range(32) if base[x, y] != REF_BG}
+        # Drop slivers of the neighbouring rows' sprites that poke over the cell's top/bottom edge.
+        parts, seen = [], set()
+        for start in art:
+            if start in seen: continue
+            stack, part = [start], []
+            seen.add(start)
+            while stack:
+                x, y = stack.pop(); part.append((x, y))
+                for n in ((x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                    if n in art and n not in seen: seen.add(n); stack.append(n)
+            parts.append(part)
+        biggest = max(len(p) for p in parts)
+        keep = {xy for p in parts if len(p) * 5 >= biggest or not any(y in (0, 31) for _, y in p) for xy in p}
+        if any(x == 0 for x, _ in keep) and any(x == 31 for x, _ in keep):   # full-width art (the wall): leave room for the stroke
+            keep = {(x, y) for x, y in keep if 0 < x < 31}
+        ox, oy = (k % SHEET_COLUMNS) * 32, (k // SHEET_COLUMNS) * CELL_HEIGHT + CELL_HEIGHT - 32
+        # Art touching the cell top shares its outline row with the cell above: copy that dark row back in.
+        for x in {x + dx for x, y in keep if y == 0 for dx in (-1, 0, 1)} & set(range(32)):
+            c = src.getpixel((REF_BASE * 32 + x, r * 32 - 1))
+            if c != REF_BG and .299 * c[0] + .587 * c[1] + .114 * c[2] < 66:
+                out.putpixel((ox + x, oy - 1), c + (255,))
+        for x, y in keep:
+            a, b, g = red[x, y], blue[x, y], base[x, y]
+            if sum(abs(p - q) for p, q in zip(a, b)) > 30:
+                v = min(255, round(max(g) * TEAM_GAIN))
+                out.putpixel((ox + x, oy + y), (v, v, v, TEAM_ALPHA))
+            else:
+                out.putpixel((ox + x, oy + y), g + (255,))
+    out.save(ROOT / 'Sheets/Units.png')
+    return {key: (2 * (k % SHEET_COLUMNS), CELL_HEIGHT // 16 * (k // SHEET_COLUMNS)) for k, key in enumerate(keys)}
+
+CELLS = reference_sheet()
 
 # ---------------------------------------------------------------- catalog
 HEADER = 'VisualId,Sheet,Column,Row,Width,Height,X,Y,Scale,FlipX,Layer,Color,MinLevel,MaxLevel,Note'
@@ -277,6 +256,11 @@ rows = [HEADER]
 
 def row(vid, sheet, w, h, x, y, scale=2, flip=0, layer=0, color='FFFFFF', lo=0, hi='', note='Original pattern'):
     rows.append(f'{vid},{sheet},0,0,{w},{h},{x},{y},{scale},{flip},{layer},{color},{lo},{hi},{note}')
+
+def ref(vid, key, layer=0, lo=0, hi='', x=0, y=0):
+    """A reference-pack cell standing on the tile: its bottom 32 px cover the tile (offset in detail pixels)."""
+    col, rw = CELLS[key]
+    rows.append(f'{vid},Units,{col},{rw},32,{CELL_HEIGHT},{x},{y + (CELL_HEIGHT - 32) // 2},1,0,{layer},FFFFFF,{lo},{hi},b03AllUnits row {REFERENCE[key]}')
 
 def put(vid, name, ax, ay, layer=0, color='FFFFFF', lo=0, hi='', flip=0):
     """Art-pixel anchor (bottom-left of the trimmed art) on the 16x20 canvas -> detail-pixel centre offset."""
@@ -306,11 +290,8 @@ row('UI.Solid', 'Pattern/Solid', 16, 16, 0, 0, scale=1)
 put('UI.Missing', 'Missing', 4, 3)
 row('UI.Shadow', 'Pattern/Solid', 16, 16, 0, 0, scale=1, color='293344')
 
-put('Structure.Village', 'Hut', 1, 5)
-put('Structure.Village', 'Hut', 7, 2, layer=1)
-put('Structure.Capital', 'Hut', 1, 5)
-put('Structure.Capital', 'Hut', 7, 2, layer=1)
-put('Structure.Capital', 'Crown', 2, 14, layer=2)
+ref('Structure.Village', 'Hut')
+ref('Structure.Capital', 'Keep')
 put('Structure.Ruin', 'Ruin', 3, 2)
 put('Structure.Resource_Fruit', 'Bush', 3, 3)
 put('Structure.Resource_Crop', 'Wheat', 4, 3)
@@ -331,18 +312,16 @@ put('Building.Mine', 'Mountain', 1, 2)
 put('Building.Mine', 'MineEntrance', 5, 2, layer=1)
 put('Building.Windmill', 'MillTower', 5, 2)
 put('Building.Windmill', 'MillSails', 2, 6, layer=1)
-put('Building.Forge', 'Chimney', 9, 8)
-put('Building.Forge', 'StoneHouse', 2, 2, layer=1)
-put('Building.Market', 'Stall', 3, 3)
-put('Building.Port', 'SmallHull', 3, 6)
-put('Building.Port', 'Dock', 1, 2, layer=1)
+ref('Building.Forge', 'Smithy')
+ref('Building.Market', 'Workshop')
+ref('Building.Port', 'DockHouse')
 put('Building.Road', 'Road', 3, 5)
 put('Building.Bridge', 'Bridge', 1, 4)
-for temple, mark in [('Temple', None), ('GreatTemple', 'Coins'), ('ForestTemple', 'Sapling'),
-                     ('MountainTemple', 'Peak'), ('WaterTemple', 'Fish')]:
+for temple, base, mark in [('Temple', 'Pagoda', None), ('GreatTemple', 'Pagoda', 'Coins'), ('ForestTemple', 'TreeHouse', None),
+                           ('MountainTemple', 'Pagoda', 'Peak'), ('WaterTemple', 'Pagoda', 'Fish')]:
     vid = 'Building.' + temple
-    put(vid, 'Temple', 2, 3)
-    if mark: put(vid, mark, 15 - len(ART[mark][0]) - 1, 2, layer=1)
+    ref(vid, base)
+    if mark: put(vid, mark, 15 - len(ART[mark][0]) - 1, 1, layer=1)
     put(vid, 'Crown', 3, 14, layer=2, lo=3)
 put('Building.AltarOfPeace', 'Altar', 4, 3)
 put('Building.AltarOfPeace', 'Dove', 6, 9, layer=1)
@@ -353,64 +332,47 @@ put('Building.GrandBazaar', 'Tent', 1, 7)
 put('Building.GrandBazaar', 'Stall', 4, 2, layer=1)
 put('Building.ParkOfFortune', 'Tree', 2, 5)
 put('Building.ParkOfFortune', 'Coins', 8, 2, layer=1)
-put('Building.TowerOfWisdom', 'WizardTower', 5, 2)
-put('Building.Embassy', 'House', 3, 2)
+ref('Building.TowerOfWisdom', 'Spire')
+ref('Building.Embassy', 'Hall')
 put('Building.Embassy', 'Flag', 10, 8, layer=1)
 
-put('City.Houses', 'House', 4, 3, hi=1)
-put('City.Houses', 'House', 1, 6, lo=2, hi=3)
-put('City.Houses', 'House', 7, 3, layer=1, lo=2, hi=3)
-put('City.Houses', 'House', 1, 6, lo=4)
-put('City.Houses', 'Tower', 8, 6, lo=4)
-put('City.Houses', 'House', 5, 2, layer=1, lo=4)
+ref('City.Houses', 'Hut', hi=1)            # the city grows through the pack's buildings
+ref('City.Houses', 'Cottage', lo=2, hi=3)
+ref('City.Houses', 'Hall', lo=4, hi=5)
+ref('City.Houses', 'Castle', lo=6)
 put('City.Capital', 'Crown', 4, 14, layer=3)
-put('City.Wall', 'Wall', 1, 1, layer=4)
+ref('City.Wall', 'Wall', layer=4)
 put('City.Workshop', 'Anvil', 1, 1, layer=5)
 put('City.Park', 'Sapling', 10, 1, layer=5)
 put('City.Embassy', 'Pennant', 1, 11, layer=5)
 put('City.Flag', 'Flag', 10, 10, layer=6)
 
-BODY = 3   # standalone body anchor column; boats shift riders by UnitView.EmbarkedRider*
-def unit(uid, body, weapon=None, wx=10, wy=4, back=None, front=None):
-    vid = 'Unit.' + uid
-    if back: put(vid, back[0], back[1], back[2])
-    put(vid, body, BODY, 1, layer=1)
-    if weapon: put(vid, weapon, wx, wy, layer=2)
-    if front: put(vid, front[0], front[1], front[2], layer=3)
-unit('infantry', 'BodySoldier', 'Club')
-unit('shield', 'BodySoldier', back=('Spear', 10, 2), front=('Shield', 7, 3))
-unit('gladiator', 'BodyHeavy', 'Sword', wy=5)
-unit('archer', 'BodyHood', 'Bow', wx=9, wy=3)
-unit('cleric', 'BodyRobe', 'Staff', wx=10, wy=2)
-unit('spy', 'BodySpy')
-unit('dagger', 'BodyRogue', 'Dagger', wx=10, wy=4)
-put('Unit.giant', 'BodyGiant', 1, 1)
-for uid, rider, weapon, wy in [('cavalry', 'RiderSoldier', 'Sword', 11), ('knight', 'RiderHeavy', 'Lance', 5)]:
-    put('Unit.' + uid, 'Horse', 1, 1)
-    put('Unit.' + uid, rider, 3, 8, layer=1)
-    put('Unit.' + uid, weapon, 11, wy, layer=2)
-put('Unit.catapult', 'Catapult', 3, 1)
-put('Unit.SunAvatar', 'Sun', 9, 13)                       # mythic units: tinted giants
-put('Unit.SunAvatar', 'BodyGiant', 1, 1, layer=1, color='FFE7A0')
-put('Unit.StormTitan', 'BodyGiant', 1, 1, color='A9BCE0')
-put('Unit.StormTitan', 'Bolt', 1, 11, layer=1)
-
-def boat(bid, hull, extra=None, sail=None, hull_color='FFFFFF'):
-    vid = 'Boat.' + bid
-    if sail: put(vid, sail, 2, 5, layer=-1)
-    put(vid, hull, 1 + (14 - len(ART[hull][0])) // 2, 1, color=hull_color)
-    if extra: put(vid, extra[0], extra[1], extra[2], layer=1)
-boat('raft', 'Raft')
-boat('scout', 'Hull', sail='Sail')
-boat('rammer', 'Hull', ('Ram', 11, 2))
-boat('bomber', 'Hull', ('Mortar', 2, 6))
-boat('dinghy', 'SmallHull')
-boat('pirate', 'DarkHull', sail='DarkSail')
-boat('juggernaut', 'MetalHull', ('Cannon', 2, 7))
+for uid, key in [('infantry', 'Warrior'), ('shield', 'Defender'), ('gladiator', 'Swordsman'), ('archer', 'Crossbow'),
+                 ('cleric', 'Healer'), ('spy', 'Hood'), ('dagger', 'Rogue'), ('giant', 'Giant'), ('cavalry', 'Rider'),
+                 ('knight', 'Knight'), ('catapult', 'Catapult'), ('SunAvatar', 'WhiteGiant'), ('StormTitan', 'IronGolem')]:
+    ref('Unit.' + uid, key)
+for bid, key in [('raft', 'ShellRaft'), ('dinghy', 'ShellBoat'), ('scout', 'Sailboat'), ('rammer', 'RamBoat'),
+                 ('bomber', 'CannonShip'), ('pirate', 'DarkShip'), ('juggernaut', 'BigShip')]:
+    ref('Boat.' + bid, key)
 
 for name in ICONS:
     a = ART['Icon_' + name]
     row('Icon.' + name, 'Pattern/Icon_' + name, len(a[0]), len(a), 0, 0)
 
 (ROOT / 'SpriteCatalog.csv').write_text('\n'.join(rows) + '\n', encoding='utf-8')
-print(f'wrote {len(ART) + 1} patterns, {len(rows) - 1} catalog rows')
+
+# ---------------------------------------------------------------- write the patterns the catalog uses
+def save(name, rows):
+    used = sorted(set(''.join(rows)) - {'.'})
+    lines = [f'{c}={PALETTE[c]}' for c in used] + rows
+    (PATTERNS / f'{name}.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+used = {r.split(',')[1][8:] for r in rows[1:] if r.split(',')[1].startswith('Pattern/')}
+PALETTE['s'] = 'FFFFFF'
+ART['Solid'] = ['s' * 16] * 16
+for name in used: save(name, ART[name])
+for stale in PATTERNS.glob('*.txt'):                 # this script owns the folder
+    if stale.stem not in used:
+        stale.unlink()
+        stale.with_suffix('.txt.meta').unlink(missing_ok=True)
+print(f'wrote {len(used)} patterns, {len(CELLS)} reference cells, {len(rows) - 1} catalog rows')

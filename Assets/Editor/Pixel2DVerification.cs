@@ -16,7 +16,7 @@ namespace TacticsECS.EditorTools
     public static class Pixel2DVerification
     {
         private static int _checks;
-        private static readonly Color Blue = new Color(.3f,.6f,1f), Red = new Color(1f,.36f,.29f);
+        private static readonly Color Blue = UnitView.PlayerColor, Red = UnitView.EnemyColor;
         private static void Check(bool condition, string message)
         {
             _checks++;
@@ -106,7 +106,7 @@ namespace TacticsECS.EditorTools
                 if (edge) uniform &= c.r == PixelSpriteComposer.Outline.r && c.g == PixelSpriteComposer.Outline.g && c.b == PixelSpriteComposer.Outline.b;
             }
             Check(any,"composite has pixels: " + label);
-            Check(PixelSpriteComposer.ThinLineSegments(pixels,w,h) == 0,"no 1px-thin line left: " + label);
+            Check(PixelSpriteComposer.Stroke == 1 || PixelSpriteComposer.ThinLineSegments(pixels,w,h) == 0,"no 1px-thin line left: " + label);
             // Outer outline width measured across the edge (min over 8 directions from outside into art).
             // A doubled source outline shows up as nearly every edge pixel at width 3.
             int edges = 0, thick = 0;

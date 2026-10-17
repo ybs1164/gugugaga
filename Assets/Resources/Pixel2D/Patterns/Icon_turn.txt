@@ -1,0 +1,12 @@
+W=F4F4F0
+b=A0623C
+y=EBC163
+bbbbbbbbb
+.WWWWWWW.
+..WyyyW..
+...WyW...
+....y....
+...WyW...
+..WyyyW..
+.WyyyyyW.
+bbbbbbbbb

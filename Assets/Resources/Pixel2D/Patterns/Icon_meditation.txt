@@ -1,0 +1,9 @@
+P=F08CB0
+W=F4F4F0
+f=5DAA4E
+....P....
+...PPP...
+.P.PWP.P.
+PPPPPPPPP
+.PPPPPPP.
+..fffff..

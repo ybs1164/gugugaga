@@ -1,13 +1,13 @@
 # 스프라이트 CSV
 
-파일: `Assets/Resources/Pixel2D/SpriteCatalog.csv`
+파일: `Assets/Resources/Pixel2D/SpriteCatalog.csv` — `scripts/author_pixel_patterns.py`가 패턴과 함께 **생성**한다. 기본 표는 스크립트를 고쳐 다시 만든다(손으로 고친 행은 다음 생성 때 덮인다).
 한 행 = 스프라이트 레이어 하나. 같은 `VisualId`의 행들이 아래에서 위로 겹쳐 한 표시가 된다. 로더: `View/PixelSpriteCatalog`(View 계층 — `GameDataLoader`가 아님).
 Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 수 있다. 선택 파일은 실제 파싱하고, 오류가 나면 이전 선택으로 복원한다. 월드 표시는 지형을 다시 생성할 때 갱신된다. 시트·패턴 이미지 자체는 프로젝트 Resources를 사용한다. 형식이 틀리면 경고가 아니라 **예외**가 난다(필수 칸, 색).
 
 | 컬럼 | 타입 | 필수 | 기본 | 뜻 |
 |---|---|---|---|---|
 | `VisualId` | 문자열 | O | | 표시 키 — 아래 접두사 규칙 |
-| `Sheet` | 문자열 | O | | `Assets/Resources/Pixel2D/Sheets/<이름>.png`, 또는 `Pattern/<이름>`(아래 픽셀 패턴) |
+| `Sheet` | 문자열 | O | | `Pattern/<이름>`(아래 픽셀 패턴), 또는 `Assets/Resources/Pixel2D/Sheets/<이름>.png`(현재 시트는 UI 틀뿐) |
 | `Column`, `Row` | 정수 | | 0 | 시트의 16px 격자 좌표 |
 | `Width`, `Height` | 정수 | | 16 | 잘라낼 픽셀 크기. `Pattern/Solid`는 칠할 사각형 크기(디테일 픽셀) |
 | `X`, `Y` | 정수 | | 0 | 타일 중심에서 레이어 중심까지의 오프셋(디테일 픽셀, 위·오른쪽이 +) |
@@ -35,10 +35,11 @@ Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 �
 
 ## 합성 규칙
 코드: `View/PixelSpriteComposer`, `View/TileVisuals`.
-- 디테일 픽셀: 타일 한 칸 = `PixelSpriteComposer.Tile` 픽셀. 지면 타일(`Ground.*`, `Terrain.Cloud`)은 16px 칸을 2×2로 반복해 같은 격자에 맞춘다. 원본 16px 조각은 `Scale` 1이면 반 칸이다.
+- 디테일 픽셀: 타일 한 칸 = `PixelSpriteComposer.Tile` 픽셀. 지면 타일(`Ground.*`, `Terrain.Cloud`)은 그 행의 `Scale`로 키운 뒤 한 칸이 찰 때까지 반복한다.
+- 그림 픽셀: 기본 그림은 모두 한 칸 16픽셀 크기로 그려 `Scale` 2로 놓는다 — 그림 1픽셀 = 디테일 2픽셀 = `Stroke`라서 테두리는 어디서나 그림 1픽셀 두께다. 모든 레이어가 같은 격자에 놓이도록 `X`·`Y`는 `2×(그림 왼쪽·아래 위치) + 그림 너비·높이 − Tile/2` 꼴로 생성기가 계산한다(짝수 오프셋 유지). `UnitView`의 승선 오프셋과 `TileVisuals`의 겹침 오프셋도 짝수다.
 - 한 `VisualId`(또는 한 타일의 여러 표시)는 스프라이트 **한 장**으로 구워진다. 캔버스는 타일 한 칸 + 위쪽 여유(`PixelSpriteComposer.Headroom`) — 높은 그림은 윗칸으로 넘쳐도 잘리지 않는다. 아이콘(`Icon.*`)은 정사각 캔버스.
 - 캔버스 밖으로 나가는 표시는 자르지 않고 표시 단위로 안쪽으로 밀어 넣는다. 밀어도 안 들어가면 진단 목록(`PixelSpriteComposer.Clipped`)에 남고 검증이 실패한다.
-- 테두리: 레이어마다 원본 외곽선 띠(바깥에서 어두운 픽셀을 따라 `PixelSpriteComposer.Stroke`+1 픽셀 깊이까지 — Kenney 원본은 2~3px, 패턴은 외곽선 없이 저장)를 지운다. 완성된 실루엣 바깥에 같은 색(`PixelSpriteComposer.Outline`)·같은 두께(`PixelSpriteComposer.Stroke`)의 테두리를 **한 번만** 두르고, 앞 레이어가 뒤 레이어 그림을 덮는 곳에만 같은 두께의 구분선을 긋는다.
+- 테두리: 레이어마다 원본 외곽선 띠(바깥에서 어두운 픽셀을 따라 `PixelSpriteComposer.Stroke`+1 픽셀 깊이까지)를 지운다 — 패턴은 외곽선 없이 저장하고, 실루엣에 닿는 칸에는 어두운 색(밝기 0.26 미만, 눈 같은 안쪽 점 전용)을 쓰지 않는다. 완성된 실루엣 바깥에 같은 색(`PixelSpriteComposer.Outline`)·같은 두께(`PixelSpriteComposer.Stroke`)의 테두리를 **한 번만** 두르고, 앞 레이어가 뒤 레이어 그림을 덮는 곳에만 같은 두께의 구분선을 긋는다.
 - 조각 사이 틈: 가로·세로로 `Stroke`의 2배 이하인 빈 틈은 `Stroke` 두께 이음선 하나만 남기고 나머지는 양쪽 그림으로 채운다 — 양쪽 테두리가 붙어 두꺼운 띠가 되지 않는다.
 - 시트 칸은 그림 전체를 담아야 한다. 위 칸에 이어지는 그림(키 큰 나무 등)은 `Height`를 늘려 두 칸을 함께 자른다. 검증이 칸 윗줄에 일부만 칠해진 조각을 잡는다.
 
@@ -62,12 +63,12 @@ Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 �
 - 캔버스 바로 아래 `Safe` 자식은 안전 영역(`Screen.safeArea`)에 맞춘다 — HUD 화면은 모두 그 안에 놓인다.
 - 모든 UI 픽셀 그림은 화면에서 한 픽셀이 `UiScale.TexelSize`(배율 × 720/540, 반올림, 최소 1) 화면 픽셀이다 — 배율이 커지면 틀·아이콘도 같이 커진다. 캔버스 배율이 정수가 아니어도 그렇다.
 - 틀(`Sheets/Panel`, `Button`, `Badge`)은 9-slice(`Image.Type.Sliced`, 테두리 `PixelUIScaler.FrameBorder`)로 늘리고, 테두리는 월드와 같은 색·두께(`PixelSpriteComposer.Outline`, `Stroke`)다. 그림은 회색조라 `Image.color`로 칠한다.
-- 아이콘(`Icon.*`)은 `Scale` 1로 합성하고 그린 픽셀만 남겨 자른 뒤, UI에서는 원래 픽셀 크기 그대로 놓는다(배치된 자리의 가운데 기준). 늘리거나 줄이지 않으므로 아이콘을 놓는 자리는 그 크기를 감안해 잡는다.
+- 아이콘(`Icon.*`)은 월드와 같은 `Scale` 2 패턴(9×9 이하)으로 합성하고 그린 픽셀만 남겨 자른 뒤, UI에서는 원래 픽셀 크기 그대로 놓는다(배치된 자리의 가운데 기준). 늘리거나 줄이지 않으므로 아이콘을 놓는 자리는 그 크기를 감안해 잡는다.
 - 글자(Jua 폰트)는 픽셀 그림이 아니라 이 규칙 밖이다.
 - 프로젝트는 선형 색 공간이라 어두운 반투명 상자가 알파 값보다 훨씬 비쳐 보인다 — 글을 읽는 패널·창 배경은 불투명하게 칠한다(`UiKit.PanelColor`). 화면 배치는 [session](../game/session.md#화면-배치).
 
 ## 픽셀 패턴
-새 그림은 `Assets/Resources/Pixel2D/Patterns/<이름>.txt`에 팔레트(`문자=RRGGBB`)와 픽셀 행으로 쓴다. 생성 도구: `scripts/author_pixel_patterns.py`, `Assets/Editor/Pixel2DSetup.cs`.
+새 그림은 `Assets/Resources/Pixel2D/Patterns/<이름>.txt`에 팔레트(`문자=RRGGBB`)와 픽셀 행으로 쓴다. 팔레트 값 `@RRGGBB`는 **팀 픽셀**이다 — 합성할 때 그 행의 `Color` 대신 팀 색을 곱한다(유닛 투구·두건·돛, 도시 지붕·깃발). 팀 색은 유닛(`UnitView`, 아군·적 색)과 도시·건물(소유 팀) 합성에 넘어가고, 팀이 없으면 회색조 그대로 보인다. 생성 도구: `scripts/author_pixel_patterns.py`(패턴 + 카탈로그), `Assets/Editor/Pixel2DSetup.cs`(파생 Sprite·프리팹).
 에셋 출처: [Pixel2DImplementation](../../Pixel2DImplementation.md).
 
 ## 레거시 3D 모델

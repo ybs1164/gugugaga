@@ -50,7 +50,7 @@ Table.Gods,MythicIndex,MythicUnits Index,,-1,,강림하는 신화 유닛. -1 = �
 Table.Gods,FaithPunch{n},FaithPunches Index,,없음,,이 신이 쓸 수 있는 신앙 펀치
 Table.Gods,Note,메모,,,,로더 무시
 Table.SpriteCatalog,VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
-Table.SpriteCatalog,Sheet,문자열,O,,,"Assets/Resources/Pixel2D/Sheets/<이름>.png, 또는 Pattern/<이름>(아래 픽셀 패턴)"
+Table.SpriteCatalog,Sheet,문자열,O,,,"Pattern/<이름>(아래 픽셀 패턴), 또는 Assets/Resources/Pixel2D/Sheets/<이름>.png(현재 시트는 UI 틀뿐)"
 Table.SpriteCatalog,Column,정수,,0,,시트의 16px 격자 좌표
 Table.SpriteCatalog,Row,정수,,0,,시트의 16px 격자 좌표
 Table.SpriteCatalog,Width,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)

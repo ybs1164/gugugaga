@@ -1,0 +1,14 @@
+b=A0623C
+i=B4BCC8
+j=7E8798
+m=EEF1F5
+x=6A625E
+...jjj..
+...jmj..
+....b...
+....b...
+jjjjjjj.
+jmmiijjj
+..jjij..
+.jjjjjj.
+xxxxxxxx

@@ -1,0 +1,9 @@
+L=F0DDB6
+W=F4F4F0
+r=E0574A
+.rrrr.....
+rWrrWr....
+rrrrrr.rr.
+..LL..rWrr
+..LL...LL.
+..LL...LL.

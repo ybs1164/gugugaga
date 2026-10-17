@@ -1,0 +1,10 @@
+G=D2D2CC
+W=F4F4F0
+c=9A918A
+e=CFC8BE
+x=6A625E
+..W..
+.WGc.
+.ccc.
+ecccx
+ccxxx

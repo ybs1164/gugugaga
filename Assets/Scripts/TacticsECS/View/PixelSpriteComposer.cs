@@ -16,7 +16,7 @@ namespace TacticsECS
         public const int Tile = 32;
         public const int Headroom = 8;
         public const int Stroke = 2;
-        public static readonly Color32 Outline = new Color32(63, 38, 49, 255);
+        public static readonly Color32 Outline = new Color32(42, 25, 27, 255);
         /// <summary>Visual ids whose art did not fit the canvas even after nudging (verification reads this).</summary>
         public static readonly HashSet<string> Clipped = new HashSet<string>();
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
@@ -138,7 +138,8 @@ namespace TacticsECS
                 {
                     if (!opaque[j * sw + i] || stripped[j * sw + i]) continue;
                     Color32 c = source[((int)rect.y + j) * sprite.texture.width + (int)rect.x + i];
-                    var tinted = new Color32((byte)(c.r * tint.r), (byte)(c.g * tint.g), (byte)(c.b * tint.b), 255);
+                    var t = c.a == PixelSpriteCatalog.TeamAlpha ? team : tint; // pattern '@' pixels take the team colour
+                    var tinted = new Color32((byte)(c.r * t.r), (byte)(c.g * t.g), (byte)(c.b * t.b), 255);
                     for (int sy = 0; sy < scale; sy++) for (int sx = 0; sx < scale; sx++)
                         art[(j * scale + sy) * w + (flip ? w - 1 - (i * scale + sx) : i * scale + sx)] = tinted;
                 }

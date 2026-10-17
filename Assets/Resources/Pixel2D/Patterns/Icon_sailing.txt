@@ -1,0 +1,16 @@
+1=@FFFFFF
+2=@C2C2C2
+G=D2D2CC
+W=F4F4F0
+b=A0623C
+n=6E4030
+w=D0935A
+....n....
+....nWW..
+....nWWG.
+....nWWWG
+....n1112
+....n....
+wwwwwwwww
+.bbbbbbb.
+..nnnnn..

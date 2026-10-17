@@ -1,0 +1,11 @@
+W=F4F4F0
+r=E0574A
+..rrrrr..
+.rWWWWWr.
+rWWrrrWWr
+rWrrWrrWr
+rWrWWWrWr
+rWrrWrrWr
+rWWrrrWWr
+.rWWWWWr.
+..rrrrr..

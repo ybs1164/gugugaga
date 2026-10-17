@@ -1,0 +1,13 @@
+W=F4F4F0
+i=B4BCC8
+q=A9383E
+r=E0574A
+iiiiiiiii
+irrrWrrri
+irrrWrrri
+iWWWWWWWi
+irrrWrrqi
+.irrWrqi.
+.irrWqqi.
+..irWqi..
+...iii...

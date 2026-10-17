@@ -1,0 +1,14 @@
+F=F59A3A
+c=9A918A
+e=CFC8BE
+n=6E4030
+x=6A625E
+...xxx...
+..xcccx..
+.xcccccx.
+xcccccccx
+xxxxxxxxx
+.eeeeeee.
+.eFFeeee.
+.eFFennc.
+.ccccnnc.

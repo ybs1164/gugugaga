@@ -1,0 +1,13 @@
+k=3A2228
+p=A066B4
+v=74468A
+z=CC8661
+...ppp...
+..ppppp..
+.ppvvvpp.
+.pvzzzvp.
+.pzkzkzp.
+.ppzzzpp.
+ppppppppp
+pppppppvv
+.vvvvvvv.

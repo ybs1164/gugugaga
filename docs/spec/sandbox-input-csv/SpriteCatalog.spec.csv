@@ -1,6 +1,6 @@
 ﻿Column,Type,Required,Default,AppliesTo,Description
 VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
-Sheet,문자열,O,,,"Assets/Resources/Pixel2D/Sheets/<이름>.png, 또는 Pattern/<이름>(아래 픽셀 패턴)"
+Sheet,문자열,O,,,"Pattern/<이름>(아래 픽셀 패턴), 또는 Assets/Resources/Pixel2D/Sheets/<이름>.png(현재 시트는 UI 틀뿐)"
 Column,정수,,0,,시트의 16px 격자 좌표
 Row,정수,,0,,시트의 16px 격자 좌표
 Width,정수,,16,,잘라낼 픽셀 크기. Pattern/Solid는 칠할 사각형 크기(디테일 픽셀)

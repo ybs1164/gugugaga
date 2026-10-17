@@ -1,0 +1,12 @@
+c=9A918A
+e=CFC8BE
+g=F8D86A
+m=EEF1F5
+x=6A625E
+...eee....
+..eeecc...
+.eegcccx..
+eecccgccx.
+eccmccccxx
+ccccccxxxx
+.xxxxxxxx.

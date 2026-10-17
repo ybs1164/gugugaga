@@ -1,0 +1,10 @@
+b=A0623C
+r=E0574A
+w=D0935A
+..r.r.r..
+.rrrrrrr.
+wwwwwwwww
+wbwbwbwbw
+bwbwbwbwb
+.wbwbwbw.
+..bbbbb..

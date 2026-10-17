@@ -9,7 +9,7 @@ namespace TacticsECS
     /// </summary>
     public static class TileVisuals
     {
-        public const int FeatureBackX = -3, FeatureBackY = 3, StructureFrontX = 7, StructureFrontY = -6;
+        public const int FeatureBackX = -4, FeatureBackY = 4, StructureFrontX = 6, StructureFrontY = -6; // even: Scale 2 pixel grid
 
         public static string Feature(string tileTypeId) =>
             tileTypeId == "Forest" || tileTypeId == "Mountain" || tileTypeId == "Rock" ? "Terrain." + tileTypeId : null;

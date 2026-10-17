@@ -1,0 +1,9 @@
+i=B4BCC8
+j=7E8798
+k=3A2228
+m=EEF1F5
+..iiii...
+.iimiii.i
+iikiiiiii
+.ijjjji.i
+..jjjj...

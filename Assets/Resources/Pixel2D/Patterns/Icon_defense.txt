@@ -1,0 +1,13 @@
+B=4F7FCF
+D=3A5EA8
+i=B4BCC8
+m=EEF1F5
+iiiiiiiii
+iBBBBBBBi
+iBmBBBBBi
+iBBBBBBBi
+iBBBBBBDi
+.iBBBBDi.
+.iBBBDDi.
+..iBDDi..
+...iii...

@@ -1,0 +1,14 @@
+W=F4F4F0
+c=9A918A
+e=CFC8BE
+p=A066B4
+v=74468A
+...p...
+..pp...
+..ppv..
+.ppWpv.
+.pWWpv.
+.pppvv.
+..vvv..
+.eeeee.
+ccccccc

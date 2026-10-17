@@ -1,0 +1,13 @@
+G=D2D2CC
+W=F4F4F0
+c=9A918A
+e=CFC8BE
+x=6A625E
+....W....
+...WWG...
+...WcG...
+..ccccx..
+..cccxx.e
+.ecccxxee
+eccccxxcc
+ccccxxxcx

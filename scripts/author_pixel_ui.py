@@ -1,7 +1,7 @@
 """Author the 9-slice UI frames (Panel, Button, Badge) in the world sprites' outline style.
 
 Each frame is greyscale except the outline, so Image.color still tints it. The outline is the composer's
-shared stroke colour and width (PixelSpriteComposer.Outline / Stroke): 2 texels of #3F2631.
+shared stroke colour and width (PixelSpriteComposer.Outline / Stroke): 2 texels of #2A191B.
 Slice border = 4 texels (outline 2 + bevel 1 + margin 1); Pixel2DSetup sets it on import.
 """
 from pathlib import Path
@@ -9,7 +9,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1] / 'Assets/Resources/Pixel2D/Sheets'
 SIZE = 12
-OUTLINE = (63, 38, 49, 255)
+OUTLINE = (42, 25, 27, 255)
 CLEAR = (0, 0, 0, 0)
 
 def frame(fill, light, shade, corner):

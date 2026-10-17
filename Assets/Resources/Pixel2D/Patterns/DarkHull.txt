@@ -1,0 +1,9 @@
+1=@FFFFFF
+n=6E4030
+x=6A625E
+nn..........nn
+nnnnnnnnnnnnnn
+x111111111111x
+.xxxxxxxxxxxx.
+..xxxxxxxxxx..
+...xxxxxxxx...

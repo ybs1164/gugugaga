@@ -1,0 +1,11 @@
+W=F4F4F0
+q=A9383E
+r=E0574A
+.rr...rr.
+rrrr.rrrr
+rWrrrrrrr
+rrrrrrrrq
+.rrrrrrq.
+..rrrrq..
+...rrq...
+....q....

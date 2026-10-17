@@ -1,0 +1,13 @@
+1=@FFFFFF
+2=@C2C2C2
+3=@8C8C8C
+g=F8D86A
+j=7E8798
+.jjjj.
+j1111j
+j1gg2j
+j1gg2j
+j1122j
+j1223j
+.j22j.
+..jj..

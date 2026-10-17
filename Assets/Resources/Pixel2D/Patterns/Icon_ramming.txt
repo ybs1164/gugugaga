@@ -1,0 +1,9 @@
+b=A0623C
+i=B4BCC8
+m=EEF1F5
+....mm...
+...mmmi..
+bbbmmmmii
+bbbmmmmii
+...mmmi..
+....mm...

@@ -1,0 +1,12 @@
+W=F4F4F0
+Y=FFE07A
+p=A066B4
+v=74468A
+...Y...
+..pYp..
+.ppppp.
+ppWpppp
+pWppppv
+ppppppv
+.pppvv.
+..vvv..

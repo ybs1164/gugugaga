@@ -1,0 +1,12 @@
+W=F4F4F0
+d=3D7E46
+f=5DAA4E
+k=3A2228
+l=9BD86E
+..lllf...
+.llllff..
+llflfffd.
+lWkffWkfd
+lfffffffd
+.ffffffd.
+..ddddd..

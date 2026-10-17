@@ -12,9 +12,9 @@ namespace TacticsECS
         [SerializeField] private Transform hpDisplayPrefab;
         [SerializeField] private Transform damagePopupPrefab;
         public static readonly Vector2 HpBarSize = new Vector2(.6f,.0625f);
-        public const float HpBarLocalY = .3125f;
-        public const float HpNumberLocalY = .4375f;
-        private const int EmbarkedRiderX = 3, EmbarkedRiderY = 7;
+        public const float HpBarLocalY = .46875f; // just above the tallest unit art (tile-filling sprites)
+        public const float HpNumberLocalY = .59375f;
+        private const int EmbarkedRiderX = 6, EmbarkedRiderY = 4; // even: keeps Scale 2 art on the shared pixel grid
         private UnitDefinition _definition;
         private GridWorld _grid;
         private GameObject _model;
@@ -41,8 +41,8 @@ namespace TacticsECS
             _model = PixelSpriteCatalog.Build(_definition.ModelId,transform,order:1);
             PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.34375f),new Vector2(.5f,.125f),new Color(.1f,.14f,.2f,.3f),-1);
             _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.4375f),new Vector2(.5f,.0625f),Color.white,3);
-            _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteComposer.Compose("Icon.guard",half:true),new Vector2(.3125f,.1875f),Vector2.one,Color.white,4);
-            _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteComposer.Compose("Icon.freeze",half:true),new Vector2(-.3125f,.1875f),Vector2.one,Color.white,4);
+            _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteComposer.Compose("Icon.guard"),new Vector2(.3125f,.1875f),Vector2.one,Color.white,4);
+            _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteComposer.Compose("Icon.freeze"),new Vector2(-.3125f,.1875f),Vector2.one,Color.white,4);
             BuildHpDisplay();
             transform.position = PixelCoordinates.GridToWorld(grid,world.Get<GridPosition>(id).Value);
             Refresh(world,id);
@@ -72,22 +72,23 @@ namespace TacticsECS
             _hpBarFill.localScale = new Vector3(width,HpBarSize.y,1);
             _hpBarFill.localPosition = new Vector3((width-HpBarSize.x)/2,HpBarLocalY,0);
             if (_hpFill != null) _hpFill.color = HpColorScale.ForFraction(fraction);
-            _teamBadge.color = world.Get<Team>(id) == Team.Player ? PlayerColor : EnemyColor;
+            var teamColor = world.Get<Team>(id) == Team.Player ? PlayerColor : EnemyColor;
+            _teamBadge.color = teamColor;
             _teamBadge.transform.localScale = world.Get<Team>(id) == Team.Player ? new Vector3(.5f,.0625f,1) : new Vector3(.375f,.125f,1);
             _guardBadge.gameObject.SetActive(world.Get<IsGuarding>(id).Value);
             bool frozen = world.GetOrDefault<Frozen>(id).Value;
             bool hidden = world.GetOrDefault<Hidden>(id).Value;
             bool praying = world.GetOrDefault<Praying>(id).Value;
             _statusBadge.gameObject.SetActive(frozen || praying || hidden);
-            _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : praying ? "Icon.heal" : "Icon.infiltrate",half:true);
+            _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : praying ? "Icon.heal" : "Icon.infiltrate");
             var embarked = world.GetOrDefault<Embarked>(id);
             _bodyOrigin = Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;
             string visual = PixelSpriteCatalog.Has(_definition.ModelId) ? _definition.ModelId : "UI.Missing";
             // Embarked: hull first, rider standing in it, baked into one sprite with one outline style.
             var body = embarked.Value
-                ? PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+embarked.NavalUnitId), new SpritePlacement(visual,EmbarkedRiderX,EmbarkedRiderY) })
-                : PixelSpriteComposer.Compose(visual);
+                ? PixelSpriteComposer.Compose(new[] { new SpritePlacement("Boat."+embarked.NavalUnitId), new SpritePlacement(visual,EmbarkedRiderX,EmbarkedRiderY) },team:teamColor)
+                : PixelSpriteComposer.Compose(visual,team:teamColor); // helmets, hoods and sails wear the team colour
             var bodyRenderer = _model.GetComponentInChildren<SpriteRenderer>();
             bodyRenderer.sprite = body;
             bodyRenderer.color = world.GetOrDefault<Mythic>(id).Active ? MythicTint : Color.white; // 신화 유닛은 금빛

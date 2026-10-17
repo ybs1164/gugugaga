@@ -16,6 +16,8 @@ namespace TacticsECS
         public const int UnitOrder = 12000;
         public const int OverlayOrder = 24000;
         public const int FogOrder = 25000;
+        /// <summary>Alpha that marks a pattern's team pixels (palette value <c>@RRGGBB</c>); the composer tints them with the team colour.</summary>
+        public const byte TeamAlpha = 254;
         private static readonly Dictionary<string, List<SpritePartInfo>> Parts = new Dictionary<string, List<SpritePartInfo>>();
         private static readonly Dictionary<string, Sprite> Sprites = new Dictionary<string, Sprite>();
         private static readonly Dictionary<string, Sprite> Grounds = new Dictionary<string, Sprite>();
@@ -149,7 +151,7 @@ namespace TacticsECS
 
         private static bool IsGround(string id) => id.StartsWith("Ground.") || id == "Terrain.Cloud";
 
-        /// <summary>A 16 px ground cell repeated 2x2, so ground shares the composites' 32 px detail grid.</summary>
+        /// <summary>A ground cell drawn at its Scale and repeated to fill one tile, so ground shares the composites' detail grid.</summary>
         private static Sprite Ground(string id, SpritePartInfo part)
         {
             if (Grounds.TryGetValue(id, out var sprite) && sprite != null) return sprite;
@@ -157,14 +159,20 @@ namespace TacticsECS
             int w = (int)source.rect.width, h = (int)source.rect.height;
             var pixels = source.texture.GetPixels((int)source.rect.x, (int)source.rect.y, w, h);
             var tint = ParseColor(part.Color);
-            var tiled = new Color[w * h * 4];
-            for (int y = 0; y < h * 2; y++)
-                for (int x = 0; x < w * 2; x++) tiled[y * w * 2 + x] = pixels[(y % h) * w + x % w] * tint;
-            var texture = new Texture2D(w * 2, h * 2, TextureFormat.RGBA32, false)
+            int size = PixelSpriteComposer.Tile, scale = part.Scale;
+            var tiled = new Color[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    var c = pixels[(y / scale % h) * w + x / scale % w] * tint;
+                    c.a = 1f;
+                    tiled[y * size + x] = c;
+                }
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
                 { name = "Ground_" + id, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
             texture.SetPixels(tiled);
             texture.Apply(false, false);
-            sprite = Sprite.Create(texture, new Rect(0, 0, w * 2, h * 2), new Vector2(0.5f, 0.5f), PixelsPerUnit, 0, SpriteMeshType.FullRect);
+            sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), PixelsPerUnit, 0, SpriteMeshType.FullRect);
             sprite.name = id;
             Grounds[id] = sprite;
             return sprite;
@@ -234,7 +242,11 @@ namespace TacticsECS
             int row = 0;
             while (row < lines.Length && lines[row].Contains("="))
             {
-                palette[lines[row][0]] = ParseColor(lines[row].Substring(2).Trim());
+                string value = lines[row].Substring(2).Trim();
+                bool team = value.StartsWith("@");
+                var color = ParseColor(team ? value.Substring(1) : value);
+                if (team) color.a = TeamAlpha / 255f;
+                palette[lines[row][0]] = color;
                 row++;
             }
             int width = lines[row].Length, height = lines.Length - row;

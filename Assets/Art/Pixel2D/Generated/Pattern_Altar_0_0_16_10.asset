@@ -1,5 +1,51 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!28 &-988479179093348706
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Pixel_Altar
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 16
+  m_Height: 10
+  m_CompleteImageSize: 640
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 640
+  _typelessdata: 000000000000000000000000c0b2a1ff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff0000000000000000000000000000000000000000c0b2a1ff9a918aff9a918aff9a918affc0b2a1ffc0b2a1ffc0b2a1ffc0b2a1ff9a918aff9a918aff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918affcfc8beffcfc8beff00000000000000000000000000000000cfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918affcfc8beffcfc8beff00000000000000000000000000000000cfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff72627aff0000000000000000fcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2fffcf0dbfffcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8befffcf0dbfffcf0dbff0000000000000000ffffffffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffffffffff0000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
 --- !u!213 &21300000
 Sprite:
   m_ObjectHideFlags: 0
@@ -26,7 +72,7 @@ Sprite:
   m_SpriteAtlas: {fileID: 0}
   m_RD:
     serializedVersion: 3
-    texture: {fileID: 4434460920958177793}
+    texture: {fileID: -988479179093348706}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -117,7 +163,7 @@ Sprite:
     downscaleMultiplier: 1
   m_AtlasRD:
     serializedVersion: 3
-    texture: {fileID: 4434460920958177793}
+    texture: {fileID: -988479179093348706}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -210,49 +256,3 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
---- !u!28 &4434460920958177793
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Pixel_Altar
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 4
-  m_Width: 16
-  m_Height: 10
-  m_CompleteImageSize: 640
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 1
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 640
-  _typelessdata: 000000000000000000000000c0b2a1ff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff0000000000000000000000000000000000000000c0b2a1ff9a918aff9a918aff9a918affc0b2a1ffc0b2a1ffc0b2a1ffc0b2a1ff9a918aff9a918aff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918affcfc8beffcfc8beff00000000000000000000000000000000cfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918affcfc8beffcfc8beff00000000000000000000000000000000cfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff9a918aff72627aff00000000000000000000000000000000c0b2a1ff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff72627aff0000000000000000fcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2fffcf0dbfffcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beffcfc8befffcf0dbfffcf0dbff0000000000000000ffffffffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffffffffff0000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 

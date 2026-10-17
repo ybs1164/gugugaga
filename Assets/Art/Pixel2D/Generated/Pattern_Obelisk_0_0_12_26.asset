@@ -1,5 +1,51 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!28 &-1954351115233586643
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Pixel_Obelisk
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 12
+  m_Height: 26
+  m_CompleteImageSize: 1248
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 1248
+  _typelessdata: 00000000c0b2a1ff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff6a625eff00000000c0b2a1ff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff72627aff6a625efffcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9a918aff9a918aff9a918aff9a918affc0b2a1ff00000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9786a2ff9a918aff9a918aff72627aff0000000000000000fcf0dbfffcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918affc0b2a1ffc0b2a1ff000000000000000000000000fcf0dbff9786a2ffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beff9786a2ffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beff9786a2ffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8befffcf0dbffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8befffcf0dbffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000f4f4f0fff4f4f0ff5dbbdbff5dbbdbfff4f4f0fff4f4f0ff9a918aff72627aff00000000000000000000000000000000f4f4f0fff4f4f0ff5dbbdbff5dbbdbfff4f4f0fff4f4f0ff9a918aff72627aff00000000000000000000000000000000fcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000ffff7dffb49161ffb49161ffb49161ffb49161ffb49161ffd69a3affd69a3aff0000000000000000000000000000000000000000ffff7dfff8d86afff8d86afff8d86afff8d86affd69a3aff000000000000000000000000000000000000000000000000ffff7dffffff7dfff8d86afff8d86affffff7dff000000000000000000000000000000000000000000000000000000000000000000000000ffff7dffffff7dff0000000000000000000000000000000000000000
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
 --- !u!213 &21300000
 Sprite:
   m_ObjectHideFlags: 0
@@ -26,7 +72,7 @@ Sprite:
   m_SpriteAtlas: {fileID: 0}
   m_RD:
     serializedVersion: 3
-    texture: {fileID: 247214174740452962}
+    texture: {fileID: -1954351115233586643}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -117,7 +163,7 @@ Sprite:
     downscaleMultiplier: 1
   m_AtlasRD:
     serializedVersion: 3
-    texture: {fileID: 247214174740452962}
+    texture: {fileID: -1954351115233586643}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -210,49 +256,3 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
---- !u!28 &247214174740452962
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Pixel_Obelisk
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 4
-  m_Width: 12
-  m_Height: 26
-  m_CompleteImageSize: 1248
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 1
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 1248
-  _typelessdata: 00000000c0b2a1ff72627aff72627aff72627aff72627aff72627aff72627aff72627aff72627aff6a625eff00000000c0b2a1ff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff9a918aff72627aff6a625efffcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9a918aff9a918aff9a918aff9a918affc0b2a1ff00000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9786a2ff9a918aff9a918aff72627aff0000000000000000fcf0dbfffcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918affc0b2a1ffc0b2a1ff000000000000000000000000fcf0dbff9786a2ffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beff9786a2ffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beff9786a2ffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8befffcf0dbffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8befffcf0dbffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000f4f4f0fff4f4f0ff5dbbdbff5dbbdbfff4f4f0fff4f4f0ff9a918aff72627aff00000000000000000000000000000000f4f4f0fff4f4f0ff5dbbdbff5dbbdbfff4f4f0fff4f4f0ff9a918aff72627aff00000000000000000000000000000000fcf0dbff9786a2ff9786a2ff9786a2ff9786a2ff9786a2ff9a918aff72627aff00000000000000000000000000000000fcf0dbffcfc8beffcfc8beffcfc8beffcfc8beffcfc8beff9a918aff72627aff00000000000000000000000000000000ffff7dffb49161ffb49161ffb49161ffb49161ffb49161ffd69a3affd69a3aff0000000000000000000000000000000000000000ffff7dfff8d86afff8d86afff8d86afff8d86affd69a3aff000000000000000000000000000000000000000000000000ffff7dffffff7dfff8d86afff8d86affffff7dff000000000000000000000000000000000000000000000000000000000000000000000000ffff7dffffff7dff0000000000000000000000000000000000000000
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 

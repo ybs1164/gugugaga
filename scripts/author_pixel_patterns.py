@@ -160,32 +160,10 @@ def ground(name, base, marks):
         for x, y in cells: grid[y % 16][x % 16] = char
     ART[name] = [''.join(r) for r in grid]
 
-def tufts(spots):
-    """Grass tuft: two dark blades and one light tip per spot."""
-    dark, light = [], []
-    for x, y in spots:
-        dark += [(x, y + 1), (x + 2, y + 1), (x + 1, y + 1)]
-        light += [(x + 1, y)]
-    return dark, light
-
-SPOTS = [(2, 2), (9, 1), (13, 6), (5, 8), (11, 11), (1, 13), (7, 14)]
-PALETTE.update({'H': '8CC765', 'T': '74B154', 'U': 'AEDC84',      # grass
-                'S': 'ECD49A', 'R': 'D7B877', 'V': 'F7E8BE',      # sand
-                'N': 'F1F6F9', 'M': 'D5E2EC',                     # snow
-                'Z': 'FFFFFF', 'X': 'E2E2E2', 'K': 'F2F2F2',      # tribe field (tinted)
-                'C': 'D9E1EA', 'E': 'F3F6FA', 'I': 'B9C6D4',      # cloud
-                'O': '3D86C6', 'J': '5BA6DE'})                    # ocean
-d, lt = tufts(SPOTS)
-ground('Grass', 'H', [('T', d), ('U', lt)])
-ground('Field', 'Z', [('X', d), ('K', lt)])
-ground('Sand', 'S', [('R', [(3, 3), (4, 3), (12, 5), (7, 9), (8, 9), (14, 12), (2, 12), (10, 14)]),
-                     ('V', [(3, 2), (12, 4), (7, 8), (14, 11), (2, 11)])])
-ground('Snow', 'N', [('M', [(4, 3), (5, 3), (12, 7), (13, 7), (3, 11), (9, 13), (10, 13)])])
-waves = lambda pts: [(x + dx, y) for x, y in pts for dx in range(3)]
-ground('Water', 'a', [('o', waves([(2, 3), (10, 7), (4, 12)])), ('A', waves([(12, 13), (7, 1)]))])
-ground('Ocean', 'O', [('J', waves([(3, 4), (11, 9), (5, 13)]))])
-ground('Fog', 'C', [('E', [(x, y) for x in range(2, 8) for y in range(2, 5)] + [(x, y) for x in range(9, 15) for y in range(9, 12)]),
-                    ('I', [(x, 5) for x in range(2, 8)] + [(x, 12) for x in range(9, 15)])])
+# Ground is flat colour: tiles meet seamlessly and the objects on them carry all the detail.
+PALETTE.update({'H': '8CC765', 'S': 'ECD49A', 'N': 'F1F6F9', 'Z': 'FFFFFF', 'C': 'D9E1EA', 'O': '3D86C6'})
+for name, base in [('Grass', 'H'), ('Field', 'Z'), ('Sand', 'S'), ('Snow', 'N'), ('Water', 'a'), ('Ocean', 'O'), ('Fog', 'C')]:
+    ground(name, base, [])
 
 # ---------------------------------------------------------------- reference unit pack -> Sheets/Units.png
 # Units, boats, houses, towers and the city wall come straight from the pack (32 px cells = one tile, Scale 1).
@@ -421,7 +399,7 @@ def hd(rows, ground=False):
             out[y][x] = ('@' if team else '') + '%02X%02X%02X' % c
     return out
 
-TEXTURED = set('lfdecxwbnyuHTS')   # leaf, stone, wood, straw, grass, sand
+TEXTURED = set('lfdecxwbnyu')   # leaf, stone, wood, straw
 CHARS = [chr(c) for c in range(33, 127) if chr(c) not in '.=@']
 def save(name, grid):
     colors = sorted({v for r in grid for v in r if v})

@@ -300,8 +300,8 @@ namespace TacticsECS.EditorTools
                 }
                 if(name=="Sandbox")
                 {
-                    File.WriteAllText("Temp/SandboxUnits.csv",UnitCsvSerializer.Write(GameTables.Units));
-                    typeof(BattleController).GetMethod("HandleSandboxLoad",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{Path.GetFullPath("Temp/SandboxUnits.csv")});
+                    File.Copy("Assets/Resources/"+GameTables.UnitsPath+".csv","Temp/SandboxUnits.csv",true);
+                    typeof(BattleController).GetMethod("HandleSandboxCsvSelected",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{GameTables.UnitsPath,Path.GetFullPath("Temp/SandboxUnits.csv")});
                     Call(controller,"HandleGenerateTerrain");
                     CaptureCamera(Camera.main,"docs/images/pixel2d/SandboxGenerated.png",1920,1080,true);
                     var tech=controller.GetComponentInChildren<TechTreeHud>(true);

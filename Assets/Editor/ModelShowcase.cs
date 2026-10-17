@@ -40,7 +40,7 @@ namespace TacticsECS.EditorTools
             ShotMap(outDir, metrics);
             ShotUnits(outDir, metrics);
 
-            File.WriteAllText(Path.Combine(outDir, "metrics.csv"), metrics.ToString());
+            File.WriteAllText(Path.Combine(outDir, "metrics.csv"), metrics.ToString(), new UTF8Encoding(true));
             Debug.Log("[ModelShowcase] wrote " + outDir);
         }
 

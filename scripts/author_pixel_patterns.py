@@ -414,7 +414,7 @@ for i, r in enumerate(rows[1:], 1):
     if f[1].startswith('Pattern/') and f[8] == '2':
         f[4], f[5], f[8] = str(int(f[4]) * 2), str(int(f[5]) * 2), '1'
         rows[i] = ','.join(f)
-(ROOT / 'SpriteCatalog.csv').write_text('\n'.join(rows) + '\n', encoding='utf-8')
+(ROOT / 'SpriteCatalog.csv').write_text('\n'.join(rows) + '\n', encoding='utf-8-sig')
 
 # ---------------------------------------------------------------- write the patterns the catalog uses
 used = {r.split(',')[1][8:] for r in rows[1:] if r.split(',')[1].startswith('Pattern/')}

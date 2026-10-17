@@ -1,4 +1,4 @@
-Index,Kind,Category,Target,BuildingIndex,UnitIndex,BoatIndex,Name,Description
+﻿Index,Kind,Category,Target,BuildingIndex,UnitIndex,BoatIndex,Name,Description
 0,Passive,Move,Mountain,,,,산 이동,산 타일 진입/이동 가능
 1,Passive,Defense,Mountain,,,,산 방어,산 타일 유닛 방어력 보너스
 2,Passive,Reveal,Resource_Metal,,,,광맥 발견,숨겨진 광물 자원이 보인다

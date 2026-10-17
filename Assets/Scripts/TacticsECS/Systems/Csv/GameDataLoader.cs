@@ -154,7 +154,7 @@ namespace TacticsECS
                 if (text.Length == 0) continue;
                 var file = Path.Combine(destFolder, path + ".csv");
                 Directory.CreateDirectory(Path.GetDirectoryName(file));
-                File.WriteAllText(file, text, new System.Text.UTF8Encoding(false));
+                File.WriteAllText(file, text.TrimStart('﻿'), new System.Text.UTF8Encoding(true));
                 count++;
             }
             return count;

@@ -1,4 +1,4 @@
-Id,Name,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost
+﻿Id,Name,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost
 melee,Melee,12,1,Melee,Move,Attack,SelfDestruct,,,Land,3,5,1,0,0,2
 ranged,Ranged,8,0,Ranged,Move,Attack,Heal,,,Land,2,4,3,4,2,3
 guard,Guard,9,3,Guard,Move,Attack,Defend,Counter,,Land,2,3,1,0,0,3

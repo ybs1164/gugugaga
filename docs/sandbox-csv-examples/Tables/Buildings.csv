@@ -1,4 +1,4 @@
-Index,Id,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,AdjacentBuildingIndex1,AdjacentBuildingIndex2,AdjacentBuildingIndex3,PopulationPerAdjacent,FaithCap,Flag1,Flag2,Flag3,Task
+﻿Index,Id,Cost,Population,Terrain1,Terrain2,RequiredStructure1,RequiredStructure2,AdjacentBuildingIndex1,AdjacentBuildingIndex2,AdjacentBuildingIndex3,PopulationPerAdjacent,FaithCap,Flag1,Flag2,Flag3,Task
 0,LumberHut,3,1,Forest,,,,,,,0,,,,,
 1,Farm,5,2,Field,,Resource_Crop,,,,,0,,,,,
 2,Mine,5,2,Mountain,,Resource_Metal,Resource_Ore,,,,0,,,,,

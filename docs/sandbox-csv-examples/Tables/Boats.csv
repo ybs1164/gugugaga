@@ -1,4 +1,4 @@
-Index,Id,Kind,Defense,Action1,Action2,Action3,Action4,Action5,Action6,Action7,Action8,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Note
+﻿Index,Id,Kind,Defense,Action1,Action2,Action3,Action4,Action5,Action6,Action7,Action8,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Note
 0,raft,Raft,1,Move,Stiff,,,,,,,2,0,0,0,0,0,항구에 들어간 육지 유닛이 변한다(비용 없음). 체력은 태운 유닛 것
 1,scout,Upgrade,1,Move,Attack,Charge,Scout,Counter,,,,3,2,2,0,0,5,뗏목 업그레이드(자기 영토) — 배 타기
 2,rammer,Upgrade,3,Move,Attack,Charge,Counter,,,,,3,3,1,0,0,5,뗏목 업그레이드 — 충파

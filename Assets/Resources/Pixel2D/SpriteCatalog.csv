@@ -1,4 +1,4 @@
-VisualId,Sheet,Column,Row,Width,Height,X,Y,Scale,FlipX,Layer,Color,MinLevel,MaxLevel,Note
+﻿VisualId,Sheet,Column,Row,Width,Height,X,Y,Scale,FlipX,Layer,Color,MinLevel,MaxLevel,Note
 Ground.Grass,Pattern/Grass,0,0,32,32,0,0,1,0,0,FFFFFF,0,,Original pattern
 Ground.Forest,Pattern/Grass,0,0,32,32,0,0,1,0,0,E4EEDC,0,,Original pattern
 Ground.Mountain,Pattern/Grass,0,0,32,32,0,0,1,0,0,FFFFFF,0,,Original pattern

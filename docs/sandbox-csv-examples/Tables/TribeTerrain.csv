@@ -1,4 +1,4 @@
-Kind,Tribe,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,MountainRate,ForestRate,Entry,TerrainType,InnerWeight,OuterWeight,Weight,MinCount,CountPerTiles,MinDistance,EdgeMargin,MaxDistanceFromCity,MaxWaterFractionOnLakes,FillRemaining,InnerRate,OuterRate,AllowedTile1,AllowedTile2,AllowedTile3,AllowedTile4,AllowedTile5,Exclude1,Exclude2,Exclude3
+﻿Kind,Tribe,NoiseType,Frequency,Octaves,SeedOffset,InnerRadius,MountainRate,ForestRate,Entry,TerrainType,InnerWeight,OuterWeight,Weight,MinCount,CountPerTiles,MinDistance,EdgeMargin,MaxDistanceFromCity,MaxWaterFractionOnLakes,FillRemaining,InnerRate,OuterRate,AllowedTile1,AllowedTile2,AllowedTile3,AllowedTile4,AllowedTile5,Exclude1,Exclude2,Exclude3
 Tribe,Default,Perlin,0.15,3,101,1,1,1,,,,,,,,,,,,,,,,,,,,,,
 Tile,Default,,,,,,,,Grass,Land,0.7,0.5,,0,0,0,0,,,,,,,,,,,,,
 Tile,Default,,,,,,,,Water,Water,0.2,0.15,,0,25,2,1,,,,,,,,,,,,,

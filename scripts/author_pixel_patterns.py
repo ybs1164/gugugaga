@@ -366,9 +366,25 @@ for name in ICONS:
 def light(c): return tuple(min(255, round(v * 1.12 + add)) for v, add in zip(c, (20, 16, 6)))
 def shade(c): return tuple(round(v * f + add) for v, f, add in zip(c, (.70, .66, .78), (6, 2, 14)))
 
+def scale2x(rows, wrap):
+    """EPX/Scale2x: doubles the drawing but rebuilds diagonals and curves at 1 px instead of 2x2 blocks."""
+    h, w = len(rows), len(rows[0])
+    def at(x, y):
+        if wrap: return rows[y % h][x % w]
+        return rows[y][x] if 0 <= x < w and 0 <= y < h else '.'
+    big = [[None] * (2 * w) for _ in range(2 * h)]
+    for y in range(h):
+        for x in range(w):
+            p, a, b, c, d = at(x, y), at(x, y - 1), at(x + 1, y), at(x - 1, y), at(x, y + 1)
+            big[2 * y][2 * x] = a if c == a and c != d and a != b else p
+            big[2 * y][2 * x + 1] = b if a == b and a != c and b != d else p
+            big[2 * y + 1][2 * x] = c if d == c and d != b and c != a else p
+            big[2 * y + 1][2 * x + 1] = d if b == d and b != a and d != c else p
+    return big
+
 def hd(rows, ground=False):
     h, w = len(rows), len(rows[0])
-    big = [[rows[y // 2][x // 2] for x in range(2 * w)] for y in range(2 * h)]
+    big = scale2x(rows, ground)
     H, W = 2 * h, 2 * w
     at = lambda x, y: big[y % H][x % W] if ground else (big[y][x] if 0 <= x < W and 0 <= y < H else '.')
     # region sizes per char (4-neighbour) so 1-art-pixel details are left alone
@@ -397,9 +413,15 @@ def hd(rows, ground=False):
                 if up == '.' or left == '.': c = light(c)
                 elif down == '.' or right == '.': c = shade(c)
                 elif down != ch and down != 'k': c = shade(c)
+                elif ch in TEXTURED and up == ch and left == ch and right == ch:
+                    # sparse 1 px texture inside leaf/stone/wood/straw areas, like the pack's surface detail
+                    n = (x * 7 + y * 13 + (x * y) % 5) % (37 if ground else 17)
+                    if n == 0: c = light(c)
+                    elif n == 9 and down == ch: c = shade(c)
             out[y][x] = ('@' if team else '') + '%02X%02X%02X' % c
     return out
 
+TEXTURED = set('lfdecxwbnyuHTS')   # leaf, stone, wood, straw, grass, sand
 CHARS = [chr(c) for c in range(33, 127) if chr(c) not in '.=@']
 def save(name, grid):
     colors = sorted({v for r in grid for v in r if v})

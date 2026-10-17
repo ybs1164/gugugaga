@@ -1,51 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!28 &-1106863299106601734
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Pixel_Logs
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 4
-  m_Width: 12
-  m_Height: 8
-  m_CompleteImageSize: 384
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 1
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 384
-  _typelessdata: c77e49ff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dffbf8a3affbf8a3affc77e49ffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffbf8a3affbf8a3afffdb56bff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ffebc163ffebc163fffdb56bffd0935affd0935affd0935affd0935affd0935affd0935affd0935affd0935affd0935affebc163ffebc163ffc77e49ff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dffbf8a3affbf8a3affc77e49ffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffbf8a3affbf8a3afffdb56bff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ffebc163ffebc163fffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bffebc163ffebc163ff
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 
 --- !u!213 &21300000
 Sprite:
   m_ObjectHideFlags: 0
@@ -72,7 +26,7 @@ Sprite:
   m_SpriteAtlas: {fileID: 0}
   m_RD:
     serializedVersion: 3
-    texture: {fileID: -1106863299106601734}
+    texture: {fileID: 6325921638525769984}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -163,7 +117,7 @@ Sprite:
     downscaleMultiplier: 1
   m_AtlasRD:
     serializedVersion: 3
-    texture: {fileID: -1106863299106601734}
+    texture: {fileID: 6325921638525769984}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -256,3 +210,49 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
+--- !u!28 &6325921638525769984
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Pixel_Logs
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 12
+  m_Height: 8
+  m_CompleteImageSize: 384
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 384
+  _typelessdata: 00000000c77e49ff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dffbf8a3aff00000000c77e49ffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffbf8a3affbf8a3afffdb56bff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ffebc163ffebc163fffdb56bffd0935affd0935affd0935affd0935affd0935affd0935affd0935affd0935affd0935affebc163ffebc163ffc77e49ff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dff76433dffbf8a3affbf8a3affc77e49ffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffa0623cffbf8a3affbf8a3afffdb56bff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ff986354ffebc163ffebc163ff00000000fdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bffebc163ff00000000
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 

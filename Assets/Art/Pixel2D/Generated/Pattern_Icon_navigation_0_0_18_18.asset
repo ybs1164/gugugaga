@@ -1,51 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!28 &-6864366861815668182
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Pixel_Icon_navigation
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 4
-  m_Width: 18
-  m_Height: 18
-  m_CompleteImageSize: 1296
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 1
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 1
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 1296
-  _typelessdata: 000000000000000000000000000000000000000000000000fdb56bff986354ff986354ff986354ff986354ff986354ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fdb56bffd0935affd0935affd0935affd0935aff986354ff0000000000000000000000000000000000000000000000000000000000000000fdb56bff986354ff986354ff986354ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ff986354ff986354ff986354ff986354ff00000000000000000000000000000000fdb56bffd0935affd0935affd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935affd0935affd0935aff986354ff00000000000000000000000000000000fdb56bffd0935affb1a3c9ffb1a3c9fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9ffd0935aff986354ff00000000000000000000000000000000fdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354ff0000000000000000fdb56bff986354ffb1a3c9ffb1a3c9fff4f4f0fff4f4f0fff4f4f0fff4f4f0ff847eaaff847eaafff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9ff986354ff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffa33b48ffa33b48fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bfffdb56bfff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fffdb56bfffdb56bff0000000000000000fdb56bff986354fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0fff4f4f0ff986354ff986354ff00000000000000000000000000000000fdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354ff00000000000000000000000000000000fdb56bffd0935aff986354ff986354fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9fff4f4f0fff4f4f0ff986354ff986354ffd0935aff986354ff00000000000000000000000000000000fdb56bfffdb56bfffdb56bfffdb56bfff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fffdb56bfffdb56bfffdb56bfffdb56bff0000000000000000000000000000000000000000000000000000000000000000fdb56bff986354ff986354ff986354ff986354ff986354ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fdb56bfffdb56bfffdb56bfffdb56bfffdb56bfffdb56bff000000000000000000000000000000000000000000000000
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 
 --- !u!213 &21300000
 Sprite:
   m_ObjectHideFlags: 0
@@ -72,7 +26,7 @@ Sprite:
   m_SpriteAtlas: {fileID: 0}
   m_RD:
     serializedVersion: 3
-    texture: {fileID: -6864366861815668182}
+    texture: {fileID: 3950143557345993710}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -163,7 +117,7 @@ Sprite:
     downscaleMultiplier: 1
   m_AtlasRD:
     serializedVersion: 3
-    texture: {fileID: -6864366861815668182}
+    texture: {fileID: 3950143557345993710}
     alphaTexture: {fileID: 0}
     secondaryTextures: []
     m_SubMeshes:
@@ -256,3 +210,49 @@ Sprite:
   m_Bones: []
   m_ScriptableObjects: []
   m_SpriteID: 
+--- !u!28 &3950143557345993710
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Pixel_Icon_navigation
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 18
+  m_Height: 18
+  m_CompleteImageSize: 1296
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 1296
+  _typelessdata: 00000000000000000000000000000000000000000000000000000000fdb56bff986354ff986354ff986354ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fdb56bff986354ffd0935affd0935affd0935affd0935aff986354ff986354ff0000000000000000000000000000000000000000000000000000000000000000fdb56bff986354ffd0935affd0935affb1a3c9ffb1a3c9ffb1a3c9ffb1a3c9ffd0935affd0935aff986354ff986354ff0000000000000000000000000000000000000000fdb56bffd0935affd0935affb1a3c9ffb1a3c9fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9ffd0935aff986354ff986354ff00000000000000000000000000000000fdb56bffd0935affd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935affd0935aff986354ff000000000000000000000000fdb56bffd0935affb1a3c9ffb1a3c9fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9ffd0935aff986354ff0000000000000000fdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ff847eaaff847eaafff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354ff00000000fdb56bffd0935affb1a3c9fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffb4bcc8ffb4bcc8fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935aff986354fffdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffa33b48ffa33b48fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935afffdb56bff00000000fdb56bff986354fff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ff986354ff986354ff0000000000000000fdb56bffd0935afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0fff4f4f0fff4f4f0ffd0935afffdb56bff000000000000000000000000fdb56bff986354ff986354fff4f4f0fff4f4f0fff4f4f0ffe0574affe0574afff4f4f0fff4f4f0fff4f4f0ff986354ff986354ff986354ff00000000000000000000000000000000fdb56bffd0935affd0935afff4f4f0fff4f4f0fff4f4f0ffb1a3c9ffb1a3c9fff4f4f0fff4f4f0fff4f4f0ffd0935affd0935afffdb56bff0000000000000000000000000000000000000000fdb56bfffdb56bff986354ff986354fff4f4f0fff4f4f0fff4f4f0fff4f4f0ff986354ff986354fffdb56bfffdb56bff0000000000000000000000000000000000000000000000000000000000000000fdb56bfffdb56bff986354ff986354ff986354ff986354fffdb56bfffdb56bff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000fdb56bfffdb56bfffdb56bfffdb56bff00000000000000000000000000000000000000000000000000000000
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 

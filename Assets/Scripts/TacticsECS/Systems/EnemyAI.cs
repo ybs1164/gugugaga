@@ -17,6 +17,7 @@ namespace TacticsECS
     ///   3. 이동 가능한 칸 중 목표까지의 "여행 거리"(지형을 고려한 BFS — 바다 건너 목표면 배로 가는 거리)가 가장 짧은 칸으로 간다.
     ///      육지로 닿지 않는 목표면 자기 항구로 가서 뗏목을 타고(EmbarkSystem), 배는 목표 쪽 해안에 내린다.
     ///   4. 이동 후 사거리 안에 적이 있으면(돌격 등으로 가능하면) 공격.
+    /// 침투 유닛(위키 Cloak)은 유닛을 공격하지 않고 (c)에서 보이는 적 도시 옆을 목표로 삼는다 — 침투는 다음 턴 시작에 EconomyAI가 한다.
     /// 시야: 구름(아직 탐험하지 않은 칸)의 적/정착지는 모른다 — VisionSystem.IsExplored로 거른다.
     /// </summary>
     public static class EnemyAI
@@ -88,7 +89,18 @@ namespace TacticsECS
                 if (goal == null)
                 {
                     var candidates = new List<(Vector2Int Pos, bool IsEnemy)>();
-                    foreach (var e in enemies) candidates.Add((world.Get<GridPosition>(e).Value, true));
+                    bool infiltrator = UnitActionQueries.Find<InfiltrateAction>(world, id) != null;
+                    if (infiltrator)
+                    {
+                        // 적 도시 칸 자체가 아니라 그 옆에 서야 침투할 수 있으므로 "적" 목표처럼 다룬다.
+                        if (econ != null)
+                            foreach (var c in econ.Cities)
+                                if (c.Owner != team && !c.Infiltrated && VisionSystem.IsExplored(grid, team, c.Position) &&
+                                    !DiplomacySystem.HasPeaceTreaty(econ, c.Owner, team))
+                                    candidates.Add((c.Position, true));
+                    }
+                    else
+                        foreach (var e in enemies) candidates.Add((world.Get<GridPosition>(e).Value, true));
                     if (captureTargets != null)
                         foreach (var c in captureTargets)
                         {
@@ -173,6 +185,7 @@ namespace TacticsECS
         {
             var attack = UnitActionQueries.Find<AttackAction>(world, id);
             if (attack == null || !attack.CanExecute(world, id)) return false;
+            if (UnitActionQueries.Find<InfiltrateAction>(world, id) != null) return false; // 유닛 공격 불가(AttackAction.Execute가 거부)
             int bestTarget = -1;
             float bestScore = float.MinValue;
             foreach (var e in enemies)

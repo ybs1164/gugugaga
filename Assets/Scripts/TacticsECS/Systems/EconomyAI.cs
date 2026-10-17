@@ -5,7 +5,7 @@ namespace TacticsECS
 {
     /// <summary>
     /// 한 팀의 경제 턴(이동/전투 전에 실행) — 규칙 기반, 어느 팀이든 돌릴 수 있다. 자체 상태 없음.
-    ///   1. 마을/적 도시 위에서 턴을 시작한 유닛은 점령하고, 유적 위 유닛은 탐험한다.
+    ///   1. 마을/적 도시 위에서 턴을 시작한 유닛은 점령하고, 적 도시 옆의 침투 유닛은 가장 레벨 높은 도시에 침투하고, 유적 위 유닛은 탐험한다.
     ///   2. 밀린 레벨업 보상을 상황에 맞게 고른다(구름이 남았으면 탐험가, 위협받으면 성벽/슈퍼 유닛 ...).
     ///   3. 연구 가능한 기술 중 가장 싼 것 하나를 연구한다.
     ///   4. 위협(보이는 적 유닛이 자기 도시 3칸 안)이 있으면 훈련 먼저, 없으면 건설 먼저 하고 남은 별로 훈련한다.
@@ -29,6 +29,15 @@ namespace TacticsECS
             for (int id = 0; id < world.EntityCount; id++)
                 if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && CitySystem.CanCapture(grid, world, econ, id))
                     CitySystem.Capture(grid, world, econ, id, log);
+
+            for (int id = 0; id < world.EntityCount; id++)
+            {
+                if (!UnitQueries.IsAlive(world, id) || world.Get<Team>(id) != team) continue;
+                var targets = InfiltrationSystem.Targets(grid, world, econ, id);
+                if (targets.Count == 0) continue;
+                targets.Sort((a, b) => econ.Cities[CitySystem.FindCityAt(econ, b)].Level.CompareTo(econ.Cities[CitySystem.FindCityAt(econ, a)].Level));
+                InfiltrationSystem.Infiltrate(grid, world, econ, id, targets[0], null, log); // Dagger View는 호출자가 붙인다
+            }
 
             for (int id = 0; id < world.EntityCount; id++)
                 if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && RuinSystem.CanExplore(grid, world, econ, id))

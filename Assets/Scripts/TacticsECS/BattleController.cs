@@ -221,6 +221,7 @@ namespace TacticsECS
         private int _selectedUnitId = -1;
         private HashSet<Vector2Int> _reachableTiles;
         private List<int> _attackableTargets;
+        private List<Vector2Int> _infiltrateTargets; // 침투(위키 Cloak) 유닛의 공격 대상 = 인접 적 도시 칸
 
         private bool _battleOver;
 
@@ -363,6 +364,7 @@ namespace TacticsECS
             _selectedUnitId = -1;
             _reachableTiles = null;
             _attackableTargets = null;
+            _infiltrateTargets = null;
             _placementActive = false;
             _sandboxHud = null;
             _placementController = null;
@@ -1602,6 +1604,11 @@ namespace TacticsECS
 
             if (_state == SelectState.UnitSelected)
             {
+                if (_infiltrateTargets != null && _infiltrateTargets.Contains(gridPos))
+                {
+                    HandleInfiltrate(_selectedUnitId, gridPos);
+                    return;
+                }
                 if (hasUnit && _attackableTargets != null && _attackableTargets.Contains(occupantId))
                 {
                     TryAttack(_selectedUnitId, occupantId);
@@ -2251,8 +2258,15 @@ namespace TacticsECS
             }
 
             _attackableTargets = new List<int>();
+            _infiltrateTargets = null;
             var attack = UnitActionQueries.Find<AttackAction>(_world, unitId);
-            if (attack != null && attack.CanExecute(_world, unitId))
+            if (UnitActionQueries.Find<InfiltrateAction>(_world, unitId) != null)
+            {
+                // 침투 유닛은 유닛을 공격하지 못하고 인접한 적 도시에만 침투한다(AttackAction.Execute가 거부).
+                _infiltrateTargets = InfiltrationSystem.Targets(_grid, _world, _econ, unitId);
+                _gridView.HighlightAttack(_infiltrateTargets);
+            }
+            else if (attack != null && attack.CanExecute(_world, unitId))
             {
                 for (int enemyId = 0; enemyId < _world.EntityCount; enemyId++)
                 {
@@ -2316,6 +2330,24 @@ namespace TacticsECS
             _viewsById[attackerId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(targetId).Value));
             RefreshEconomyViews(false);
 
+            CheckBattleEnd();
+            ClearSelection();
+        }
+
+        private void HandleInfiltrate(int unitId, Vector2Int cityPos)
+        {
+            if (!CanUseEconomyMenu) return;
+            var hpBefore = SnapshotHp();
+            var spawned = new List<int>();
+            var log = new List<EconomyLogEntry>();
+            if (!InfiltrationSystem.Infiltrate(_grid, _world, _econ, unitId, cityPos, spawned, log)) return;
+            foreach (var id in spawned) AttachSpawnedView(id);
+            foreach (var entry in hpBefore)
+                if (_viewsById.TryGetValue(entry.Key, out var view) && _world.Get<Hp>(entry.Key).Value < entry.Value && entry.Key != unitId)
+                    view.ShowDamagePopup(entry.Value - _world.Get<Hp>(entry.Key).Value);
+            ProcessEconomyLog(log);
+            RefreshAllViews();
+            RefreshEconomyViews(false);
             CheckBattleEnd();
             ClearSelection();
         }
@@ -2414,6 +2446,7 @@ namespace TacticsECS
             _selectedUnitId = -1;
             _reachableTiles = null;
             _attackableTargets = null;
+            _infiltrateTargets = null;
             if (_gridView != null) _gridView.ClearHighlights();
             _menuTile = null;
             _focusPos = null;

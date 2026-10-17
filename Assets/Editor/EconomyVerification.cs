@@ -24,6 +24,7 @@ namespace TacticsECS.EditorTools
             VerifyCityLoop();
             VerifyEveryBuilding();
             VerifyEnemyAiAndDefeat();
+            VerifyInfiltration();
             VerifyRecoverAndDisband();
             VerifyStarfishAndDestroy();
             VerifyHomeCities();
@@ -604,6 +605,59 @@ namespace TacticsECS.EditorTools
             var targets = new List<Vector2Int> { new Vector2Int(5, 5) };
             var entries = EnemyAI.RunTurn(grid, world, targets);
             Check(entries != null, "EnemyAI runs with capture targets");
+        }
+
+        /// <summary>위키 Cloak 침투: 유닛 공격은 거부되고, 인접 적 도시에 침투하면 소모·Dagger 소환·수입 탈취. AI도 침투한다.</summary>
+        private static void VerifyInfiltration()
+        {
+            (GridWorld grid, EntityWorld world, EconomyWorld econ, int defender, Vector2Int cap) Setup()
+            {
+                var g = new GridWorld(12, 12);
+                for (int y = 0; y < 12; y++) for (int x = 0; x < 12; x++) g.SetTileType(new Vector2Int(x, y), "Grass");
+                var w = new EntityWorld();
+                var ec = NewEconomy();
+                ec.UnitRows.AddRange(GameTables.Units.Where(u => u.Id == "spy" || u.Id == GameRules.Infiltration.DaggerUnitId));
+                int d = MakeUnit(w, g, Team.Player, new Vector2Int(2, 2));
+                MakeUnit(w, g, Team.Enemy, new Vector2Int(10, 10));
+                CitySystem.InitializeCapitals(g, w, ec);
+                VisionSystem.Reveal(g, Team.Enemy, new Vector2Int(2, 2), 5);
+                return (g, w, ec, d, ec.Cities[CitySystem.FindCapital(ec, Team.Player)].Position);
+            }
+            var spyRow = GameTables.Units.FirstOrDefault(u => u.Id == "spy");
+            Check(spyRow != null, "spy row exists");
+            if (spyRow == null) return;
+
+            // 플레이어 쪽 판정(BattleController가 쓰는 시스템 호출 그대로).
+            var (grid, world, econ, defender, cap) = Setup();
+            int spy = UnitFactorySystem.CreateFromCsv(grid, world, Team.Enemy, spyRow, cap + Vector2Int.right);
+            Check(!CombatSystem.TryAttack(grid, world, spy, defender, out _, out _), "cloak cannot attack units");
+            var targets = InfiltrationSystem.Targets(grid, world, econ, spy);
+            Check(targets.Count == 1 && targets[0] == cap, "adjacent enemy city is the only infiltration target");
+            int hpBefore = world.Get<Hp>(defender).Value;
+            int starsBefore = econ.Resources[Team.Enemy].Stars;
+            var spawned = new List<int>();
+            var log = new List<EconomyLogEntry>();
+            Check(InfiltrationSystem.Infiltrate(grid, world, econ, spy, cap, spawned, log), "infiltrate succeeds");
+            int city = CitySystem.FindCityAt(econ, cap);
+            Check(!UnitQueries.IsAlive(world, spy) && econ.Cities[city].Infiltrated, "cloak consumed, city marked infiltrated");
+            Check(spawned.Count == Mathf.Min(econ.Cities[city].Level, GameRules.Infiltration.MaxDaggers) &&
+                  spawned.All(id => world.Get<Team>(id) == Team.Enemy && world.GetOrDefault<UnitTypeId>(id).Value == GameRules.Infiltration.DaggerUnitId),
+                  $"daggers spawn for the infiltrating team (got {spawned.Count})");
+            Check(world.Get<Hp>(defender).Value < hpBefore && econ.Resources[Team.Enemy].Stars > starsBefore, "defender damaged, income stolen");
+
+            // AI: 적 도시 옆에서 턴을 시작한 스파이는 EconomyAI가 침투시킨다.
+            (grid, world, econ, defender, cap) = Setup();
+            spy = UnitFactorySystem.CreateFromCsv(grid, world, Team.Enemy, spyRow, cap + Vector2Int.right);
+            EconomyAI.RunTurn(grid, world, econ, Team.Enemy);
+            Check(!UnitQueries.IsAlive(world, spy) && econ.Cities[CitySystem.FindCityAt(econ, cap)].Infiltrated, "economy AI infiltrates with an adjacent cloak");
+
+            // AI: 멀리 있는 스파이는 유닛을 공격하려다 멈추지 않고 적 도시 옆으로 다가간다.
+            (grid, world, econ, defender, cap) = Setup();
+            spy = UnitFactorySystem.CreateFromCsv(grid, world, Team.Enemy, spyRow, cap + new Vector2Int(4, 0));
+            int before = PathfindingSystem.Distance(world.Get<GridPosition>(spy).Value, cap);
+            EnemyAI.RunTurn(grid, world, econ, Team.Enemy);
+            int after = PathfindingSystem.Distance(world.Get<GridPosition>(spy).Value, cap);
+            Check(after < before && after >= 1, $"enemy AI moves cloak toward enemy city ({before} -> {after})");
         }
     }
 }

@@ -185,7 +185,7 @@ namespace TacticsECS.EditorTools
             Check(EmbarkSystem.CanUpgrade(grid, world, econ, unit, "scout", out _), "raft upgradable to scout in own territory");
             int stars = econ.Resources[p].Stars;
             Check(EmbarkSystem.Upgrade(grid, world, econ, unit, "scout", log), "upgrade to scout");
-            Check(econ.Resources[p].Stars == stars - 5 && world.Get<VisionRange>(unit).Value == 2 && world.Get<AttackRange>(unit).Value == 2, "scout: -5 stars, 5x5 vision, range 2");
+            Check(econ.Resources[p].Stars == stars - 5 && world.Get<VisionRange>(unit).Value == GameRules.Vision.BaseSightRadius && world.Get<AttackRange>(unit).Value == 2, "scout: -5 stars, 3x3 vision (plan: no Scout), range 2");
 
             TurnSystem.StartTurn(world, p, 2);
             var far = new Vector2Int(5, 1);

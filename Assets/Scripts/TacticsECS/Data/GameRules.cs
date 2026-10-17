@@ -33,6 +33,11 @@ namespace TacticsECS
             public static int Other = 2;
         }
 
+        public static class Poison
+        {
+            public static float DefenseMultiplier = 0.7f;
+        }
+
         public static class Diplomacy
         {
             public static int EmbassyIncome = 2;

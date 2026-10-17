@@ -13,8 +13,9 @@ namespace TacticsECS
     ///   - 이동 비용 1, 도로(또는 도시/마을/다리) 칸끼리의 이동은 0.5. 적 영토의 도로는 쓸 수 없다. 반 칸을 정수로 다루려고
     ///     내부 비용은 2배(일반 2, 도로 1)로, 이동력도 2배로 계산한다.
     ///   - 험지(숲/산, 도로가 없는 숲)에 들어가면 그 턴에는 더 못 간다(들어가는 것은 가능).
-    ///   - 적 유닛과 인접한 칸(Zone of Control)에 들어가면 더 못 간다. 은신(Hide)/유닛 무시 패시브는 예외(위키 Hide).
-    ///   - 아군 유닛은 지나갈 수 있지만 그 칸에 멈출 수는 없다. 은신 유닛은 적 유닛도 그렇게 지나간다. 잠행(Creep)은 숲에서 멈추지 않고 도로 보너스도 없다(산은 멈춤).
+    ///   - 적 유닛과 인접한 칸(Zone of Control)에 들어가면 더 못 간다. 잠입(Sneak)/유닛 무시 패시브는 예외.
+    ///   - 아군 유닛은 지나갈 수 있지만 그 칸에 멈출 수는 없다. 지형무시(Creep)는 숲·산에서 멈추지 않고 도로 보너스도 없다.
+    ///   - 이동 타입(MoveDomain)·침수·얼음·비행·헤엄 규칙은 CanEnter — 규칙: docs/spec/game/movement.md#이동-타입
     ///   - 숨은 적(StealthSystem)은 모르는 것으로 친다: 길을 막지도, 영향권을 만들지도 않고, 그 칸도 목적지 후보가 된다 — 실제로 들어가려
     ///     하면 MoveAction.Execute가 이동을 취소하고 그 적을 드러낸다(위키 Cloak, 행동 소모 없음).
     ///   - 구름(아직 탐험하지 않은 칸, VisionSystem)에는 들어갈 수 없다.
@@ -40,11 +41,10 @@ namespace TacticsECS
             GridWorld grid, EntityWorld world, Vector2Int start, int selfUnitId,
             out HashSet<Vector2Int> reachableSet)
         {
-            int budget = MovementSystem.EffectiveMoveRange(world, selfUnitId) * StepCost;
+            int budget = MovementSystem.EffectiveMoveRange(world, selfUnitId, grid) * StepCost;
             bool ignoreUnitBlocking = UnitActionQueries.Find<IgnoreUnitBlockingAction>(world, selfUnitId) != null;
             bool allowDiagonal = UnitActionQueries.Find<AllowDiagonalAction>(world, selfUnitId) != null;
-            bool hide = UnitActionQueries.Find<HideAction>(world, selfUnitId) != null;
-            bool ignoreZoc = ignoreUnitBlocking || hide;
+            bool ignoreZoc = ignoreUnitBlocking || UnitActionQueries.Find<SneakAction>(world, selfUnitId) != null;
             var team = world.Get<Team>(selfUnitId);
             var passOnly = new HashSet<Vector2Int>(); // 지나갈 수만 있고 멈출 수 없는 칸(다른 유닛이 서 있는 칸)
 
@@ -70,7 +70,7 @@ namespace TacticsECS
                         int occ = grid.GetOccupant(next);
                         bool occupiedByOther = occ != TileData.NoOccupant && occ != selfUnitId && UnitQueries.IsAlive(world, occ);
                         if (occupiedByOther && StealthSystem.IsHiddenFrom(world, occ, team)) stop = true; // 모르는 칸 — 들어가 보면 드러난다
-                        else if (occupiedByOther && !ignoreUnitBlocking) passOnly.Add(next); // 아군/은신이 지나는 적 칸
+                        else if (occupiedByOther && !ignoreUnitBlocking) passOnly.Add(next); // 지나가기만 하는 아군 칸
 
                         int nc = c + (IsRoadStep(grid, world, selfUnitId, cur, next) ? RoadStepCost : StepCost);
                         if (nc > budget || (cost.TryGetValue(next, out var old) && old <= nc)) continue;
@@ -101,39 +101,55 @@ namespace TacticsECS
             if (!grid.InBounds(tile)) return false;
             var team = world.Get<Team>(unitId);
             if (!VisionSystem.IsExplored(grid, team, tile)) return false;
-            if (UnitActionQueries.Find<IgnoreTerrainAction>(world, unitId) != null) return true;
+            if (IgnoresTerrain(world, unitId)) return true;
             if (!grid.IsWalkable(tile) || TechEffectSystem.IsTerrainLocked(grid, world, unitId, tile)) return false;
 
             var t = grid.GetTile(tile);
             bool embarked = world.GetOrDefault<Embarked>(unitId).Value;
             var domain = world.Get<MoveDomain>(unitId).Value;
+            bool water = t.Terrain == TerrainType.Water && !t.Iced; // 얼음은 육지처럼
+            bool settlement = CitySystem.IsSettlementTile(grid, tile);
 
             if (embarked)
             {
-                if (t.Terrain == TerrainType.Water) return true;
-                stop = true; // 하선
+                if (water) return true;
+                if (t.Terrain == TerrainType.Water) return false; // 얼음 — 배는 못 들어간다
+                stop = true; // 하선, 또는 침수 칸에 들어가 멈춤(배 그대로 — EmbarkSystem)
                 return true;
             }
-            if (domain == TerrainType.Water) return t.Terrain == TerrainType.Water;
+            if (domain == TerrainType.Water)
+            {
+                if (water) return true;
+                if (t.Terrain == TerrainType.Water) return false;
+                if (t.Flooded || settlement) { stop = true; return true; } // 침수 칸에선 느려지고, 도시 칸에는 들어갈 수 있다
+                return false;
+            }
 
-            // 육지 유닛
-            if (t.Terrain == TerrainType.Water)
+            // 육지·수륙양용 유닛
+            if (water)
             {
                 if (t.BuildingId == BuildingDefinition.Bridge && !IsEnemyTerritory(t, team)) return true;
-                if (t.BuildingId == BuildingDefinition.Port && t.OwnerTeam == (int)team) { stop = true; return true; }
+                bool swims = domain == TerrainType.Amphibious || UnitActionQueries.Find<SwimAction>(world, unitId) != null;
+                if (swims) return TileImprovementSystem.Classify(grid, tile) == TileClass.ShallowWater;
+                if (t.BuildingId == BuildingDefinition.Port && t.OwnerTeam == (int)team && EmbarkSystem.CanBoard(world, unitId)) { stop = true; return true; }
                 return false;
             }
             var cls = TileImprovementSystem.Classify(grid, tile);
             bool creep = UnitActionQueries.Find<CreepAction>(world, unitId) != null;
-            if (cls == TileClass.Mountain || (cls == TileClass.Forest && !creep && !IsRoadFor(grid, team, tile))) stop = true;
+            if (!creep && (cls == TileClass.Mountain || (cls == TileClass.Forest && !IsRoadFor(grid, team, tile)))) stop = true;
             return true;
         }
+
+        /// <summary>지형을 통째로 무시하는지 — 공중 이동 타입, 비행(Fly), 장애물 통과(IgnoreTerrain). 구름만 지킨다.</summary>
+        public static bool IgnoresTerrain(EntityWorld world, int unitId) =>
+            world.Get<MoveDomain>(unitId).Value == TerrainType.Air ||
+            UnitActionQueries.Find<FlyAction>(world, unitId) != null || UnitActionQueries.Find<IgnoreTerrainAction>(world, unitId) != null;
 
         /// <summary>이 칸이 team에게 "도로"인지(도로/다리/도시·마을 칸, 적 영토는 제외) — 위키 Movement#Roads.</summary>
         public static bool IsRoadFor(GridWorld grid, Team team, Vector2Int p)
         {
             var t = grid.GetTile(p);
-            if (IsEnemyTerritory(t, team)) return false;
+            if (IsEnemyTerritory(t, team) || t.Flooded) return false; // 침수 칸에서는 도로를 못 쓴다(위키 Flooded)
             return t.HasRoad || t.BuildingId == BuildingDefinition.Bridge || CitySystem.IsSettlementTile(grid, p);
         }
 
@@ -143,7 +159,7 @@ namespace TacticsECS
         private static bool IsRoadStep(GridWorld grid, EntityWorld world, int unitId, Vector2Int cur, Vector2Int next)
         {
             if (world.GetOrDefault<Embarked>(unitId).Value || world.Get<MoveDomain>(unitId).Value == TerrainType.Water) return false;
-            if (UnitActionQueries.Find<CreepAction>(world, unitId) != null) return false; // 위키 Cloak: Creep은 도로 보너스도 없다
+            if (UnitActionQueries.Find<CreepAction>(world, unitId) != null || IgnoresTerrain(world, unitId)) return false; // 지형무시·비행은 도로 보너스가 없다
             var team = world.Get<Team>(unitId);
             return IsRoadFor(grid, team, cur) && IsRoadFor(grid, team, next);
         }
@@ -170,7 +186,6 @@ namespace TacticsECS
             var selfTeam = world.Get<Team>(selfUnitId);
             if (world.Get<Team>(occ) == selfTeam) return false;
             if (StealthSystem.IsHiddenFrom(world, occ, selfTeam)) return false;
-            if (UnitActionQueries.Find<HideAction>(world, selfUnitId) != null) return false;
             return true;
         }
     }

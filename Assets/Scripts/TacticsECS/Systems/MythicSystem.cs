@@ -6,7 +6,7 @@ namespace TacticsECS
     /// <summary>
     /// 신화 유닛(강림). 자체 상태 없이 Mythic/Dormant 컴포넌트를 읽고 쓴다.
     /// 강림: 대상 아군(원본)을 Dormant로 보존해 그리드에서 빼고 같은 칸에 신화 유닛을 만든다 — 원본의 능력치는 반영하지 않는다.
-    /// 유지: 매 자기 턴 시작에 유지 턴 -1, 0이 되면 신화 유닛이 사라지고 원본이 그 자리에 돌아온다. 신화 유닛이 죽으면 원본도 함께 죽는다(Sweep).
+    /// 유지: 매 자기 턴 시작에 유지 턴 -1, 0이 되면 신화 유닛이 원본과 함께 소멸한다. 신화 유닛이 죽어도 원본이 함께 죽는다(Sweep).
     /// 규칙: docs/spec/game/faith.md
     /// </summary>
     public static class MythicSystem
@@ -21,7 +21,7 @@ namespace TacticsECS
         /// <summary>신화 유닛의 Units.csv 행 — 불러온 유닛 표에 없으면 기본 유닛 표에서 찾는다.</summary>
         public static UnitCsvRow FindUnitRow(EconomyWorld econ, string id)
         {
-            var row = CitySystem.FindUnitRow(econ, id);
+            var row = econ != null ? CitySystem.FindUnitRow(econ, id) : null;
             if (row != null) return row;
             foreach (var r in GameTables.Units) if (r.Id == id) return r;
             return null;
@@ -71,7 +71,8 @@ namespace TacticsECS
 
         // ---------- 유지 / 제거 ----------
 
-        /// <summary>그 팀 턴 시작: 신화 유닛의 유지 턴 -1. 0이 되면 원본이 돌아온다. 화면을 갱신해야 할 유닛 id(신화 유닛·원본)를 돌려준다.</summary>
+        /// <summary>그 팀 턴 시작: 신화 유닛의 유지 턴 -1. 0이 되면 신화 유닛이 소멸한다(보존된 원본도 함께 사라진다 — 기획서 "지속 시간 경과 시 소멸").
+        /// 화면을 갱신해야 할 유닛 id(소멸한 신화 유닛)를 돌려준다.</summary>
         public static List<int> OnTurnStart(GridWorld grid, EntityWorld world, Team team)
         {
             var changed = new List<int>();
@@ -83,14 +84,13 @@ namespace TacticsECS
                 world.Set(i, m);
                 if (m.TurnsLeft > 0) continue;
                 changed.Add(i);
-                changed.Add(m.Origin);
-                Return(grid, world, i);
+                Expire(grid, world, i);
             }
             return changed;
         }
 
-        /// <summary>신화 유닛을 없애고 원본을 신화 유닛이 서 있던 칸에 되돌린다(원본의 체력 등은 강림 전 그대로).</summary>
-        private static void Return(GridWorld grid, EntityWorld world, int mythicId)
+        /// <summary>신화 유닛과 보존된 원본을 함께 없앤다.</summary>
+        private static void Expire(GridWorld grid, EntityWorld world, int mythicId)
         {
             var m = world.Get<Mythic>(mythicId);
             var pos = world.Get<GridPosition>(mythicId).Value;
@@ -98,12 +98,8 @@ namespace TacticsECS
             world.Set(mythicId, new Hp { Value = 0 });
             m.Active = false;
             world.Set(mythicId, m);
-
+            world.Set(m.Origin, new Hp { Value = 0 });
             world.Set(m.Origin, new Dormant { Value = false });
-            world.Set(m.Origin, new GridPosition { Value = pos });
-            world.Set(m.Origin, world.Get<HasMoved>(mythicId));
-            world.Set(m.Origin, world.Get<HasActed>(mythicId));
-            grid.PlaceOccupant(pos, m.Origin);
         }
 
         /// <summary>죽은 신화 유닛의 원본도 함께 제거한다(상태가 바뀔 때마다 부른다). 함께 죽은 원본 id를 돌려준다.</summary>

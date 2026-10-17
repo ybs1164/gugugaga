@@ -52,7 +52,7 @@ namespace TacticsECS.EditorTools
             Check(GameTables.Tribes.All(t => t.TechGroupIndex == t.Index), "each tribe points at its own group");
             var unitWarnings = ArrayTableValidationSystem.ValidateLoaded(GameDataLoader.LoadTribeTerrain().Select(b => b.Id).ToList());
             Check(unitWarnings.Count == 0, "tribe start units / unlock links are in range: " + string.Join(" | ", unitWarnings));
-            Check(GameTables.Units.Length == 11 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 23, "units 11 + mythic samples / boats 7 / buildings 23");
+            Check(GameTables.Units.Length == 19 + GameTables.MythicUnits.Length && GameTables.Boats.Length == 7 && BuildingDefinition.All.Length == 23, "units 19 + mythic samples / boats 7 / buildings 23");
             Check(BuildingDefinition.All.First(b => b.Id == "Bridge").UnlockKey == "Build.Bridge" &&
                   BuildingDefinition.All.First(b => b.Id == "Farm").UnlockKey == "Build.Farm" &&
                   string.IsNullOrEmpty(BuildingDefinition.All.First(b => b.Id == "AltarOfPeace").UnlockKey), "building unlock keys come from TechUnlocks.BuildingIndex");

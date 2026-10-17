@@ -1,14 +1,22 @@
-﻿Index,Id,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Action6,Action7,Action8,Action9,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Trainable,BoatIndex
-0,infantry,10,2,Melee,Move,Attack,Charge,Fortify,Counter,,,,,Land,1,2,1,0,0,2,1,-1
-1,shield,15,3,Guard,Move,Attack,Fortify,Counter,,,,,,Land,1,1,1,0,0,3,1,-1
-2,gladiator,15,3,RogueHooded,Move,Attack,Charge,Counter,,,,,,Land,1,3,1,0,0,5,1,-1
-3,cavalry,10,1,Melee,Move,Attack,Charge,Retreat,Fortify,Counter,,,,Land,2,2,1,0,0,3,1,-1
-4,knight,10,1,SkeletonWarrior,Move,Attack,Charge,Combo,Fortify,Counter,,,,Land,3,3.5,1,0,0,8,1,-1
-5,archer,10,1,Ranged,Move,Attack,Charge,Fortify,Counter,,,,,Land,1,2,2,0,0,3,1,-1
-6,catapult,10,0,Ranged,Move,Attack,Stiff,,,,,,,Land,1,4,3,0,0,8,1,-1
-7,cleric,10,1,Mage,Move,Attack,Heal,Convert,Stiff,,,,,Land,1,0,1,4,1,5,1,-1
-8,spy,5,0.5,RogueHooded,Move,Attack,Charge,Hide,Infiltrate,Scout,Creep,Stiff,Static,Land,2,2,1,0,0,8,1,4
-9,giant,40,4,Guard,Move,Attack,Counter,,,,,,,Land,1,5,1,0,0,10,0,6
-10,dagger,10,2,RogueHooded,Move,Attack,Charge,Ambush,Independent,Static,Counter,,,Land,1,2,1,0,0,0,0,5
-11,SunAvatar,25,3,Guard,Move,Attack,Counter,Splash,Independent,Static,,,,Land,2,4,1,0,0,0,0,-1
-12,StormTitan,30,2,Melee,Move,Attack,Charge,Combo,Independent,Static,Counter,,,Land,2,5,1,0,0,0,0,-1
+﻿Index,Id,MaxHp,Defense,BaseVisual,Action1,Action2,Action3,Action4,Action5,Action6,Action7,Action8,Action9,Domain,Move.Range,Attack.Attack,Attack.Range,Heal.Amount,Heal.Range,Cost,Trainable,BoatIndex,Grow.Into,Grow.Turns,Note
+0,infantry,10,2,Melee,Move,Attack,Charge,Fortify,Counter,,,,,Land,1,2,1,0,0,2,1,-1,,,
+1,shield,15,3,Guard,Move,Attack,Fortify,Counter,,,,,,Land,1,1,1,0,0,3,1,-1,,,
+2,gladiator,15,3,RogueHooded,Move,Attack,Charge,Counter,,,,,,Land,1,3,1,0,0,5,1,-1,,,
+3,cavalry,10,1,Melee,Move,Attack,Charge,Retreat,Counter,,,,,Land,2,2,1,0,0,3,1,-1,,,기획서 기준 — 위키 Rider의 요새화 없음
+4,knight,10,1,SkeletonWarrior,Move,Attack,Charge,Combo,Counter,,,,,Land,3,3.5,1,0,0,8,1,-1,,,기획서 기준 — 위키 Knight의 요새화 없음
+5,archer,10,1,Ranged,Move,Attack,Charge,Fortify,Counter,,,,,Land,1,2,2,0,0,3,1,-1,,,
+6,catapult,10,0,Ranged,Move,Attack,Stiff,,,,,,,Land,1,4,3,0,0,8,1,-1,,,
+7,cleric,10,1,Mage,Move,Attack,Heal,Convert,Stiff,Static,,,,Land,1,0,1,4,1,5,1,-1,,,
+8,spy,5,0.5,RogueHooded,Move,Attack,Charge,Hide,Creep,Sneak,Plunder,Static,Counter,Land,2,2,1,0,0,8,1,4,,,기획서 기준 패시브(은신·돌격·지형무시·잠입·약탈·고정·반격) — 위키 Cloak의 침투·정찰·뻣뻣함 대신
+9,giant,40,4,Guard,Move,Attack,Counter,,,,,,,Land,1,5,1,0,0,10,0,6,,,
+10,dagger,10,2,RogueHooded,Move,Attack,Charge,Ambush,Independent,Static,Counter,,,Land,1,2,1,0,0,0,0,5,,,
+11,SunAvatar,25,3,Guard,Move,Attack,Counter,Splash,Independent,Static,,,,Land,2,4,1,0,0,0,0,-1,,,
+12,StormTitan,30,2,Melee,Move,Attack,Charge,Combo,Independent,Static,Counter,,,Land,2,5,1,0,0,0,0,-1,,,
+13,amphibian,10,1,Melee,Move,Attack,Charge,Retreat,Fortify,Counter,,,,Amphibious,2,2,1,0,0,3,0,-1,,,위키 Amphibian(수륙양용 샘플)
+14,dragonegg,10,2,Guard,Move,Grow,Fortify,Stiff,Static,,,,,Land,1,0,0,0,0,10,0,-1,babydragon,3,위키 Dragon Egg(성장 샘플)
+15,babydragon,15,3,Melee,Move,Attack,Grow,Charge,Retreat,Scout,Static,Counter,,Air,2,3,1,0,0,10,0,-1,firedragon,3,위키 Baby Dragon(공중 샘플)
+16,firedragon,20,3,Ranged,Move,Attack,Charge,Splash,Scout,Static,Counter,,,Air,3,4,2,0,0,10,0,-1,,,위키 Fire Dragon
+17,mooni,10,1,Mage,Move,AutoFreeze,Skate,Stiff,Static,,,,,Land,1,0,0,0,0,5,0,-1,,,위키 Mooni(자동 빙결·스케이트 샘플)
+18,puffer,10,0,Ranged,Move,Attack,Drench,Stiff,,,,,,Water,2,4,3,0,0,8,0,-1,,,위키 Puffer(물 이동 타입·폭우 샘플)
+19,kiton,15,3,Guard,Move,Attack,Poison,Creep,Counter,,,,,Land,1,1,1,0,0,3,0,-1,,,위키 Kiton(독 공격 샘플)
+20,bunny,20,1,Melee,Move,Attack,Independent,Static,Wild,Counter,,,,Land,1,5,1,0,0,0,0,-1,,,위키 Bunny(독립 샘플 — 아무도 지휘하지 않음)

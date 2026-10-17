@@ -68,6 +68,32 @@ namespace TacticsECS
                 actions.Add(new IgnoreUnitBlockingAction());
             if ((row.Actions & ActionType.AllowDiagonal) != 0)
                 actions.Add(new AllowDiagonalAction());
+            if ((row.Actions & ActionType.Sneak) != 0)
+                actions.Add(new SneakAction());
+            if ((row.Actions & ActionType.Fly) != 0)
+                actions.Add(new FlyAction());
+            if ((row.Actions & ActionType.Plunder) != 0)
+                actions.Add(new PlunderAction());
+            if ((row.Actions & ActionType.Poison) != 0)
+                actions.Add(new PoisonAction());
+            if ((row.Actions & ActionType.Swim) != 0)
+                actions.Add(new SwimAction());
+            if ((row.Actions & ActionType.Navigate) != 0)
+                actions.Add(new NavigateAction());
+            if ((row.Actions & ActionType.Grow) != 0)
+                actions.Add(new GrowAction());
+            if ((row.Actions & ActionType.Raze) != 0)
+                actions.Add(new RazeAction());
+            if ((row.Actions & ActionType.Wild) != 0)
+                actions.Add(new WildAction());
+            if ((row.Actions & ActionType.Skate) != 0)
+                actions.Add(new SkateAction());
+            if ((row.Actions & ActionType.Flood) != 0)
+                actions.Add(new FloodAction());
+            if ((row.Actions & ActionType.Drench) != 0)
+                actions.Add(new DrenchAction());
+            if ((row.Actions & ActionType.AutoFreeze) != 0)
+                actions.Add(new AutoFreezeAction());
 
             // 모든 유닛은 대기(WaitAction)를 기본 보유한다
             if (!actions.Exists(a => a is WaitAction))

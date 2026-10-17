@@ -24,7 +24,9 @@ namespace TacticsECS
             affectedIds = new List<int>();
             if (!CanExecute(world, unitId)) return false;
 
-            int heal = CalculateHealAmount(grid, world, unitId);
+            // 중독: 회복하면 독이 풀리지만 그 회복은 체력을 채우지 않는다(위키 Units "Recover") — docs/spec/game/combat.md#중독
+            int heal = CombatSystem.IsPoisoned(world, unitId) ? 0 : CalculateHealAmount(grid, world, unitId);
+            world.Set(unitId, new Poisoned { Value = false });
             int currentHp = world.Get<Hp>(unitId).Value;
             int maxHp = world.Get<MaxHp>(unitId).Value;
             int newHp = Mathf.Min(maxHp, currentHp + heal);

@@ -55,6 +55,13 @@ namespace TacticsECS
         /// 탐험한 칸은 계속 보인다. GridWorld.FogEnabled가 false면(경제 없는 씬) 무시된다. VisionSystem이 채운다.</summary>
         public int ExploredMask;
 
+        /// <summary>침수: 육지 칸이 잠긴 상태(위키 Terrain "Flooded"). 육지·물 유닛 모두 들어갈 수 있고, 육지 유닛은 도로 보너스를 못 받고 물 유닛은
+        /// 들어가면 멈춘다. 건물·자원은 그대로. TerrainChangeSystem이 바꾼다 — 규칙: docs/spec/game/tile.md#침수와-얼음</summary>
+        public bool Flooded;
+
+        /// <summary>얼음: 물 칸이 언 상태(위키 Terrain "Ice"). 육지 유닛만 들어갈 수 있다(배·물 유닛은 못 들어감). TerrainChangeSystem이 바꾼다.</summary>
+        public bool Iced;
+
         public static TileData Default => new TileData
         {
             Walkable = true,

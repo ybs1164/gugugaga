@@ -21,7 +21,8 @@ namespace TacticsECS
         /// <summary>승급 불가 유닛 종류인지(배/슈퍼 유닛/고정 스킬).</summary>
         public static bool CannotBePromoted(EntityWorld world, int unitId) =>
             EmbarkSystem.IsEmbarked(world, unitId) || world.Get<MoveDomain>(unitId).Value == TerrainType.Water ||
-            CitySystem.IsSuperUnit(world.GetOrDefault<UnitTypeId>(unitId).Value) || UnitActionQueries.Find<StaticAction>(world, unitId) != null;
+            CitySystem.IsSuperUnit(world.GetOrDefault<UnitTypeId>(unitId).Value) || UnitActionQueries.Find<StaticAction>(world, unitId) != null ||
+            UnitActionQueries.Find<WildAction>(world, unitId) != null; // 아무도 지휘하지 않는 유닛(위키 Bunny)도 승급하지 않는다
 
         public static bool CanPromote(EntityWorld world, int unitId) =>
             UnitQueries.IsAlive(world, unitId) && !IsVeteran(world, unitId) &&

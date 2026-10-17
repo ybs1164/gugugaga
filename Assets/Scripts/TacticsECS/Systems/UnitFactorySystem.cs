@@ -45,6 +45,8 @@ namespace TacticsECS
             world.Set(id, new IsGuarding { Value = false });
             world.Set(id, new Accelerated { Value = false });
             world.Set(id, new Frozen { Value = false });
+            world.Set(id, new Poisoned { Value = false });
+            world.Set(id, new Growth());
 
             world.Set(id, new VisionRange { Value = VisionRangeFor(unitActions) });
             world.Set(id, new Embarked { Value = false, NavalUnitId = string.Empty });
@@ -82,6 +84,8 @@ namespace TacticsECS
         {
             int id = Create(grid, world, team, pos, row.MaxHp, row.Defense, UnitCsvActionFactory.BuildActions(row), row.Domain, row.Id);
             world.Set(id, new PortBoat { NavalUnitId = row.Boat ?? string.Empty });
+            if ((row.Actions & ActionType.Grow) != 0 && !string.IsNullOrEmpty(row.GrowInto))
+                world.Set(id, new Growth { Into = row.GrowInto, TurnsLeft = row.GrowTurns });
             return id;
         }
 
@@ -105,11 +109,25 @@ namespace TacticsECS
                 {
                     if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != r) continue;
                     var p = near + new Vector2Int(dx, dy);
-                    if (!grid.InBounds(p) || grid.IsOccupied(p) || !grid.IsWalkable(p) || grid.GetTerrain(p) != domain) continue;
+                    if (!grid.InBounds(p) || grid.IsOccupied(p) || !grid.IsWalkable(p) || !CanStand(grid, p, domain)) continue;
                     return p;
                 }
             }
             return null;
+        }
+
+        /// <summary>domain 이동 타입 유닛이 p에 나타날 수 있는지(얼음은 육지, 침수는 물로도 친다). 규칙: docs/spec/game/movement.md#이동-타입</summary>
+        public static bool CanStand(GridWorld grid, Vector2Int p, TerrainType domain)
+        {
+            var t = grid.GetTile(p);
+            bool water = t.Terrain == TerrainType.Water && !t.Iced;
+            switch (domain)
+            {
+                case TerrainType.Water: return water || t.Flooded;
+                case TerrainType.Amphibious: return !water || TileImprovementSystem.Classify(grid, p) == TileClass.ShallowWater;
+                case TerrainType.Air: return true;
+                default: return !water;
+            }
         }
 
         /// <summary>경제 기록의 스폰 요청(훈련/슈퍼 유닛/유적 유닛)을 View 없이 처리한다: near 근처에 만들고, 그 턴에는

@@ -24,7 +24,7 @@ Unit.dagger.Name,단검,Dagger
 Unit.raft.Name,뗏목,Raft
 Unit.scout.Name,정찰선,Scout
 Unit.rammer.Name,충각선,Rammer
-Unit.bomber.Name,폭격선,Bomber
+Unit.bomber.Name,범선,Bomber
 Unit.dinghy.Name,작은 배,Dinghy
 Unit.pirate.Name,해적선,Pirate
 # 건물 (Buildings.csv),,
@@ -98,7 +98,7 @@ Tech.Smithery.Name,제련,Smithery
 Tech.Smithery.Desc,대장간 건설 가능(인접 광산당 인구 +{Building.Forge.PopulationPerAdjacent}). 검사(검투사) 훈련 가능.,Forge (population +{Building.Forge.PopulationPerAdjacent} per adjacent Mine). Train Swordsmen.
 Tech.Organization.Name,조직,Organization
 Tech.Organization.Desc,과일 채집 가능(별 {TileAction.HarvestFruit.Cost} / 인구 +{TileAction.HarvestFruit.Population}). 숨겨진 농작물 발견.,Harvest fruit ({TileAction.HarvestFruit.Cost} stars / population +{TileAction.HarvestFruit.Population}). Reveals hidden crops.
-Tech.Strategy.Name,전략,Strategy
+Tech.Strategy.Name,방패,Strategy
 Tech.Strategy.Desc,방패병 훈련 가능. (평화 조약은 외교 시스템이 없어 제외),Train Defenders. (Peace treaties are left out — no diplomacy system.)
 Tech.Farming.Name,농사,Farming
 Tech.Farming.Desc,농장 건설 가능(별 {Building.Farm.Cost} / 작물 위 / 인구 +{Building.Farm.Population}).,Farm ({Building.Farm.Cost} stars / on crops / population +{Building.Farm.Population}).
@@ -135,7 +135,7 @@ Tech.Sailing.Desc,"원양 타일 진입/이동 가능. 뗏목을 정찰선으로
 Tech.Aquatism.Name,수생학,Aquatism
 Tech.Aquatism.Desc,해양 신전 건설 가능(별 {Building.WaterTemple.Cost}). 근해/원양 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Water Temple ({Building.WaterTemple.Cost} stars). Units on shallow water/ocean get ×{Rule.Combat.DefenseBonusMultiplier} defense.
 Tech.Navigation.Name,항해,Navigation
-Tech.Navigation.Desc,뗏목을 폭격선으로 업그레이드 가능(별 {Unit.bomber.Cost}). 불가사리(유물) 인양 가능(별 +{Rule.Starfish.Stars}). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.,Upgrade rafts to Bombers ({Unit.bomber.Cost} stars). Salvage starfish (stars +{Rule.Starfish.Stars}). Reveals hidden starfish. Ports connect across deep ocean.
+Tech.Navigation.Desc,뗏목을 범선으로 업그레이드 가능(별 {Unit.bomber.Cost}). 불가사리(유물) 인양 가능(별 +{Rule.Starfish.Stars}). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.,Upgrade rafts to Bombers ({Unit.bomber.Cost} stars). Salvage starfish (stars +{Rule.Starfish.Stars}). Reveals hidden starfish. Ports connect across deep ocean.
 # 과업 (Tasks.csv),,
 Task.Pacifist.Name,평화주의,Pacifist
 Task.Pacifist.Desc,{Threshold}턴 연속 공격하지 않기(반격은 공격이 아님).,Don't attack for {Threshold} turns in a row (counterattacks don't count).
@@ -439,7 +439,7 @@ Action.Counter.Tooltip,반격(패시브): 공격을 받으면 자동으로 공�
 Action.Charge.Tooltip,돌격(패시브): 이번 턴 이동한 뒤에도 공격할 수 있습니다.,Dash (passive): can attack after moving this turn.
 Action.Retreat.Tooltip,대피(패시브): 이번 턴 공격한 뒤에도 이동할 수 있습니다.,Escape (passive): can move after attacking this turn.
 Action.Ambush.Tooltip,기습(패시브): 공격 시 대상의 반격을 발동시키지 않습니다.,Surprise (passive): attacks don't trigger counterattacks.
-Action.Infiltrate.Tooltip,잠입(패시브): 적 유닛에 의한 이동 방해 페널티가 없습니다.,Creep (passive): ignores movement blocking by enemy units.
+Action.Infiltrate.Tooltip,"침투(패시브): 유닛을 공격하지 못하고, 인접한 적 도시에 들어가 반란을 일으킵니다.",Infiltrate (passive): can't attack units; enters an adjacent enemy city to incite a revolt.
 Action.Herd.Tooltip,"무리(패시브): 인접한 아군에게 가속을 부여합니다(이동력 +1, 피격 시 해제).","Herd (passive): speeds up adjacent allies (move +1, lost when hit)."
 Action.Convert.Tooltip,전향(패시브): 공격한 적 유닛을 아군으로 전환합니다.,Convert (passive): turns attacked enemy units into allies.
 Action.Combo.Tooltip,연타(패시브): 적을 처치하면 같은 턴에 추가로 공격할 수 있습니다.,Persist (passive): can attack again in the same turn after a kill.
@@ -546,7 +546,6 @@ UI.Mythic.CostLine,신앙 −{0} · 유지 −{1}턴,Faith −{0} · upkeep −{
 UI.Mythic.Reason.Reach,사거리 밖입니다.,Out of reach.
 UI.Mythic.Reason.Upkeep,유지 턴이 모자랍니다.,Not enough upkeep turns.
 UI.Mythic.Log.Descend,{0}이(가) {1}(으)로 강림했습니다.,{0} descended as {1}.
-UI.Mythic.Log.Return,{0}이(가) 원래 모습으로 돌아왔습니다.,{0} returned to its original form.
 Building.GreatTemple.Name,대신전,Great Temple
 Building.GreatTemple.Desc,이어진 빈 땅(평지·숲·자원) {Rule.Faith.GreatTempleMinTiles}칸에 짓는다. 숲과 자원은 지을 때 치워진다. {Rule.Faith.GreatTempleProtectTurns}턴 동안 지키면 완성되고 유일한 대신전이면 신앙 승리.,Built on {Rule.Faith.GreatTempleMinTiles} connected empty tiles (plains/forest/resource). Forest and resources are cleared when built. Hold it for {Rule.Faith.GreatTempleProtectTurns} turns to complete it and win if it is the only one.
 Task.GreatTemple.Name,대신전,Great Temple
@@ -562,3 +561,38 @@ UI.GreatTemple.StatusSuspended,대신전 완성 · 다른 대신전 때문에 �
 UI.GreatTemple.StatusRival,상대 대신전 ({0}:{1}),Rival Great Temple ({0}:{1})
 UI.GreatTemple.Log.Built,대신전을 짓기 시작했습니다. 위치가 모두에게 공개됩니다.,The Great Temple is under construction. Its location is revealed to everyone.
 UI.GreatTemple.Log.Victory,신앙 승리!,Faith victory!
+Unit.amphibian.Name,수륙양용병,Amphibian
+Unit.dragonegg.Name,용의 알,Dragon Egg
+Unit.babydragon.Name,새끼 용,Baby Dragon
+Unit.firedragon.Name,화염룡,Fire Dragon
+Unit.mooni.Name,무니,Mooni
+Unit.puffer.Name,복어,Puffer
+Unit.kiton.Name,키톤,Kiton
+Unit.bunny.Name,토끼,Bunny
+Action.Fortify.Tooltip,요새화(패시브): 자기 도시에서 방어 보너스를 받습니다(성벽이 있으면 더 큼).,Fortify (passive): gets a defense bonus in own cities (bigger with a city wall).
+Action.Hide.Tooltip,은신(패시브): 한 턴 동안 공격받지 않으면 상대에게 보이지 않습니다. 공격하거나 맞으면 드러납니다.,Hide (passive): becomes invisible after a turn without being hit. Attacking or being hit reveals it.
+Action.Static.Tooltip,고정(패시브): 베테랑으로 승급할 수 없습니다.,Static (passive): can never become a veteran.
+Action.Independent.Tooltip,자립(패시브): 도시 인구(유닛 수용량)를 차지하지 않습니다.,Independent (passive): takes up no city unit slot.
+Action.Creep.Tooltip,지형무시(패시브): 숲·산에서 멈추지 않지만 도로 보너스도 받지 않습니다. 물과 육지는 오갈 수 없습니다.,"Creep (passive): doesn't stop in forests or mountains, but gets no road bonus. Can't cross between land and water."
+Action.Sneak.Tooltip,잠입(패시브): 적 유닛 옆에서도 멈추지 않습니다(적 유닛 칸은 지나갈 수 없음).,Sneak (passive): doesn't stop next to enemy units (can't pass through them).
+Action.Fly.Tooltip,비행(패시브): 지형과 관계없이 이동합니다. 도로·지형·도시 방어 보너스는 받지 않습니다.,"Fly (passive): moves regardless of terrain. Gets no road, terrain or city defense bonus."
+Action.Plunder.Tooltip,약탈(패시브): 사거리 안의 적 도시를 직접 공격해 그 도시의 별 수입만큼 빼앗습니다.,Plunder (passive): attacks an enemy city in range directly and takes that city's star income.
+Action.Poison.Tooltip,"독 공격(패시브): 맞은 적을 중독시킵니다 — 방어 보너스 없음, 방어력 x{Rule.Poison.DefenseMultiplier}, 회복하면 풀림.","Poison (passive): poisons units it hits — no defense bonus, defense x{Rule.Poison.DefenseMultiplier}, cured by recovering."
+Action.Swim.Tooltip,헤엄(패시브): 배 없이 얕은 물을 다닙니다. 항구에서 배가 되지 않습니다.,Swim (passive): moves through shallow water without a boat. Doesn't board boats at ports.
+Action.Navigate.Tooltip,항해(패시브): 기술 없이 깊은 바다에 들어갈 수 있습니다.,Navigate (passive): can enter the ocean without the technology.
+Action.Grow.Tooltip,성장(패시브): 몇 턴이 지나면 다른 유닛으로 자랍니다(받은 피해는 그대로).,Grow (passive): grows into another unit after a few turns (damage carries over).
+Action.Raze.Tooltip,파괴(패시브): 지나간 칸의 건물과 유적을 없앱니다.,Raze (passive): destroys buildings and ruins on the tiles it passes.
+Action.Wild.Tooltip,독립(패시브): 어떤 플레이어나 AI의 지휘도 받지 않습니다.,Wild (passive): no player or AI can command it.
+Action.Skate.Tooltip,스케이트(패시브): 얼음 위에서 이동을 시작하면 이동력 +1.,Skate (passive): +1 movement when starting a move on ice.
+Action.Flood.Tooltip,침수(패시브): 서 있는 평지·숲 칸을 침수 지형으로 바꿀 수 있습니다.,Flood (passive): can flood the field or forest tile it stands on.
+Action.Drench.Tooltip,"폭우(패시브): 빈 칸도 공격할 수 있고, 공격한 칸을 침수시킵니다.",Drench (passive): can attack empty tiles and floods the tile it attacks.
+Action.AutoFreeze.Tooltip,자동 빙결(패시브): 이동할 때마다 주변 물을 얼리고 주변 적을 빙결시킵니다.,Auto Freeze (passive): freezes nearby water and enemy units whenever it moves.
+UI.UnitMenu.Flood,침수,Flood tile
+UI.UnitMenu.FloodDetail,이 칸을 침수 지형으로 바꾼다(행동 소모).,Turns this tile into flooded terrain (uses the action).
+UI.UnitMenu.BreakIce,얼음 깨기,Break ice
+UI.UnitMenu.BreakIceDetail,주변의 얼음을 모두 물로 되돌린다(행동 소모).,Turns all adjacent ice back into water (uses the action).
+UI.UnitMenu.Disembark,상륙,Disembark
+UI.UnitMenu.DisembarkDetail,배에서 내려 원래 유닛으로 돌아간다(턴 종료).,Leaves the boat and becomes the original unit (ends the turn).
+UI.Event.Plunder,{0} 약탈 — 별 +{1},{0} plundered — stars +{1}
+UI.Log.Grow,{0}(으)로 성장,grew into {0}
+UI.Mythic.Log.Expire,{0}이(가) 지속 시간이 끝나 사라졌습니다.,{0} faded away as its time ran out.

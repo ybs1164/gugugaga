@@ -41,6 +41,7 @@ namespace TacticsECS
             world.Set(targetId, hp);
             world.Set(targetId, new Accelerated { Value = false });
             PrayerSystem.OnHit(world, targetId);
+            StealthSystem.OnHit(world, targetId);
 
             if (!UnitQueries.IsAlive(world, targetId))
             {

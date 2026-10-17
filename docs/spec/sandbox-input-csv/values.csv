@@ -25,7 +25,7 @@ Passive,Buff,신전에 인접한 아군이 방어 태세(Defend)일 때 방어�
 Passive,Damage,그 팀 턴 시작에 신전에 인접한 적 유닛에게 피해(체력 1 아래로는 깎지 않음) / 쓰지 않음
 Passive,Gold,신전마다 별 +크기/턴 / 쓰지 않음
 Passive,FaithCap,신전마다 신앙 최대 보유량 +크기 / 쓰지 않음
-VisualId 접두사,Ground.,"지면 타일 / Ground.<TileTypeId>(숲·산 칸은 그 아래 맨땅 Ground.<GroundTileId>), 없으면 Ground.Grass"
+VisualId 접두사,Ground.,"지면 타일 / Ground.<TileTypeId>(숲·산 칸은 그 아래 맨땅 Ground.<GroundTileId>), 없으면 Ground.Grass. 얼음 칸은 Ground.Ice, 침수 칸은 Ground.Flooded"
 VisualId 접두사,Terrain.,숲·산·바위·구름 오버레이 / Terrain.Cloud(시야) 등
 VisualId 접두사,Building.,건물 / Building.<건물 Id>
 VisualId 접두사,City.,"도시 장식 / City.Houses, City.Capital, City.Wall, City.Workshop, City.Park, City.Flag"
@@ -72,6 +72,9 @@ Boats.csv — 배,Special,유닛 BoatIndex가 가리키는 전용 배. 업그레
 행동과 패시브,SelfDestruct,"액티브 / 맨해튼 1 이내 적 전부에게 자기 남은 체력만큼 피해, 자신은 사망"
 행동과 패시브,Wait,액티브 / 대기·회복 — 회복
 행동과 패시브,Counter,패시브 / 반격
+행동과 패시브,Flood,패시브 / 서 있는 평지·숲 칸을 침수시키는 행동을 쓴다(행동 소모) — tile
+행동과 패시브,Drench,"패시브 / 폭우: 공격 사거리 안의 빈 칸도 공격할 수 있고, 공격한 칸을 침수시킨다"
+행동과 패시브,AutoFreeze,패시브 / 이동할 때마다 주변 8칸의 빈 물을 얼리고 그 범위의 적을 빙결시킨다
 행동과 패시브,Charge,패시브 / 이동 후에도 공격 가능
 행동과 패시브,Retreat,패시브 / 공격 후에도 이동 가능
 행동과 패시브,Ambush,패시브 / 내 공격에 대상이 반격하지 않음
@@ -81,16 +84,26 @@ Boats.csv — 배,Special,유닛 BoatIndex가 가리키는 전용 배. 업그레
 행동과 패시브,Combo,패시브 / 처치하면 한 번 더 공격
 행동과 패시브,Convert,패시브 / 살아남은 대상을 내 팀으로
 행동과 패시브,Freeze,패시브 / 살아남은 대상은 다음 자기 턴 행동 불가
+행동과 패시브,Poison,패시브 / 살아남은 대상(스플래시 포함)을 중독시킨다 — combat
+행동과 패시브,Plunder,패시브 / 약탈 — 아래
 행동과 패시브,Herd,패시브 / 맨해튼 1 이내 다른 아군에게 가속(이동력 +1). 가속은 피격될 때까지 유지
 행동과 패시브,Fortify,패시브 / 자기 도시 칸 방어 보너스 — combat
 행동과 패시브,Scout,패시브 / 넓은 시야 — vision
 행동과 패시브,Hide,패시브 / 은신 — vision
 행동과 패시브,Infiltrate,"패시브 / 유닛 공격 불가, 대신 적 도시 침투 — vision"
-행동과 패시브,Creep,"패시브 / 숲에서 멈추지 않음, 도로 보너스 없음"
+행동과 패시브,Creep,"패시브 / 지형무시: 숲·산에서 멈추지 않음, 도로 보너스 없음(물↔육지는 못 오감)"
+행동과 패시브,Sneak,패시브 / 잠입: 적 영향권에 멈추지 않음(적 유닛 칸은 못 지나감)
+행동과 패시브,Fly,"패시브 / 비행: 지형 무시 이동, 도로·방어 보너스 없음, 승선 불가 — movement"
+행동과 패시브,Swim,"패시브 / 헤엄: 배 없이 얕은 물 이동, 승선 불가"
+행동과 패시브,Navigate,패시브 / 항해: Move.Ocean 해금 없이 깊은 바다 진입
+행동과 패시브,Skate,패시브 / 얼음 칸에서 이동을 시작하면 이동력 +1
+행동과 패시브,Raze,패시브 / 파괴: 지나간 칸(도착 칸 포함)의 건물(다리 제외)·유적을 없앤다
+행동과 패시브,Grow,패시브 / 성장 — 아래
 행동과 패시브,IgnoreTerrain,패시브 / 지형·장애물 무시 이동
 행동과 패시브,IgnoreUnitBlocking,패시브 / 모든 유닛을 지나가고 그 칸에 멈출 수 있음
 행동과 패시브,AllowDiagonal,패시브 / 8방향 이동
-행동과 패시브,Independent,패시브 / 도시 수용량을 차지하지 않음
+행동과 패시브,Independent,패시브 / 자립: 도시 수용량을 차지하지 않음
+행동과 패시브,Wild,"패시브 / 독립: 누구의 지휘도 받지 않음(플레이어가 고를 수 없고 AI도 움직이지 않음, 턴 끝 자동 대기만), 승급 불가"
 행동과 패시브,Static,패시브 / 베테랑 승급 불가
 공통 값,TerrainType,"Land, Water / 이동 판정용 지형. 유닛 Domain과 같아야 들어간다"
 공통 값,TileClass,"Field, Forest, Mountain, ShallowWater, Ocean / 건설·행동 배치 조건용 지형. 타일에서 계산된다(저장 안 함) — tile"

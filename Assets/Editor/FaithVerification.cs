@@ -417,14 +417,15 @@ namespace TacticsECS.EditorTools
             Check(world.Get<Mythic>(mythic).TurnsLeft == mythicRow.Upkeep - mythicRow.ActiveUpkeepCost && world.Get<HasActed>(mythic).Value, "active costs upkeep and ends the action");
             Check(!MythicSystem.CanUseActive(world, mythic), "one active per turn");
 
-            // 유지 턴이 끝나면 원본이 돌아온다(체력은 강림 전 그대로).
+            // 유지 턴이 끝나면 신화 유닛이 원본과 함께 소멸한다(기획서).
             int turns = world.Get<Mythic>(mythic).TurnsLeft;
             for (int i = 0; i < turns - 1; i++) MythicSystem.OnTurnStart(grid, world, Team.Player);
             Check(MythicSystem.IsMythic(world, mythic), "mythic stays while upkeep remains");
             MythicSystem.OnTurnStart(grid, world, Team.Player);
-            Check(!UnitQueries.IsAlive(world, mythic) && UnitQueries.IsAlive(world, origin) && grid.GetOccupant(pos) == origin && world.Get<Hp>(origin).Value == 7, "original returns when upkeep runs out");
+            Check(!UnitQueries.IsAlive(world, mythic) && !UnitQueries.IsAlive(world, origin) && grid.GetOccupant(pos) == TileData.NoOccupant, "mythic and original vanish when upkeep runs out");
 
             // 신화 유닛이 죽으면 원본도 함께 제거된다.
+            origin = UnitFactorySystem.CreateFromCsv(grid, world, Team.Player, GameTables.Units.First(u => u.Id == "infantry"), pos);
             var again = FaithPunchSystem.Apply(grid, world, econ, Team.Player, descent, pos);
             int mythic2 = again.SpawnedIds[0];
             world.Set(mythic2, new Hp { Value = 0 });

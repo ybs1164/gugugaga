@@ -137,10 +137,18 @@ namespace TacticsECS
     [System.Serializable] public struct Kills { public int Value; }
     [System.Serializable] public struct Veteran { public bool Value; }
 
-    // 은신(위키 Unit Skills "Hide"): 은신(HideAction) 유닛은 움직이면 적에게 보이지 않게 된다(Value). 훈련/점령/유적 탐험/공격 때,
+    // 은신(HideAction): 한 바퀴(자기 턴 시작 → 다음 자기 턴 시작) 동안 피해를 받지 않으면 적에게 보이지 않게 된다(Value). 훈련/점령/유적 탐험/공격·피격 때,
     // 또는 적이 그 칸으로 들어가려 할 때(그 이동은 취소, 행동 소모 없음) 드러난다. AtTurnStart는 자기 팀 턴이 시작될 때의 Value —
     // 위키 Cloak: "이번 턴을 이미 숨은 채로 시작했을 때만" 이동 후 침투(Dash)가 된다. 판정은 StealthSystem.
-    [System.Serializable] public struct Hidden { public bool Value; public bool AtTurnStart; }
+    // Hit: 지난 자기 턴 시작 뒤 피해를 받았는지 — 받지 않았으면 다음 자기 턴 시작에 숨는다(StealthSystem.OnTurnStart). 규칙: docs/spec/game/vision.md#은신
+    [System.Serializable] public struct Hidden { public bool Value; public bool AtTurnStart; public bool Hit; }
+
+    // 중독(독 공격 PoisonAction에 맞음): 지형·성벽·요새화 방어 보너스 없음, 방어력 x GameRules.Poison.DefenseMultiplier. 대기·치유로 회복하면
+    // 풀린다(그 회복은 체력을 채우지 않는다). 규칙: docs/spec/game/combat.md#중독
+    [System.Serializable] public struct Poisoned { public bool Value; }
+
+    // 성장(GrowAction): 다른 유닛(Into, 유닛 CSV Id)으로 바뀌기까지 남은 자기 턴 수. Into가 비면 성장하지 않는다 — Systems/GrowSystem.cs.
+    [System.Serializable] public struct Growth { public string Into; public int TurnsLeft; }
 
     // 항구에 들어가면 바뀌는 배(NavalUnits.csv Id). 비어 있으면 뗏목(raft). 위키: Cloak은 Dinghy, Dagger는 Pirate가 된다.
     [System.Serializable] public struct PortBoat { public string NavalUnitId; }

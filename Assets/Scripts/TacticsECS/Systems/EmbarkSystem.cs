@@ -16,6 +16,11 @@ namespace TacticsECS
 
         public static string NavalUnitId(EntityWorld world, int unitId) => world.GetOrDefault<Embarked>(unitId).NavalUnitId;
 
+        /// <summary>항구에서 배가 될 수 있는 유닛인지: 육지 이동 타입이고 헤엄·비행이 없다(수륙양용·공중·물 유닛은 승선 불가).</summary>
+        public static bool CanBoard(EntityWorld world, int unitId) =>
+            world.Get<MoveDomain>(unitId).Value == TerrainType.Land &&
+            UnitActionQueries.Find<SwimAction>(world, unitId) == null && UnitActionQueries.Find<FlyAction>(world, unitId) == null;
+
         /// <summary>이동 직후 부른다: 항구에 선 육지 유닛은 승선, 육지에 선 배는 하선. 무언가 바뀌었으면 true.</summary>
         public static bool ApplyAfterMove(GridWorld grid, EntityWorld world, int unitId)
         {
@@ -26,7 +31,7 @@ namespace TacticsECS
 
             if (!IsEmbarked(world, unitId))
             {
-                if (world.Get<MoveDomain>(unitId).Value != TerrainType.Land) return false;
+                if (!CanBoard(world, unitId)) return false;
                 if (tile.Terrain != TerrainType.Water || tile.BuildingId != BuildingDefinition.Port || tile.OwnerTeam != (int)team) return false;
                 world.Set(unitId, new LandForm
                 {
@@ -46,7 +51,26 @@ namespace TacticsECS
                 return true;
             }
 
-            if (tile.Terrain == TerrainType.Water) return false;
+            if (tile.Terrain == TerrainType.Water || tile.Flooded) return false; // 침수 칸에서는 배 그대로 — 상륙(Disembark) 행동으로 내린다
+            Land(grid, world, unitId);
+            return true;
+        }
+
+        /// <summary>상륙(위키 Disembark): 침수 칸에 있는 배가 원래 유닛으로 돌아올 수 있는지. 이번 턴 행동 전이어야 한다.</summary>
+        public static bool CanDisembark(GridWorld grid, EntityWorld world, int unitId) =>
+            UnitQueries.IsAlive(world, unitId) && IsEmbarked(world, unitId) && !world.Get<HasActed>(unitId).Value &&
+            grid.GetTile(world.Get<GridPosition>(unitId).Value).Flooded;
+
+        public static bool Disembark(GridWorld grid, EntityWorld world, int unitId)
+        {
+            if (!CanDisembark(grid, world, unitId)) return false;
+            Land(grid, world, unitId);
+            return true;
+        }
+
+        /// <summary>배를 원래 육지 유닛으로 되돌리고 그 턴을 끝낸다(업그레이드는 사라진다).</summary>
+        private static void Land(GridWorld grid, EntityWorld world, int unitId)
+        {
             if (UnitActionQueries.Find<StompAction>(world, unitId) != null) StompSystem.Apply(grid, world, unitId);
             var land = world.Get<LandForm>(unitId);
             world.Set(unitId, new Attack { Value = land.Attack });
@@ -59,7 +83,6 @@ namespace TacticsECS
             world.Set(unitId, new UnitActions { Value = land.Actions });
             world.Set(unitId, new Embarked { Value = false, NavalUnitId = string.Empty });
             EndTurn(world, unitId);
-            return true;
         }
 
         /// <summary>육지 유닛을 곧바로 navalUnitId 배에 태운다(물 위 유적의 "베테랑 충각선" 보상처럼 배에 탄 채 나타나는 유닛).

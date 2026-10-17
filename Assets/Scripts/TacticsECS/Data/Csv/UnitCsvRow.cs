@@ -51,5 +51,11 @@ namespace TacticsECS
 
         /// <summary>자기 항구에 들어가면 바뀌는 배(NavalUnits.csv Id). 비우면 뗏목 — 위키: Cloak은 Dinghy, Dagger는 Pirate.</summary>
         public string Boat = string.Empty;
+
+        /// <summary>성장(Grow) 유닛이 바뀌는 유닛 Id(같은 유닛 표). 비우면 성장하지 않는다. CSV "Grow.Into".</summary>
+        public string GrowInto = string.Empty;
+
+        /// <summary>성장까지 걸리는 자기 턴 수. CSV "Grow.Turns".</summary>
+        public int GrowTurns;
     }
 }

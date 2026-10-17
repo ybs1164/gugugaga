@@ -43,6 +43,13 @@ namespace TacticsECS
                 if (PathfindingSystem.Distance(healerPos, world.Get<GridPosition>(i).Value) > range) continue;
 
                 var hp = world.Get<Hp>(i);
+                if (CombatSystem.IsPoisoned(world, i))
+                {
+                    // 중독된 아군은 독만 풀린다(체력은 그대로 — 위키 Poison).
+                    world.Set(i, new Poisoned { Value = false });
+                    affectedIds.Add(i);
+                    continue;
+                }
                 int maxHp = world.Get<MaxHp>(i).Value;
                 int healedValue = Mathf.Min(maxHp, hp.Value + amount);
                 if (healedValue == hp.Value) continue;

@@ -228,6 +228,8 @@ namespace TacticsECS
         private HashSet<Vector2Int> _reachableTiles;
         private List<int> _attackableTargets;
         private List<Vector2Int> _infiltrateTargets; // 침투(위키 Cloak) 유닛의 공격 대상 = 인접 적 도시 칸
+        private List<Vector2Int> _plunderTargets;    // 약탈 유닛이 공격할 수 있는 적 도시 칸(PlunderSystem)
+        private List<Vector2Int> _drenchTargets;     // 폭우 유닛이 공격할 수 있는 빈 칸(TerrainChangeSystem)
 
         private bool _battleOver;
 
@@ -369,6 +371,8 @@ namespace TacticsECS
             _reachableTiles = null;
             _attackableTargets = null;
             _infiltrateTargets = null;
+            _plunderTargets = null;
+            _drenchTargets = null;
             _placementActive = false;
             _sandboxHud = null;
             _placementController = null;
@@ -1159,16 +1163,22 @@ namespace TacticsECS
                         if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
                 }
                 GreatTempleSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber);
-                var mythicChanged = MythicSystem.OnTurnStart(_grid, _world, team);
-                for (int k = 0; k + 1 < mythicChanged.Count; k += 2)
+                foreach (int id in MythicSystem.OnTurnStart(_grid, _world, team))
                 {
-                    _hud.AddLogEntry(LocalizationSystem.F("UI.Mythic.Log.Return", UnitLabel(mythicChanged[k + 1])));
-                    foreach (int id in new[] { mythicChanged[k], mythicChanged[k + 1] })
-                        if (_viewsById.TryGetValue(id, out var changedView)) changedView.Refresh(_world, id);
+                    _hud.AddLogEntry(LocalizationSystem.F("UI.Mythic.Log.Expire", UnitLabel(id)));
+                    if (_viewsById.TryGetValue(id, out var changedView)) changedView.Refresh(_world, id);
                 }
                 RefreshEconomyViews(false);
                 CheckBattleEnd();
             }
+
+            // 성장: 남은 턴이 다 된 유닛이 다른 유닛으로 바뀐다(새 엔티티 — View를 붙이고 옛 View는 숨긴다).
+            foreach (int grown in GrowSystem.OnTurnStart(_grid, _world, _econ, team))
+            {
+                AttachSpawnedView(grown);
+                _hud.AddLogEntry(LocalizationSystem.F("UI.Log.Grow", UnitLabel(grown)));
+            }
+            RefreshAllViews();
 
             if (team == Team.Enemy && !_battleOver)
                 StartCoroutine(RunEnemyTurnRoutine());
@@ -1222,7 +1232,7 @@ namespace TacticsECS
                 if (_battleOver) yield break;
             }
             var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
-            if (_econ != null) RefreshEconomyViews(false);
+            if (_econ != null) RefreshEconomyViews(true); // 적 유닛의 자동 빙결·폭우·파괴로 지형이 바뀌었을 수 있다
             RefreshAllViews();
 
             foreach (var entry in entries)
@@ -1612,6 +1622,16 @@ namespace TacticsECS
                     HandleInfiltrate(_selectedUnitId, gridPos);
                     return;
                 }
+                if (_plunderTargets != null && _plunderTargets.Contains(gridPos) && !(hasUnit && _attackableTargets != null && _attackableTargets.Contains(occupantId)))
+                {
+                    HandlePlunder(_selectedUnitId, gridPos);
+                    return;
+                }
+                if (!hasUnit && _drenchTargets != null && _drenchTargets.Contains(gridPos))
+                {
+                    HandleDrench(_selectedUnitId, gridPos);
+                    return;
+                }
                 if (hasUnit && _attackableTargets != null && _attackableTargets.Contains(occupantId))
                 {
                     TryAttack(_selectedUnitId, occupantId);
@@ -1646,7 +1666,8 @@ namespace TacticsECS
         {
             var pos = _world.Get<GridPosition>(unitId).Value;
             bool own = _world.Get<Team>(unitId) == Team.Player;
-            if (own && !(_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
+            // 독립(Wild) 유닛은 아무도 지휘하지 않는다 — 정보만 보인다.
+            if (own && !UnitActionQueries.IsWild(_world, unitId) && !(_world.Get<HasMoved>(unitId).Value && _world.Get<HasActed>(unitId).Value))
                 SelectUnit(unitId);
             else
             {
@@ -2059,6 +2080,12 @@ namespace TacticsECS
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Explore"), Detail = LocalizationSystem.T("UI.UnitMenu.ExploreDetail"), Enabled = true, OnClick = () => HandleExplore(unitId) });
             if (RuinSystem.CanHarvestStarfish(_grid, _world, _econ, unitId))
                 options.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.UnitMenu.Starfish", GameRules.Starfish.Stars), Detail = LocalizationSystem.T("UI.UnitMenu.StarfishDetail"), Enabled = true, OnClick = () => HandleStarfish(unitId) });
+            if (TerrainChangeSystem.CanFloodHere(_grid, _world, unitId))
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Flood"), Detail = LocalizationSystem.T("UI.UnitMenu.FloodDetail"), Enabled = true, OnClick = () => HandleTerrainAction(unitId, () => TerrainChangeSystem.FloodHere(_grid, _world, unitId)) });
+            if (TerrainChangeSystem.CanBreakIce(_grid, _world, unitId))
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.BreakIce"), Detail = LocalizationSystem.T("UI.UnitMenu.BreakIceDetail"), Enabled = true, OnClick = () => HandleTerrainAction(unitId, () => TerrainChangeSystem.BreakIce(_grid, _world, unitId) > 0) });
+            if (EmbarkSystem.CanDisembark(_grid, _world, unitId))
+                options.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.UnitMenu.Disembark"), Detail = LocalizationSystem.T("UI.UnitMenu.DisembarkDetail"), Enabled = true, OnClick = () => HandleTerrainAction(unitId, () => EmbarkSystem.Disembark(_grid, _world, unitId)) });
             if (EmbarkSystem.NavalUnitId(_world, unitId) == NavalUnitDefinition.RaftId)
             {
                 foreach (var u in NavalUnitDefinition.Upgrades)
@@ -2223,6 +2250,37 @@ namespace TacticsECS
             ClearSelection();
         }
 
+        /// <summary>침수·얼음 깨기·상륙: 실행 후 지형과 유닛을 다시 그린다.</summary>
+        private void HandleTerrainAction(int unitId, System.Func<bool> action)
+        {
+            if (!CanUseEconomyMenu || !action()) return;
+            _viewsById[unitId].Refresh(_world, unitId);
+            RefreshEconomyViews(true);
+            ClearSelection();
+        }
+
+        private void HandlePlunder(int unitId, Vector2Int cityPos)
+        {
+            if (!CanUseEconomyMenu) return;
+            var log = new List<EconomyLogEntry>();
+            if (PlunderSystem.Plunder(_grid, _world, _econ, unitId, cityPos, log) < 0) return;
+            ProcessEconomyLog(log);
+            _viewsById[unitId].Refresh(_world, unitId);
+            _viewsById[unitId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, cityPos));
+            RefreshEconomyViews(false);
+            ClearSelection();
+        }
+
+        private void HandleDrench(int unitId, Vector2Int tile)
+        {
+            if (!TerrainChangeSystem.DrenchTile(_grid, _world, unitId, tile)) return;
+            if (_econ != null) TaskSystem.RecordAttack(_econ, Team.Player);
+            _viewsById[unitId].Refresh(_world, unitId);
+            _viewsById[unitId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, tile));
+            if (_econ != null) RefreshEconomyViews(true); else _gridView.RefreshTerrain(_grid);
+            ClearSelection();
+        }
+
         private void HandleDisband(int unitId)
         {
             if (!CanUseEconomyMenu) return;
@@ -2262,6 +2320,8 @@ namespace TacticsECS
 
             _attackableTargets = new List<int>();
             _infiltrateTargets = null;
+            _plunderTargets = null;
+            _drenchTargets = null;
             var attack = UnitActionQueries.Find<AttackAction>(_world, unitId);
             if (UnitActionQueries.Find<InfiltrateAction>(_world, unitId) != null)
             {
@@ -2279,6 +2339,11 @@ namespace TacticsECS
                 }
                 _gridView.HighlightAttack(_attackableTargets.Select(id => _world.Get<GridPosition>(id).Value));
             }
+            // 약탈(적 도시 칸)·폭우(빈 칸)도 공격 칸으로 보인다.
+            _plunderTargets = PlunderSystem.Targets(_grid, _world, _econ, unitId);
+            _drenchTargets = TerrainChangeSystem.DrenchTargets(_grid, _world, unitId);
+            _gridView.HighlightAttack(_plunderTargets);
+            _gridView.HighlightAttack(_drenchTargets);
 
             ShowUnitInspector(unitId);
         }
@@ -2295,11 +2360,14 @@ namespace TacticsECS
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
+            // 자동 빙결·파괴는 지형을 바꾼다.
+            bool terrainChanged = UnitActionQueries.Find<AutoFreezeAction>(_world, _selectedUnitId) != null || UnitActionQueries.Find<RazeAction>(_world, _selectedUnitId) != null;
             if (_econ != null)
             {
                 // 이동으로 시야(구름)/지형 방어 보너스/도시 포위(수입) 상태가 바뀔 수 있다.
-                RefreshEconomyViews(false);
+                RefreshEconomyViews(terrainChanged);
             }
+            else if (terrainChanged) _gridView.RefreshTerrain(_grid);
             RecomputeHighlights();
             _focusPos = pos;
             _focusLayer = FocusLayer.Unit;
@@ -2331,7 +2399,8 @@ namespace TacticsECS
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
             _viewsById[attackerId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(targetId).Value));
-            RefreshEconomyViews(false);
+            bool drenched = UnitActionQueries.Find<DrenchAction>(_world, attackerId) != null; // 폭우: 맞은 칸이 잠긴다
+            if (_econ != null) RefreshEconomyViews(drenched); else if (drenched) _gridView.RefreshTerrain(_grid);
 
             CheckBattleEnd();
             ClearSelection();
@@ -2450,6 +2519,8 @@ namespace TacticsECS
             _reachableTiles = null;
             _attackableTargets = null;
             _infiltrateTargets = null;
+            _plunderTargets = null;
+            _drenchTargets = null;
             if (_gridView != null) _gridView.ClearHighlights();
             _menuTile = null;
             _focusPos = null;

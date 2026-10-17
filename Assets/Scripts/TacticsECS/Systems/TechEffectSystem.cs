@@ -35,7 +35,8 @@ namespace TacticsECS
                 world.Set(id, new TerrainAccess
                 {
                     Mountain = !TechSystem.IsKeyGated(nodes, "Move.Mountain") || TechSystem.HasUnlock(nodes, tech, "Move.Mountain"),
-                    Ocean = !TechSystem.IsKeyGated(nodes, "Move.Ocean") || TechSystem.HasUnlock(nodes, tech, "Move.Ocean"),
+                    Ocean = !TechSystem.IsKeyGated(nodes, "Move.Ocean") || TechSystem.HasUnlock(nodes, tech, "Move.Ocean") ||
+                            UnitActionQueries.Find<NavigateAction>(world, id) != null, // 항해: 기술 없이 깊은 바다
                 });
 
                 var pos = world.Get<GridPosition>(id).Value;
@@ -51,6 +52,8 @@ namespace TacticsECS
                 if (city >= 0 && econ.Cities[city].Owner == team && UnitActionQueries.Find<FortifyAction>(world, id) != null)
                     bonus = econ.Cities[city].HasWall ? 2 : Mathf.Max(bonus, 1);
 
+                // 공중 유닛·비행은 숲/산/바다/도시/성벽 방어 보너스를 받지 않는다(기획서 이동 타입 "공중"). 중독은 CombatSystem.DefenseMultiplier가 따로 막는다.
+                if (PathfindingSystem.IgnoresTerrain(world, id) && UnitActionQueries.Find<IgnoreTerrainAction>(world, id) == null) bonus = 0;
                 world.Set(id, new PositionalDefenseBonus { Value = bonus });
             }
         }
@@ -61,7 +64,7 @@ namespace TacticsECS
             var access = world.Get<TerrainAccess>(unitId);
             var type = grid.GetTileType(tile);
             if (type == TerrainGenerationSystem.MountainTileId && !access.Mountain) return true;
-            if (type == TerrainGenerationSystem.OceanTileId && !access.Ocean) return true;
+            if (type == TerrainGenerationSystem.OceanTileId && !access.Ocean && !grid.GetTile(tile).Iced) return true; // 언 바다는 걸어서 건넌다
             return false;
         }
     }

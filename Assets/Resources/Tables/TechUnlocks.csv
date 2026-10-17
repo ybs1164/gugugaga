@@ -45,7 +45,7 @@
 43,UnitProduction,Unit,,,,1,정찰선,뗏목 → 정찰선 업그레이드(별 5)
 44,BuildingConstruction,Build,,11,,,해양 신전,해양 신전 건설(별 20)
 45,Passive,Defense,Water,,,,물 방어,근해/원양 타일 유닛 방어력 보너스
-46,UnitProduction,Unit,,,,3,폭격선,뗏목 → 폭격선 업그레이드(별 15)
+46,UnitProduction,Unit,,,,3,범선,뗏목 → 범선 업그레이드(별 15)
 47,Active,Harvest,Starfish,,,,불가사리 인양,불가사리 인양(별 +8)
 48,Passive,Reveal,Starfish,,,,불가사리 발견,숨겨진 불가사리가 보인다
 49,Passive,Connect,Ocean,,,,원양 항로,깊은 바다를 건너는 항구 연결

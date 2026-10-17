@@ -19,7 +19,8 @@ namespace TacticsECS
         private GameObject _model;
         private Transform _hpGroup, _hpBarFill;
         private TextMesh _hpText;
-        private SpriteRenderer _hpFill, _teamBadge, _guardBadge, _statusBadge;
+        private SpriteRenderer _hpFill, _teamBadge, _guardBadge, _statusBadge, _poisonBadge;
+        private GameObject _alert; // 근처에 숨은 적이 있을 때 머리 위 (!) — docs/spec/game/vision.md#은신
         private SortingGroup _sorting;
         private Coroutine _moveRoutine;
         private Coroutine _attackRoutine, _hitRoutine;
@@ -43,6 +44,11 @@ namespace TacticsECS
             _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.4375f),new Vector2(.5f,.0625f),Color.white,3);
             _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteComposer.Compose("Icon.guard"),new Vector2(.3125f,.1875f),Vector2.one,Color.white,4);
             _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteComposer.Compose("Icon.freeze"),new Vector2(-.3125f,.1875f),Vector2.one,Color.white,4);
+            _poisonBadge = PixelSpriteCatalog.Rectangle(transform,"Poison",new Vector2(-.3125f,-.125f),new Vector2(.125f,.125f),new Color(.55f,.85f,.2f),4);
+            _alert = new GameObject("HiddenAlert"); _alert.transform.SetParent(transform,false);
+            var alertColor = new Color(1f,.85f,.2f);
+            PixelSpriteCatalog.Rectangle(_alert.transform,"Bar",new Vector2(0,.8125f),new Vector2(.0625f,.1875f),alertColor,23);
+            PixelSpriteCatalog.Rectangle(_alert.transform,"Dot",new Vector2(0,.6875f),new Vector2(.0625f,.0625f),alertColor,23);
             BuildHpDisplay();
             transform.position = PixelCoordinates.GridToWorld(grid,world.Get<GridPosition>(id).Value);
             Refresh(world,id);
@@ -81,6 +87,9 @@ namespace TacticsECS
             bool praying = world.GetOrDefault<Praying>(id).Value;
             _statusBadge.gameObject.SetActive(frozen || praying || hidden);
             _statusBadge.sprite = PixelSpriteComposer.Compose(frozen ? "Icon.freeze" : praying ? "Icon.heal" : "Icon.infiltrate");
+            _poisonBadge.gameObject.SetActive(world.GetOrDefault<Poisoned>(id).Value);
+            // 플레이어 유닛 옆(8칸)에 숨은 적이 있으면 위치는 모른 채 (!)만 보인다.
+            _alert.SetActive(world.Get<Team>(id) == Team.Player && StealthSystem.AdjacentHiddenEnemy(_grid,world,id));
             var embarked = world.GetOrDefault<Embarked>(id);
             _bodyOrigin = Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;

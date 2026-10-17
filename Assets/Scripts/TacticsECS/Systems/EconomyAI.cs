@@ -27,12 +27,21 @@ namespace TacticsECS
             TaskSystem.Refresh(grid, econ, log);
 
             for (int id = 0; id < world.EntityCount; id++)
-                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && CitySystem.CanCapture(grid, world, econ, id))
+                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && !UnitActionQueries.IsWild(world, id) && CitySystem.CanCapture(grid, world, econ, id))
                     CitySystem.Capture(grid, world, econ, id, log);
 
             for (int id = 0; id < world.EntityCount; id++)
             {
-                if (!UnitQueries.IsAlive(world, id) || world.Get<Team>(id) != team) continue;
+                if (!UnitQueries.IsAlive(world, id) || world.Get<Team>(id) != team || UnitActionQueries.IsWild(world, id)) continue;
+                // 약탈: 수입이 가장 큰 도시부터.
+                var plunder = PlunderSystem.Targets(grid, world, econ, id);
+                if (plunder.Count > 0)
+                {
+                    plunder.Sort((a, b) => CitySystem.CityStarsIncome(grid, world, econ.Cities[CitySystem.FindCityAt(econ, b)])
+                        .CompareTo(CitySystem.CityStarsIncome(grid, world, econ.Cities[CitySystem.FindCityAt(econ, a)])));
+                    PlunderSystem.Plunder(grid, world, econ, id, plunder[0], log);
+                    continue;
+                }
                 var targets = InfiltrationSystem.Targets(grid, world, econ, id);
                 if (targets.Count == 0) continue;
                 targets.Sort((a, b) => econ.Cities[CitySystem.FindCityAt(econ, b)].Level.CompareTo(econ.Cities[CitySystem.FindCityAt(econ, a)].Level));
@@ -40,11 +49,11 @@ namespace TacticsECS
             }
 
             for (int id = 0; id < world.EntityCount; id++)
-                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && RuinSystem.CanExplore(grid, world, econ, id))
+                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && !UnitActionQueries.IsWild(world, id) && RuinSystem.CanExplore(grid, world, econ, id))
                     RuinSystem.Explore(grid, world, econ, id, log);
 
             for (int id = 0; id < world.EntityCount; id++)
-                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && RuinSystem.CanHarvestStarfish(grid, world, econ, id))
+                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) == team && !UnitActionQueries.IsWild(world, id) && RuinSystem.CanHarvestStarfish(grid, world, econ, id))
                     RuinSystem.HarvestStarfish(grid, world, econ, id, log);
 
             bool threatened = IsThreatened(grid, world, econ, team);

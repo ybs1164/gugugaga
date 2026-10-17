@@ -36,6 +36,7 @@ Combat.WallDefenseMultiplier,4,4,성벽 도시의 요새화 유닛 방어 배수
 Combat.SplashDivisor,2,2,스플래시 피해 = 그 대상에게 계산한 공격 피해 / N,원문은 나누기만 하고(.5 체력 버그) 여기서는 내림 — 값은 같음
 Combat.MeleeAdvanceOnKill,true,true,근접(사거리 1) 유닛이 인접한 적을 처치하면 그 칸으로 전진,
 Combat.GuardDefenseBonus,1,,방어 태세(Defend 행동) 방어 스탯 +N,프로젝트 고유 행동(위키에 없음) — 위키 척도(방어 1~4)에 맞춰 2 -> 1
+Poison.DefenseMultiplier,0.7,0.5,중독된 유닛의 방어 스탯 배수(지형·성벽·요새화 보너스도 사라진다),기획서 기준 방어력 30% 감소(위키는 50% 감소·보너스 유지)
 # 점수(위키 Score),,,,
 Score.PerUnitCostStar,5,5,유닛 비용 1당 점수,
 Score.SuperUnit,50,50,슈퍼 유닛 점수,

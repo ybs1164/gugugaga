@@ -623,9 +623,17 @@ namespace TacticsECS.EditorTools
                 VisionSystem.Reveal(g, Team.Enemy, new Vector2Int(2, 2), 5);
                 return (g, w, ec, d, ec.Cities[CitySystem.FindCapital(ec, Team.Player)].Position);
             }
-            var spyRow = GameTables.Units.FirstOrDefault(u => u.Id == "spy");
-            Check(spyRow != null, "spy row exists");
-            if (spyRow == null) return;
+            var planSpy = GameTables.Units.FirstOrDefault(u => u.Id == "spy");
+            Check(planSpy != null, "spy row exists");
+            if (planSpy == null) return;
+            // 기획서 스파이는 침투 대신 약탈을 쓴다 — 침투는 위키 Cloak 행동 목록으로 만든 행으로 검사한다.
+            var spyRow = new UnitCsvRow
+            {
+                Id = planSpy.Id, Name = planSpy.Name, MaxHp = planSpy.MaxHp, Defense = planSpy.Defense, BaseVisual = planSpy.BaseVisual,
+                Actions = ActionType.Move | ActionType.Attack | ActionType.Charge | ActionType.Hide | ActionType.Infiltrate | ActionType.Scout |
+                          ActionType.Creep | ActionType.Stiff | ActionType.Static,
+                MoveRange = planSpy.MoveRange, AttackAttack = planSpy.AttackAttack, AttackRange = planSpy.AttackRange, Cost = planSpy.Cost, Boat = planSpy.Boat,
+            };
 
             // 플레이어 쪽 판정(BattleController가 쓰는 시스템 호출 그대로).
             var (grid, world, econ, defender, cap) = Setup();

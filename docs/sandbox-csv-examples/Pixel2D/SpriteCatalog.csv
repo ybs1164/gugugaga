@@ -19,6 +19,8 @@ Ground.Field_Quetzali,Pattern/Field,0,0,32,32,0,0,1,0,0,74B86A,0,,Tribe field (T
 Ground.Field_Yadakk,Pattern/Field,0,0,32,32,0,0,1,0,0,D6AE7E,0,,Tribe field (TribeTerrain.csv first Land tile)
 Ground.Water,Pattern/Water,0,0,32,32,0,0,1,0,0,FFFFFF,0,,Original pattern
 Ground.Ocean,Pattern/Ocean,0,0,32,32,0,0,1,0,0,FFFFFF,0,,Original pattern
+Ground.Ice,Pattern/Snow,0,0,32,32,0,0,1,0,0,CFE6FF,0,,Frozen water (TileData.Iced)
+Ground.Flooded,Pattern/Water,0,0,32,32,0,0,1,0,0,B8E0C8,0,,Flooded land (TileData.Flooded)
 Terrain.Forest,Pattern/Pine,0,0,14,18,-7,5,1,0,0,FFFFFF,0,,Original pattern
 Terrain.Forest,Pattern/Pine,0,0,14,18,7,7,1,0,0,FFFFFF,0,,Original pattern
 Terrain.Forest,Pattern/Tree,0,0,16,20,0,-4,1,0,1,FFFFFF,0,,Original pattern

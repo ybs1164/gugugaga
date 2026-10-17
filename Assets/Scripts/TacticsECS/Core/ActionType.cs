@@ -18,7 +18,7 @@ namespace TacticsECS
     /// 정보용 배지(동그라미 배경)로만 표시된다.
     /// </summary>
     [Flags]
-    public enum ActionType
+    public enum ActionType : long
     {
         None = 0,
         Move = 1 << 0,
@@ -66,8 +66,7 @@ namespace TacticsECS
         /// <summary>요새화(위키 Fortify): 자기 도시 칸에서 방어 보너스(x1.5, 성벽 x4 — TechEffectSystem.RefreshUnits).
         /// 값을 갖지 않는 순수 마커 — Actions/FortifyAction.cs 참고.</summary>
         Fortify = 1 << 17,
-        /// <summary>은신(위키 Hide): 움직이면 적에게 보이지 않고, 적 영향권(ZoC)을 무시하며 적 유닛을 지나갈 수 있다(멈출 수는 없음).
-        /// 값을 갖지 않는 순수 마커 — Actions/HideAction.cs, Systems/StealthSystem.cs 참고. (옛 이름 Stealth — CSV에서도 읽힌다.)</summary>
+        /// <summary>은신: 한 바퀴 동안 피해를 받지 않으면 적에게 보이지 않는다 — Actions/HideAction.cs, Systems/StealthSystem.cs. (옛 이름 Stealth — CSV에서도 읽힌다.)</summary>
         Hide = 1 << 18,
         // 1 << 19 ~ 1 << 21: 예전 약탈(Pillage)/고정(Anchored)/수송(Transport) 플레이스홀더 자리. 효과가 정해지지 않은 채
         // 쓰이지 않아 2026-09-29에 뺐다 — 약탈·고정은 위키에 없는 스킬이고, 수송(위키 Carry)은 항구 승선(EmbarkSystem)이 맡는다.
@@ -93,12 +92,38 @@ namespace TacticsECS
         /// <summary>고정(위키 Unit Skills "Static"): 베테랑으로 승급할 수 없다(Cloak/Dagger 등). 값을 갖지 않는 순수 마커 —
         /// Actions/StaticAction.cs 참고.</summary>
         Static = 1 << 27,
-        /// <summary>잠행(위키 Unit Skills "Creep"): 산을 뺀 지형의 이동 제한(숲에서 멈춤)을 무시하고, 도로 보너스도 받지 않는다.
-        /// 값을 갖지 않는 순수 마커 — Actions/CreepAction.cs 참고.</summary>
+        /// <summary>지형무시(위키 Unit Skills "Creep"): 숲·산에서 멈추지 않고 도로 보너스도 받지 않는다 — Actions/CreepAction.cs.</summary>
         Creep = 1 << 28,
         Stomp = 1 << 29,
         /// <summary>기도: 신전 근처 유닛이 고르는 액티브 행동(PrayerSystem). 유닛 CSV의 행동이 아니다 — 선택 시 BattleController가 조건을 보고
         /// 버튼 표시용으로만 붙인다. 규칙: docs/spec/game/faith.md</summary>
         Pray = 1 << 30,
+        // ---- 1 << 31부터는 long 비트(규칙: docs/spec/game/unit.md#행동과-패시브) ----
+        /// <summary>잠입: 적 유닛 영향권(ZoC)에 멈추지 않는다. 적 유닛 칸은 지나가지 못한다(위키 Sneak). 순수 마커.</summary>
+        Sneak = 1L << 31,
+        /// <summary>비행: 지형과 관계없이 이동, 도로 보너스 없음(위키 Air). 순수 마커.</summary>
+        Fly = 1L << 32,
+        /// <summary>약탈: 적 도시를 직접 공격해 그 도시의 별 수입만큼 빼앗는다 — Systems/PlunderSystem.cs.</summary>
+        Plunder = 1L << 33,
+        /// <summary>독 공격: 살아남은 피격 대상(스플래시 포함)을 중독시킨다(Poisoned) — CombatSystem.</summary>
+        Poison = 1L << 34,
+        /// <summary>헤엄: 배 없이 얕은 물을 다니고, 항구에서 배가 되지 않는다. 순수 마커.</summary>
+        Swim = 1L << 35,
+        /// <summary>항해: 깊은 바다 이동 기술 없이도 깊은 바다에 들어간다(위키 Navigate). 순수 마커.</summary>
+        Navigate = 1L << 36,
+        /// <summary>성장: Grow.Turns 턴 뒤 Grow.Into 유닛으로 바뀐다(위키 Grow) — Systems/GrowSystem.cs.</summary>
+        Grow = 1L << 37,
+        /// <summary>파괴: 지나간 칸의 건물·유적을 없앤다 — MovementSystem.</summary>
+        Raze = 1L << 38,
+        /// <summary>독립: 누구의 지휘도 받지 않는다(플레이어가 고를 수 없고 AI도 움직이지 않는다). 순수 마커.</summary>
+        Wild = 1L << 39,
+        /// <summary>스케이트: 얼음 칸에서 이동을 시작하면 이동력 +1 — MovementSystem.EffectiveMoveRange.</summary>
+        Skate = 1L << 40,
+        /// <summary>침수: 서 있는 평지·숲 칸을 침수 지형으로 바꾸는 행동을 쓴다 — Systems/TerrainChangeSystem.cs.</summary>
+        Flood = 1L << 41,
+        /// <summary>폭우: 빈 칸도 공격할 수 있고, 공격한 칸을 침수시킨다(위키 Drench) — Systems/TerrainChangeSystem.cs.</summary>
+        Drench = 1L << 42,
+        /// <summary>자동 빙결: 이동할 때마다 주변 8칸의 물을 얼리고 적 유닛을 빙결시킨다(위키 Auto Freeze) — Systems/TerrainChangeSystem.cs.</summary>
+        AutoFreeze = 1L << 43,
     }
 }

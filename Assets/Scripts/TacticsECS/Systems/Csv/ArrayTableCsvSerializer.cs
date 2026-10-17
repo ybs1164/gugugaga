@@ -134,7 +134,7 @@ namespace TacticsECS
         /// <summary>유닛/배 표가 공통으로 갖는 컬럼(UnitCsvSerializer가 읽는 것).</summary>
         private static readonly string[] UnitColumns =
             { "MaxHp", "Defense", "BaseVisual", UnitCsvSerializer.ActionColumn, "Domain", "Move.Range", "Attack.Attack", "Attack.Range",
-              "Heal.Amount", "Heal.Range", "Cost", "Trainable" };
+              "Heal.Amount", "Heal.Range", "Cost", "Trainable", "Grow.Into", "Grow.Turns" };
 
         public static TechRow[] ParseTechs(string text, List<string> errors = null)
         {

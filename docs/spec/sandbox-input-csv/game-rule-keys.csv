@@ -29,6 +29,7 @@ Combat.WallDefenseMultiplier,float,성벽 도시의 요새화 유닛 방어 배�
 Combat.SplashDivisor,int,스플래시 피해 = 그 대상에게 계산한 공격 피해 / N
 Combat.MeleeAdvanceOnKill,bool,근접(사거리 1) 유닛이 인접한 적을 처치하면 그 칸으로 전진
 Combat.GuardDefenseBonus,float,방어 태세(Defend 행동) 방어 스탯 +N
+Poison.DefenseMultiplier,float,중독된 유닛의 방어 스탯 배수(지형·성벽·요새화 보너스도 사라진다)
 Score.PerUnitCostStar,int,유닛 비용 1당 점수
 Score.SuperUnit,int,슈퍼 유닛 점수
 Score.PerTerritoryTile,int,영토 칸당 점수

@@ -257,6 +257,8 @@ for tribe, tint in FIELDS.items():
     row('Ground.Field_' + tribe, 'Pattern/Field', 16, 16, 0, 0, color=tint, note='Tribe field (TribeTerrain.csv first Land tile)')
 row('Ground.Water', 'Pattern/Water', 16, 16, 0, 0)
 row('Ground.Ocean', 'Pattern/Ocean', 16, 16, 0, 0)
+row('Ground.Ice', 'Pattern/Snow', 16, 16, 0, 0, color='CFE6FF', note='Frozen water (TileData.Iced)')
+row('Ground.Flooded', 'Pattern/Water', 16, 16, 0, 0, color='B8E0C8', note='Flooded land (TileData.Flooded)')
 
 put('Terrain.Forest', 'Pine', 1, 6)
 put('Terrain.Forest', 'Pine', 8, 7)

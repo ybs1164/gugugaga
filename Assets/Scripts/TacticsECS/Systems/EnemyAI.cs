@@ -44,7 +44,7 @@ namespace TacticsECS
 
             var ownIds = new List<int>();
             for (int i = 0; i < world.EntityCount; i++)
-                if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == team) ownIds.Add(i);
+                if (UnitQueries.IsAlive(world, i) && world.Get<Team>(i) == team && !UnitActionQueries.IsWild(world, i)) ownIds.Add(i);
 
             var claimedTargets = new HashSet<Vector2Int>();
             var defendedCities = new HashSet<Vector2Int>();

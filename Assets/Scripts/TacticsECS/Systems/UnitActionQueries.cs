@@ -15,5 +15,8 @@ namespace TacticsECS
             var actions = world.Get<UnitActions>(unitId).Value;
             return actions?.OfType<T>().FirstOrDefault();
         }
+
+        /// <summary>독립(WildAction) 유닛 — 플레이어도 AI도 지휘하지 않는다.</summary>
+        public static bool IsWild(EntityWorld world, int unitId) => Find<WildAction>(world, unitId) != null;
     }
 }

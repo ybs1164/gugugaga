@@ -50,6 +50,7 @@ namespace TacticsECS
             world.Set(targetId, hp);
             world.Set(targetId, new Accelerated { Value = false });
             PrayerSystem.OnHit(world, targetId);
+            StealthSystem.OnHit(world, targetId);
             world.Set(actorId, new HasActed { Value = true });
 
             if (!UnitQueries.IsAlive(world, targetId))
@@ -64,12 +65,15 @@ namespace TacticsECS
                 if (UnitActionQueries.Find<ComboAction>(world, actorId) != null)
                     world.Set(actorId, new HasActed { Value = false });
             }
-            else if (UnitActionQueries.Find<FreezeAction>(world, actorId) != null)
+            else
             {
                 // 빙결: 대상이 살아남았고 공격자가 이 패시브를 가졌다면, 대상의 다음 자기 턴 하나를
                 // 통째로 행동불능으로 만든다(TurnSystem.ResetUnitStates가 소모).
-                world.Set(targetId, new Frozen { Value = true });
+                if (UnitActionQueries.Find<FreezeAction>(world, actorId) != null) world.Set(targetId, new Frozen { Value = true });
+                CombatSystem.ApplyPoison(world, actorId, targetId);
             }
+            // 폭우: 공격한 칸을 침수시킨다.
+            if (UnitActionQueries.Find<DrenchAction>(world, actorId) != null) TerrainChangeSystem.Flood(grid, world.Get<GridPosition>(targetId).Value);
 
             // 스플래시: 공격자가 이 패시브를 가졌다면, 대상(생사 무관 — 마지막 위치 기준) 주변 8칸의 적에게도
             // 짓밟기와 같은 규칙으로 피해를 입힌다.

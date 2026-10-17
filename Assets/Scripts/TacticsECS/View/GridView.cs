@@ -84,6 +84,8 @@ namespace TacticsECS
                 string ground = grid.GetTerrain(p) == TerrainType.Water
                     ? (type == TerrainGenerationSystem.OceanTileId ? "Ocean" : "Water")
                     : (PixelSpriteCatalog.Has("Ground." + landType) ? landType : "Grass");
+                var td = grid.GetTile(p);
+                if (td.Iced) ground = "Ice"; else if (td.Flooded) ground = "Flooded"; // 얼음·침수 — docs/spec/game/tile.md#침수와-얼음
                 _ground.SetTile(new Vector3Int(x, y, 0), TileFor("Ground." + ground));
                 _tileViews[i].Init(p, grid.GetTerrain(p), type);
                 Replace(ref _shores[i], CreateShore(grid, p, _tileViews[i].transform));

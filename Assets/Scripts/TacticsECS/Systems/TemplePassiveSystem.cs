@@ -136,6 +136,7 @@ namespace TacticsECS
                 hp.Value = next;
                 world.Set(i, hp);
                 PrayerSystem.OnHit(world, i);
+                StealthSystem.OnHit(world, i);
                 damaged.Add(i);
             }
         }

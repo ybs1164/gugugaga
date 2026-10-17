@@ -28,7 +28,7 @@ namespace TacticsECS
             "Move.Range",
             "Attack.Attack", "Attack.Range",
             "Heal.Amount", "Heal.Range",
-            "Cost", "Trainable", "Boat"
+            "Cost", "Trainable", "Boat", "Grow.Into", "Grow.Turns"
         };
 
 
@@ -61,6 +61,8 @@ namespace TacticsECS
                     Cost = CsvTableReader.GetInt(t, r, "Cost", UnitCsvRow.DefaultCost, errors),
                     Trainable = CsvTableReader.GetBool(t, r, "Trainable", true, errors),
                     Boat = CsvTableReader.Get(t, r, "Boat"),
+                    GrowInto = CsvTableReader.Get(t, r, "Grow.Into"),
+                    GrowTurns = CsvTableReader.GetInt(t, r, "Grow.Turns", 0, errors),
                 });
             }
             return rows;
@@ -93,7 +95,9 @@ namespace TacticsECS
             row.HealRange.ToString(CultureInfo.InvariantCulture),
             row.Cost.ToString(CultureInfo.InvariantCulture),
             row.Trainable ? "1" : "0",
-            row.Boat ?? string.Empty
+            row.Boat ?? string.Empty,
+            row.GrowInto ?? string.Empty,
+            row.GrowTurns.ToString(CultureInfo.InvariantCulture)
         }));
 
         /// <summary>Action1..N(+ 옛 Actions 칸)의 행동 이름을 ActionType 플래그로 OR한다. 모르는 이름은 errors에 남기고 건너뛴다.</summary>

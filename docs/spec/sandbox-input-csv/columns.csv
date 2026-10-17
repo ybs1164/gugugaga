@@ -176,7 +176,7 @@ Table.Units,MaxHp,정수,O,0,,최대 체력
 Table.Units,Defense,실수,O,0,,방어력(소수 허용 — 위키 원값 그대로)
 Table.Units,BaseVisual,문자열,O,,,스폰 프리팹 Assets/Prefabs/Units/Unit_<BaseVisual>. 스프라이트에 Unit.<Id>가 없으면 이 외형을 빌린다
 Table.Units,Action{n},행동 이름,O,,,행동·패시브 하나씩 — 목록은 unit
-Table.Units,Domain,TerrainType,,Land,,들어갈 수 있는 지형
+Table.Units,Domain,Land/Water/Amphibious/Air,,Land,,이동 타입 — movement
 Table.Units,Move.Range,정수,,0,,이동력(Move가 있을 때)
 Table.Units,Attack.Attack,실수,,0,,"공격력(Attack이 있을 때, 소수 허용)"
 Table.Units,Attack.Range,정수,,0,,공격 사거리. 1 = 근접
@@ -185,6 +185,8 @@ Table.Units,Heal.Range,정수,,0,,치유 사거리
 Table.Units,Cost,정수,,2,,훈련 비용(별)
 Table.Units,Trainable,불리언,,true,,false면 도시에서 훈련 불가(보상·침투로만 등장)
 Table.Units,BoatIndex,Boats Index,,-1,,자기 항구에 들어가면 바뀌는 배. -1 = 뗏목
+Table.Units,Grow.Into,유닛 Id,,,,Grow 유닛이 자라서 되는 유닛 — unit
+Table.Units,Grow.Turns,정수,,0,,자라기까지 자기 턴 수
 Table.Units,Note,메모,,,,로더 무시
 Table.Boats,Index,정수,O,,,배열 위치
 Table.Boats,Id,문자열,O,,,"배 키. 해금 키 Unit.<Id>, 스프라이트 Boat.<Id>가 가리킨다"

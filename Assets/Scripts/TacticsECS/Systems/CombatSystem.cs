@@ -33,8 +33,17 @@ namespace TacticsECS
         /// <summary>방어 스탯(방어 태세 가산 포함, 위치 보너스 배수는 제외).</summary>
         public static float BaseDefense(EntityWorld world, int unitId) =>
             world.GetOrDefault<Praying>(unitId).Value ? 0f // 기도 중에는 방어력 0 — docs/spec/game/faith.md
-            : world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus + world.GetOrDefault<TempleAura>(unitId).GuardDefense : 0f)
-              + world.GetOrDefault<TempleAura>(unitId).Defense;
+            : (world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus + world.GetOrDefault<TempleAura>(unitId).GuardDefense : 0f)
+              + world.GetOrDefault<TempleAura>(unitId).Defense) * (IsPoisoned(world, unitId) ? GameRules.Poison.DefenseMultiplier : 1f);
+
+        public static bool IsPoisoned(EntityWorld world, int unitId) => world.GetOrDefault<Poisoned>(unitId).Value;
+
+        /// <summary>공격자가 독 공격(PoisonAction)을 가졌으면 살아남은 대상을 중독시킨다(공격·스플래시) — docs/spec/game/combat.md#중독.</summary>
+        public static void ApplyPoison(EntityWorld world, int attackerId, int targetId)
+        {
+            if (UnitQueries.IsAlive(world, targetId) && UnitActionQueries.Find<PoisonAction>(world, attackerId) != null)
+                world.Set(targetId, new Poisoned { Value = true });
+        }
 
         /// <summary>공격 스탯 + 신전 오라 보너스.</summary>
         public static float EffectiveAttack(EntityWorld world, int unitId) => world.Get<Attack>(unitId).Value + world.GetOrDefault<TempleAura>(unitId).Attack;
@@ -42,6 +51,7 @@ namespace TacticsECS
         /// <summary>위치 방어 보너스 배수(PositionalDefenseBonus 등급 — TechEffectSystem이 계산): 없음 1, 표준 1.5, 성벽 4.</summary>
         public static float DefenseMultiplier(EntityWorld world, int unitId)
         {
+            if (IsPoisoned(world, unitId)) return 1f; // 중독: 지형·성벽·요새화 보너스 없음
             int level = world.Get<PositionalDefenseBonus>(unitId).Value;
             if (level >= 2) return GameRules.Combat.WallDefenseMultiplier;
             return level == 1 ? GameRules.Combat.DefenseBonusMultiplier : 1f;
@@ -112,7 +122,8 @@ namespace TacticsECS
                 world.Set(i, hp);
                 world.Set(i, new Accelerated { Value = false });
                 PrayerSystem.OnHit(world, i);
-                StealthSystem.Reveal(world, i);
+                StealthSystem.OnHit(world, i);
+                ApplyPoison(world, actorId, i);
                 if (!UnitQueries.IsAlive(world, i))
                 {
                     grid.RemoveOccupant(pos);
@@ -148,8 +159,12 @@ namespace TacticsECS
                 if (UnitActionQueries.Find<ConvertAction>(world, attackerId) != null)
                 {
                     world.Set(targetId, world.Get<Team>(attackerId));
-                    // 위키 Mind Bender: 전향된 유닛은 공짜이고 도시 유닛 상한을 넘어도 된다 — 전향시킨 유닛의 도시 소속으로.
-                    world.Set(targetId, world.GetOrDefault<HomeCity>(attackerId));
+                    // 전향된 유닛은 공짜이고 수도 소속이 된다(수도 상한을 넘어도 된다 — 위키 Unit Skills "Convert"). 수도가 없으면 전향시킨 유닛의 도시.
+                    // 독립(Independent) 유닛은 어느 도시에도 속하지 않는다.
+                    int capital = grid.Economy != null ? CitySystem.FindCapital(grid.Economy, world.Get<Team>(attackerId)) : -1;
+                    if (UnitActionQueries.Find<IndependentAction>(world, targetId) != null) world.Set(targetId, new HomeCity());
+                    else if (capital >= 0) world.Set(targetId, new HomeCity { HasCity = true, CityIndex = capital });
+                    else world.Set(targetId, world.GetOrDefault<HomeCity>(attackerId));
                 }
 
                 if (UnitActionQueries.Find<AmbushAction>(world, attackerId) == null &&

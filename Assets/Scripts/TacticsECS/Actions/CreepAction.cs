@@ -1,9 +1,8 @@
 namespace TacticsECS
 {
     /// <summary>
-    /// 잠행 패시브(위키 Unit Skills "Creep" — "ignore movement barriers imposed by terrain except mountains", Cloak 문서: "ignores any
-    /// movement penalties as well as road bonuses"). 순수 마커 — PathfindingSystem이 숲 정지와 도로 보너스를 이 유닛에게 적용하지 않는다.
-    /// 값(수치)은 없다.
+    /// 지형무시 패시브(위키 Unit Skills "Creep"): 숲·산에서 멈추지 않고 도로 보너스도 받지 않는다(기획서 — 위키는 산 제외). 물↔육지는 못 오간다.
+    /// 순수 마커 — PathfindingSystem이 보유 여부만 확인한다. 규칙: docs/spec/game/movement.md#멈추는-칸-들어가면-그-턴-이동-끝
     /// </summary>
     [System.Serializable]
     public class CreepAction : IUnitAction

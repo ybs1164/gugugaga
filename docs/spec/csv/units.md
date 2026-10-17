@@ -20,7 +20,7 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 | `Defense` | 실수 | O | 0 | 방어력(소수 허용 — 위키 원값 그대로) |
 | `BaseVisual` | 문자열 | O | | 스폰 프리팹 `Assets/Prefabs/Units/Unit_<BaseVisual>`. 스프라이트에 `Unit.<Id>`가 없으면 이 외형을 빌린다 |
 | `Action{n}` | 행동 이름 | O | | 행동·패시브 하나씩 — 목록은 [unit](../game/unit.md#행동과-패시브) |
-| `Domain` | `TerrainType` | | `Land` | 들어갈 수 있는 지형 |
+| `Domain` | `Land`/`Water`/`Amphibious`/`Air` | | `Land` | 이동 타입 — [movement](../game/movement.md#이동-타입) |
 | `Move.Range` | 정수 | | 0 | 이동력(`Move`가 있을 때) |
 | `Attack.Attack` | 실수 | | 0 | 공격력(`Attack`이 있을 때, 소수 허용) |
 | `Attack.Range` | 정수 | | 0 | 공격 사거리. 1 = 근접 |
@@ -29,6 +29,8 @@ Units ◄── TechUnlocks.UnitIndex, Tribes.StartUnit{n}
 | `Cost` | 정수 | | 2 | 훈련 비용(별) |
 | `Trainable` | 불리언 | | true | false면 도시에서 훈련 불가(보상·침투로만 등장) |
 | `BoatIndex` | [Boats](#boatscsv--배) Index | | -1 | 자기 항구에 들어가면 바뀌는 배. -1 = 뗏목 |
+| `Grow.Into` | 유닛 `Id` | | | `Grow` 유닛이 자라서 되는 유닛 — [unit](../game/unit.md#성장) |
+| `Grow.Turns` | 정수 | | 0 | 자라기까지 자기 턴 수 |
 | `Note` | 메모 | | | 로더 무시 |
 
 이 유닛을 여는 기술은 [TechUnlocks](tech.md#techunlockscsv--해금-내역)의 `UnitIndex`가 정한다. 가리키는 해금 내역이 없으면 기술 없이 훈련할 수 있다.

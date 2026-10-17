@@ -1232,15 +1232,23 @@ namespace TacticsECS
                 if (_battleOver) yield break;
             }
             var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
+            // 맞은 유닛은 자기 차례의 피해 숫자가 뜰 때까지 남아 있는다(아래에서 공격을 하나씩 보여준다).
+            foreach (var entry in entries)
+                if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var hitView)) hitView.AwaitHit();
             if (_econ != null) RefreshEconomyViews(true); // 적 유닛의 자동 빙결·폭우·파괴로 지형이 바뀌었을 수 있다
             RefreshAllViews();
+            if (entries.Exists(e => e.Verb == BattleLogVerb.Move)) yield return new WaitForSeconds(.45f); // 이동이 끝난 뒤 공격
 
             foreach (var entry in entries)
             {
-                if (entry.Verb == BattleLogVerb.Attack)
-                    _viewsById[entry.ActorId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(entry.TargetId).Value));
-                if ((entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) && entry.Amount > 0)
-                    _viewsById[entry.TargetId].ShowDamagePopup(entry.Amount);
+                if ((entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) &&
+                    _viewsById.TryGetValue(entry.ActorId, out var actorView) && _viewsById.TryGetValue(entry.TargetId, out var targetView))
+                {
+                    if (entry.Verb == BattleLogVerb.Counter) yield return new WaitForSeconds(CounterDelay);
+                    actorView.PlayAttackTowards(targetView.transform.position);
+                    yield return new WaitForSeconds(AttackImpactDelay);
+                    if (IsHit(entry)) targetView.ShowDamagePopup(entry.Amount);
+                }
                 _hud.AddLogEntry(FormatLogEntry(entry));
             }
 
@@ -1249,6 +1257,8 @@ namespace TacticsECS
             if (!_battleOver)
                 EndTurn();
         }
+
+        private static bool IsHit(BattleLogEntry entry) => (entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) && entry.Amount > 0;
 
         /// <summary>AI의 신앙 펀치·강림 결과를 화면에 반영한다: 새 신화 유닛에 View를 붙이고, 체력이 깎인 유닛에 피해 팝업을 띄우고, 모든 유닛 View를 갱신한다.</summary>
         private void ShowAiFaithEffects(Dictionary<int, int> hpBefore)
@@ -1280,7 +1290,9 @@ namespace TacticsECS
             foreach (var kv in _viewsById)
             {
                 if (!UnitQueries.IsAlive(_world, kv.Key)) continue;
-                bool visible = _world.Get<Team>(kv.Key) == Team.Player || VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value);
+                // 구름 속 적, 숨은 적(은신 — docs/spec/game/vision.md#은신)은 그리지 않는다.
+                bool visible = _world.Get<Team>(kv.Key) == Team.Player ||
+                               (VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value) && !StealthSystem.IsHiddenFrom(_world, kv.Key, Team.Player));
                 kv.Value.SetVisible(visible);
             }
         }
@@ -2306,6 +2318,7 @@ namespace TacticsECS
         {
             _gridView.ClearHighlights();
             int unitId = _selectedUnitId;
+            _gridView.HighlightSelected(_world.Get<GridPosition>(unitId).Value);
 
             _reachableTiles = null;
             var move = UnitActionQueries.Find<MoveAction>(_world, unitId);
@@ -2351,7 +2364,9 @@ namespace TacticsECS
         private void MoveSelectedUnit(Vector2Int pos)
         {
             var hpBefore = SnapshotHp();
+            var path = MovementSystem.PathTo(_grid, _world, _selectedUnitId, pos);
             if (!MovementSystem.TryMove(_grid, _world, _selectedUnitId, pos)) return;
+            _viewsById[_selectedUnitId].SetMovePath(path); // 칸을 하나씩 밟고 간다
             foreach (var entry in hpBefore)
                 if (_viewsById.TryGetValue(entry.Key, out var view) && _world.Get<Hp>(entry.Key).Value < entry.Value)
                     view.ShowDamagePopup(entry.Value - _world.Get<Hp>(entry.Key).Value);
@@ -2384,27 +2399,43 @@ namespace TacticsECS
             }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
-            _viewsById[targetId].ShowDamagePopup(damage);
+            StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage));
             if (!UnitQueries.IsAlive(_world, targetId))
                 _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
 
             if (counterDamage > 0)
             {
                 _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Counter, TargetId = attackerId, Amount = counterDamage }));
-                _viewsById[attackerId].ShowDamagePopup(counterDamage);
                 if (!UnitQueries.IsAlive(_world, attackerId))
                     _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
             }
 
             _viewsById[attackerId].Refresh(_world, attackerId);
             _viewsById[targetId].Refresh(_world, targetId);
-            _viewsById[attackerId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, _world.Get<GridPosition>(targetId).Value));
             bool drenched = UnitActionQueries.Find<DrenchAction>(_world, attackerId) != null; // 폭우: 맞은 칸이 잠긴다
             if (_econ != null) RefreshEconomyViews(drenched); else if (drenched) _gridView.RefreshTerrain(_grid);
 
             CheckBattleEnd();
             ClearSelection();
         }
+
+        /// <summary>공격 연출: 공격자가 찌르고 → 맞는 쪽에 피해 숫자 → (반격이 있으면) 맞은 쪽이 되찌르고 → 공격자에 피해 숫자.
+        /// 결과는 이미 데이터에 반영되어 있다 — 죽은 유닛은 자기 피해 숫자가 뜬 뒤 사라진다(UnitView.AwaitHit).</summary>
+        private IEnumerator PlayAttackRoutine(int attackerId, int targetId, int damage, int counterDamage)
+        {
+            if (!_viewsById.TryGetValue(attackerId, out var attacker) || !_viewsById.TryGetValue(targetId, out var target)) yield break;
+            if (damage > 0) target.AwaitHit();
+            if (counterDamage > 0) attacker.AwaitHit();
+            attacker.PlayAttackTowards(target.transform.position);
+            yield return new WaitForSeconds(AttackImpactDelay);
+            if (damage > 0) target.ShowDamagePopup(damage);
+            if (counterDamage <= 0) yield break;
+            yield return new WaitForSeconds(CounterDelay);
+            target.PlayAttackTowards(attacker.transform.position);
+            yield return new WaitForSeconds(AttackImpactDelay);
+            attacker.ShowDamagePopup(counterDamage);
+        }
+        private const float AttackImpactDelay = .09f, CounterDelay = .3f;
 
         private void HandleInfiltrate(int unitId, Vector2Int cityPos)
         {
@@ -2440,12 +2471,16 @@ namespace TacticsECS
         private void HandleHealClicked()
         {
             if (_state != SelectState.UnitSelected) return;
+            var hpBefore = SnapshotHp();
             if (!AbilitySystem.TryHeal(_grid, _world, _selectedUnitId, out var healedIds)) return;
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Heal, TargetId = BattleLogEntry.NoTarget, Amount = healedIds.Count }));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             foreach (var id in healedIds)
+            {
+                _viewsById[id].ShowHealPopup(_world.Get<Hp>(id).Value - (hpBefore.TryGetValue(id, out var before) ? before : 0));
                 _viewsById[id].Refresh(_world, id);
+            }
 
             ClearSelection();
         }
@@ -2497,6 +2532,7 @@ namespace TacticsECS
 
             int healed = _world.Get<Hp>(unitId).Value - hpBefore;
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.Wait, TargetId = BattleLogEntry.NoTarget, Amount = healed }));
+            _viewsById[unitId].ShowHealPopup(healed);
             _viewsById[unitId].Refresh(_world, unitId);
             ClearSelection();
         }

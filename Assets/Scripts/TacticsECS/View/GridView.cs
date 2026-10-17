@@ -214,6 +214,7 @@ namespace TacticsECS
         private void OnDestroy() { foreach (var tile in _tiles.Values) if (tile != null) DestroySafe(tile); }
         public void ClearHighlights() { foreach (var tile in _tileViews) tile.SetHighlight(TileView.TileHighlight.None); }
         public void HighlightMove(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Move); }
+        public void HighlightSelected(Vector2Int p) { if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Selected); }
         public void HighlightAttack(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Attack); }
     }
 }

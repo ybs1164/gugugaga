@@ -57,7 +57,8 @@ namespace TacticsECS
                 groups.Add(group);
             }
 
-            int width = icon ? 16 * maxScale + 2 * Stroke : Tile;
+            int iconArt = groups.SelectMany(g => g).Select(l => Mathf.Max(l.W, l.H) - 2 * Stroke).DefaultIfEmpty(0).Max();
+            int width = icon ? Mathf.Max(16 * maxScale, iconArt) + 2 * Stroke : Tile;
             int height = icon ? width : Tile + Headroom;
             int centreX = width / 2, centreY = icon ? height / 2 : Tile / 2;
             var canvas = new Color32[width * height];

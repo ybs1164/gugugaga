@@ -10,7 +10,7 @@ Sprite:
   m_Rect:
     serializedVersion: 2
     x: 128
-    y: 0
+    y: 48
     width: 32
     height: 48
   m_Offset: {x: 0, y: 0}
@@ -107,13 +107,13 @@ Sprite:
     textureRect:
       serializedVersion: 2
       x: 128
-      y: 0
+      y: 48
       width: 32
       height: 48
     textureRectOffset: {x: 0, y: 0}
     atlasRectOffset: {x: -1, y: -1}
     settingsRaw: 0
-    uvTransform: {x: 16, y: 144, z: 16, w: 24}
+    uvTransform: {x: 16, y: 144, z: 16, w: 72}
     downscaleMultiplier: 1
   m_AtlasRD:
     serializedVersion: 3
@@ -198,13 +198,13 @@ Sprite:
     textureRect:
       serializedVersion: 2
       x: 128
-      y: 0
+      y: 48
       width: 32
       height: 48
     textureRectOffset: {x: 0, y: 0}
     atlasRectOffset: {x: -1, y: -1}
     settingsRaw: 0
-    uvTransform: {x: 16, y: 144, z: 16, w: 24}
+    uvTransform: {x: 16, y: 144, z: 16, w: 72}
     downscaleMultiplier: 1
   m_PhysicsShape: []
   m_Bones: []

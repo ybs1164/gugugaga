@@ -204,7 +204,7 @@ REFERENCE = {   # key -> pack row
     'Giant': 28, 'IronGolem': 29, 'WhiteGiant': 31, 'Hood': 32, 'Rogue': 33, 'Catapult': 36,
     'DarkShip': 56, 'BigShip': 57, 'ShellBoat': 60, 'ShellRaft': 61, 'CannonShip': 65, 'Sailboat': 68, 'RamBoat': 69,
     'Castle': 111, 'Spire': 112, 'TreeHouse': 113, 'Pagoda': 114, 'Keep': 115, 'Cottage': 116, 'DockHouse': 117,
-    'Workshop': 118, 'Hall': 119, 'Hut': 120, 'Smithy': 121, 'Wall': 122,
+    'Workshop': 118, 'Hall': 119, 'Hut': 120, 'Smithy': 121, 'Wall': 122, 'Fox': 19, 'Crystal': 106,
 }
 
 def reference_sheet():
@@ -295,9 +295,9 @@ ref('Structure.Capital', 'Keep')
 put('Structure.Ruin', 'Ruin', 3, 2)
 put('Structure.Resource_Fruit', 'Bush', 3, 3)
 put('Structure.Resource_Crop', 'Wheat', 4, 3)
-put('Structure.Resource_Animal', 'Deer', 3, 3)
-put('Structure.Resource_Metal', 'Ore', 3, 3)
-put('Structure.Resource_Ore', 'Ore', 3, 3)
+ref('Structure.Resource_Animal', 'Fox')
+ref('Structure.Resource_Metal', 'Crystal')
+ref('Structure.Resource_Ore', 'Crystal')
 put('Structure.Resource_Food', 'Mushrooms', 3, 3)
 put('Structure.Resource_Fish', 'Fish', 4, 5)
 put('Structure.Starfish', 'Starfish', 4, 4)
@@ -359,18 +359,68 @@ for name in ICONS:
     a = ART['Icon_' + name]
     row('Icon.' + name, 'Pattern/Icon_' + name, len(a[0]), len(a), 0, 0)
 
+# ---------------------------------------------------------------- pack-resolution patterns
+# The 16-px drawings above are doubled to the pack's 32 px per tile and re-shaded at 1 px like the pack:
+# lit top/left silhouette edge, shaded bottom/right edge, a 1 px shade line under every colour boundary.
+# Single-art-pixel details (eyes, gems, dots) keep their colour. Catalog rows switch to Scale 1.
+def light(c): return tuple(min(255, round(v * 1.12 + add)) for v, add in zip(c, (20, 16, 6)))
+def shade(c): return tuple(round(v * f + add) for v, f, add in zip(c, (.70, .66, .78), (6, 2, 14)))
+
+def hd(rows, ground=False):
+    h, w = len(rows), len(rows[0])
+    big = [[rows[y // 2][x // 2] for x in range(2 * w)] for y in range(2 * h)]
+    H, W = 2 * h, 2 * w
+    at = lambda x, y: big[y % H][x % W] if ground else (big[y][x] if 0 <= x < W and 0 <= y < H else '.')
+    # region sizes per char (4-neighbour) so 1-art-pixel details are left alone
+    size, seen = {}, set()
+    for y in range(H):
+        for x in range(W):
+            if (x, y) in seen or big[y][x] == '.': continue
+            ch, stack, members = big[y][x], [(x, y)], []
+            seen.add((x, y))
+            while stack:
+                a, b = stack.pop(); members.append((a, b))
+                for n in ((a + 1, b), (a - 1, b), (a, b + 1), (a, b - 1)):
+                    if 0 <= n[0] < W and 0 <= n[1] < H and n not in seen and big[n[1]][n[0]] == ch:
+                        seen.add(n); stack.append(n)
+            for m in members: size[m] = len(members)
+    out = [[None] * W for _ in range(H)]
+    for y in range(H):
+        for x in range(W):
+            ch = big[y][x]
+            if ch == '.': continue
+            value = PALETTE[ch]
+            team = value.startswith('@')
+            c = tuple(int(value.lstrip('@')[i:i + 2], 16) for i in (0, 2, 4))
+            if ch != 'k' and size[(x, y)] > 4:
+                up, down, left, right = at(x, y - 1), at(x, y + 1), at(x - 1, y), at(x + 1, y)
+                if up == '.' or left == '.': c = light(c)
+                elif down == '.' or right == '.': c = shade(c)
+                elif down != ch and down != 'k': c = shade(c)
+            out[y][x] = ('@' if team else '') + '%02X%02X%02X' % c
+    return out
+
+CHARS = [chr(c) for c in range(33, 127) if chr(c) not in '.=@']
+def save(name, grid):
+    colors = sorted({v for r in grid for v in r if v})
+    assert len(colors) <= len(CHARS), name
+    key = dict(zip(colors, CHARS))
+    lines = [f'{key[c]}={c}' for c in colors] + [''.join(key[v] if v else '.' for v in r) for r in grid]
+    (PATTERNS / f'{name}.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+GROUNDS = {'Grass', 'Field', 'Sand', 'Snow', 'Water', 'Ocean', 'Fog'}
+for i, r in enumerate(rows[1:], 1):
+    f = r.split(',')
+    if f[1].startswith('Pattern/') and f[8] == '2':
+        f[4], f[5], f[8] = str(int(f[4]) * 2), str(int(f[5]) * 2), '1'
+        rows[i] = ','.join(f)
 (ROOT / 'SpriteCatalog.csv').write_text('\n'.join(rows) + '\n', encoding='utf-8')
 
 # ---------------------------------------------------------------- write the patterns the catalog uses
-def save(name, rows):
-    used = sorted(set(''.join(rows)) - {'.'})
-    lines = [f'{c}={PALETTE[c]}' for c in used] + rows
-    (PATTERNS / f'{name}.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
-
 used = {r.split(',')[1][8:] for r in rows[1:] if r.split(',')[1].startswith('Pattern/')}
-PALETTE['s'] = 'FFFFFF'
-ART['Solid'] = ['s' * 16] * 16
-for name in used: save(name, ART[name])
+for name in used:
+    if name == 'Solid': save(name, [['FFFFFF'] * 16 for _ in range(16)])
+    else: save(name, hd(ART[name], ground=name in GROUNDS))
 for stale in PATTERNS.glob('*.txt'):                 # this script owns the folder
     if stale.stem not in used:
         stale.unlink()

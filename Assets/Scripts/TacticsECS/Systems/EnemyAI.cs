@@ -215,8 +215,9 @@ namespace TacticsECS
             var enemyPositions = new List<(Vector2Int Pos, int Reach)>();
             foreach (var e in VisibleEnemies(grid, world, team))
             {
-                var enemyMove = UnitActionQueries.Find<MoveAction>(world, e);
-                enemyPositions.Add((world.Get<GridPosition>(e).Value, (enemyMove != null ? enemyMove.MoveRange : 0) + world.Get<AttackRange>(e).Value));
+                // 이동력은 MoveAction의 원래 값이 아니라 실효 이동력(가속·스케이트 보너스 포함 — 경로 탐색과 같은 값).
+                bool canMove = UnitActionQueries.Find<MoveAction>(world, e) != null;
+                enemyPositions.Add((world.Get<GridPosition>(e).Value, (canMove ? MovementSystem.EffectiveMoveRange(world, e, grid) : 0) + world.Get<AttackRange>(e).Value));
             }
             if (enemyPositions.Count == 0) return;
 

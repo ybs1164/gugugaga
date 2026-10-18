@@ -1748,25 +1748,19 @@ namespace TacticsECS
             RefreshEconomyViews(false);
         }
 
-        /// <summary>경제 상태가 바뀐 뒤 한 번에 다시 반영하는 곳: 생산량/유닛 수용량 재계산, 유닛 지형 제한/방어
-        /// 보너스, 영토 색/건물/도시 원판, 숨겨진 자원, 자원 바/기술트리. terrainChanged면(벌목/숲 조성 등)
-        /// 타일 색/숲 장식도 다시 그린다.</summary>
+        /// <summary>경제 상태가 바뀐 뒤 한 번에 다시 반영하는 곳: 파생 상태는 EconomyRefreshSystem이 맞추고, 여기서는
+        /// 그 기록(유닛 스폰)을 처리한 뒤 영토 색/건물/도시 원판, 숨겨진 자원, 구름, 자원 바/기술트리를 다시 그린다.
+        /// terrainChanged면(벌목/숲 조성 등) 타일 색/숲 장식도 다시 그린다.</summary>
         private void RefreshEconomyViews(bool terrainChanged)
         {
             if (_econ == null) return;
 
-            // 시야(유닛 주변/영토 밝히기, 등대 발견)와 과업 달성은 상태가 바뀔 때마다 다시 확인한다.
             var log = new List<EconomyLogEntry>();
-            VisionSystem.Refresh(_grid, _world, _econ, log);
-            TaskSystem.Refresh(_grid, _econ, log);
+            EconomyRefreshSystem.CollectEvents(_grid, _world, _econ, log);
             if (log.Count > 0) ProcessEconomyLog(log);
-
-            GreatTempleSystem.Refresh(_grid, _world, _econ, _econ.Turn);
-            foreach (int removed in MythicSystem.Sweep(_grid, _world))
+            foreach (int removed in EconomyRefreshSystem.RefreshState(_grid, _world, _econ))
                 if (_viewsById.TryGetValue(removed, out var removedView)) removedView.Refresh(_world, removed);
-            TemplePassiveSystem.RefreshAuras(_grid, _world, _econ);
-            RefreshProduction();
-            TechEffectSystem.RefreshUnits(_grid, _world, _econ);
+
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
             _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
             _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
@@ -1776,13 +1770,6 @@ namespace TacticsECS
             RefreshTechTree();
         }
 
-        private void RefreshProduction()
-        {
-            if (_econ == null) return;
-            foreach (var team in CitySystem.Teams)
-                _econ.Resources[team] = CityResourceSystem.RefreshProduction(_econ.Resources[team], _grid, _world, _econ, team);
-            RefreshCityResources();
-        }
 
         /// <summary>플레이어에게 보이는 구조물 Id — 기술이 없어 숨겨진 자원이면 빈 문자열.</summary>
         private string VisibleStructure(Vector2Int pos)

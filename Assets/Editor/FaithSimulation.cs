@@ -287,18 +287,11 @@ namespace TacticsECS.EditorTools
             Refresh(grid, world, econ, null);
         }
 
-        /// <summary>BattleController.RefreshEconomyViews의 상태 갱신 부분(시야/과업/대신전/신화/오라/생산/기술 효과).</summary>
+        /// <summary>BattleController.RefreshEconomyViews의 상태 갱신 부분. 기록은 log에 모으기만 하고 스폰은 호출자가 나중에 한다.</summary>
         private static void Refresh(GridWorld grid, EntityWorld world, EconomyWorld econ, List<EconomyLogEntry> log)
         {
-            var l = log ?? new List<EconomyLogEntry>();
-            VisionSystem.Refresh(grid, world, econ, l);
-            TaskSystem.Refresh(grid, econ, l);
-            GreatTempleSystem.Refresh(grid, world, econ, econ.Turn);
-            MythicSystem.Sweep(grid, world);
-            TemplePassiveSystem.RefreshAuras(grid, world, econ);
-            foreach (var t in CitySystem.Teams)
-                econ.Resources[t] = CityResourceSystem.RefreshProduction(econ.Resources[t], grid, world, econ, t);
-            TechEffectSystem.RefreshUnits(grid, world, econ);
+            EconomyRefreshSystem.CollectEvents(grid, world, econ, log ?? new List<EconomyLogEntry>());
+            EconomyRefreshSystem.RefreshState(grid, world, econ);
         }
 
         private static string Row(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turn, Stats stats)

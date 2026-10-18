@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -12,7 +11,7 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// 유닛 행동 화면(고르기·이동·공격·반격·처치·방어·적 턴)을 데모 씬(SampleScene)에서 Play 모드로 실제 탭처럼 눌러 보고
-    /// 한 장씩 찍는다 → Logs/action_ux/frames/*.png, 탭 위치는 taps.csv. GIF는 scripts/make_action_ux_gif.py가 만든다.
+    /// 한 장씩 찍는다 → Logs/action_ux/frames/*.png. GIF는 scripts/make_action_ux_gif.py가 만든다.
     /// 시간은 Time.captureFramerate로 고정해(한 프레임 = 1/Fps초) 찍는 데 걸리는 시간과 상관없이 연출 속도가 그대로 남는다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지):
     /// "&lt;Unity&gt;/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/action_ux.log -executeMethod TacticsECS.EditorTools.ActionUxCapture.Run
@@ -29,7 +28,6 @@ namespace TacticsECS.EditorTools
         private static bool _failed;
         private static RenderTexture _rt;
         private static Texture2D _read;
-        private static readonly StringBuilder Taps = new StringBuilder("Frame,X,Y\n");
         private static int _warrior, _warrior2, _archer, _defender, _enemy, _enemy2;
 
         static ActionUxCapture()
@@ -109,7 +107,6 @@ namespace TacticsECS.EditorTools
                     if (Field<TurnState>(c, "_turnState").ActiveTeam != Team.Player) { _phase--; Wait(.1f); break; }
                     Wait(1.5f); break; // 적 턴: 이동 → 공격을 하나씩
                 default:
-                    File.WriteAllText(Path.Combine(OutDir, "taps.csv"), Taps.ToString());
                     Finish(!_failed, $"{_frame} frames → {Path.GetFullPath(OutDir)}");
                     break;
             }
@@ -167,7 +164,6 @@ namespace TacticsECS.EditorTools
         {
             var cam = Field<Camera>(c, "_cam");
             var screen = cam.WorldToScreenPoint(PixelCoordinates.GridToWorld(Field<GridWorld>(c, "_grid"), pos));
-            Taps.Append($"{_frame},{Mathf.RoundToInt(screen.x)},{Height - 1 - Mathf.RoundToInt(screen.y)}\n");
             Call(c, "HandleClick", (Vector2)screen);
         }
 

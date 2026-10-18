@@ -130,7 +130,7 @@ namespace TacticsECS.EditorTools
             var melee = views.Keys.Where(id => world.Get<Team>(id) == Team.Enemy && UnitActionQueries.Find<AttackAction>(world, id)?.AttackRange == 1 && UnitActionQueries.Find<MoveAction>(world, id)?.MoveRange == 3).ToList(); // 적 전사
             var w = Pos(world, _warrior);
             _enemy = melee.OrderBy(id => PathfindingSystem.Distance(Pos(world, id), w)).First();
-            Relocate(grid, world, views, _enemy, w + new Vector2Int(4, 0));
+            Relocate(grid, world, views, _enemy, w + new Vector2Int(3, 1)); // 꺾이는 길로 닿는 자리
             var w2 = Pos(world, _warrior2);
             _enemy2 = melee.Where(id => id != _enemy).OrderBy(id => PathfindingSystem.Distance(Pos(world, id), w2)).First();
             Relocate(grid, world, views, _enemy2, w2 + new Vector2Int(1, 0));
@@ -153,7 +153,9 @@ namespace TacticsECS.EditorTools
             var tiles = Field<HashSet<Vector2Int>>(c, "_reachableTiles");
             Require(tiles != null, "unit not selected");
             var best = tiles.Where(p => !grid.IsOccupied(p) && PathfindingSystem.Distance(p, Pos(world, target)) <= range)
-                .OrderByDescending(p => MovementSystem.PathTo(grid, world, unit, p).Count).ThenBy(p => PathfindingSystem.Distance(p, Pos(world, target)))
+                .OrderByDescending(p => MovementSystem.PathTo(grid, world, unit, p).Count)
+                .ThenByDescending(p => p.x != Pos(world, unit).x && p.y != Pos(world, unit).y) // 꺾이는 길을 먼저
+                .ThenBy(p => PathfindingSystem.Distance(p, Pos(world, target)))
                 .ToList();
             Require(best.Count > 0, "no stand tile");
             return best[0];

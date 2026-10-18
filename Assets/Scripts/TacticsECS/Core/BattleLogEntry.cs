@@ -33,5 +33,8 @@ namespace TacticsECS
         /// <summary>피해량(공격/반격), 회복 인원 수(치유)·대상 수(자폭), 회복량(대기) 등 행동별 부가값.
         /// 없으면 0.</summary>
         public int Amount;
+
+        /// <summary>이동이 지나간 칸(출발 칸 제외, 도착 칸 포함) — 화면이 그 길을 따라 걷게 한다. 이동이 아니면 null.</summary>
+        public System.Collections.Generic.List<UnityEngine.Vector2Int> Path;
     }
 }

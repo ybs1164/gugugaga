@@ -147,9 +147,9 @@ namespace TacticsECS
                 if (goal == null) { goal = NearestFrontier(grid, world, id, team); exploring = true; }
                 if (goal == null) continue;
 
-                if (MoveToward(grid, world, id, goal.Value, goalIsEnemy, allowSail: !exploring || !CanReachOnFoot(grid, world, id, goal.Value)))
+                if (MoveToward(grid, world, id, goal.Value, goalIsEnemy, out var path, allowSail: !exploring || !CanReachOnFoot(grid, world, id, goal.Value)))
                 {
-                    entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget });
+                    entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget, Path = path });
                     VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
                 }
 
@@ -204,9 +204,10 @@ namespace TacticsECS
         }
 
         /// <summary>이번 턴 도달 가능한 칸 중 goal까지 여행 거리가 가장 짧은 칸으로 이동한다(같으면 직선 거리). 적이 목표면
-        /// 그 칸 자체에는 설 수 없으므로 거리 1 이상인 칸만 고른다. 실제로 움직였으면 true.</summary>
-        private static bool MoveToward(GridWorld grid, EntityWorld world, int id, Vector2Int goal, bool goalIsEnemy, bool allowSail = true)
+        /// 그 칸 자체에는 설 수 없으므로 거리 1 이상인 칸만 고른다. 실제로 움직였으면 true, path는 지나간 칸(출발 칸 제외).</summary>
+        private static bool MoveToward(GridWorld grid, EntityWorld world, int id, Vector2Int goal, bool goalIsEnemy, out List<Vector2Int> path, bool allowSail = true)
         {
+            path = null;
             var move = UnitActionQueries.Find<MoveAction>(world, id);
             if (move == null || !move.CanExecute(world, id)) return false;
 
@@ -234,7 +235,9 @@ namespace TacticsECS
                     bestScore = s; bestLine = line; best = tile;
                 }
             }
-            return best.HasValue && MovementSystem.TryMove(grid, world, id, best.Value);
+            if (!best.HasValue) return false;
+            path = MovementSystem.PathTo(grid, world, id, best.Value);
+            return MovementSystem.TryMove(grid, world, id, best.Value);
         }
 
         /// <summary>

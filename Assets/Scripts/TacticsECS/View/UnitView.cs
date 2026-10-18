@@ -170,6 +170,8 @@ namespace TacticsECS
             var move = UnitActionQueries.Find<MoveAction>(world,id);
             return move == null || !move.CanExecute(world,id);
         }
+        /// <summary>이동 때 한 칸을 걷는 데 걸리는 시간.</summary>
+        public float StepSeconds => _grid.TileSize / moveSpeed;
         /// <summary>다음 Refresh의 이동이 이 칸들(출발 칸 제외, 도착 칸 포함)을 차례로 지나가게 한다.</summary>
         public void SetMovePath(List<Vector2Int> path)
         {

@@ -1233,13 +1233,25 @@ namespace TacticsECS
                 CheckBattleEnd();
                 if (_battleOver) yield break;
             }
+            var startPos = new Dictionary<int, Vector2Int>();
+            for (int i = 0; i < _world.EntityCount; i++)
+                if (UnitQueries.IsAlive(_world, i)) startPos[i] = _world.Get<GridPosition>(i).Value;
             var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
             // 맞은 유닛은 자기 차례의 피해 숫자가 뜰 때까지 남아 있는다(아래에서 공격을 하나씩 보여준다).
             foreach (var entry in entries)
                 if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var hitView)) hitView.AwaitHit();
             if (_econ != null) RefreshEconomyViews(true); // 적 유닛의 자동 빙결·폭우·파괴로 지형이 바뀌었을 수 있다
+            // 적 유닛도 길을 따라 걷는다. 구름 속에서 움직인 유닛은 보이지 않으므로 기다리지 않는다.
+            float walk = 0;
+            foreach (var entry in entries)
+                if (entry.Verb == BattleLogVerb.Move && startPos.TryGetValue(entry.ActorId, out var from))
+                {
+                    float seconds = ShowMovePath(entry.ActorId, from, entry.Path);
+                    if (VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(entry.ActorId).Value) || VisionSystem.IsExplored(_grid, Team.Player, from))
+                        walk = Mathf.Max(walk, seconds);
+                }
             RefreshAllViews();
-            if (entries.Exists(e => e.Verb == BattleLogVerb.Move)) yield return new WaitForSeconds(.45f); // 이동이 끝난 뒤 공격
+            if (walk > 0) yield return new WaitForSeconds(walk + .15f); // 이동이 끝난 뒤 공격
 
             foreach (var entry in entries)
             {
@@ -2379,9 +2391,10 @@ namespace TacticsECS
         private void MoveSelectedUnit(Vector2Int pos)
         {
             var hpBefore = SnapshotHp();
+            var start = _world.Get<GridPosition>(_selectedUnitId).Value;
             var path = MovementSystem.PathTo(_grid, _world, _selectedUnitId, pos);
             if (!MovementSystem.TryMove(_grid, _world, _selectedUnitId, pos)) return;
-            _viewsById[_selectedUnitId].SetMovePath(path); // 칸을 하나씩 밟고 간다
+            ShowMovePath(_selectedUnitId, start, path);
             foreach (var entry in hpBefore)
                 if (_viewsById.TryGetValue(entry.Key, out var view) && _world.Get<Hp>(entry.Key).Value < entry.Value)
                     view.ShowDamagePopup(entry.Value - _world.Get<Hp>(entry.Key).Value);
@@ -2451,6 +2464,16 @@ namespace TacticsECS
             attacker.ShowDamagePopup(counterDamage);
         }
         private const float AttackImpactDelay = .09f, CounterDelay = .3f;
+
+        /// <summary>이동 연출: 유닛이 경로의 칸을 하나씩 밟고 가고, 그동안 지도에 그 길(팀 색 선)이 보인다. 걷는 데 걸리는 시간을 돌려준다.</summary>
+        private float ShowMovePath(int unitId, Vector2Int start, List<Vector2Int> path)
+        {
+            if (path == null || path.Count == 0 || !_viewsById.TryGetValue(unitId, out var view)) return 0;
+            view.SetMovePath(path);
+            var color = _world.Get<Team>(unitId) == Team.Player ? BattleHud.PlayerAccent : BattleHud.EnemyAccent;
+            _gridView.ShowPath(start, path, new Color(color.r, color.g, color.b, .85f), view.StepSeconds);
+            return path.Count * view.StepSeconds;
+        }
 
         private void HandleInfiltrate(int unitId, Vector2Int cityPos)
         {

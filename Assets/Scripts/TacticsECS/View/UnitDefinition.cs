@@ -5,46 +5,20 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 유닛 프리팹에 붙는 "타입 정의" 컴포넌트. 근접/원거리/방어 같은 타입 구분은 코드의 enum 분기가
-    /// 아니라, 이 컴포넌트를 가진 서로 다른 프리팹(Assets/Prefabs/Units)으로 관리한다.
-    ///
-    /// 이 유닛이 쓸 수 있는 행동은 더 이상 플래그 하나로 직접 지정하지 않는다 — IUnitAction을 구현한
-    /// 개별 스크립트(MoveAction/AttackAction/DefendAction/HealAction/SelfDestructAction/CounterAction,
-    /// Assets/Scripts/TacticsECS/Actions 참고)들의 "집합"인 actions 리스트로 정의한다. 리스트에 들어있는
-    /// 행동만 이 유닛이 쓸 수 있고, 그 행동에만 필요한 값(사거리, 회복량 등)도 각 항목 자신이 들고 있다.
-    /// 실행 가능 여부/효과도 값(ActionType) 비교가 아니라 각 행동 자신의 메서드(CanExecute/Execute)가
-    /// 판단한다 — UnitSpawner가 스폰 시 이 리스트를 그대로 EntityWorld의 UnitActions 컴포넌트로 옮기고,
-    /// Systems(MovementSystem/CombatSystem/AbilitySystem)는 UnitActionQueries.Find&lt;T&gt;로 그 목록에서
-    /// 필요한 행동을 찾아 위임할 뿐이다.
+    /// 유닛 프리팹(Assets/Prefabs/Units, Units.csv의 BaseVisual)에 붙는 컴포넌트. 프리팹에는 외형(modelId)만 저장한다 —
+    /// 스탯·행동·지형(maxHp/defense/actions/domain)은 직렬화하지 않고, 스폰 때 UnitSpawner가 인스턴스에
+    /// ApplyCsvOverrides로 Units.csv 행 값을 채운다(수치는 CSV에만 — docs/spec/README.md).
     /// AvailableActions는 이 리스트를 ActionType 비트마스크로 합친 값인데, 지금은 실행 판정에 쓰이지
     /// 않는 플레이스홀더다 — CSV 내보내기/불러오기 같은 외부 데이터 연동과 View(BattleHud 아이콘 매칭)
     /// 표시 용도로만 남아있다(Core/ActionType.cs 참고).
     /// </summary>
     public class UnitDefinition : MonoBehaviour
     {
-        [Header("Vitals")]
-        [SerializeField] private int maxHp;
-
-        [Header("Combat")]
-        [Tooltip("공격을 받을 때 항상 적용되는 기본 방어력. Defend 행동(방어 태세)의 추가 보너스와는 별개로, " +
-            "actions에 Defend가 없는 유닛도 이 값은 그대로 적용된다.")]
-        [SerializeField] private float defense;
-
-        [Header("Actions")]
-        [Tooltip("이 유닛 타입이 실제로 쓸 수 있는 행동의 집합. 리스트에 들어있는 항목만 사용 가능하며, " +
-            "그 행동에 필요한 값도 항목 자신이 들고 있다. Move/Attack/Defend/Heal/SelfDestruct는 BattleHud " +
-            "행동 버튼으로, Counter(반격)는 클릭 버튼이 아니라 자동 발동 패시브 배지로 나타난다.")]
-        [SerializeReference] private List<IUnitAction> actions = new List<IUnitAction>
-        {
-            new MoveAction(),
-            new AttackAction(),
-            new WaitAction(),
-        };
-
-        [Header("Movement")]
-        [Tooltip("이 유닛이 들어갈 수 있는 지형. 육지 유닛은 물 타일에, 물 유닛은 육지 타일에 " +
-            "IgnoreTerrainAction 패시브 없이는 들어갈 수 없다(Core/TerrainType.cs 참고).")]
-        [SerializeField] private TerrainType domain = TerrainType.Land;
+        // 스폰 때 ApplyCsvOverrides가 채우는 런타임 값 — 직렬화하지 않는다.
+        private int maxHp;
+        private float defense;
+        private List<IUnitAction> actions = new List<IUnitAction>();
+        private TerrainType domain = TerrainType.Land;
 
         [Header("Appearance")]
         [Tooltip("유닛 모델의 겉감 텍스처. 표시 색(팀별 고정색)은 UnitDefinition이 아니라 UnitView가 " +

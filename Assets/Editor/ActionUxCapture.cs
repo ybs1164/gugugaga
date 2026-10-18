@@ -10,7 +10,7 @@ using UnityEngine;
 namespace TacticsECS.EditorTools
 {
     /// <summary>
-    /// 유닛 행동 화면(고르기·이동·공격·반격·처치·방어·적 턴)을 데모 씬(SampleScene)에서 Play 모드로 실제 탭처럼 눌러 보고
+    /// 유닛 행동 화면(고르기·이동·공격·반격·처치·대기·적 턴)을 데모 씬(SampleScene)에서 Play 모드로 실제 탭처럼 눌러 보고
     /// 한 장씩 찍는다 → Logs/action_ux/frames/*.png. GIF는 scripts/make_action_ux_gif.py가 만든다.
     /// 시간은 Time.captureFramerate로 고정해(한 프레임 = 1/Fps초) 찍는 데 걸리는 시간과 상관없이 연출 속도가 그대로 남는다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지):
@@ -91,7 +91,7 @@ namespace TacticsECS.EditorTools
                     Wait(.7f);
                     break;
                 case 2: Tap(c, Pos(world, _warrior)); Wait(1.1f); break; // 고르기: 노란 테두리·파란 이동 칸·정보 패널
-                case 3: Tap(c, StandTile(c, grid, world, _warrior, _enemy)); Wait(1.4f); break; // 경로를 따라 이동(Charge가 없어 이동 뒤 공격은 못 한다)
+                case 3: Tap(c, StandTile(c, grid, world, _warrior, _enemy)); Wait(1.4f); break; // 적 옆 칸으로 이동
                 case 4: Tap(c, Pos(world, _warrior2)); Wait(1.0f); break;
                 case 5:
                     Require(Field<List<int>>(c, "_attackableTargets").Contains(_enemy2), "enemy not attackable");
@@ -101,7 +101,7 @@ namespace TacticsECS.EditorTools
                     Require(Field<List<int>>(c, "_attackableTargets").Contains(_enemy2), "enemy not in archer range");
                     Tap(c, Pos(world, _enemy2)); Wait(1.4f); break; // 원거리 공격 — 처치되면 깜빡이며 사라진다
                 case 8: Tap(c, Pos(world, _defender)); Wait(1.0f); break;
-                case 9: Call(c, "HandleDefendClicked"); Wait(1.0f); break; // 방어 태세(방패 배지), 행동을 마친 유닛은 회색
+                case 9: Call(c, "HandleWaitClicked"); Wait(1.0f); break; // 대기, 행동을 마친 유닛은 회색
                 case 10: Call(c, "EndTurn"); Wait(.5f); break;
                 case 11:
                     if (Field<TurnState>(c, "_turnState").ActiveTeam != Team.Player) { _phase--; Wait(.1f); break; }
@@ -112,22 +112,21 @@ namespace TacticsECS.EditorTools
             }
         }
 
-        /// <summary>장면 고르기: 아군 전사 둘·궁수·방패병. 적 근접 유닛 하나는 첫 전사가 세 칸 걸어 닿는 자리로,
+        /// <summary>장면 고르기(Units.csv Id로): 아군 전사 둘·궁수·방패병. 적 전사 하나는 첫 전사가 한 칸 걸어 닿는 자리로,
         /// 하나는 둘째 전사 바로 옆(궁수 사거리 안)으로 옮긴다.</summary>
         private static void Setup(BattleController c, GridWorld grid, EntityWorld world)
         {
             var views = Field<Dictionary<int, UnitView>>(c, "_viewsById");
-            IEnumerable<int> Find(Team team, int move, int range) => views.Keys.Where(id => world.Get<Team>(id) == team &&
-                UnitActionQueries.Find<MoveAction>(world, id)?.MoveRange == move && UnitActionQueries.Find<AttackAction>(world, id)?.AttackRange == range)
-                .OrderBy(id => Pos(world, id).y);
-            _warrior = Find(Team.Player, 3, 1).First();
-            _warrior2 = Find(Team.Player, 3, 1).Last();
-            _archer = Find(Team.Player, 2, 2).First();
-            _defender = Find(Team.Player, 2, 1).First();
-            var melee = views.Keys.Where(id => world.Get<Team>(id) == Team.Enemy && UnitActionQueries.Find<AttackAction>(world, id)?.AttackRange == 1 && UnitActionQueries.Find<MoveAction>(world, id)?.MoveRange == 3).ToList(); // 적 전사
+            IEnumerable<int> Find(Team team, string unitId) => views.Keys.Where(id => world.Get<Team>(id) == team &&
+                world.GetOrDefault<UnitTypeId>(id).Value == unitId).OrderBy(id => Pos(world, id).y);
+            _warrior = Find(Team.Player, "infantry").First();
+            _warrior2 = Find(Team.Player, "infantry").Last();
+            _archer = Find(Team.Player, "archer").First();
+            _defender = Find(Team.Player, "shield").First();
+            var melee = Find(Team.Enemy, "infantry").ToList(); // 적 전사
             var w = Pos(world, _warrior);
             _enemy = melee.OrderBy(id => PathfindingSystem.Distance(Pos(world, id), w)).First();
-            Relocate(grid, world, views, _enemy, w + new Vector2Int(3, 1)); // 꺾이는 길로 닿는 자리
+            Relocate(grid, world, views, _enemy, w + new Vector2Int(2, 0)); // 한 칸 걸어 닿는 자리
             var w2 = Pos(world, _warrior2);
             _enemy2 = melee.Where(id => id != _enemy).OrderBy(id => PathfindingSystem.Distance(Pos(world, id), w2)).First();
             Relocate(grid, world, views, _enemy2, w2 + new Vector2Int(1, 0));

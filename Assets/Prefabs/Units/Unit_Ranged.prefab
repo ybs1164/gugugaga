@@ -60,29 +60,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bbd155d3b21ae8d49a7136402ee079ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticsECS.UnitDefinition
-  maxHp: 10
-  defense: 1
-  actions:
-  - rid: 1
-  - rid: 2
-  - rid: 3
-  domain: 0
   bodyTexture: {fileID: 0}
   modelId: Unit.archer
-  references:
-    version: 2
-    RefIds:
-    - rid: 1
-      type: {class: MoveAction, ns: TacticsECS, asm: Assembly-CSharp}
-      data:
-        moveRange: 2
-    - rid: 2
-      type: {class: AttackAction, ns: TacticsECS, asm: Assembly-CSharp}
-      data:
-        attack: 2
-        attackRange: 2
-    - rid: 3
-      type: {class: HealAction, ns: TacticsECS, asm: Assembly-CSharp}
-      data:
-        healAmount: 4
-        healRange: 2

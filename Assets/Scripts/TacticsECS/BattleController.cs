@@ -30,38 +30,6 @@ namespace TacticsECS
             "IgnoreTerrainAction 패시브 없이는 여기 들어갈 수 없고, 물 유닛(MoveDomain=Water)은 반대로 " +
             "이 타일 밖으로 나갈 수 없다 — Core/TerrainType.cs 참고. 비워두면(기본값) 그리드 전체가 육지다.")]
         [SerializeField] private List<Vector2Int> waterTiles = new List<Vector2Int>();
-        [Tooltip("육지 타일 모델(Assets/Prefabs/Tiles/Tile_Land.prefab). 비워두면 예전처럼 프리미티브 " +
-            "큐브로 대체된다. TileAssetSetup.GenerateAll로 만든다.")]
-        [SerializeField] private GameObject landTilePrefab;
-        [Tooltip("물 타일 모델(Assets/Prefabs/Tiles/Tile_Water.prefab). 비워두면 프리미티브 큐브로 대체된다.")]
-        [SerializeField] private GameObject waterTilePrefab;
-
-        [Header("Structures (Sandbox 지형 생성 전용)")]
-        [Tooltip("바이옴 앵커에 자동 배치되는 수도 모델. Assets/Prefabs/Structures/Structure_Capital.prefab. " +
-            "StructureAssetSetup.GenerateAll로 만든다. 비워두면 해당 구조물은 표시되지 않는다(생성 자체는 " +
-            "계속되고 GridWorld.StructureId는 채워짐 — 순수 시각 요소라 게임 로직에는 영향 없음).")]
-        [SerializeField] private GameObject capitalStructurePrefab;
-        [Tooltip("바이옴 CSV의 \"Ruin\" 구조물 모델. Assets/Prefabs/Structures/Structure_Ruin.prefab.")]
-        [SerializeField] private GameObject ruinStructurePrefab;
-        [Tooltip("바이옴 CSV의 \"Resource_Food\" 구조물 모델. Assets/Prefabs/Structures/Structure_ResourceFood.prefab.")]
-        [SerializeField] private GameObject resourceFoodStructurePrefab;
-        [Tooltip("바이옴 CSV의 \"Resource_Ore\" 구조물 모델. Assets/Prefabs/Structures/Structure_ResourceOre.prefab.")]
-        [SerializeField] private GameObject resourceOreStructurePrefab;
-        [Tooltip("바이옴 CSV의 \"Starfish\" 구조물 모델. Assets/Prefabs/Structures/Structure_Starfish.prefab.")]
-        [SerializeField] private GameObject starfishStructurePrefab;
-        [Tooltip("바이옴 CSV의 \"Village\" 구조물 및 외딴 섬 마을(StructureGenerationSystem.PlaceTinyIslandVillages) " +
-            "모델. Assets/Prefabs/Structures/Structure_Village.prefab.")]
-        [SerializeField] private GameObject villageStructurePrefab;
-        [Tooltip("\"Resource_Fruit\"(과일 덤불). Assets/Prefabs/Structures/Structure_ResourceFruit.prefab — StructureAssetSetup.GenerateProceduralStructures가 생성.")]
-        [SerializeField] private GameObject resourceFruitStructurePrefab;
-        [Tooltip("\"Resource_Crop\"(밀밭). Assets/Prefabs/Structures/Structure_ResourceCrop.prefab.")]
-        [SerializeField] private GameObject resourceCropStructurePrefab;
-        [Tooltip("\"Resource_Animal\"(사슴). Assets/Prefabs/Structures/Structure_ResourceAnimal.prefab.")]
-        [SerializeField] private GameObject resourceAnimalStructurePrefab;
-        [Tooltip("\"Resource_Fish\"(물고기 떼). Assets/Prefabs/Structures/Structure_ResourceFish.prefab.")]
-        [SerializeField] private GameObject resourceFishStructurePrefab;
-        [Tooltip("맵 네 모서리에 자동 배치되는 등대. Assets/Prefabs/Structures/Structure_Lighthouse.prefab.")]
-        [SerializeField] private GameObject lighthouseStructurePrefab;
 
         [Header("Unit Prefabs")]
         [Tooltip("근접 유닛 프리팹 (UnitView + UnitDefinition 컴포넌트를 가진 프리팹). Assets/Prefabs/Units 참고.")]
@@ -84,8 +52,7 @@ namespace TacticsECS
         [SerializeField] private TitleHud titleHudPrefab;
 
         [Header("Sandbox Extra Visuals")]
-        [Tooltip("샌드박스 CSV 전용 추가 BaseVisual 프리팹 — 데모 편성(SpawnDemoFormation)에는 쓰이지 않고, " +
-            "CSV의 BaseVisual 값과 이름이 일치하는 것만 UnitPlacementController의 팔레트 렌더링에 쓰인다.")]
+        [Tooltip("추가 BaseVisual 프리팹 — CSV의 BaseVisual 값과 이름이 일치하는 것만 UnitPlacementController의 팔레트 렌더링에 쓰인다.")]
         [SerializeField] private UnitView rogueHoodedPrefab;
         [SerializeField] private UnitView magePrefab;
         [SerializeField] private UnitView skeletonWarriorPrefab;
@@ -280,7 +247,7 @@ namespace TacticsECS
             var gridViewGo = new GameObject("GridView");
             gridViewGo.transform.SetParent(transform, false);
             _gridView = gridViewGo.AddComponent<GridView>();
-            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
+            _gridView.Build(_grid);
 
             _hud = Instantiate(hudPrefab, transform);
             _hud.name = "BattleHud";
@@ -717,7 +684,7 @@ namespace TacticsECS
             _tribeCapitals.Clear();
             TerrainGenerationSystem.ApplyOutline(_grid, outline);
             _gridView.RefreshTerrain(_grid);
-            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
+            _gridView.RefreshStructures(_grid);
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.OutlineDone", Mathf.RoundToInt(TerrainGenerationSystem.OutlineWaterFraction(outline) * 100f),
                 Mathf.RoundToInt(_waterRatio * 100f), MapTypeName(WetnessPresets[_selectedWetnessIndex].Name), outline.Anchors.Length,
                 outline.Suburbs.Length + outline.PlannedVillages.Length));
@@ -855,7 +822,7 @@ namespace TacticsECS
             // 구조물 단계가 지형을 바꿀 수 있으므로(외딴 섬 마을, Lakes 육지 다리, 얕은 물/깊은 바다 재분류)
             // 지형 표시는 구조물 생성까지 끝난 뒤에 갱신한다.
             _gridView.RefreshTerrain(_grid);
-            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById());
+            _gridView.RefreshStructures(_grid);
 
             if (_sandboxHud == null) return; // 빠른 시작(quickPlay)은 상태 줄이 없다
             string regionText = LocalizationSystem.F("UI.Sandbox.RegionTribes", string.Join("/", CitySystem.Teams.Select(t => TribeOf(t)?.Name ?? LocalizationSystem.T("UI.SandboxHud.NoTribe"))));
@@ -874,23 +841,6 @@ namespace TacticsECS
             "Archipelago" => TerrainGenerationSystem.MapShapeMode.Archipelago,
             "Waterworld" => TerrainGenerationSystem.MapShapeMode.Waterworld,
             _ => TerrainGenerationSystem.MapShapeMode.Freeform,
-        };
-
-        private Dictionary<string, GameObject> BuildStructurePrefabsById() => new Dictionary<string, GameObject>
-        {
-            [StructureGenerationSystem.CapitalStructureId] = capitalStructurePrefab,
-            ["Ruin"] = ruinStructurePrefab,
-            ["Resource_Food"] = resourceFoodStructurePrefab,
-            ["Resource_Ore"] = resourceOreStructurePrefab,
-            ["Resource_Fruit"] = resourceFruitStructurePrefab,
-            ["Resource_Crop"] = resourceCropStructurePrefab,
-            ["Resource_Animal"] = resourceAnimalStructurePrefab,
-            ["Resource_Fish"] = resourceFishStructurePrefab,
-            // 광물은 기존 광물 노두 모델이 곧 광물 모델이다.
-            ["Resource_Metal"] = resourceOreStructurePrefab,
-            [StructureGenerationSystem.LighthouseStructureId] = lighthouseStructurePrefab,
-            ["Starfish"] = starfishStructurePrefab,
-            [StructureGenerationSystem.VillageStructureId] = villageStructurePrefab
         };
 
         /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다
@@ -913,7 +863,7 @@ namespace TacticsECS
             var gridViewGo = new GameObject("GridView");
             gridViewGo.transform.SetParent(transform, false);
             _gridView = gridViewGo.AddComponent<GridView>();
-            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
+            _gridView.Build(_grid);
 
             PositionCamera();
             return true;
@@ -979,38 +929,37 @@ namespace TacticsECS
             HandleTurnStart(_turnState.ActiveTeam, _turnState.TurnNumber);
         }
 
+        /// <summary>데모 편성 — 스탯은 Units.csv의 행(Id)에서 온다.</summary>
         private void SpawnDemoFormation()
         {
-            string defender = LocalizationSystem.T("UI.Demo.Defender"), warrior = LocalizationSystem.T("UI.Demo.Warrior"), archer = LocalizationSystem.T("UI.Demo.Archer");
-            SpawnUnit(Team.Player, guardPrefab, new Vector2Int(1, 1), defender);
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 3), warrior);
-            SpawnUnit(Team.Player, rangedPrefab, new Vector2Int(0, 5), archer);
-            SpawnUnit(Team.Player, meleePrefab, new Vector2Int(1, 6), warrior);
+            UnitCsvRow shield = DemoRow("shield"), infantry = DemoRow("infantry"), archer = DemoRow("archer");
+            SpawnUnit(Team.Player, shield, new Vector2Int(1, 1));
+            SpawnUnit(Team.Player, infantry, new Vector2Int(1, 3));
+            SpawnUnit(Team.Player, archer, new Vector2Int(0, 5));
+            SpawnUnit(Team.Player, infantry, new Vector2Int(1, 6));
 
-            SpawnUnit(Team.Enemy, guardPrefab, new Vector2Int(gridWidth - 2, gridHeight - 2), defender);
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 4), warrior);
-            SpawnUnit(Team.Enemy, rangedPrefab, new Vector2Int(gridWidth - 1, gridHeight - 6), archer);
-            SpawnUnit(Team.Enemy, meleePrefab, new Vector2Int(gridWidth - 2, gridHeight - 7), warrior);
+            SpawnUnit(Team.Enemy, shield, new Vector2Int(gridWidth - 2, gridHeight - 2));
+            SpawnUnit(Team.Enemy, infantry, new Vector2Int(gridWidth - 2, gridHeight - 4));
+            SpawnUnit(Team.Enemy, archer, new Vector2Int(gridWidth - 1, gridHeight - 6));
+            SpawnUnit(Team.Enemy, infantry, new Vector2Int(gridWidth - 2, gridHeight - 7));
 
             if (stressTestExtraUnitsPerTeam > 0)
-                SpawnStressTestUnits(stressTestExtraUnitsPerTeam);
+                SpawnStressTestUnits(stressTestExtraUnitsPerTeam, new[] { infantry, archer, shield });
         }
 
-        private void SpawnStressTestUnits(int perTeam)
+        private static UnitCsvRow DemoRow(string id) => GameTables.Units.First(r => r.Id == id);
+
+        private void SpawnStressTestUnits(int perTeam, UnitCsvRow[] rows)
         {
-            var prefabs = new[] { meleePrefab, rangedPrefab, guardPrefab };
-            var labels = new[] { LocalizationSystem.T("UI.Demo.Warrior"), LocalizationSystem.T("UI.Demo.Archer"), LocalizationSystem.T("UI.Demo.Defender") };
             var rng = new System.Random(12345);
             for (int i = 0; i < perTeam; i++)
             {
-                int typeIndex = i % prefabs.Length;
-                var prefab = prefabs[typeIndex];
-                var label = labels[typeIndex];
+                var row = rows[i % rows.Length];
                 var p = RandomFreeTile(rng, 0, gridWidth / 2);
-                if (p.HasValue) SpawnUnit(Team.Player, prefab, p.Value, label);
+                if (p.HasValue) SpawnUnit(Team.Player, row, p.Value);
 
                 var e = RandomFreeTile(rng, gridWidth / 2, gridWidth);
-                if (e.HasValue) SpawnUnit(Team.Enemy, prefab, e.Value, label);
+                if (e.HasValue) SpawnUnit(Team.Enemy, row, e.Value);
             }
         }
 
@@ -1024,10 +973,10 @@ namespace TacticsECS
             return null;
         }
 
-        private void SpawnUnit(Team team, UnitView prefab, Vector2Int pos, string label = null)
+        private void SpawnUnit(Team team, UnitCsvRow row, Vector2Int pos)
         {
             if (_grid.IsOccupied(pos)) return;
-            var view = _spawner.Spawn(_grid, _world, team, prefab, pos, label);
+            var view = _spawner.SpawnFromCsv(_grid, _world, team, BasePrefabsByName()[row.BaseVisual], row, pos);
             _viewsById[view.UnitId] = view;
         }
 
@@ -1526,7 +1475,7 @@ namespace TacticsECS
             var gridViewGo = new GameObject("GridView");
             gridViewGo.transform.SetParent(transform, false);
             _gridView = gridViewGo.AddComponent<GridView>();
-            _gridView.Build(_grid, landTilePrefab, waterTilePrefab);
+            _gridView.Build(_grid);
             PositionCamera();
 
             for (int id = 0; id < _world.EntityCount; id++)
@@ -1763,7 +1712,7 @@ namespace TacticsECS
 
             if (terrainChanged) _gridView.RefreshTerrain(_grid);
             _gridView.RefreshEconomy(_grid, _econ.Cities, BattleHud.PlayerAccent, BattleHud.EnemyAccent, _econ.Turn);
-            _gridView.RefreshStructures(_grid, BuildStructurePrefabsById(), TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
+            _gridView.RefreshStructures(_grid, TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
             _gridView.RefreshFog(_grid, Team.Player);
             RefreshUnitVisibility();
             RefreshCityResources();

@@ -167,7 +167,7 @@ namespace TacticsECS.EditorTools
             try
             {
                 view.Build(grid); view.RefreshFog(grid,Team.Player);
-                view.RefreshStructures(grid,null); view.RefreshEconomy(grid,null,Blue,Red);
+                view.RefreshStructures(grid); view.RefreshEconomy(grid,null,Blue,Red);
                 var cell = root.transform.Find("Tile_1_1");
                 Check(!cell.Find("Building.LumberHut").gameObject.activeSelf,"regenerated building remains hidden");
                 Check(!cell.Find("Road").gameObject.activeSelf,"road remains hidden");
@@ -178,13 +178,13 @@ namespace TacticsECS.EditorTools
                 tile=grid.GetTile(p); tile.BuildingId=string.Empty; grid.SetTile(p,tile); view.RefreshEconomy(grid,null,Blue,Red);
                 Check(cell.Find("Building.LumberHut") == null && cell.Find("Terrain.Forest") != null,"forest and resource share one composite");
                 Check(cell.GetComponentsInChildren<SpriteRenderer>().Count(r => r.name == "Pixels") == 1,"one object sprite per tile");
-                grid.SetStructure(p,string.Empty); view.RefreshStructures(grid,null);
+                grid.SetStructure(p,string.Empty); view.RefreshStructures(grid);
                 Check(cell.Find("Terrain.Forest") != null,"forest stays after resource is consumed");
                 grid.SetTileType(p,"Grass"); view.RefreshTerrain(grid);
                 Check(cell.Find("Terrain.Forest") == null,"cleared forest removed");
                 var city = new CityData { Position = new Vector2Int(2,2), Owner = Team.Player, Level = 3 };
                 grid.SetTileType(city.Position,"Mountain"); grid.SetStructure(city.Position,"Village"); view.RefreshTerrain(grid);
-                view.RefreshStructures(grid,null); view.RefreshEconomy(grid,new[] { city },Blue,Red);
+                view.RefreshStructures(grid); view.RefreshEconomy(grid,new[] { city },Blue,Red);
                 var cityCell = root.transform.Find("Tile_2_2");
                 Check(cityCell.Find("City.Houses") != null && cityCell.Find("Structure.Village") == null && cityCell.Find("Terrain.Mountain") == null,"city outranks structure and feature");
                 Check(root.GetComponentsInChildren<MeshFilter>(true).Length == 0,"world uses no primitive meshes");
@@ -232,8 +232,7 @@ namespace TacticsECS.EditorTools
         }
         private static void VerifyPrefabDependencies()
         {
-            foreach(string folder in new[]{"Assets/Prefabs/Units","Assets/Prefabs/Structures","Assets/Prefabs/Tiles"})
-            foreach(string guid in AssetDatabase.FindAssets("t:Prefab",new[]{folder}))
+            foreach(string guid in AssetDatabase.FindAssets("t:Prefab",new[]{"Assets/Prefabs/Units"}))
             {
                 string path=AssetDatabase.GUIDToAssetPath(guid);
                 Check(!AssetDatabase.GetDependencies(path).Any(p=>p.EndsWith(".fbx",StringComparison.OrdinalIgnoreCase)),"no FBX dependency: "+path);
@@ -252,7 +251,7 @@ namespace TacticsECS.EditorTools
             var watch=System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                view.Build(grid); view.RefreshStructures(grid,null); view.RefreshEconomy(grid,null,Blue,Red);
+                view.Build(grid); view.RefreshStructures(grid); view.RefreshEconomy(grid,null,Blue,Red);
                 watch.Stop();
                 Check(view.Ground.GetUsedTilesCount()<=2,"maximum map shares tile objects");
                 Check(root.GetComponentsInChildren<TileView>().Length==900,"maximum preset has 900 cells");

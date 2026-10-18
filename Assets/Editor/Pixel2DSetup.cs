@@ -8,7 +8,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace TacticsECS.EditorTools
 {
-    /// <summary>Run through Unity CLI. Preserve stats, actions, prefab GUIDs, fonts and scene wiring.</summary>
+    /// <summary>Run through Unity CLI. Preserve prefab GUIDs, fonts and scene wiring.</summary>
     public static class Pixel2DSetup
     {
         public static void Run()
@@ -47,7 +47,7 @@ namespace TacticsECS.EditorTools
                 AssetDatabase.CreateAsset(sprite, path);
                 if (!AssetDatabase.Contains(sprite.texture)) AssetDatabase.AddObjectToAsset(sprite.texture, sprite);
             }
-            // Composites and 32px ground tiles referenced by the structure/tile prefabs saved below.
+            // Composites and 32px ground tiles.
             foreach (string id in PixelSpriteCatalog.VisualIds)
             {
                 if (id.StartsWith("UI.") || id == "Terrain.Cloud") continue;
@@ -72,15 +72,6 @@ namespace TacticsECS.EditorTools
                 }
                 finally { PrefabUtility.UnloadPrefabContents(root); }
             }
-            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/Structures" }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                string name = Path.GetFileNameWithoutExtension(path).Replace("Structure_", "");
-                string id = name.StartsWith("Resource") ? "Resource_" + name.Substring("Resource".Length).TrimStart('_') : name;
-                SaveVisualPrefab("Structure." + id, path);
-            }
-            SaveVisualPrefab("Ground.Grass", "Assets/Prefabs/Tiles/Tile_Land.prefab");
-            SaveVisualPrefab("Ground.Water", "Assets/Prefabs/Tiles/Tile_Water.prefab");
             foreach (string path in new[] { "Assets/Scenes/SampleScene.unity", "Assets/Scenes/Sandbox.unity" })
             {
                 var scene = EditorSceneManager.OpenScene(path);
@@ -107,14 +98,6 @@ namespace TacticsECS.EditorTools
         private static void ClearChildren(Transform root)
         {
             while (root.childCount > 0) UnityEngine.Object.DestroyImmediate(root.GetChild(0).gameObject);
-        }
-        private static void SaveVisualPrefab(string id, string path)
-        {
-            if (!PixelSpriteCatalog.Has(id)) throw new InvalidOperationException("Unmapped prefab: " + id);
-            var root = PixelSpriteCatalog.Build(id, null);
-            root.name = Path.GetFileNameWithoutExtension(path);
-            PrefabUtility.SaveAsPrefabAsset(root, path);
-            UnityEngine.Object.DestroyImmediate(root);
         }
         private static void ConvertHpDisplay()
         {

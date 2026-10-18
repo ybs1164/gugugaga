@@ -58,23 +58,8 @@ namespace TacticsECS.EditorTools
         {
             var go = new GameObject("Grid");
             var view = go.AddComponent<GridView>();
-            view.Build(grid, Load("Assets/Prefabs/Tiles/Tile_Land.prefab"), Load("Assets/Prefabs/Tiles/Tile_Water.prefab"));
+            view.Build(grid);
             return view;
-        }
-
-        private static Dictionary<string, GameObject> StructurePrefabs()
-        {
-            var map = new Dictionary<string, GameObject>();
-            foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs/Structures" }))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                string name = Path.GetFileNameWithoutExtension(path).Replace("Structure_", "");
-                var prefab = Load(path);
-                if (name.StartsWith("Resource")) map["Resource_" + name.Substring("Resource".Length)] = prefab;
-                else map[name] = prefab;
-            }
-            if (map.TryGetValue("Resource_Ore", out var ore)) map["Resource_Metal"] = ore;
-            return map;
         }
 
         // ---------- 건물 ----------
@@ -185,7 +170,7 @@ namespace TacticsECS.EditorTools
                 if (!(x == types.Length - 1 && y == 0)) VisionSystem.Reveal(grid, Team.Player, new Vector2Int(x, y), 0);
             var view = BuildGrid(grid);
             view.RefreshTerrain(grid);
-            view.RefreshStructures(grid, StructurePrefabs());
+            view.RefreshStructures(grid);
             view.RefreshFog(grid, Team.Player);
             Capture(view.gameObject, grid, Path.Combine(outDir, "tiles.png"));
             Object.DestroyImmediate(view.gameObject);
@@ -217,7 +202,7 @@ namespace TacticsECS.EditorTools
                 if (x + y < 16) VisionSystem.Reveal(grid, Team.Player, new Vector2Int(x, y), 0);
             var view = BuildGrid(grid);
             view.RefreshTerrain(grid);
-            view.RefreshStructures(grid, StructurePrefabs());
+            view.RefreshStructures(grid);
             view.RefreshEconomy(grid, cities, new Color(0.2f, 0.5f, 1f), new Color(1f, 0.3f, 0.3f), 1);
             view.RefreshFog(grid, Team.Player);
             Capture(view.gameObject, grid, Path.Combine(outDir, "map.png"), 0.62f);

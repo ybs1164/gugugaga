@@ -24,7 +24,7 @@ namespace TacticsECS
         private static readonly Vector2Int[] Diagonals = { new Vector2Int(1,1), new Vector2Int(1,-1), new Vector2Int(-1,-1), new Vector2Int(-1,1) };
         public Tilemap Ground => _ground;
 
-        public void Build(GridWorld grid, GameObject landTilePrefab = null, GameObject waterTilePrefab = null)
+        public void Build(GridWorld grid)
         {
             _grid = grid;
             int count = grid.Width * grid.Height;
@@ -106,7 +106,7 @@ namespace TacticsECS
             }
             return root;
         }
-        public void RefreshStructures(GridWorld grid, IReadOnlyDictionary<string, GameObject> structurePrefabsByType, ICollection<string> hiddenStructures = null)
+        public void RefreshStructures(GridWorld grid, ICollection<string> hiddenStructures = null)
         {
             for (int y = 0; y < grid.Height; y++)
             for (int x = 0; x < grid.Width; x++)

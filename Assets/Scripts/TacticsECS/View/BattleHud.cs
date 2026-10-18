@@ -129,7 +129,7 @@ namespace TacticsECS
         /// <summary>능력치 줄(StatRow.prefab)의 칸 — 프리팹 안 "&lt;이름&gt;Slot"·"&lt;이름&gt;Text"와 아이콘 이름이 같다.</summary>
         public static readonly string[] StatIcons = { "attack", "defense", "move", "range" };
 
-        /// <summary>구조물 정보의 강조색(StructureAssetSetup이 모델을 칠하는 색과 맞춤). 표시 전용이라 View가 갖는다.</summary>
+        /// <summary>구조물 정보의 강조색. 표시 전용이라 View가 갖는다.</summary>
         private static readonly Dictionary<string, Color> StructureAccentColors = new Dictionary<string, Color>
         {
             ["Capital"] = new Color(0.85f, 0.7f, 0.15f),

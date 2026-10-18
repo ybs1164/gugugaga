@@ -79,8 +79,7 @@ namespace TacticsECS
         private Text _structureNameText;
         private Text _structureDescriptionText;
 
-        /// <summary>BattleHud.StructureAccentColors와 같은 값 — StructureAssetSetup이 3D 모델을 칠할 때
-        /// 쓰는 색과 맞춘 정보 패널 강조색. Core/Data 계층은 UI 색을 몰라야 하므로 표시 전용인 이 값은
+        /// <summary>BattleHud.StructureAccentColors와 같은 값 — 정보 패널 강조색. Core/Data 계층은 UI 색을 몰라야 하므로 표시 전용인 이 값은
         /// View(SandboxHud/BattleHud)가 각자 갖는다(PlayerAccent/EnemyAccent도 이미 두 클래스에 따로
         /// 있는 것과 같은 이유).</summary>
         private static readonly Dictionary<string, Color> StructureAccentColors = new Dictionary<string, Color>

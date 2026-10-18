@@ -104,9 +104,11 @@ namespace TacticsECS.EditorTools
             try
             {
                 var spawner = spawnerGo.AddComponent<UnitSpawner>();
-                var view = spawner.Spawn(grid, world, Team.Player, prefab, Vector2Int.zero, "테스트유닛");
+                if (GameTables.Units.Length == 0) GameDataLoader.LoadAll();
+                var row = GameTables.Units.First(r => r.Id == "infantry");
+                var view = spawner.SpawnFromCsv(grid, world, Team.Player, prefab, row, Vector2Int.zero);
 
-                if (view.Label != "테스트유닛")
+                if (view.Label != row.Name)
                 {
                     Debug.LogError($"[UIVerification] UnitView.Label mismatch: got '{view.Label}'");
                     ok = false;

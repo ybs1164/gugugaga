@@ -11,8 +11,7 @@ namespace TacticsECS.EditorTools
     /// (에디터 GUI 직접 조작 금지 — CLAUDE.md 규칙 1).
     /// 사용법: unity -batchmode -projectPath . -executeMethod TacticsECS.EditorTools.SandboxSceneSetup.Generate -quit
     ///
-    /// SampleScene의 BattleController는 이미 Melee/Ranged/Guard 프리팹을 들고 있으므로(UnitPrefabSetup이
-    /// 연결해둔 값), 씬을 복제하기만 해도 CSV의 BaseVisual("Melee"/"Ranged"/"Guard")과 맞는 프리팹 참조가
+    /// SampleScene의 BattleController는 이미 Melee/Ranged/Guard 프리팹을 들고 있으므로, 씬을 복제하기만 해도 CSV의 BaseVisual("Melee"/"Ranged"/"Guard")과 맞는 프리팹 참조가
     /// 그대로 따라온다 — 새로 연결할 필요가 없다.
     /// </summary>
     public static class SandboxSceneSetup

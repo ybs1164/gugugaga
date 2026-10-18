@@ -1,6 +1,7 @@
 # 유닛 CSV
 
 규칙: [unit](../game/unit.md). 기본 유닛·배는 배열형 표 2개(`Assets/Resources/Tables/`) — 로더 `ArrayTableCsvSerializer.ParseUnits`/`ParseBoats` → `GameTables.Units`/`GameTables.Boats`(배는 `NavalUnitDefinition`에도 종류별로). 칸 읽기는 둘 다 `UnitCsvSerializer.Parse` → `UnitCsvRow`, 행동 객체는 `UnitCsvActionFactory.BuildActions`.
+모든 유닛 스폰(데모 씬 편성 `infantry`·`archer`·`shield` 포함)은 이 표의 행을 쓴다 — `Unit_<BaseVisual>` 프리팹은 외형(`modelId`)만 갖고 스탯·행동을 저장하지 않는다.
 표 사이 관계(해금 내역 쪽은 [tech](tech.md)):
 
 ```

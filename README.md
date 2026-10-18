@@ -27,7 +27,7 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 
 - 신앙 AI 대전 시뮬레이션(화면 없이 AI끼리 24판, 불변식 검사, 약 5분): `unity run . -- -nographics -logFile Logs/faith_sim.log -executeMethod TacticsECS.EditorTools.FaithSimulation.Run` → `Logs/FaithSimulation/`
 - 신앙 UI 상태별 캡처(화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/faith_ui.log -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run` → `docs/images/faith/`
-- 유닛 행동 GIF(데모 씬에서 고르기·이동·공격·처치·방어·적 턴을 실제로 눌러 찍는다, 화면 필요): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/action_ux.log -executeMethod TacticsECS.EditorTools.ActionUxCapture.Run` → `Logs/action_ux/frames`, 이어서 `python scripts/make_action_ux_gif.py` → `docs/images/ux/action_ux.gif`
+- 유닛 행동 GIF(데모 씬에서 고르기·이동·공격·처치·대기·적 턴을 실제로 눌러 찍는다, 화면 필요): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/action_ux.log -executeMethod TacticsECS.EditorTools.ActionUxCapture.Run` → `Logs/action_ux/frames`, 이어서 `python scripts/make_action_ux_gif.py` → `docs/images/ux/action_ux.gif`
 - 유닛 스킬 화면 점검 캡처((!) 표시·중독 배지·얼음·침수 칸·침수/얼음 깨기/상륙/약탈 버튼·폭우 공격 칸, 화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/unit_skills_capture.log -executeMethod TacticsECS.EditorTools.UnitSkillsCapture.Run` → `Logs/unit_skills_capture/`
 - 사용 전에 Unity 에디터를 닫는다(같은 프로젝트가 열려 있으면 실패한다).
 
@@ -54,6 +54,7 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 | `…/Systems`, `…/Systems/Csv` | 게임 로직, CSV 로더 |
 | `…/Actions` | 유닛 행동 |
 | `…/View`, `…/BattleController.cs` | 표시, 입력 → System → View 조율 |
+| `Assets/Prefabs/Units` | 유닛 외형 프리팹(`BaseVisual` — 스탯은 [Units.csv](docs/spec/csv/units.md)) |
 | `Assets/Prefabs/UI` | HUD 화면 프리팹(원본 — 고칠 때는 프리팹을 고친다), 공용 부품 `Elements`, 목록 줄·카드 `Items` |
 | `Assets/Editor` | CLI용 에셋 생성·검증 |
 | `Assets/Resources` | 게임 데이터 CSV |

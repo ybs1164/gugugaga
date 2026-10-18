@@ -214,48 +214,6 @@ namespace TacticsECS
         private void OnDestroy() { foreach (var tile in _tiles.Values) if (tile != null) DestroySafe(tile); }
         public void ClearHighlights() { foreach (var tile in _tileViews) tile.SetHighlight(TileView.TileHighlight.None); }
         public void HighlightMove(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Move); }
-        /// <summary>이동 경로를 칸 중심을 잇는 선과 점(도착 칸은 테두리)으로 그린다. 유닛이 한 칸씩 지날 때마다(stepSeconds) 지나온 마디가 지워진다.</summary>
-        public void ShowPath(Vector2Int start, IReadOnlyList<Vector2Int> path, Color color, float stepSeconds)
-        {
-            if (path == null || path.Count == 0 || !Application.isPlaying) return;
-            var root = new GameObject("MovePath"); root.transform.SetParent(transform, false); root.transform.position = Vector3.zero;
-            float s = _grid.TileSize;
-            const int order = PixelSpriteCatalog.UnitOrder - 5001; // 칸 위 물체보다 위, 유닛보다 아래
-            var steps = new List<GameObject>();
-            var from = start;
-            for (int i = 0; i < path.Count; i++)
-            {
-                var to = path[i];
-                var step = new GameObject("Step" + i); step.transform.SetParent(root.transform, false);
-                steps.Add(step);
-                if (_fogged[_grid.Index(to)] || _fogged[_grid.Index(from)]) { from = to; continue; } // 구름 속 길은 그리지 않는다
-                var a = PixelCoordinates.GridToWorld(_grid, from); var b = PixelCoordinates.GridToWorld(_grid, to);
-                var d = b - a;
-                var size = Mathf.Abs(d.x) > Mathf.Abs(d.y) ? new Vector2(Mathf.Abs(d.x) + s * .125f, s * .125f) : new Vector2(s * .125f, Mathf.Abs(d.y) + s * .125f);
-                PixelSpriteCatalog.Rectangle(step.transform, "Line", (a + b) / 2, size, color, order);
-                if (i == path.Count - 1)
-                {
-                    const float t = .09375f, edge = .5f - .09375f;
-                    foreach (var (pos, sz) in new[] { (new Vector2(0, edge), new Vector2(.8125f, t)), (new Vector2(0, -edge), new Vector2(.8125f, t)),
-                                                     (new Vector2(-edge, 0), new Vector2(t, .8125f)), (new Vector2(edge, 0), new Vector2(t, .8125f)) })
-                        PixelSpriteCatalog.Rectangle(step.transform, "End", (Vector2)b + pos * s, sz * s, color, order);
-                }
-                else PixelSpriteCatalog.Rectangle(step.transform, "Dot", b, Vector2.one * s * .25f, color, order);
-                from = to;
-            }
-            StartCoroutine(ConsumePath(root, steps, stepSeconds));
-        }
-        private static System.Collections.IEnumerator ConsumePath(GameObject root, List<GameObject> steps, float stepSeconds)
-        {
-            float start = Time.time;
-            for (int i = 0; i < steps.Count; i++)
-            {
-                // 시작 시각 기준으로 지워야 프레임마다 쌓이는 오차 없이 유닛과 맞는다(마디는 유닛이 거의 닿을 때 지운다).
-                while (Time.time < start + (i + .9f) * stepSeconds) yield return null;
-                if (steps[i] != null) steps[i].SetActive(false);
-            }
-            Destroy(root);
-        }
         public void HighlightSelected(Vector2Int p) { if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Selected); }
         public void HighlightAttack(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Attack); }
     }

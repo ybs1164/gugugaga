@@ -315,18 +315,20 @@ namespace TacticsECS
                 BeginDemoBattle();
         }
 
-        /// <summary>빠른 한 판 시작: 샌드박스의 "지형 생성" → "전투 시작"을 설정 화면 없이 이어서 한다. 플레이어 종족은 시작 화면에서 고른 것
-        /// (TitleHud.RandomTribe면 무작위), 상대 종족(가능하면 플레이어와 다르게)과 양 팀 신은 무작위.</summary>
-        private void StartQuickPlay(int playerTribe)
+        /// <summary>빠른 한 판 시작: 샌드박스의 "지형 생성" → "전투 시작"을 설정 화면 없이 이어서 한다. 플레이어 종족·신·맵 크기는 시작 화면에서
+        /// 고른 것(무작위면 무작위), 상대 종족(가능하면 플레이어와 다르게)과 상대 신은 무작위.</summary>
+        private void StartQuickPlay(QuickPlaySetup setup)
         {
             var rng = new System.Random();
-            int tribes = GameTables.Tribes.Length;
-            _tribeByTeam[Team.Player] = TribeSystem.IsValid(playerTribe) ? playerTribe : tribes > 0 ? rng.Next(tribes) : -1;
+            int tribes = GameTables.Tribes.Length, gods = GameTables.Gods.Length;
+            _tribeByTeam[Team.Player] = TribeSystem.IsValid(setup.Tribe) ? setup.Tribe : tribes > 0 ? rng.Next(tribes) : -1;
             _tribeByTeam[Team.Enemy] = tribes > 1 ? (_tribeByTeam[Team.Player] + 1 + rng.Next(tribes - 1)) % tribes : _tribeByTeam[Team.Player];
             foreach (var team in CitySystem.Teams)
-                _godByTeam[team] = GameTables.Gods.Length > 0 ? rng.Next(GameTables.Gods.Length) : -1;
+                _godByTeam[team] = gods > 0 ? rng.Next(gods) : -1;
+            if (setup.God >= 0 && setup.God < gods) _godByTeam[Team.Player] = setup.God;
             _tribeTerrain = null;
             InitMapSizeSelection();
+            if (setup.MapSize >= 0 && setup.MapSize < MapSizePresets.Length) _selectedMapSizeIndex = setup.MapSize;
             HandleGenerateTerrain();
             _unitRows = LoadFallbackUnitRows();
             BeginBattle();
@@ -1428,9 +1430,13 @@ namespace TacticsECS
                 _titleHud = Instantiate(titleHudPrefab, transform);
                 _titleHud.name = "TitleHud";
                 var unitRows = LoadFallbackUnitRows();
-                _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList());
+                InitMapSizeSelection();
+                _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
+                    GameTables.Gods.Select(g => new GodChoice { Name = g.Name, Description = g.Description }).ToList(),
+                    Enumerable.Range(0, MapSizePresets.Length).Select(i => LocalizationSystem.F("UI.Title.MapSizeOption", MapSizeName(i), MapSizePresets[i].Size)).ToList(),
+                    _selectedMapSizeIndex);
                 _titleHud.OnContinueClicked += ContinueGame;
-                _titleHud.OnStartClicked += tribe => { _titleHud.Hide(); StartQuickPlay(tribe); };
+                _titleHud.OnStartClicked += setup => { _titleHud.Hide(); StartQuickPlay(setup); };
                 _titleHud.OnLanguageClicked += HandleLanguageClicked;
             }
             var save = SaveSystem.TryRead(SavePath, out _);

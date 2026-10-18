@@ -13,7 +13,7 @@ Unity 6000.3.20f1 턴제 전술·경제 프로토타입(탑다운 픽셀 2D).
 | 사진으로 보는 전체 루프 | [`docs/ProjectLoop.html`](docs/ProjectLoop.html) |
 
 ## 실행
-- `Assets/Scenes/SampleScene.unity`: 데모 전투. `Assets/Scenes/Sandbox.unity`: 샌드박스. `Assets/Scenes/Mobile.unity`: 빠른 한 판(시작 화면 → 이어하기/새로하기·종족 고르기, 가장 작은 맵, 자동 저장 — [한 판 흐름](docs/spec/game/session.md)). 빌드: `Builds/Pixel2D/gugugaga.exe`.
+- `Assets/Scenes/SampleScene.unity`: 데모 전투. `Assets/Scenes/Sandbox.unity`: 샌드박스. `Assets/Scenes/Mobile.unity`: 빠른 한 판(시작 화면 → 이어하기/새로하기·종족·신·맵 크기 고르기, 자동 저장 — [한 판 흐름](docs/spec/game/session.md)). 빌드: `Builds/Pixel2D/gugugaga.exe`.
 - 모바일 씬 (다시) 만들기: `unity run . -- -logFile Logs/mobile_scene.log -executeMethod TacticsECS.EditorTools.MobileSceneSetup.Generate` — `Sandbox.unity`를 복제해 빠른 한 판으로 바꾼다.
 - 안드로이드 빌드(`Mobile.unity`만, 개발 빌드 APK. 출시용은 `--args "-release"`. 에디터에 Android Build Support 모듈이 있어야 한다): `unity build --target Android --execute-method TacticsECS.EditorTools.MobileBuild.Run -o Builds/Android/gugugaga.apk` — 패키지 이름·IL2CPP·ARM64·자동 회전(가로·세로)은 빌드 때마다 `MobileBuild`가 적용한다.
 - 모바일 화면 점검 캡처(휴대폰 가로 2400x1080·세로 1080x2400(400dpi)과 PC 1920x1080 세 벌: 시작 화면·종족 고르기·전투·유닛·수도·기술 트리·신앙·메뉴·결과, 화면 필요. 이어하기 파일을 덮어쓴다): `unity run . -- -logFile Logs/mobile_capture.log -executeMethod TacticsECS.EditorTools.MobileCapture.Run` → `Logs/mobile_capture/`

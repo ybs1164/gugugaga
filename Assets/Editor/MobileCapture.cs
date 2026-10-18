@@ -58,7 +58,7 @@ namespace TacticsECS.EditorTools
             Shot("02_tribes");
             title.Hide();
 
-            Call("StartQuickPlay", 0);
+            Call("StartQuickPlay", new QuickPlaySetup { Tribe = 0, God = TitleHud.RandomGod, MapSize = -1 });
             Call("FocusStartCameraFor", (float)height);
             Shot("03_start");
 

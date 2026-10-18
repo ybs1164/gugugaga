@@ -14,10 +14,26 @@ namespace TacticsECS
         public string Summary;
     }
 
+    /// <summary>시작 화면에서 고를 수 있는 신 하나(값만).</summary>
+    public struct GodChoice
+    {
+        public string Name;
+        public string Description;
+    }
+
+    /// <summary>종족 고르기 화면에서 "시작"을 누를 때의 선택(값만). Tribe·God은 표 Index, 무작위면 TitleHud.RandomTribe/RandomGod.</summary>
+    public struct QuickPlaySetup
+    {
+        public int Tribe;
+        public int God;
+        /// <summary>Init에 넘긴 맵 크기 목록의 번호.</summary>
+        public int MapSize;
+    }
+
     /// <summary>
     /// 빠른 한 판(quickPlay)의 시작 화면 두 장(PC·모바일 공용):
     /// 1) 첫 화면 — 이어하기(저장이 있을 때만) · 새로하기 · 언어.
-    /// 2) 종족 고르기 — 왼쪽 카드 목록(맨 앞 "무작위"), 오른쪽 고른 종족 설명과 시작 버튼. 상대 종족은 무작위.
+    /// 2) 종족 고르기 — 왼쪽 카드 목록(맨 앞 "무작위"), 오른쪽 고른 종족 설명, 신·맵 크기 순환 버튼과 시작 버튼. 상대 종족·신은 무작위.
     /// 고른 결과는 이벤트로만 알린다 — 판을 만들고 불러오는 일은 BattleController가 한다.
     /// </summary>
     public class TitleHud : MonoBehaviour
@@ -25,11 +41,13 @@ namespace TacticsECS
         public const int SortingOrder = 40;
         /// <summary>"무작위" 카드의 종족 번호.</summary>
         public const int RandomTribe = -1;
+        /// <summary>"무작위" 신 번호.</summary>
+        public const int RandomGod = -1;
 
         private const float CardHeight = 64f;
 
         public event Action OnContinueClicked;
-        public event Action<int> OnStartClicked;
+        public event Action<QuickPlaySetup> OnStartClicked;
         public event Action OnLanguageClicked;
 
         [Header("화면(프리팹 안)")]
@@ -61,16 +79,29 @@ namespace TacticsECS
         [SerializeField] private Button buttonPrefab;
 
         private bool? _compact;
-        private const float CompactDetailHeight = 230f;
+        private const float CompactDetailHeight = 290f;
+        // 상세 칸 아래: 시작 버튼(프리팹: 아래 12, 높이 52) 위에 신·맵 크기 버튼 한 줄.
+        private const float OptionRowBottom = 72f;
+        private const float OptionRowHeight = 48f;
         private IReadOnlyList<TribeChoice> _tribes = new List<TribeChoice>();
+        private IReadOnlyList<GodChoice> _gods = new List<GodChoice>();
+        private IReadOnlyList<string> _mapSizes = new List<string>();
         private int _selected = RandomTribe;
+        private int _selectedGod = RandomGod;
+        private int _selectedMapSize;
+        private Button _godButton;
+        private Button _mapSizeButton;
         private bool _canContinue;
 
         public bool IsOpen => root != null && root.activeSelf;
 
-        public void Init(IReadOnlyList<TribeChoice> tribes)
+        /// <param name="mapSizes">맵 크기 버튼에 보일 이름(순환 순서). defaultMapSize는 처음 고른 번호.</param>
+        public void Init(IReadOnlyList<TribeChoice> tribes, IReadOnlyList<GodChoice> gods, IReadOnlyList<string> mapSizes, int defaultMapSize)
         {
             _tribes = tribes ?? new List<TribeChoice>();
+            _gods = gods ?? new List<GodChoice>();
+            _mapSizes = mapSizes ?? new List<string>();
+            _selectedMapSize = Mathf.Clamp(defaultMapSize, 0, Mathf.Max(0, _mapSizes.Count - 1));
             titleText.text = LocalizationSystem.T("UI.Title.Name");
             goalText.text = LocalizationSystem.T("UI.Title.Goal");
             UiKit.Label(newGameButton).text = LocalizationSystem.T("UI.Title.NewGame");
@@ -81,7 +112,8 @@ namespace TacticsECS
             newGameButton.onClick.AddListener(ShowTribeSelect);
             languageButton.onClick.AddListener(() => OnLanguageClicked?.Invoke());
             backButton.onClick.AddListener(() => ShowTitle(_canContinue, null));
-            startButton.onClick.AddListener(() => OnStartClicked?.Invoke(_selected));
+            startButton.onClick.AddListener(() => OnStartClicked?.Invoke(new QuickPlaySetup { Tribe = _selected, God = _selectedGod, MapSize = _selectedMapSize }));
+            BuildOptionRow();
             Canvas.willRenderCanvases += OnWillRender;
             root.SetActive(false);
         }
@@ -132,18 +164,59 @@ namespace TacticsECS
             }
             UiKit.SetContentHeight(tribeContent, rows * (CardHeight + 8f));
 
+            string body;
             if (_selected == RandomTribe)
             {
                 detailName.text = LocalizationSystem.T("UI.Title.RandomTribe");
-                detailBody.text = LocalizationSystem.T("UI.Title.RandomTribeDesc");
+                body = LocalizationSystem.T("UI.Title.RandomTribeDesc");
             }
             else
             {
                 var t = _tribes[_selected];
                 detailName.text = t.Name;
-                detailBody.text = string.IsNullOrEmpty(t.Description) ? t.Summary : t.Description + "\n\n" + t.Summary;
+                body = string.IsNullOrEmpty(t.Description) ? t.Summary : t.Description + "\n\n" + t.Summary;
             }
+            if (_selectedGod != RandomGod)
+                body += "\n\n" + LocalizationSystem.F("UI.Title.GodDetail", _gods[_selectedGod].Name, _gods[_selectedGod].Description);
+            detailBody.text = body;
+            RefreshOptionLabels();
             PixelUIScaler.Attach(gameObject);
+        }
+
+        /// <summary>상세 칸의 시작 버튼 위에 신·맵 크기 버튼을 반씩 놓고, 설명 글은 그 위까지만 쓴다. 누를 때마다 다음 값으로 넘어간다.</summary>
+        private void BuildOptionRow()
+        {
+            _godButton = UiKit.Button(buttonPrefab, tribeDetail, "GodButton", "", UiKit.ButtonColor, () =>
+            {
+                _selectedGod = _selectedGod + 1 >= _gods.Count ? RandomGod : _selectedGod + 1;
+                ShowTribeSelect();
+            }, UiKit.SmallText);
+            _mapSizeButton = UiKit.Button(buttonPrefab, tribeDetail, "MapSizeButton", "", UiKit.ButtonColor, () =>
+            {
+                if (_mapSizes.Count > 0) _selectedMapSize = (_selectedMapSize + 1) % _mapSizes.Count;
+                ShowTribeSelect();
+            }, UiKit.SmallText);
+            PlaceHalf((RectTransform)_godButton.transform, 0f, 0.5f, 12f, -4f);
+            PlaceHalf((RectTransform)_mapSizeButton.transform, 0.5f, 1f, 4f, -12f);
+            var body = detailBody.rectTransform;
+            body.offsetMin = new Vector2(body.offsetMin.x, OptionRowBottom + OptionRowHeight + 12f);
+        }
+
+        private static void PlaceHalf(RectTransform rect, float fromX, float toX, float left, float right)
+        {
+            rect.anchorMin = new Vector2(fromX, 0f);
+            rect.anchorMax = new Vector2(toX, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.offsetMin = new Vector2(left, OptionRowBottom);
+            rect.offsetMax = new Vector2(right, OptionRowBottom + OptionRowHeight);
+        }
+
+        private void RefreshOptionLabels()
+        {
+            string god = _selectedGod == RandomGod ? LocalizationSystem.T("UI.Title.RandomGod") : _gods[_selectedGod].Name;
+            UiKit.Label(_godButton).text = LocalizationSystem.F("UI.Title.God", god);
+            UiKit.Label(_mapSizeButton).text = LocalizationSystem.F("UI.Title.MapSize", _mapSizes.Count > 0 ? _mapSizes[_selectedMapSize] : "");
+            UiKit.SetEnabled(_mapSizeButton, _mapSizes.Count > 1, UiKit.ButtonColor);
         }
 
         private void OnDestroy() => Canvas.willRenderCanvases -= OnWillRender;

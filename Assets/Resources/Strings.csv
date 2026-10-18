@@ -423,7 +423,12 @@ UI.Title.Language,언어: {0},Language: {0}
 UI.Title.Back,뒤로,Back
 UI.Title.PickTribe,종족 고르기,Choose a tribe
 UI.Title.RandomTribe,무작위,Random
-UI.Title.RandomTribeDesc,시작할 때 종족을 무작위로 고릅니다. 상대 종족과 양쪽의 신은 언제나 무작위입니다.,A tribe is picked at random when the game starts. The enemy tribe and both gods are always random.
+UI.Title.RandomTribeDesc,시작할 때 종족을 무작위로 고릅니다. 상대 종족과 상대 신은 언제나 무작위입니다.,A tribe is picked at random when the game starts. The enemy tribe and god are always random.
+UI.Title.God,신: {0},God: {0}
+UI.Title.RandomGod,무작위,Random
+UI.Title.GodDetail,신 {0}: {1},God {0}: {1}
+UI.Title.MapSize,맵: {0},Map: {0}
+UI.Title.MapSizeOption,{0} {1}x{1},{0} {1}x{1}
 UI.Title.Start,시작,Start
 # Action,,
 Action.Defend.Name,방어 태세,Defend

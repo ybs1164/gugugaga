@@ -257,7 +257,7 @@ namespace TacticsECS.EditorTools
 
             Call("OpenPunchList");
             Shot("04_player_punch_list", dir, capital, 6f);
-            int strike = punches.FindIndex(p => p.Kind == FaithPunchKind.Strike);
+            int strike = punches.FindIndex(p => p.Id == "Smite");
             Call("HandlePunchSelected", Mathf.Max(0, strike));
             Shot("05_player_punch_targeting", dir, capital, 6f);
 

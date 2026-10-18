@@ -492,28 +492,28 @@ Action.Stomp.Name,짓밟기,Stomp
 Action.Stomp.Tooltip,이동·승선·하선 시 주변 적에게 광역 피해.,"Deals splash damage to adjacent enemies when moving, embarking or disembarking."
 Action.Pray.Tooltip,기도: 이번 턴 행동을 종료합니다. 기도 중에는 방어력이 0이 되고 턴 시작마다 신앙을 {Rule.Faith.PrayGain} 얻습니다. 피격·이동·공격하면 풀립니다.,Pray: ends this unit's turn. While praying its defense is 0 and it gains {Rule.Faith.PrayGain} faith each turn start. Being hit or moving or attacking ends it.
 God.Sun.Name,태양신,Sun God
-God.Sun.Desc,신전에 인접한 아군 공격력 +{Value} (기도 유닛 하나당 +{PerPrayer}).,Allies next to the temple get +{Value} attack (+{PerPrayer} per praying unit).
+God.Sun.Desc,신전에 인접한 아군 공격력 +{FaithEffect.SunAura.Amount} (기도 유닛 하나당 +{FaithEffect.SunAura.PerPrayer}).,Allies next to the temple get +{FaithEffect.SunAura.Amount} attack (+{FaithEffect.SunAura.PerPrayer} per praying unit).
 God.Guardian.Name,수호신,Guardian God
-God.Guardian.Desc,신전에 인접한 아군이 방어 태세일 때 방어력 +{Value} (기도 유닛 하나당 +{PerPrayer}).,Allies next to the temple gain +{Value} defense while guarding (+{PerPrayer} per praying unit).
+God.Guardian.Desc,신전에 인접한 아군이 방어 태세일 때 방어력 +{FaithEffect.GuardianWard.Amount} (기도 유닛 하나당 +{FaithEffect.GuardianWard.PerPrayer}).,Allies next to the temple gain +{FaithEffect.GuardianWard.Amount} defense while guarding (+{FaithEffect.GuardianWard.PerPrayer} per praying unit).
 God.Storm.Name,폭풍신,Storm God
-God.Storm.Desc,매 턴 시작 신전에 인접한 적에게 피해 {Value} (기도 유닛 하나당 +{PerPrayer}). 체력을 1 아래로 깎지는 않습니다.,At turn start enemies next to the temple take {Value} damage (+{PerPrayer} per praying unit). Never reduces HP below 1.
+God.Storm.Desc,매 턴 시작 신전에 인접한 적에게 피해 {FaithEffect.StormLash.Amount} (기도 유닛 하나당 +{FaithEffect.StormLash.PerPrayer}). 체력을 1 아래로 깎지는 않습니다.,At turn start enemies next to the temple take {FaithEffect.StormLash.Amount} damage (+{FaithEffect.StormLash.PerPrayer} per praying unit). Never reduces HP below 1.
 God.Harvest.Name,풍요신,Harvest God
-God.Harvest.Desc,{Period}턴마다 신전 인접 빈 칸에 열매 {Value}개 (기도 유닛 하나당 +{PerPrayer}).,Every {Period} turns spawns {Value} fruit next to the temple (+{PerPrayer} per praying unit).
+God.Harvest.Desc,{TemplePassive.HarvestFruit.Period}턴마다 신전 인접 빈 칸에 열매 {FaithEffect.HarvestFruit.Amount}개 (기도 유닛 하나당 +{FaithEffect.HarvestFruit.PerPrayer}).,Every {TemplePassive.HarvestFruit.Period} turns spawns {FaithEffect.HarvestFruit.Amount} fruit next to the temple (+{FaithEffect.HarvestFruit.PerPrayer} per praying unit).
 God.Merchant.Name,상업신,Merchant God
-God.Merchant.Desc,신전마다 별 +{Value}/턴 (기도 유닛 하나당 +{PerPrayer}).,+{Value} stars per turn per temple (+{PerPrayer} per praying unit).
+God.Merchant.Desc,신전마다 별 +{FaithEffect.MerchantStars.Amount}/턴 (기도 유닛 하나당 +{FaithEffect.MerchantStars.PerPrayer}).,+{FaithEffect.MerchantStars.Amount} stars per turn per temple (+{FaithEffect.MerchantStars.PerPrayer} per praying unit).
 God.Sage.Name,현자신,Sage God
-God.Sage.Desc,신전마다 신앙 최대 보유량 +{Value} (기도 유닛 하나당 +{PerPrayer}).,+{Value} max faith per temple (+{PerPrayer} per praying unit).
+God.Sage.Desc,신전마다 신앙 최대 보유량 +{FaithEffect.SageCap.Amount} (기도 유닛 하나당 +{FaithEffect.SageCap.PerPrayer}).,+{FaithEffect.SageCap.Amount} max faith per temple (+{FaithEffect.SageCap.PerPrayer} per praying unit).
 UI.SandboxHud.PlayerGod,신(아군),God (ally)
 UI.SandboxHud.EnemyGod,신(적),God (enemy)
 UI.SandboxHud.NoGod,신 없음,No god
 UI.Sandbox.GodInfoLine,{0} 신: {1} — {2},{0} god: {1} — {2}
 UI.TileMenu.TempleGod,{0}: 효과 {1},{0}: strength {1}
 FaithPunch.Smite.Name,천벌,Smite
-FaithPunch.Smite.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {Value}.,Deals {Value} damage to enemy units within {Range} tile(s) of the target.
+FaithPunch.Smite.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {FaithEffect.Smite.Amount}.,Deals {FaithEffect.Smite.Amount} damage to enemy units within {Range} tile(s) of the target.
 FaithPunch.Blessing.Name,축복,Blessing
-FaithPunch.Blessing.Desc,대상 칸 주변 {Range}칸의 아군 체력을 {Value} 회복합니다.,Heals allied units within {Range} tile(s) of the target by {Value}.
+FaithPunch.Blessing.Desc,대상 칸 주변 {Range}칸의 아군 체력을 {FaithEffect.Blessing.Amount} 회복합니다.,Heals allied units within {Range} tile(s) of the target by {FaithEffect.Blessing.Amount}.
 FaithPunch.Bounty.Name,풍년,Bounty
-FaithPunch.Bounty.Desc,대상 칸 주변 {Range}칸의 빈 땅에 열매를 최대 {Value}개 만듭니다.,Creates up to {Value} fruit on empty land within {Range} tile(s) of the target.
+FaithPunch.Bounty.Desc,대상 칸 주변 {Range}칸의 빈 땅에 열매를 최대 {FaithEffect.Bounty.Amount}개 만듭니다.,Creates up to {FaithEffect.Bounty.Amount} fruit on empty land within {Range} tile(s) of the target.
 FaithPunch.Upheaval.Name,지각 변동,Upheaval
 FaithPunch.Upheaval.Desc,대상 칸의 지형을 바꿉니다: 땅→물→산→땅. 유닛이나 도시가 있는 칸은 안 됩니다.,Changes the target tile: land→water→mountain→land. Not on tiles with units or cities.
 UI.FaithPunch.Title,신앙 펀치,Faith punch
@@ -529,6 +529,7 @@ UI.FaithPunch.NeedFaith,신앙이 모자랍니다.,Not enough faith.
 UI.FaithPunch.NotExplored,아직 탐험하지 않은 칸입니다.,Tile not explored yet.
 UI.FaithPunch.NoEnemy,범위 안에 공격할 적이 없습니다.,No enemy in range.
 UI.FaithPunch.NoWounded,범위 안에 다친 아군이 없습니다.,No wounded ally in range.
+UI.FaithPunch.NoTarget,범위 안에 효과를 받을 유닛이 없습니다.,No unit in range to affect.
 UI.FaithPunch.NoSpace,범위 안에 빈 땅이 없습니다.,No empty land in range.
 UI.FaithPunch.TileBlocked,이 칸은 바꿀 수 없습니다.,This tile can't be changed.
 UI.FaithPunch.Log,신앙 펀치 {0}: 영향 {1},Faith punch {0}: affected {1}
@@ -536,6 +537,10 @@ Unit.SunAvatar.Name,태양의 화신,Avatar of the Sun
 Unit.StormTitan.Name,폭풍의 거신,Storm Titan
 FaithPunch.Descent.Name,강림,Descent
 FaithPunch.Descent.Desc,대상 아군을 신의 신화 유닛으로 바꿉니다. 한 번에 하나만 존재하며 유지 턴이 끝나면 원본이 돌아옵니다.,Turns an ally into your god's mythic unit. Only one at a time and the original returns when upkeep runs out.
+FaithPunch.SolarFlare.Name,태양 섬광,Solar Flare
+FaithPunch.SolarFlare.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {FaithEffect.SolarFlare.Amount}.,Deals {FaithEffect.SolarFlare.Amount} damage to enemy units within {Range} tile(s) of the target.
+FaithPunch.StormBolt.Name,번개,Lightning Bolt
+FaithPunch.StormBolt.Desc,대상 칸 주변 {Range}칸의 적 유닛에게 피해 {FaithEffect.StormBolt.Amount}.,Deals {FaithEffect.StormBolt.Amount} damage to enemy units within {Range} tile(s) of the target.
 UI.FaithPunch.NoDescendTarget,대상 칸에 바꿀 수 있는 아군이 없습니다.,No eligible ally on that tile.
 UI.FaithPunch.MythicExists,이미 신화 유닛이 있습니다.,You already have a mythic unit.
 UI.FaithPunch.NoMythic,이 신에게는 신화 유닛이 없습니다.,This god has no mythic unit.

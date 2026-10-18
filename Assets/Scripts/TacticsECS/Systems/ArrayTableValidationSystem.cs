@@ -9,6 +9,7 @@ namespace TacticsECS
     ///   - terrainIds/unitCount를 주면 종족마다 TribeTerrain 묶음이 있는지·StartUnit*도(지형 표는 표 폴더마다 바뀔 수 있어 호출자가 넘긴다, null·음수면 생략)
     ///   - 해금 내역의 BuildingIndex/UnitIndex/BoatIndex(ValidateLinks)
     ///   - 시작 조건 규칙의 거리/개수 값
+    ///   - 신앙 표: 신 → 패시브·펀치·신화 유닛, 패시브·펀치 → 효과, 효과 유형이 그 자리에 맞는지(ValidateFaith)
     /// 자체 상태는 없다.
     /// </summary>
     public static class ArrayTableValidationSystem
@@ -173,11 +174,53 @@ namespace TacticsECS
                 GameTables.StartConditions, GameTables.StartConditionRules, terrainIds, GameTables.Units.Length);
             w.AddRange(ValidateLinks(GameTables.TechUnlocks, BuildingDefinition.All.Length, GameTables.Units.Length, GameTables.Boats));
             w.AddRange(ValidateTechLayout(GameTables.Techs, GameTables.TechSlots, GameTables.TechTreeLayout));
+            w.AddRange(ValidateFaith(GameTables.FaithEffects, GameTables.TemplePassives, GameTables.FaithPunches, GameTables.MythicUnits, GameTables.Gods));
             var placed = new HashSet<int>();
             foreach (var p in GameTables.TechTreeLayout) placed.Add(p.TechIndex);
             foreach (var tr in GameTables.Tribes)
                 foreach (var t in tr.StartTechs ?? new int[0])
                     if (!placed.Contains(t)) w.Add($"Tribes[{tr.Index}] {tr.Id}: 시작 기술 {t}이(가) 트리에 배치되지 않음");
+            return w;
+        }
+
+        /// <summary>신앙 표 사이 참조와 효과 유형이 그 자리에 맞는지(docs/spec/csv/faith-effects.md#effect).</summary>
+        public static List<string> ValidateFaith(FaithEffectRow[] effects, TemplePassiveRow[] passives, FaithPunchRow[] punches, MythicRow[] mythics, GodRow[] gods)
+        {
+            var w = new List<string>();
+            foreach (var e in effects)
+                if (e.Effect == FaithEffectKind.Structure && System.Array.FindIndex(StructureDefinition.All, s => s.Id == e.TargetId) < 0)
+                    w.Add($"FaithEffects[{e.Index}] {e.Id}: 구조물 '{e.TargetId}'이(가) 없음");
+
+            foreach (var p in passives)
+            {
+                string who = $"TemplePassives[{p.Index}] {p.Id}";
+                if (p.Radius < 0 || p.Period < 1) w.Add($"{who}: Radius는 0 이상, Period는 1 이상이어야 함");
+                foreach (int i in p.Effects ?? new int[0])
+                    if (!InRange(i, effects.Length)) w.Add($"{who}: Effect {i}이(가) FaithEffects 범위 밖");
+                    else if (!FaithEffectSystem.UsableInPassive(effects[i].Effect)) w.Add($"{who}: 효과 {effects[i].Id}({effects[i].Effect})은(는) 신전 패시브에 쓸 수 없음");
+            }
+
+            foreach (var p in punches)
+            {
+                string who = $"FaithPunches[{p.Index}] {p.Id}";
+                if (p.Effects == null || p.Effects.Length == 0) w.Add($"{who}: Effect가 없음");
+                foreach (int i in p.Effects ?? new int[0])
+                    if (!InRange(i, effects.Length)) w.Add($"{who}: Effect {i}이(가) FaithEffects 범위 밖");
+                    else if (!FaithEffectSystem.UsableInPunch(effects[i].Effect)) w.Add($"{who}: 효과 {effects[i].Id}({effects[i].Effect})은(는) 신앙 펀치에 쓸 수 없음");
+            }
+
+            foreach (var m in mythics)
+                if (m.ActivePunch != -1 && !InRange(m.ActivePunch, punches.Length)) w.Add($"MythicUnits[{m.Index}] {m.Id}: ActivePunch {m.ActivePunch} 범위 밖");
+
+            foreach (var g in gods)
+            {
+                string who = $"Gods[{g.Index}] {g.Id}";
+                foreach (int i in g.Passives ?? new int[0])
+                    if (!InRange(i, passives.Length)) w.Add($"{who}: Passive {i}이(가) TemplePassives 범위 밖");
+                foreach (int i in g.Punches ?? new int[0])
+                    if (!InRange(i, punches.Length)) w.Add($"{who}: FaithPunch {i}이(가) FaithPunches 범위 밖");
+                if (g.Mythic != -1 && !InRange(g.Mythic, mythics.Length)) w.Add($"{who}: MythicIndex {g.Mythic} 범위 밖");
+            }
             return w;
         }
 

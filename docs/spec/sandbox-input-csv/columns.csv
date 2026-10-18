@@ -17,20 +17,38 @@ Table.CityRewards,Reward,아래 표,O,Resources,,보상 종류(효과는 코드 
 Table.CityRewards,Amount,정수,,0,,보상 크기 — 뜻은 종류마다 아래 표
 Table.CityRewards,Wiki,메모,,,,로더 무시
 Table.CityRewards,Note,메모,,,,로더 무시
-Table.FaithPunches,Index,정수,O,,,배열 위치. Gods.csv FaithPunch{n}이 가리킨다
-Table.FaithPunches,Id,문자열,O,,,이름표. 이름·설명은 번역 표 FaithPunch.<Id>.Name/.Desc
-Table.FaithPunches,Kind,열거,O,,,효과 유형 — 아래 표
+Table.FaithEffects,Index,정수,O,,,배열 위치. TemplePassives·FaithPunches의 Effect{n}이 가리킨다
+Table.FaithEffects,Id,문자열,O,,,이름표(중복 불가). 설명 문구의 자리표시자 {FaithEffect.<Id>.Amount}·.PerPrayer·.MinHp가 가리킨다
+Table.FaithEffects,Effect,열거,O,,,효과 유형 — 아래 표
+Table.FaithEffects,Side,Enemy·Ally,,Enemy,,유닛 효과가 닿는 편(효과를 쓰는 팀 기준)
+Table.FaithEffects,Stat,Attack·Defense,,Attack,,Stat이 올리는 능력치
+Table.FaithEffects,Amount,실수,,0,,기본 크기
+Table.FaithEffects,PerPrayer,실수,,0,,신전 패시브에서 기도 유닛 하나당 더해지는 크기(음수면 약해진다)
+Table.FaithEffects,MinHp,정수,,0,,Damage가 남기는 최소 체력. 0이면 처치할 수 있다
+Table.FaithEffects,TargetId,구조물 Id,,없음,,
+Table.FaithEffects,Territory,Own·OwnOrNeutral·Any,,Own,,Structure가 쓸 수 있는 칸의 영토
+Table.FaithEffects,FromTerrain,Land·Water·Mountain,,Land,,Terrain: 대상 칸이 FromTerrain이면 ToTerrain으로 바꾼다
+Table.FaithEffects,ToTerrain,Land·Water·Mountain,,Land,,Terrain: 대상 칸이 FromTerrain이면 ToTerrain으로 바꾼다
+Table.FaithEffects,SkipHidden,0/1,,0,,숨은 적 유닛은 대상에서 뺀다
+Table.FaithEffects,SkipPeace,0/1,,0,,평화 조약 상대의 유닛은 대상에서 뺀다
+Table.FaithEffects,CountsAsAttack,0/1,,0,,"Damage를 공격으로 친다: 전쟁 상태가 되고, 은신이 풀리고, 공격·처치 과업에 센다"
+Table.FaithEffects,Note,메모,,,,로더 무시
+Table.TemplePassives,Index,정수,O,,,배열 위치. Gods.csv Passive{n}이 가리킨다
+Table.TemplePassives,Id,문자열,O,,,이름표(중복 불가). 자리표시자 {TemplePassive.<Id>.Radius}·.Period
+Table.TemplePassives,Radius,정수,,1,,신전 칸 중심 체비쇼프 반경
+Table.TemplePassives,Period,정수,,1,,턴 시작 효과가 이 턴 수마다 한 번 발동(턴 번호가 나누어떨어질 때)
+Table.TemplePassives,Effect{n},FaithEffects Index,,없음,,이 패시브의 효과들
+Table.TemplePassives,Note,메모,,,,로더 무시
+Table.FaithPunches,Index,정수,O,,,"배열 위치. Gods.csv FaithPunch{n}, MythicUnits.csv ActivePunch가 가리킨다"
+Table.FaithPunches,Id,문자열,O,,,이름표(중복 불가). 이름·설명은 번역 표 FaithPunch.<Id>.Name/.Desc
 Table.FaithPunches,Cost,정수,,0,,소모하는 신앙
 Table.FaithPunches,Range,정수,,0,,대상 칸 중심 체비쇼프 반경
-Table.FaithPunches,Value,정수,,0,,유형별 크기
-Table.FaithPunches,Target,문자열,,없음,,
+Table.FaithPunches,Effect{n},FaithEffects Index,O,,,효과들(나열한 순서로 적용)
 Table.FaithPunches,Note,메모,,,,로더 무시
 Table.MythicUnits,Index,정수,O,,,배열 위치. Gods.csv MythicIndex가 가리킨다
 Table.MythicUnits,Id,문자열,O,,,Units.csv의 Id. 이름은 Unit.<Id>.Name
 Table.MythicUnits,Upkeep,정수,,1,,강림 때 받는 유지 턴
-Table.MythicUnits,ActivePunch,FaithPunches Index,,-1,,액티브 능력으로 쓰는 펀치. -1 = 없음
-Table.MythicUnits,ActiveFaithCost,정수,,0,,액티브 능력의 신앙 비용(펀치의 Cost 대신)
-Table.MythicUnits,ActiveValue,정수,,0,,액티브 능력의 크기(펀치의 Value 대신)
+Table.MythicUnits,ActivePunch,FaithPunches Index,,-1,,액티브 능력으로 쓰는 펀치(신앙 비용은 그 행의 Cost). -1 = 없음. Descend 효과가 있는 펀치는 쓸 수 없다
 Table.MythicUnits,ActiveReach,정수,,1,,신화 유닛에서 대상 칸까지 체비쇼프 사거리
 Table.MythicUnits,ActiveUpkeepCost,정수,,0,,쓸 때 추가로 줄어드는 유지 턴
 Table.MythicUnits,Note,메모,,,,로더 무시
@@ -40,14 +58,10 @@ Table.GameRules,Wiki,문자열,,,,위키 원문 값. 비우면 프로젝트 고�
 Table.GameRules,Description,문자열,,,,규칙 설명(단일 출처)
 Table.GameRules,Note,문자열,△,,,Value≠Wiki이거나 Wiki가 비었으면 필수 — 원문과 다른 이유
 Table.Gods,Index,정수,O,,,배열 위치. 샌드박스 신 드롭다운이 가리킨다
-Table.Gods,Id,문자열,O,,,이름표. 이름·설명은 번역 표 God.<Id>.Name/.Desc
-Table.Gods,Passive,열거,,None,,패시브 유형 — 아래 표
-Table.Gods,Target,문자열,,없음,,유형별 대상 — 아래 표
-Table.Gods,Value,실수,,0,,신전 하나의 기본 효과 크기
-Table.Gods,PerPrayer,실수,,0,,기도 유닛 하나당 더해지는 크기(음수면 약해진다)
-Table.Gods,Period,정수,,1,,Resource: 이 턴 수마다 한 번 발동
-Table.Gods,MythicIndex,MythicUnits Index,,-1,,강림하는 신화 유닛. -1 = 없음
+Table.Gods,Id,문자열,O,,,이름표(중복 불가). 이름·설명은 번역 표 God.<Id>.Name/.Desc
+Table.Gods,Passive{n},TemplePassives Index,,없음,,신전 패시브들. 여럿이면 모두 작용한다
 Table.Gods,FaithPunch{n},FaithPunches Index,,없음,,이 신이 쓸 수 있는 신앙 펀치
+Table.Gods,MythicIndex,MythicUnits Index,,-1,,강림하는 신화 유닛. -1 = 없음
 Table.Gods,Note,메모,,,,로더 무시
 Table.SpriteCatalog,VisualId,문자열,O,,,표시 키 — 아래 접두사 규칙
 Table.SpriteCatalog,Sheet,문자열,O,,,"Pattern/<이름>(아래 픽셀 패턴), 또는 Assets/Resources/Pixel2D/Sheets/<이름>.png(Units = 아래 유닛 시트, 나머지는 UI 틀)"

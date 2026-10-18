@@ -91,6 +91,7 @@ namespace TacticsECS
             public static int TurnsPerGrowth = 5;
             public static int PrayGain = 1;
             public static int PrayRange = 1;
+            public static float PrayDefense = 0f;
             public static int GreatTempleMinTiles = 4;
             public static int GreatTempleProtectTurns = 3;
             public static int GreatTempleTieBreakTurns = 1;
@@ -179,6 +180,10 @@ namespace TacticsECS
             public static int ThreatRadius = 3;
             public static int MaxConnectionBudget = 18;
             public static int DefendRadius = 2;
+            public static int FaithPrayerSafeDistance = 4;
+            public static int FaithBaseTemples = 2;
+            public static int FaithMaxTemples = 4;
+            public static int FaithMaxPunchesPerTurn = 2;
         }
     }
 }

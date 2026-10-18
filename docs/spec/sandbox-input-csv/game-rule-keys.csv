@@ -77,6 +77,10 @@ AI.MaxImprovementsPerTurn,int,경제 AI가 한 턴에 하는 건설/채집 최�
 AI.ThreatRadius,int,경제 AI: 자기 영토 N칸 안의 적 유닛을 위협으로 센다
 AI.MaxConnectionBudget,int,경제 AI: 도시 연결 계획 최대 별
 AI.DefendRadius,int,군사 AI: 적이 도시 N칸 안이면 가장 가까운 유닛이 복귀
+AI.FaithPrayerSafeDistance,int,신앙 AI: 이 거리(맨해튼) 안에 보이는 적이 있으면 기도하지 않는다(강림 판단은 +2)
+AI.FaithBaseTemples,int,신앙 AI: 기본으로 짓는 신전 수
+AI.FaithMaxTemples,int,신앙 AI: 대신전 과업 기준치가 신앙 최대치보다 클 때 짓는 신전 수
+AI.FaithMaxPunchesPerTurn,int,신앙 AI: 한 턴에 쓰는 신앙 펀치 최대 횟수
 Diplomacy.EmbassyIncome,int,대사관 하나가 양쪽 부족에 주는 별/턴
 Diplomacy.PeaceTreatyIncomeMultiplier,int,평화 조약 상태의 대사관 수입 배수
 Diplomacy.EmbassySightRadius,int,대사관 건설 시 상대 수도 주변 공개 반경
@@ -89,6 +93,7 @@ Faith.RankBonus3,int,3위 추가 획득량
 Faith.TurnsPerGrowth,int,이만큼 턴이 지날 때마다 모든 순위의 획득량 +1
 Faith.PrayGain,int,기도 중인 유닛 하나당 턴 시작 신앙 획득량
 Faith.PrayRange,int,기도할 수 있는 신전 거리(체비쇼프)
+Faith.PrayDefense,float,기도 중인 유닛의 방어 스탯(방어 태세·오라 가산을 무시하고 이 값)
 Faith.GreatTempleMinTiles,int,대신전을 지으려면 필요한 이어진 지을 수 있는 칸 수(빈 평지·숲·자원 칸)
 Faith.GreatTempleProtectTurns,int,대신전 완성까지 지켜야 하는 턴 수(인접 칸에 적이 들어오면 다시 센다)
 Faith.GreatTempleTieBreakTurns,int,완성 뒤 타이브레이크로 기다리는 턴 수

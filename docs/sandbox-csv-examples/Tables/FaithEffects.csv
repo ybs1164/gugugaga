@@ -1,0 +1,16 @@
+﻿Index,Id,Effect,Side,Stat,Amount,PerPrayer,MinHp,TargetId,Territory,FromTerrain,ToTerrain,SkipHidden,SkipPeace,CountsAsAttack,Note
+0,SunAura,Stat,Ally,Attack,0.5,0.25,,,,,,,,,샘플 — 태양신 패시브
+1,GuardianWard,GuardStat,Ally,,0.5,0.25,,,,,,,,,샘플 — 수호신 패시브(방어 태세 중 방어력)
+2,StormLash,Damage,Enemy,,1,1,1,,,,,,,,샘플 — 폭풍신 패시브(체력 1 아래로는 깎지 않음)
+3,HarvestFruit,Structure,,,1,0.5,,Resource_Fruit,Own,,,,,,샘플 — 풍요신 패시브
+4,MerchantStars,Stars,,,1,1,,,,,,,,,샘플 — 상업신 패시브
+5,SageCap,FaithCap,,,3,1,,,,,,,,,샘플 — 현자신 패시브
+6,Smite,Damage,Enemy,,4,,,,,,,1,1,1,샘플 — 천벌
+7,Blessing,Heal,Ally,,4,,,,,,,,,,샘플 — 축복
+8,Bounty,Structure,,,3,,,Resource_Fruit,OwnOrNeutral,,,,,,샘플 — 풍년(최대 개수)
+9,UpheavalLandToWater,Terrain,,,,,,,,Land,Water,,,,샘플 — 지각 변동 1/3
+10,UpheavalWaterToMountain,Terrain,,,,,,,,Water,Mountain,,,,샘플 — 지각 변동 2/3
+11,UpheavalMountainToLand,Terrain,,,,,,,,Mountain,Land,,,,샘플 — 지각 변동 3/3
+12,Descent,Descend,,,,,,,,,,,,,샘플 — 강림
+13,SolarFlare,Damage,Enemy,,2,,,,,,,1,1,1,샘플 — 태양의 화신 액티브(천벌의 약화판)
+14,StormBolt,Damage,Enemy,,3,,,,,,,1,1,1,샘플 — 폭풍의 거신 액티브(천벌의 약화판)

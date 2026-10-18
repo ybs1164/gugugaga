@@ -1,0 +1,17 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. TemplePassives·FaithPunches의 Effect{n}이 가리킨다
+Id,문자열,O,,,이름표(중복 불가). 설명 문구의 자리표시자 {FaithEffect.<Id>.Amount}·.PerPrayer·.MinHp가 가리킨다
+Effect,열거,O,,,효과 유형 — 아래 표
+Side,Enemy·Ally,,Enemy,,유닛 효과가 닿는 편(효과를 쓰는 팀 기준)
+Stat,Attack·Defense,,Attack,,Stat이 올리는 능력치
+Amount,실수,,0,,기본 크기
+PerPrayer,실수,,0,,신전 패시브에서 기도 유닛 하나당 더해지는 크기(음수면 약해진다)
+MinHp,정수,,0,,Damage가 남기는 최소 체력. 0이면 처치할 수 있다
+TargetId,구조물 Id,,없음,,
+Territory,Own·OwnOrNeutral·Any,,Own,,Structure가 쓸 수 있는 칸의 영토
+FromTerrain,Land·Water·Mountain,,Land,,Terrain: 대상 칸이 FromTerrain이면 ToTerrain으로 바꾼다
+ToTerrain,Land·Water·Mountain,,Land,,Terrain: 대상 칸이 FromTerrain이면 ToTerrain으로 바꾼다
+SkipHidden,0/1,,0,,숨은 적 유닛은 대상에서 뺀다
+SkipPeace,0/1,,0,,평화 조약 상대의 유닛은 대상에서 뺀다
+CountsAsAttack,0/1,,0,,"Damage를 공격으로 친다: 전쟁 상태가 되고, 은신이 풀리고, 공격·처치 과업에 센다"
+Note,메모,,,,로더 무시

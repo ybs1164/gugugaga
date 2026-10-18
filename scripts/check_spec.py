@@ -184,6 +184,8 @@ def check_placeholders(rows, langs):
         "Tribe": (*load(tables / "Tribes.csv"), ["StartStars"]),
         "God": (*load(tables / "Gods.csv"), []),
         "FaithPunch": (*load(tables / "FaithPunches.csv"), []),
+        "FaithEffect": (*load(tables / "FaithEffects.csv"), ["Amount", "PerPrayer", "MinHp"]),
+        "TemplePassive": (*load(tables / "TemplePassives.csv"), ["Radius", "Period"]),
         "StartRule": (*load(tables / "StartConditionRules.csv"), ["Count", "MinDistance", "MaxDistance"]),
         "StartCondition": (*load(tables / "StartConditions.csv"), []),
     }

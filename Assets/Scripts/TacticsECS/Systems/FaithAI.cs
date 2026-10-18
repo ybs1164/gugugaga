@@ -7,20 +7,14 @@ namespace TacticsECS
     /// 신앙 규칙 기반 AI(한 팀의 경제 턴 일부 — EconomyAI.RunTurn이 부른다). 자체 상태 없음. 신(Gods.csv)을 고른 팀만 신앙을 쓴다.
     ///   1. 대신전(RunEarly — 건설·훈련보다 먼저): 과업을 달성했고 지을 자리가 있으면 짓는다.
     ///   2. 신전: 신전이 모자라면 수도 가까이에 짓는다(기도와 신 패시브가 신전 곁에서 이뤄지므로).
-    ///   3. 신앙 펀치: 위협받거나, 대신전 과업을 이미 채웠거나, 신앙이 가득 차 낭비될 때만 쓴다. 천벌(피해를 가장 많이 주는 칸)·축복(회복량이 가장 큰 칸)·
-    ///      강림(보이는 적 근처의 가장 센 유닛)을 후보 대상마다 점수를 매겨 가장 좋은 하나를 고른다.
+    ///   3. 신앙 펀치: 위협받거나, 대신전 과업을 이미 채웠거나, 신앙이 가득 차 낭비될 때만 쓴다. 펀치의 효과(FaithEffects)마다 점수를 매겨 —
+    ///      적 피해·아군 회복·강림(보이는 적 근처의 센 유닛) — 합이 가장 큰 펀치·대상 하나를 고른다.
     ///   4. 신화 유닛 액티브: 사거리 안에서 가장 많은 적에게 닿는 칸에 쓴다.
     ///   5. 기도: 신전 곁에서 적이 가까이 없는 유닛은 기도한다(행동 종료 — 이후 EnemyAI가 건너뛴다).
     /// 규칙: docs/spec/game/ai.md
     /// </summary>
     public static class FaithAI
     {
-        /// <summary>이 거리(맨해튼) 안에 보이는 적이 있으면 그 유닛은 기도하지 않고 싸운다.</summary>
-        private const int PrayerSafeDistance = 4;
-        private const int BaseTemples = 2;
-        private const int MaxTemples = 4;
-        private const int MaxPunchesPerTurn = 2;
-
         /// <summary>건설·훈련보다 먼저(별을 빼앗기기 전에): 대신전을 지을 수 있으면 짓는다.</summary>
         public static void RunEarly(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, List<EconomyLogEntry> log)
         {
@@ -122,10 +116,10 @@ namespace TacticsECS
         /// <summary>수도 2칸 안의 자기 영토에서 가장 싼 신전 하나(FaithCap이 있는 건물)를 짓는다. 별이 조금 남을 때만.</summary>
         private static void BuildTemple(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, List<EconomyLogEntry> log)
         {
-            // 기본 BaseTemples개. 대신전 과업 기준치가 신앙 최대치보다 크면(채울 수 없으면) MaxTemples까지 더 지어 최대치를 늘린다.
+            // 기본 AI.FaithBaseTemples개. 대신전 과업 기준치가 신앙 최대치보다 크면(채울 수 없으면) AI.FaithMaxTemples까지 더 지어 최대치를 늘린다.
             int have = TemplePassiveSystem.Temples(grid, team).Count;
             bool needCap = !TaskDone(econ, team) && econ.Resources[team].MaxFaith < TaskThreshold();
-            if (have >= (needCap ? MaxTemples : BaseTemples)) return;
+            if (have >= (needCap ? GameRules.AI.FaithMaxTemples : GameRules.AI.FaithBaseTemples)) return;
             int capital = CitySystem.FindCapital(econ, team);
             if (capital < 0) return;
             var center = econ.Cities[capital].Position;
@@ -158,7 +152,7 @@ namespace TacticsECS
             var punches = FaithPunchSystem.Available(econ, team);
             if (punches.Count == 0) return;
             bool threatened = EconomyAI.IsThreatened(grid, world, econ, team);
-            for (int n = 0; n < MaxPunchesPerTurn; n++)
+            for (int n = 0; n < GameRules.AI.FaithMaxPunchesPerTurn; n++)
             {
                 var res = econ.Resources[team];
                 bool taskDone = TaskDone(econ, team);
@@ -185,16 +179,21 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>펀치 유형별 후보 대상 칸: 천벌 = 보이는 적 유닛 칸, 축복 = 다친 아군 칸, 강림 = 자기 유닛 칸. 그 밖의 유형은 쓰지 않는다.</summary>
+        /// <summary>후보 대상 칸: 적에게 피해를 주는 효과가 있으면 보이는 적 유닛 칸, 아군 회복·강림이 있으면 자기 유닛 칸. 칸 효과(구조물·지형)만 있는 펀치는 쓰지 않는다.</summary>
         private static List<Vector2Int> Candidates(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch)
         {
             var tiles = new List<Vector2Int>();
-            if (punch.Kind != FaithPunchKind.Strike && punch.Kind != FaithPunchKind.Boost && punch.Kind != FaithPunchKind.Descend) return tiles;
+            bool enemies = false, allies = false;
+            foreach (var e in FaithPunchSystem.Effects(punch))
+            {
+                if (e.Effect == FaithEffectKind.Damage && e.Side == FaithSide.Enemy) enemies = true;
+                if ((e.Effect == FaithEffectKind.Heal && e.Side == FaithSide.Ally) || e.Effect == FaithEffectKind.Descend) allies = true;
+            }
             for (int i = 0; i < world.EntityCount; i++)
             {
                 if (!UnitQueries.IsAlive(world, i)) continue;
                 bool own = world.Get<Team>(i) == team;
-                if ((punch.Kind == FaithPunchKind.Strike) == own) continue;
+                if (own ? !allies : !enemies) continue;
                 var pos = world.Get<GridPosition>(i).Value;
                 if (!own && !VisionSystem.IsExplored(grid, team, pos)) continue;
                 tiles.Add(pos);
@@ -202,43 +201,40 @@ namespace TacticsECS
             return tiles;
         }
 
-        /// <summary>대상 칸의 점수: 천벌 = 피해(처치는 가산), 축복 = 회복량, 강림 = 보이는 적이 가까운 센 유닛.</summary>
+        /// <summary>대상 칸의 점수 = 효과마다 점수의 합: 적 피해 = 깎는 체력(처치는 가산), 아군 회복 = 회복량(크기만큼 못 채우면 0),
+        /// 강림 = 보이는 적이 가까운 센 유닛. 아군 피해·적 회복은 그만큼 뺀다.</summary>
         private static float Score(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int target)
         {
             float score = 0f;
-            switch (punch.Kind)
+            foreach (var e in FaithPunchSystem.Effects(punch))
             {
-                case FaithPunchKind.Strike:
-                    foreach (int id in UnitsAround(grid, world, punch, target))
-                    {
-                        if (world.Get<Team>(id) == team) continue;
-                        int hp = world.Get<Hp>(id).Value;
-                        score += Mathf.Min(punch.Value, hp) + (hp <= punch.Value ? 5 : 0);
-                    }
-                    return score;
-                case FaithPunchKind.Boost:
-                    foreach (int id in UnitsAround(grid, world, punch, target))
-                        if (world.Get<Team>(id) == team)
-                            score += Mathf.Min(punch.Value, world.Get<MaxHp>(id).Value - world.Get<Hp>(id).Value);
-                    return score >= punch.Value ? score : 0f;
-                case FaithPunchKind.Descend:
-                    int unit = grid.GetOccupant(target);
-                    if (unit == TileData.NoOccupant || MythicSystem.IsMythic(world, unit) || !EnemyNear(grid, world, team, target, PrayerSafeDistance + 2)) return 0f;
-                    return 1f + world.Get<Hp>(unit).Value * 0.1f + world.Get<Attack>(unit).Value * 0.5f;
-                default:
-                    return 0f;
+                int amount = FaithPunchSystem.Amount(e);
+                float part = 0f;
+                switch (e.Effect)
+                {
+                    case FaithEffectKind.Damage:
+                        foreach (int id in FaithEffectSystem.Units(grid, world, team, e, target, punch.Range))
+                        {
+                            int hp = world.Get<Hp>(id).Value;
+                            part += Mathf.Min(amount, hp - e.MinHp) + (e.MinHp <= 0 && hp <= amount ? 5 : 0);
+                        }
+                        break;
+                    case FaithEffectKind.Heal:
+                        foreach (int id in FaithEffectSystem.Units(grid, world, team, e, target, punch.Range))
+                            part += Mathf.Min(amount, world.Get<MaxHp>(id).Value - world.Get<Hp>(id).Value);
+                        if (part < amount) part = 0f;
+                        break;
+                    case FaithEffectKind.Descend:
+                        int unit = grid.GetOccupant(target);
+                        if (unit == TileData.NoOccupant || world.Get<Team>(unit) != team || MythicSystem.IsMythic(world, unit) ||
+                            !EnemyNear(grid, world, team, target, GameRules.AI.FaithPrayerSafeDistance + 2)) break;
+                        part = 1f + world.Get<Hp>(unit).Value * 0.1f + world.Get<Attack>(unit).Value * 0.5f;
+                        break;
+                }
+                bool helpsUs = (e.Effect == FaithEffectKind.Damage) == (e.Side == FaithSide.Enemy) || e.Effect == FaithEffectKind.Descend;
+                score += helpsUs ? part : -part;
             }
-        }
-
-        private static List<int> UnitsAround(GridWorld grid, EntityWorld world, FaithPunchRow punch, Vector2Int center)
-        {
-            var ids = new List<int>();
-            foreach (var p in FaithPunchSystem.Area(grid, punch, center))
-            {
-                int id = grid.GetOccupant(p);
-                if (id != TileData.NoOccupant && UnitQueries.IsAlive(world, id)) ids.Add(id);
-            }
-            return ids;
+            return score;
         }
 
         // ---------- 신화 유닛 ----------
@@ -282,7 +278,7 @@ namespace TacticsECS
             {
                 if (world.Get<Team>(id) != team || MythicSystem.IsMythic(world, id)) continue;
                 if (!PrayerSystem.CanPray(grid, world, id)) continue;
-                if (EnemyNear(grid, world, team, world.Get<GridPosition>(id).Value, PrayerSafeDistance)) continue;
+                if (EnemyNear(grid, world, team, world.Get<GridPosition>(id).Value, GameRules.AI.FaithPrayerSafeDistance)) continue;
                 PrayerSystem.Pray(grid, world, id);
             }
         }

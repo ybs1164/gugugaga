@@ -1,0 +1,7 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치. Gods.csv Passive{n}이 가리킨다
+Id,문자열,O,,,이름표(중복 불가). 자리표시자 {TemplePassive.<Id>.Radius}·.Period
+Radius,정수,,1,,신전 칸 중심 체비쇼프 반경
+Period,정수,,1,,턴 시작 효과가 이 턴 수마다 한 번 발동(턴 번호가 나누어떨어질 때)
+Effect{n},FaithEffects Index,,없음,,이 패시브의 효과들
+Note,메모,,,,로더 무시

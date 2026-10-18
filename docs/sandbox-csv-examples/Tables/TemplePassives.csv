@@ -1,0 +1,7 @@
+﻿Index,Id,Radius,Period,Effect1,Effect2,Note
+0,SunAura,1,,0,,샘플 — 신전에 인접한 아군 공격력
+1,GuardianWard,1,,1,,샘플
+2,StormLash,1,,2,,샘플
+3,HarvestFruit,1,2,3,,샘플 — 2턴마다
+4,MerchantStars,1,,4,,샘플
+5,SageCap,1,,5,,샘플

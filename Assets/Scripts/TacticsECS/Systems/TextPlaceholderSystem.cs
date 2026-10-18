@@ -107,6 +107,25 @@ namespace TacticsECS
                                 case "MaxDistance": return Text(r.MaxDistance);
                             }
                     return null;
+                case "FaithEffect":
+                    foreach (var e in GameTables.FaithEffects)
+                        if (e.Id == id)
+                            switch (column)
+                            {
+                                case "Amount": return Text(e.Amount);
+                                case "PerPrayer": return Text(e.PerPrayer);
+                                case "MinHp": return Text(e.MinHp);
+                            }
+                    return null;
+                case "TemplePassive":
+                    foreach (var t in GameTables.TemplePassives)
+                        if (t.Id == id)
+                            switch (column)
+                            {
+                                case "Radius": return Text(t.Radius);
+                                case "Period": return Text(t.Period);
+                            }
+                    return null;
                 default:
                     return null;
             }

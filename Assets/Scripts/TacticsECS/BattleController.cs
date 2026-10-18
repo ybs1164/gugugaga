@@ -608,7 +608,7 @@ namespace TacticsECS
                                        : FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
             if (!result.Success) { PreviewPunchTarget(_punchTarget); return; }
 
-            if (punch.Kind == FaithPunchKind.Strike)
+            if (result.Attacked)
             {
                 TaskSystem.RecordAttack(_econ, Team.Player);
                 TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
@@ -1981,7 +1981,8 @@ namespace TacticsECS
                         int level = ScoreSystem.TempleLevel(_econ.Turn, tile.BuildingTurn);
                         body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.Temple", level, ScoreSystem.TemplePoints(level)));
                         if (tile.OwnerTeam >= 0 && TemplePassiveSystem.GodOf(_econ, (Team)tile.OwnerTeam) is GodRow god)
-                            body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.TempleGod", god.Name, TemplePassiveSystem.StrengthAt(_world, _econ, (Team)tile.OwnerTeam, pos)));
+                            body.Append(" · ").Append(LocalizationSystem.F("UI.TileMenu.TempleGod", god.Name,
+                                string.Join(" / ", TemplePassiveSystem.StrengthAt(_world, _econ, (Team)tile.OwnerTeam, pos).Select(v => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)))));
                     }
                 }
                 if (tile.HasRoad) body.Append(" · ").Append(LocalizationSystem.Name(ArrayTableCsvSerializer.BuildingStringTable, BuildingDefinition.Road));
@@ -2072,11 +2073,11 @@ namespace TacticsECS
                 var mythicState = _world.Get<Mythic>(unitId);
                 var mythicRow = GameTables.MythicUnits[mythicState.MythicIndex];
                 var activePunch = MythicSystem.ActivePunchRow(mythicRow);
-                bool can = _econ.Resources[Team.Player].Faith >= mythicRow.ActiveFaithCost && mythicState.TurnsLeft > mythicRow.ActiveUpkeepCost;
+                bool can = _econ.Resources[Team.Player].Faith >= activePunch.Cost && mythicState.TurnsLeft > mythicRow.ActiveUpkeepCost;
                 options.Add(new ActionMenuOption
                 {
                     Label = LocalizationSystem.F("UI.Mythic.Active", activePunch.Name),
-                    Detail = LocalizationSystem.F("UI.Mythic.ActiveDetail", mythicRow.ActiveFaithCost, mythicRow.ActiveUpkeepCost, mythicRow.ActiveReach),
+                    Detail = LocalizationSystem.F("UI.Mythic.ActiveDetail", activePunch.Cost, mythicRow.ActiveUpkeepCost, mythicRow.ActiveReach),
                     Enabled = can, OnClick = () => StartMythicActive(unitId)
                 });
             }

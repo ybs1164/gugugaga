@@ -2,9 +2,7 @@
 Index,정수,O,,,배열 위치. Gods.csv MythicIndex가 가리킨다
 Id,문자열,O,,,Units.csv의 Id. 이름은 Unit.<Id>.Name
 Upkeep,정수,,1,,강림 때 받는 유지 턴
-ActivePunch,FaithPunches Index,,-1,,액티브 능력으로 쓰는 펀치. -1 = 없음
-ActiveFaithCost,정수,,0,,액티브 능력의 신앙 비용(펀치의 Cost 대신)
-ActiveValue,정수,,0,,액티브 능력의 크기(펀치의 Value 대신)
+ActivePunch,FaithPunches Index,,-1,,액티브 능력으로 쓰는 펀치(신앙 비용은 그 행의 Cost). -1 = 없음. Descend 효과가 있는 펀치는 쓸 수 없다
 ActiveReach,정수,,1,,신화 유닛에서 대상 칸까지 체비쇼프 사거리
 ActiveUpkeepCost,정수,,0,,쓸 때 추가로 줄어드는 유지 턴
 Note,메모,,,,로더 무시

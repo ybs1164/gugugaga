@@ -18,6 +18,9 @@ namespace TacticsECS
         public List<int> SpawnedIds;
 
         public bool TerrainChanged;
+
+        /// <summary>공격으로 치는 효과(FaithEffects CountsAsAttack)가 유닛에 닿았다 — 공격·처치 과업에 센다.</summary>
+        public bool Attacked;
         public int Spent;
     }
 }

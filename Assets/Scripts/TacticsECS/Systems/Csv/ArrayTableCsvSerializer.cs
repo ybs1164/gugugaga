@@ -238,9 +238,57 @@ namespace TacticsECS
 
         public const string FaithPunchStringTable = "FaithPunch";
 
+        /// <summary>신앙 효과 표(FaithEffects.csv). 신전 패시브·신앙 펀치보다 먼저 읽는다 — 그 설명의 {FaithEffect.Id.컬럼}이 이 표를 본다.</summary>
+        public static FaithEffectRow[] ParseFaithEffects(string text, List<string> errors = null)
+        {
+            var t = Begin("FaithEffects.csv", text, new[] { "Index", "Id", "Effect" },
+                new[] { "Side", "Stat", "Amount", "PerPrayer", "MinHp", "TargetId", "Territory", "FromTerrain", "ToTerrain", "SkipHidden", "SkipPeace", "CountsAsAttack", "Note" },
+                new string[0], errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new FaithEffectRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+                rows[r] = new FaithEffectRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Effect = CsvTableReader.GetEnum(t, r, "Effect", FaithEffectKind.Damage, errors),
+                    Side = CsvTableReader.GetEnum(t, r, "Side", FaithSide.Enemy, errors),
+                    Stat = CsvTableReader.GetEnum(t, r, "Stat", FaithStat.Attack, errors),
+                    Amount = CsvTableReader.GetFloat(t, r, "Amount", 0f, errors),
+                    PerPrayer = CsvTableReader.GetFloat(t, r, "PerPrayer", 0f, errors),
+                    MinHp = CsvTableReader.GetInt(t, r, "MinHp", 0, errors),
+                    TargetId = CsvTableReader.Get(t, r, "TargetId"),
+                    Territory = CsvTableReader.GetEnum(t, r, "Territory", FaithTerritory.Own, errors),
+                    FromTerrain = CsvTableReader.GetEnum(t, r, "FromTerrain", FaithTerrain.Land, errors),
+                    ToTerrain = CsvTableReader.GetEnum(t, r, "ToTerrain", FaithTerrain.Land, errors),
+                    SkipHidden = CsvTableReader.GetBool(t, r, "SkipHidden", false, errors),
+                    SkipPeace = CsvTableReader.GetBool(t, r, "SkipPeace", false, errors),
+                    CountsAsAttack = CsvTableReader.GetBool(t, r, "CountsAsAttack", false, errors),
+                };
+            return rows;
+        }
+
+        public static TemplePassiveRow[] ParseTemplePassives(string text, List<string> errors = null)
+        {
+            var t = Begin("TemplePassives.csv", text, new[] { "Index", "Id" }, new[] { "Radius", "Period", "Note" }, new[] { "Effect" }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new TemplePassiveRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+                rows[r] = new TemplePassiveRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Radius = CsvTableReader.GetInt(t, r, "Radius", 1, errors),
+                    Period = CsvTableReader.GetInt(t, r, "Period", 1, errors),
+                    Effects = GetIndexList(t, r, "Effect", errors),
+                };
+            return rows;
+        }
+
         public static FaithPunchRow[] ParseFaithPunches(string text, List<string> errors = null)
         {
-            var t = Begin("FaithPunches.csv", text, new[] { "Index", "Id", "Kind" }, new[] { "Cost", "Range", "Value", "Target", "Note" }, new string[0], errors);
+            var t = Begin("FaithPunches.csv", text, new[] { "Index", "Id" }, new[] { "Cost", "Range", "Note" }, new[] { "Effect" }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var rows = new FaithPunchRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -251,11 +299,9 @@ namespace TacticsECS
                     Id = id,
                     Name = LocalizationSystem.Name(FaithPunchStringTable, id),
                     Description = LocalizationSystem.Desc(FaithPunchStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
-                    Kind = CsvTableReader.GetEnum(t, r, "Kind", FaithPunchKind.Strike, errors),
                     Cost = CsvTableReader.GetInt(t, r, "Cost", 0, errors),
                     Range = CsvTableReader.GetInt(t, r, "Range", 0, errors),
-                    Value = CsvTableReader.GetInt(t, r, "Value", 0, errors),
-                    Target = CsvTableReader.Get(t, r, "Target"),
+                    Effects = GetIndexList(t, r, "Effect", errors),
                 };
             }
             return rows;
@@ -263,7 +309,7 @@ namespace TacticsECS
 
         public static MythicRow[] ParseMythicUnits(string text, List<string> errors = null)
         {
-            var t = Begin("MythicUnits.csv", text, new[] { "Index", "Id" }, new[] { "Upkeep", "ActivePunch", "ActiveFaithCost", "ActiveValue", "ActiveReach", "ActiveUpkeepCost", "Note" }, new string[0], errors);
+            var t = Begin("MythicUnits.csv", text, new[] { "Index", "Id" }, new[] { "Upkeep", "ActivePunch", "ActiveReach", "ActiveUpkeepCost", "Note" }, new string[0], errors);
             var rows = new MythicRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
                 rows[r] = new MythicRow
@@ -272,8 +318,6 @@ namespace TacticsECS
                     Id = CsvTableReader.Get(t, r, "Id"),
                     Upkeep = CsvTableReader.GetInt(t, r, "Upkeep", 1, errors),
                     ActivePunch = CsvTableReader.GetInt(t, r, "ActivePunch", -1, errors),
-                    ActiveFaithCost = CsvTableReader.GetInt(t, r, "ActiveFaithCost", 0, errors),
-                    ActiveValue = CsvTableReader.GetInt(t, r, "ActiveValue", 0, errors),
                     ActiveReach = CsvTableReader.GetInt(t, r, "ActiveReach", 1, errors),
                     ActiveUpkeepCost = CsvTableReader.GetInt(t, r, "ActiveUpkeepCost", 0, errors),
                 };
@@ -282,7 +326,8 @@ namespace TacticsECS
 
         public static GodRow[] ParseGods(string text, List<string> errors = null)
         {
-            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "Passive", "Target", "Value", "PerPrayer", "Period", "MythicIndex", "Note" }, new[] { "FaithPunch" }, errors);
+            var t = Begin("Gods.csv", text, new[] { "Index", "Id" }, new[] { "MythicIndex", "Note" }, new[] { "Passive", "FaithPunch" }, errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
             var rows = new GodRow[t.Rows.Count];
             for (int r = 0; r < rows.Length; r++)
             {
@@ -293,11 +338,7 @@ namespace TacticsECS
                     Id = id,
                     Name = LocalizationSystem.Name(GodStringTable, id),
                     Description = LocalizationSystem.Desc(GodStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
-                    Passive = CsvTableReader.GetEnum(t, r, "Passive", GodPassiveKind.None, errors),
-                    Target = CsvTableReader.Get(t, r, "Target"),
-                    Value = CsvTableReader.GetFloat(t, r, "Value", 0f, errors),
-                    PerPrayer = CsvTableReader.GetFloat(t, r, "PerPrayer", 0f, errors),
-                    Period = CsvTableReader.GetInt(t, r, "Period", 1, errors),
+                    Passives = GetIndexList(t, r, "Passive", errors),
                     Punches = GetIndexList(t, r, "FaithPunch", errors),
                     Mythic = CsvTableReader.GetInt(t, r, "MythicIndex", -1, errors),
                 };

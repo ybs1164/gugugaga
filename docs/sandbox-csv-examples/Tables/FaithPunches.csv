@@ -1,6 +1,8 @@
-﻿Index,Id,Kind,Cost,Range,Value,Target,Note
-0,Smite,Strike,6,1,4,,샘플 펀치
-1,Blessing,Boost,5,1,4,,샘플 펀치 — 범위 안 아군 체력 회복
-2,Bounty,Resource,4,1,3,Resource_Fruit,샘플 펀치
-3,Upheaval,Terrain,8,0,0,,샘플 펀치 — 땅→물→산→땅
-4,Descent,Descend,12,0,0,,샘플 펀치 — 강림: 대상 아군을 신의 신화 유닛으로
+﻿Index,Id,Cost,Range,Effect1,Effect2,Effect3,Note
+0,Smite,6,1,6,,,샘플 펀치
+1,Blessing,5,1,7,,,샘플 펀치 — 범위 안 아군 체력 회복
+2,Bounty,4,1,8,,,샘플 펀치
+3,Upheaval,8,0,9,10,11,샘플 펀치 — 땅→물→산→땅(발동 전 지형에 맞는 효과 하나만 닿는다)
+4,Descent,12,0,12,,,샘플 펀치 — 강림: 대상 아군을 신의 신화 유닛으로
+5,SolarFlare,3,1,13,,,샘플 — 태양의 화신 액티브 전용(신 펀치 목록에 없음)
+6,StormBolt,2,1,14,,,샘플 — 폭풍의 거신 액티브 전용(신 펀치 목록에 없음)

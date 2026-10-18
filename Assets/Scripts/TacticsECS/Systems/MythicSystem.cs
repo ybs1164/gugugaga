@@ -125,20 +125,14 @@ namespace TacticsECS
 
         public static bool HasActive(MythicRow m) => m.ActivePunch >= 0 && m.ActivePunch < GameTables.FaithPunches.Length;
 
-        /// <summary>약해진 신앙 펀치: 원래 펀치의 비용·크기를 이 신화 유닛 값으로 바꾼 것.</summary>
-        public static FaithPunchRow ActivePunchRow(MythicRow m)
-        {
-            var punch = GameTables.FaithPunches[m.ActivePunch];
-            punch.Cost = m.ActiveFaithCost;
-            punch.Value = m.ActiveValue;
-            return punch;
-        }
+        /// <summary>액티브 능력으로 쓰는 펀치 행(보통 신 펀치의 약한 판으로 따로 둔 행). 비용은 그 행의 Cost.</summary>
+        public static FaithPunchRow ActivePunchRow(MythicRow m) => GameTables.FaithPunches[m.ActivePunch];
 
         public static bool CanUseActive(EntityWorld world, int mythicId)
         {
             if (!IsMythic(world, mythicId) || world.Get<HasActed>(mythicId).Value) return false;
             var m = GameTables.MythicUnits[world.Get<Mythic>(mythicId).MythicIndex];
-            return HasActive(m) && ActivePunchRow(m).Kind != FaithPunchKind.Descend;
+            return HasActive(m) && !FaithPunchSystem.Has(ActivePunchRow(m), FaithEffectKind.Descend);
         }
 
         /// <summary>대상으로 쓸 수 없으면 이유 문구 키, 쓸 수 있으면 null(사거리, 유지 턴, 그리고 펀치 자체 조건).</summary>
@@ -152,7 +146,7 @@ namespace TacticsECS
             return FaithPunchSystem.Check(grid, world, econ, world.Get<Team>(mythicId), ActivePunchRow(m), target);
         }
 
-        /// <summary>액티브 능력 사용: 약해진 펀치를 적용하고 유지 턴을 더 줄이며 이번 턴 행동을 끝낸다.</summary>
+        /// <summary>액티브 능력 사용: 액티브 펀치를 적용하고 유지 턴을 더 줄이며 이번 턴 행동을 끝낸다.</summary>
         public static FaithPunchResult UseActive(GridWorld grid, EntityWorld world, EconomyWorld econ, int mythicId, Vector2Int target)
         {
             var state = world.Get<Mythic>(mythicId);

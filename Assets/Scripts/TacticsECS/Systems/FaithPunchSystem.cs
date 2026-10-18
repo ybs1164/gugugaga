@@ -4,8 +4,9 @@ using UnityEngine;
 namespace TacticsECS
 {
     /// <summary>
-    /// 신앙 펀치(신앙 포인트를 쓰는 액티브 스킬). 자체 상태 없이 월드를 읽고 쓴다.
-    /// 절차: 목록(Available) → 대상 선택 → 검사(Check) → 적용(Apply, 신앙 소모 후 효과). 규칙: docs/spec/game/faith.md
+    /// 신앙 펀치(신앙 포인트를 쓰는 액티브 스킬). 펀치 하나는 FaithEffects 행 여럿이고, 효과마다의 대상·적용은 FaithEffectSystem이 한다.
+    /// 절차: 목록(Available) → 대상 선택 → 검사(Check) → 적용(Apply, 신앙 소모 후 효과). 모든 효과의 대상은 발동 전 상태로 정한다.
+    /// 자체 상태 없이 월드를 읽고 쓴다. 규칙: docs/spec/game/faith.md
     /// </summary>
     public static class FaithPunchSystem
     {
@@ -20,52 +21,75 @@ namespace TacticsECS
             return list;
         }
 
-        /// <summary>대상 칸 중심 체비쇼프 Range 안의 칸들(맵 안만).</summary>
-        public static List<Vector2Int> Area(GridWorld grid, FaithPunchRow punch, Vector2Int center)
-        {
-            var tiles = new List<Vector2Int>();
-            for (int dy = -punch.Range; dy <= punch.Range; dy++)
-            for (int dx = -punch.Range; dx <= punch.Range; dx++)
-            {
-                var p = new Vector2Int(center.x + dx, center.y + dy);
-                if (grid.InBounds(p)) tiles.Add(p);
-            }
-            return tiles;
-        }
+        public static List<FaithEffectRow> Effects(FaithPunchRow punch) => FaithEffectSystem.Rows(punch.Effects);
 
-        /// <summary>대상으로 쓸 수 없으면 이유 문구 키, 쓸 수 있으면 null. 신앙이 모자란 경우도 포함한다.</summary>
+        public static bool Has(FaithPunchRow punch, FaithEffectKind kind) => Effects(punch).Exists(e => e.Effect == kind);
+
+        /// <summary>대상 칸 중심 체비쇼프 Range 안의 칸들(맵 안만).</summary>
+        public static List<Vector2Int> Area(GridWorld grid, FaithPunchRow punch, Vector2Int center) => FaithEffectSystem.Area(grid, center, punch.Range);
+
+        /// <summary>대상으로 쓸 수 없으면 이유 문구 키, 쓸 수 있으면 null. 신앙이 모자란 경우도 포함한다.
+        /// 효과 중 하나라도 대상이 있으면 쓸 수 있고, 하나도 없으면 첫 효과의 이유를 돌려준다.</summary>
         public static string Check(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, FaithPunchRow punch, Vector2Int target)
         {
             if (econ.Resources[team].Faith < punch.Cost) return "UI.FaithPunch.NeedFaith";
             if (!grid.InBounds(target) || (grid.FogEnabled && !VisionSystem.IsExplored(grid, team, target))) return "UI.FaithPunch.NotExplored";
-            switch (punch.Kind)
+            string first = null;
+            foreach (var e in Effects(punch))
             {
-                case FaithPunchKind.Strike:
-                    return Targets(grid, world, team, punch, target, enemies: true).Count > 0 ? null : "UI.FaithPunch.NoEnemy";
-                case FaithPunchKind.Boost:
-                    return Wounded(grid, world, team, punch, target).Count > 0 ? null : "UI.FaithPunch.NoWounded";
-                case FaithPunchKind.Resource:
-                    return EmptyLand(grid, team, punch, target).Count > 0 ? null : "UI.FaithPunch.NoSpace";
-                case FaithPunchKind.Terrain:
-                    return CanChangeTerrain(grid, econ, target) ? null : "UI.FaithPunch.TileBlocked";
-                case FaithPunchKind.Descend:
+                string reason = Reason(grid, world, econ, team, punch, e, target);
+                if (reason == null) return null;
+                first = first ?? reason;
+            }
+            return first ?? "UI.FaithPunch.TileBlocked";
+        }
+
+        private static string Reason(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, FaithPunchRow punch, FaithEffectRow e, Vector2Int target)
+        {
+            switch (e.Effect)
+            {
+                case FaithEffectKind.Damage:
+                case FaithEffectKind.Heal:
+                    if (FaithEffectSystem.Units(grid, world, team, e, target, punch.Range).Count > 0) return null;
+                    if (e.Effect == FaithEffectKind.Damage && e.Side == FaithSide.Enemy) return "UI.FaithPunch.NoEnemy";
+                    if (e.Effect == FaithEffectKind.Heal && e.Side == FaithSide.Ally) return "UI.FaithPunch.NoWounded";
+                    return "UI.FaithPunch.NoTarget";
+                case FaithEffectKind.Structure:
+                    return FaithEffectSystem.StructureTiles(grid, team, e, target, punch.Range).Count > 0 ? null : "UI.FaithPunch.NoSpace";
+                case FaithEffectKind.Terrain:
+                    return FaithEffectSystem.CanChangeTerrain(grid, econ, e, target) ? null : "UI.FaithPunch.TileBlocked";
+                case FaithEffectKind.Descend:
                     return MythicSystem.CheckDescend(grid, world, econ, team, target);
                 default:
                     return "UI.FaithPunch.TileBlocked";
             }
         }
 
-        /// <summary>효과를 받을 유닛·칸 수(확정 전 미리보기).</summary>
+        /// <summary>효과를 받을 유닛·칸 수(확정 전 미리보기). 같은 유닛·칸은 한 번만 센다.</summary>
         public static int AffectedCount(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int target)
         {
-            switch (punch.Kind)
-            {
-                case FaithPunchKind.Strike: return Targets(grid, world, team, punch, target, enemies: true).Count;
-                case FaithPunchKind.Boost: return Wounded(grid, world, team, punch, target).Count;
-                case FaithPunchKind.Resource: return Mathf.Min(punch.Value, EmptyLand(grid, team, punch, target).Count);
-                default: return 1;
-            }
+            var units = new HashSet<int>();
+            var tiles = new HashSet<Vector2Int>();
+            foreach (var e in Effects(punch))
+                switch (e.Effect)
+                {
+                    case FaithEffectKind.Damage:
+                    case FaithEffectKind.Heal:
+                        units.UnionWith(FaithEffectSystem.Units(grid, world, team, e, target, punch.Range));
+                        break;
+                    case FaithEffectKind.Structure:
+                        var free = FaithEffectSystem.StructureTiles(grid, team, e, target, punch.Range);
+                        tiles.UnionWith(free.GetRange(0, Mathf.Min(Amount(e), free.Count)));
+                        break;
+                    default:
+                        tiles.Add(target);
+                        break;
+                }
+            return units.Count + tiles.Count;
         }
+
+        /// <summary>펀치 효과 하나의 크기(기도 보너스 없음).</summary>
+        public static int Amount(FaithEffectRow e) => Mathf.RoundToInt(FaithEffectSystem.Strength(e, 0));
 
         /// <summary>신앙을 쓰고 효과를 적용한다. Check가 null이어야 한다.</summary>
         public static FaithPunchResult Apply(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, FaithPunchRow punch, Vector2Int target)
@@ -79,130 +103,52 @@ namespace TacticsECS
             result.Spent = punch.Cost;
             result.Success = true;
 
-            switch (punch.Kind)
+            // 대상은 모두 발동 전 상태로 정한다(앞 효과가 바꾼 칸·체력을 뒤 효과가 다시 보지 않는다).
+            var effects = Effects(punch);
+            var units = new List<List<int>>();
+            var free = new List<List<Vector2Int>>();
+            var usable = new List<bool>();
+            foreach (var e in effects)
             {
-                case FaithPunchKind.Strike:
-                    foreach (int id in Targets(grid, world, team, punch, target, enemies: true))
-                    {
-                        var hp = world.Get<Hp>(id);
-                        hp.Value = Mathf.Max(0, hp.Value - punch.Value);
-                        world.Set(id, hp);
-                        if (hp.Value <= 0) grid.RemoveOccupant(world.Get<GridPosition>(id).Value); // 처치된 유닛이 칸을 막고 있으면 안 된다
-                        world.Set(id, new Accelerated { Value = false });
-                        PrayerSystem.OnHit(world, id);
-                        StealthSystem.OnHit(world, id);
-                        StealthSystem.Reveal(world, id);
-                        DiplomacySystem.DeclareWar(econ, team, world.Get<Team>(id));
-                        result.UnitIds.Add(id);
-                    }
-                    break;
-                case FaithPunchKind.Boost:
-                    foreach (int id in Wounded(grid, world, team, punch, target))
-                    {
-                        var hp = world.Get<Hp>(id);
-                        hp.Value = Mathf.Min(world.Get<MaxHp>(id).Value, hp.Value + punch.Value);
-                        world.Set(id, hp);
-                        result.UnitIds.Add(id);
-                    }
-                    break;
-                case FaithPunchKind.Resource:
-                    var land = EmptyLand(grid, team, punch, target);
-                    for (int i = 0; i < land.Count && i < punch.Value; i++)
-                    {
-                        var tile = grid.GetTile(land[i]);
-                        tile.StructureId = punch.Target;
-                        grid.SetTile(land[i], tile);
-                        result.Tiles.Add(land[i]);
-                    }
-                    break;
-                case FaithPunchKind.Descend:
-                    result.SpawnedIds.Add(MythicSystem.Descend(grid, world, econ, team, target, out int origin));
-                    result.UnitIds.Add(origin);
-                    break;
-                case FaithPunchKind.Terrain:
-                    ChangeTerrain(grid, econ, team, target);
-                    result.Tiles.Add(target);
-                    result.TerrainChanged = true;
-                    break;
+                units.Add(e.Effect == FaithEffectKind.Damage || e.Effect == FaithEffectKind.Heal ? FaithEffectSystem.Units(grid, world, team, e, target, punch.Range) : null);
+                free.Add(e.Effect == FaithEffectKind.Structure ? FaithEffectSystem.StructureTiles(grid, team, e, target, punch.Range) : null);
+                usable.Add(e.Effect == FaithEffectKind.Terrain ? FaithEffectSystem.CanChangeTerrain(grid, econ, e, target)
+                         : e.Effect == FaithEffectKind.Descend ? MythicSystem.CheckDescend(grid, world, econ, team, target) == null
+                         : true);
             }
+
+            var touched = new List<int>();
+            for (int i = 0; i < effects.Count; i++)
+            {
+                var e = effects[i];
+                if (!usable[i]) continue;
+                switch (e.Effect)
+                {
+                    case FaithEffectKind.Damage:
+                        int before = touched.Count;
+                        FaithEffectSystem.Damage(grid, world, econ, team, e, Amount(e), units[i], touched);
+                        if (e.CountsAsAttack && touched.Count > before) result.Attacked = true;
+                        break;
+                    case FaithEffectKind.Heal:
+                        FaithEffectSystem.Heal(world, Amount(e), units[i], touched);
+                        break;
+                    case FaithEffectKind.Structure:
+                        FaithEffectSystem.SpawnStructures(grid, e, free[i], Amount(e), result.Tiles);
+                        break;
+                    case FaithEffectKind.Terrain:
+                        FaithEffectSystem.ChangeTerrain(grid, econ, team, e, target);
+                        result.Tiles.Add(target);
+                        result.TerrainChanged = true;
+                        break;
+                    case FaithEffectKind.Descend:
+                        result.SpawnedIds.Add(MythicSystem.Descend(grid, world, econ, team, target, out int origin));
+                        touched.Add(origin);
+                        break;
+                }
+            }
+            foreach (int id in touched)
+                if (!result.UnitIds.Contains(id)) result.UnitIds.Add(id);
             return result;
         }
-
-        // ---------- 대상 찾기 ----------
-
-        private static List<int> Targets(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int center, bool enemies)
-        {
-            var ids = new List<int>();
-            foreach (var p in Area(grid, punch, center))
-            {
-                int id = grid.GetOccupant(p);
-                if (id == TileData.NoOccupant || !UnitQueries.IsAlive(world, id)) continue;
-                var owner = world.Get<Team>(id);
-                if ((owner != team) != enemies) continue;
-                if (enemies && (StealthSystem.IsHiddenFrom(world, id, team) || DiplomacySystem.HasPeaceTreaty(grid.Economy, team, owner))) continue;
-                ids.Add(id);
-            }
-            return ids;
-        }
-
-        private static List<int> Wounded(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int center)
-        {
-            var ids = Targets(grid, world, team, punch, center, enemies: false);
-            ids.RemoveAll(id => world.Get<Hp>(id).Value >= world.Get<MaxHp>(id).Value);
-            return ids;
-        }
-
-        /// <summary>범위 안 빈 육지 칸(자기 영토나 중립). 대상 칸에서 가까운 순.</summary>
-        private static List<Vector2Int> EmptyLand(GridWorld grid, Team team, FaithPunchRow punch, Vector2Int center)
-        {
-            var list = new List<Vector2Int>();
-            foreach (var p in Area(grid, punch, center))
-            {
-                var tile = grid.GetTile(p);
-                if (tile.OwnerTeam != (int)team && tile.OwnerTeam != TileData.NoOwner) continue;
-                if (tile.Terrain != TerrainType.Land || !tile.Walkable) continue;
-                if (!string.IsNullOrEmpty(tile.StructureId) || !string.IsNullOrEmpty(tile.BuildingId) || tile.OccupantId != TileData.NoOccupant) continue;
-                if (grid.FogEnabled && !VisionSystem.IsExplored(grid, team, p)) continue;
-                list.Add(p);
-            }
-            list.Sort((a, b) => Chebyshev(a, center).CompareTo(Chebyshev(b, center)));
-            return list;
-        }
-
-        private static int Chebyshev(Vector2Int a, Vector2Int b) => Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
-
-        // ---------- 지형 변화 ----------
-
-        /// <summary>유닛이 없고 도시 칸이 아니어야 한다.</summary>
-        private static bool CanChangeTerrain(GridWorld grid, EconomyWorld econ, Vector2Int p)
-        {
-            var tile = grid.GetTile(p);
-            if (tile.OccupantId != TileData.NoOccupant) return false;
-            return CitySystem.FindCityAt(econ, p) < 0;
-        }
-
-        /// <summary>땅 → 물 → 산 → 땅. 건물·도로·구조물은 사라진다(건물은 파괴 규칙대로 인구가 줄어든다).</summary>
-        private static void ChangeTerrain(GridWorld grid, EconomyWorld econ, Team team, Vector2Int p)
-        {
-            var log = new List<EconomyLogEntry>(); // 인구 변화로 생기는 도시 로그는 쓰지 않는다
-            var tile = grid.GetTile(p);
-            if (!string.IsNullOrEmpty(tile.BuildingId)) TileImprovementSystem.DestroyBuilding(grid, econ, team, p, log);
-            tile = grid.GetTile(p);
-            tile.StructureId = string.Empty;
-            tile.HasRoad = false;
-            tile.BuildingId = string.Empty;
-            if (tile.Terrain == TerrainType.Water)
-            {
-                tile.Terrain = TerrainType.Land;
-                tile.TileTypeId = TerrainGenerationSystem.MountainTileId;
-                tile.GroundTileId = TileImprovementSystem.NeighborFieldTileType(grid, p);
-            }
-            else if (tile.TileTypeId == TerrainGenerationSystem.MountainTileId) { tile.Terrain = TerrainType.Land; tile.TileTypeId = TileImprovementSystem.GroundTileType(grid, p); }
-            else { tile.Terrain = TerrainType.Water; tile.TileTypeId = WaterTileId; }
-            grid.SetTile(p, tile);
-            CitySystem.RefreshConnections(grid, econ, log);
-        }
-
-        public const string WaterTileId = "Water";
     }
 }

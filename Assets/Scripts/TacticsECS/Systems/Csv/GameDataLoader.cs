@@ -25,7 +25,7 @@ namespace TacticsECS
             TileActionDefinition.CsvResourcePath, CityRewardDefinition.CsvResourcePath, TaskDefinition.CsvResourcePath,
             GameTables.UnitsPath, GameTables.BoatsPath, GameTables.BuildingsPath,
             GameTables.TechUnlocksPath, GameTables.TechsPath, GameTables.TechSlotsPath, GameTables.TechTreeLayoutPath, GameTables.TechGroupsPath,
-            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath,
+            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithEffectsPath, GameTables.TemplePassivesPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath,
         };
 
         public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
@@ -69,6 +69,8 @@ namespace TacticsECS
             GameTables.TechTreeLayout = ArrayTableCsvSerializer.ParseTechTreeLayout(Read(GameTables.TechTreeLayoutPath, errors, source), errors);
             GameTables.TechGroups = ArrayTableCsvSerializer.ParseTechGroups(Read(GameTables.TechGroupsPath, errors, source), errors);
             GameTables.Tribes = ArrayTableCsvSerializer.ParseTribes(Read(GameTables.TribesPath, errors, source), errors);
+            GameTables.FaithEffects = ArrayTableCsvSerializer.ParseFaithEffects(Read(GameTables.FaithEffectsPath, errors, source), errors);
+            GameTables.TemplePassives = ArrayTableCsvSerializer.ParseTemplePassives(Read(GameTables.TemplePassivesPath, errors, source), errors);
             GameTables.MythicUnits = ArrayTableCsvSerializer.ParseMythicUnits(Read(GameTables.MythicUnitsPath, errors, source), errors);
             GameTables.FaithPunches = ArrayTableCsvSerializer.ParseFaithPunches(Read(GameTables.FaithPunchesPath, errors, source), errors);
             GameTables.Gods = ArrayTableCsvSerializer.ParseGods(Read(GameTables.GodsPath, errors, source), errors);

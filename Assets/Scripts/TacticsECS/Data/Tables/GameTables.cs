@@ -15,6 +15,8 @@ namespace TacticsECS
         public const string TechGroupsPath = Folder + "TechGroups";
         public const string TribesPath = Folder + "Tribes";
         public const string GodsPath = Folder + "Gods";
+        public const string FaithEffectsPath = Folder + "FaithEffects";
+        public const string TemplePassivesPath = Folder + "TemplePassives";
         public const string FaithPunchesPath = Folder + "FaithPunches";
         public const string MythicUnitsPath = Folder + "MythicUnits";
         public const string StartConditionsPath = Folder + "StartConditions";
@@ -37,6 +39,8 @@ namespace TacticsECS
         public static TechGroupRow[] TechGroups = new TechGroupRow[0];
         public static TribeRow[] Tribes = new TribeRow[0];
         public static GodRow[] Gods = new GodRow[0];
+        public static FaithEffectRow[] FaithEffects = new FaithEffectRow[0];
+        public static TemplePassiveRow[] TemplePassives = new TemplePassiveRow[0];
         public static FaithPunchRow[] FaithPunches = new FaithPunchRow[0];
         public static MythicRow[] MythicUnits = new MythicRow[0];
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];

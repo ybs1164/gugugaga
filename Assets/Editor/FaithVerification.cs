@@ -162,7 +162,7 @@ namespace TacticsECS.EditorTools
             float defense = CombatSystem.BaseDefense(world, near);
             Check(PrayerSystem.Pray(grid, world, near), "기도 시작");
             Check(world.Get<HasActed>(near).Value && world.Get<HasMoved>(near).Value, "기도하면 행동이 끝난다");
-            Check(CombatSystem.BaseDefense(world, near) == 0f && defense > 0f, "기도 중 방어력 0");
+            Check(Mathf.Approximately(CombatSystem.BaseDefense(world, near), GameRules.Faith.PrayDefense) && defense > GameRules.Faith.PrayDefense, "기도 중 방어 스탯 = Faith.PrayDefense");
             Check(!PrayerSystem.CanPray(grid, world, near), "이미 기도 중이면 다시 못 한다");
 
             var res = FaithSystem.RefreshMax(new CityResourceData(), grid, world, econ, Team.Player);
@@ -189,12 +189,29 @@ namespace TacticsECS.EditorTools
             return -1;
         }
 
+        private static FaithEffectRow EffectOf(string id)
+        {
+            int i = System.Array.FindIndex(GameTables.FaithEffects, e => e.Id == id);
+            Check(i >= 0, "FaithEffects.csv has " + id);
+            return i >= 0 ? GameTables.FaithEffects[i] : default;
+        }
+
+        /// <summary>신의 첫 패시브의 첫 효과(샘플 신은 효과 하나씩).</summary>
+        private static FaithEffectRow PassiveEffect(GodRow god) => FaithEffectSystem.Rows(TemplePassiveSystem.Passives(god)[0].Effects)[0];
+
         private static void VerifyGods()
         {
             Check(GameTables.Gods.Length >= 6, "Gods.csv has a sample god per passive kind");
-            foreach (var kind in new[] { GodPassiveKind.Aura, GodPassiveKind.Buff, GodPassiveKind.Damage, GodPassiveKind.Resource, GodPassiveKind.Gold, GodPassiveKind.FaithCap })
-                Check(System.Array.Exists(GameTables.Gods, g => g.Passive == kind), "a god with passive " + kind);
+            Check(GameTables.Gods.All(g => g.Passives != null && g.Passives.Length > 0 && TemplePassiveSystem.Passives(g).Count == g.Passives.Length), "every sample god has valid passives");
+            foreach (var kind in new[] { FaithEffectKind.Stat, FaithEffectKind.GuardStat, FaithEffectKind.Damage, FaithEffectKind.Structure, FaithEffectKind.Stars, FaithEffectKind.FaithCap })
+                Check(GameTables.Gods.Any(g => TemplePassiveSystem.Passives(g).Any(p => FaithEffectSystem.Rows(p.Effects).Any(e => e.Effect == kind))), "a god with passive effect " + kind);
             Check(GameTables.Gods.All(g => !string.IsNullOrEmpty(g.Name) && !g.Name.StartsWith("God.") && !g.Description.Contains("{")), "god names and descriptions are filled");
+            Check(ArrayTableValidationSystem.ValidateFaith(GameTables.FaithEffects, GameTables.TemplePassives, GameTables.FaithPunches, GameTables.MythicUnits, GameTables.Gods).Count == 0, "faith tables cross-reference cleanly");
+            {
+                var badPunch = GameTables.FaithPunches[0];
+                badPunch.Effects = new[] { System.Array.FindIndex(GameTables.FaithEffects, e => e.Effect == FaithEffectKind.Stat) };
+                Check(ArrayTableValidationSystem.ValidateFaith(GameTables.FaithEffects, GameTables.TemplePassives, new[] { badPunch }, new MythicRow[0], new GodRow[0]).Count == 1, "a passive-only effect in a punch is reported");
+            }
 
             // 신 없음: 신전이 있어도 아무 효과 없다.
             {
@@ -205,25 +222,26 @@ namespace TacticsECS.EditorTools
                 Check(world.GetOrDefault<TempleAura>(u).Attack == 0f && TemplePassiveSystem.GoldIncome(grid, world, econ, Team.Player) == 0, "no god, no passive");
             }
 
-            // 오라형 + 기도 유닛 수에 따른 강화.
+            // 능력치형 + 기도 유닛 수에 따른 강화.
             {
                 var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
                 var god = GameTables.Gods[GodIndex("Sun")]; econ.GodIds[Team.Player] = god.Index;
+                var e = PassiveEffect(god);
                 BuildTemple(grid, new Vector2Int(2, 2), "Temple");
                 int near = Unit(grid, world, Team.Player, new Vector2Int(1, 2));
                 int far = Unit(grid, world, Team.Player, new Vector2Int(0, 0));
                 int enemy = Unit(grid, world, Team.Enemy, new Vector2Int(3, 3));
                 TemplePassiveSystem.RefreshAuras(grid, world, econ);
-                Check(Mathf.Approximately(world.GetOrDefault<TempleAura>(near).Attack, god.Value), "aura: adjacent ally gets Value");
+                Check(Mathf.Approximately(world.GetOrDefault<TempleAura>(near).Attack, e.Amount), "aura: adjacent ally gets Amount");
                 Check(world.GetOrDefault<TempleAura>(far).Attack == 0f && world.GetOrDefault<TempleAura>(enemy).Attack == 0f, "aura: far ally and enemy get nothing");
                 float baseAttack = world.Get<Attack>(near).Value;
-                Check(Mathf.Approximately(CombatSystem.EffectiveAttack(world, near), baseAttack + god.Value), "aura raises effective attack");
+                Check(Mathf.Approximately(CombatSystem.EffectiveAttack(world, near), baseAttack + e.Amount), "aura raises effective attack");
                 PrayerSystem.Pray(grid, world, near);
                 TemplePassiveSystem.RefreshAuras(grid, world, econ);
-                Check(Mathf.Approximately(world.GetOrDefault<TempleAura>(near).Attack, god.Value + god.PerPrayer), "aura grows with praying units");
+                Check(Mathf.Approximately(world.GetOrDefault<TempleAura>(near).Attack, e.Amount + e.PerPrayer), "aura grows with praying units");
             }
 
-            // 버프형: 방어 태세일 때만.
+            // 방어 태세형: 방어 태세일 때만.
             {
                 var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
                 var god = GameTables.Gods[GodIndex("Guardian")]; econ.GodIds[Team.Player] = god.Index;
@@ -232,50 +250,72 @@ namespace TacticsECS.EditorTools
                 TemplePassiveSystem.RefreshAuras(grid, world, econ);
                 float plain = CombatSystem.BaseDefense(world, u);
                 world.Set(u, new IsGuarding { Value = true });
-                Check(Mathf.Approximately(CombatSystem.BaseDefense(world, u), plain + GameRules.Combat.GuardDefenseBonus + god.Value), "buff: guarding ally gains Value");
+                Check(Mathf.Approximately(CombatSystem.BaseDefense(world, u), plain + GameRules.Combat.GuardDefenseBonus + PassiveEffect(god).Amount), "buff: guarding ally gains Amount");
             }
 
-            // 피해형: 인접 적, 체력 1 미만으로는 안 깎는다.
+            // 피해형: 인접 적, 체력 MinHp 미만으로는 안 깎는다.
             {
                 var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
                 var god = GameTables.Gods[GodIndex("Storm")]; econ.GodIds[Team.Player] = god.Index;
+                var e = PassiveEffect(god);
                 BuildTemple(grid, new Vector2Int(2, 2), "Temple");
                 int enemy = Unit(grid, world, Team.Enemy, new Vector2Int(3, 3));
                 int far = Unit(grid, world, Team.Enemy, new Vector2Int(5, 5));
                 int hp = world.Get<Hp>(enemy).Value;
                 var hit = TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, 2);
-                Check(hit.Contains(enemy) && world.Get<Hp>(enemy).Value == hp - Mathf.RoundToInt(god.Value), "damage: adjacent enemy loses Value hp");
+                Check(hit.Contains(enemy) && world.Get<Hp>(enemy).Value == hp - Mathf.RoundToInt(e.Amount), "damage: adjacent enemy loses Amount hp");
                 Check(!hit.Contains(far), "damage: far enemy untouched");
-                world.Set(enemy, new Hp { Value = 1 });
+                world.Set(enemy, new Hp { Value = e.MinHp });
                 TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, 2);
-                Check(world.Get<Hp>(enemy).Value == 1, "damage never kills");
+                Check(e.MinHp >= 1 && world.Get<Hp>(enemy).Value == e.MinHp, "damage stops at MinHp");
             }
 
-            // 자원형: Period 턴마다.
+            // 구조물형: Period 턴마다.
             {
                 var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
                 var god = GameTables.Gods[GodIndex("Harvest")]; econ.GodIds[Team.Player] = god.Index;
+                var passive = TemplePassiveSystem.Passives(god)[0];
+                var e = PassiveEffect(god);
                 BuildTemple(grid, new Vector2Int(2, 2), "Temple");
-                TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, god.Period + 1);
-                Check(CountStructure(grid, god.Target) == 0, "resource: nothing off-period");
-                TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, god.Period);
-                Check(CountStructure(grid, god.Target) == Mathf.RoundToInt(god.Value), "resource: Value structures on the period");
+                TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, passive.Period + 1);
+                Check(CountStructure(grid, e.TargetId) == 0, "resource: nothing off-period");
+                TemplePassiveSystem.OnTurnStart(grid, world, econ, Team.Player, passive.Period);
+                Check(CountStructure(grid, e.TargetId) == Mathf.RoundToInt(e.Amount), "resource: Amount structures on the period");
             }
 
-            // 골드형 / 신앙형.
+            // 별형 / 신앙 최대치형.
             {
                 var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
                 BuildTemple(grid, new Vector2Int(2, 2), "Temple");
                 econ.GodIds[Team.Player] = GodIndex("Merchant");
                 var plain = CityResourceSystem.RefreshProduction(new CityResourceData(), grid, world, econ, Team.Enemy).StarsProduction;
                 var merchant = CityResourceSystem.RefreshProduction(new CityResourceData(), grid, world, econ, Team.Player);
-                Check(TemplePassiveSystem.GoldIncome(grid, world, econ, Team.Player) == Mathf.RoundToInt(GameTables.Gods[GodIndex("Merchant")].Value), "gold: income per temple");
+                Check(TemplePassiveSystem.GoldIncome(grid, world, econ, Team.Player) == Mathf.RoundToInt(PassiveEffect(GameTables.Gods[GodIndex("Merchant")]).Amount), "gold: income per temple");
                 Check(merchant.StarsProduction >= plain, "gold is part of star production");
 
                 econ.GodIds[Team.Player] = -1;
                 int without = FaithSystem.MaxFaith(grid, world, econ, Team.Player);
                 econ.GodIds[Team.Player] = GodIndex("Sage");
-                Check(FaithSystem.MaxFaith(grid, world, econ, Team.Player) == without + Mathf.RoundToInt(GameTables.Gods[GodIndex("Sage")].Value), "faith cap: bonus per temple");
+                Check(FaithSystem.MaxFaith(grid, world, econ, Team.Player) == without + Mathf.RoundToInt(PassiveEffect(GameTables.Gods[GodIndex("Sage")]).Amount), "faith cap: bonus per temple");
+            }
+
+            // 패시브 여러 개: 한 신이 두 패시브를 가지면 둘 다 작용한다.
+            {
+                var grid = NewGrid(); var econ = NewEconomy(grid, out var world);
+                int sun = GodIndex("Sun");
+                var saved = GameTables.Gods[sun];
+                var both = saved;
+                both.Passives = new[] { saved.Passives[0], TemplePassiveSystem.Passives(GameTables.Gods[GodIndex("Merchant")])[0].Index };
+                GameTables.Gods[sun] = both;
+                try
+                {
+                    econ.GodIds[Team.Player] = sun;
+                    BuildTemple(grid, new Vector2Int(2, 2), "Temple");
+                    int near = Unit(grid, world, Team.Player, new Vector2Int(1, 2));
+                    TemplePassiveSystem.RefreshAuras(grid, world, econ);
+                    Check(world.GetOrDefault<TempleAura>(near).Attack > 0f && TemplePassiveSystem.GoldIncome(grid, world, econ, Team.Player) > 0, "two passives both apply");
+                }
+                finally { GameTables.Gods[sun] = saved; }
             }
         }
 
@@ -324,7 +364,8 @@ namespace TacticsECS.EditorTools
                 Check(FaithPunchSystem.AffectedCount(grid, world, Team.Player, punch, target) == 2, "strike preview counts enemies in range");
                 var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, target);
                 Check(result.Success && result.UnitIds.Contains(e1) && result.UnitIds.Contains(e2) && !result.UnitIds.Contains(far) && !result.UnitIds.Contains(ally), "strike hits enemies in range only");
-                Check(world.Get<Hp>(e1).Value == hp1 - punch.Value && world.Get<Hp>(ally).Value == hpAlly, "strike damage");
+                Check(world.Get<Hp>(e1).Value == hp1 - FaithPunchSystem.Amount(EffectOf("Smite")) && world.Get<Hp>(ally).Value == hpAlly, "strike damage");
+                Check(result.Attacked, "strike counts as an attack");
                 Check(econ.Resources[Team.Player].Faith == 2, "strike spends faith");
                 world.Set(e2, new Hp { Value = 1 });
                 var res2 = econ.Resources[Team.Player]; res2.Faith = punch.Cost; econ.Resources[Team.Player] = res2;
@@ -354,7 +395,8 @@ namespace TacticsECS.EditorTools
                 var punch = GameTables.FaithPunches[PunchIndex("Bounty")];
                 var res = econ.Resources[Team.Player]; res.MaxFaith = 50; res.Faith = 50; econ.Resources[Team.Player] = res;
                 var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, punch, new Vector2Int(4, 4));
-                Check(result.Success && result.Tiles.Count == punch.Value && CountStructure(grid, punch.Target) == punch.Value, "resource creates Value structures");
+                var bounty = EffectOf("Bounty");
+                Check(result.Success && result.Tiles.Count == FaithPunchSystem.Amount(bounty) && CountStructure(grid, bounty.TargetId) == FaithPunchSystem.Amount(bounty), "resource creates Amount structures");
             }
 
             // 지각 변동: 땅→물→산→땅, 유닛·도시 칸은 거부.
@@ -412,8 +454,9 @@ namespace TacticsECS.EditorTools
             Check(MythicSystem.CheckActive(grid, world, econ, mythic, new Vector2Int(7, 3)) == "UI.Mythic.Reason.Reach", "active out of reach refused");
             int faith = econ.Resources[Team.Player].Faith, hp = world.Get<Hp>(enemy).Value;
             var used = MythicSystem.UseActive(grid, world, econ, mythic, new Vector2Int(5, 3));
-            Check(used.Success && world.Get<Hp>(enemy).Value == hp - mythicRow.ActiveValue && world.Get<Hp>(farEnemy).Value == world.Get<MaxHp>(farEnemy).Value, "active hits with the weakened value");
-            Check(econ.Resources[Team.Player].Faith == faith - mythicRow.ActiveFaithCost, "active costs faith");
+            var active = MythicSystem.ActivePunchRow(mythicRow);
+            Check(used.Success && world.Get<Hp>(enemy).Value == hp - FaithPunchSystem.Amount(FaithPunchSystem.Effects(active)[0]) && world.Get<Hp>(farEnemy).Value == world.Get<MaxHp>(farEnemy).Value, "active hits with its own punch row");
+            Check(econ.Resources[Team.Player].Faith == faith - active.Cost, "active costs its punch cost");
             Check(world.Get<Mythic>(mythic).TurnsLeft == mythicRow.Upkeep - mythicRow.ActiveUpkeepCost && world.Get<HasActed>(mythic).Value, "active costs upkeep and ends the action");
             Check(!MythicSystem.CanUseActive(world, mythic), "one active per turn");
 
@@ -557,8 +600,7 @@ namespace TacticsECS.EditorTools
                 int hp = world.Get<Hp>(target).Value;
                 var log = new List<EconomyLogEntry>();
                 FaithAI.RunTurn(grid, world, econ, ai, log);
-                var smite = GameTables.FaithPunches[PunchIndex("Smite")];
-                Check(world.Get<Hp>(target).Value <= hp - smite.Value, "AI strikes a visible enemy");
+                Check(world.Get<Hp>(target).Value <= hp - FaithPunchSystem.Amount(EffectOf("Smite")), "AI strikes a visible enemy");
                 Check(econ.Resources[ai].Faith < 20 && log.Count > 0, "AI spends faith and logs it");
 
                 // 신앙이 낮고 위협도 없으면 아끼고 쓰지 않는다.

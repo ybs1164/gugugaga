@@ -89,22 +89,59 @@ namespace TacticsECS
         public int[] Techs;
     }
 
-    /// <summary>신 하나(Gods.csv) — 신전 패시브 하나를 가진다. Value + PerPrayer × (신전 곁에서 기도 중인 유닛 수)가 신전 하나의 효과 크기다.</summary>
+    /// <summary>신앙 효과 하나(FaithEffects.csv). 신전 패시브(TemplePassives)와 신앙 펀치(FaithPunches)가 Index로 가리킨다.
+    /// 크기 = Amount + PerPrayer × (신전 곁에서 기도 중인 유닛 수, 펀치는 0), 0 미만이면 0. 컬럼 뜻: docs/spec/csv/faith-effects.md</summary>
+    public struct FaithEffectRow
+    {
+        public int Index;
+        public string Id;
+        public FaithEffectKind Effect;
+        public FaithSide Side;
+        public FaithStat Stat;
+        public float Amount;
+        public float PerPrayer;
+
+        /// <summary>Damage: 피해가 남기는 최소 체력(0 = 처치할 수 있다).</summary>
+        public int MinHp;
+
+        /// <summary>Structure: 만들 구조물 Id.</summary>
+        public string TargetId;
+        public FaithTerritory Territory;
+        public FaithTerrain FromTerrain;
+        public FaithTerrain ToTerrain;
+
+        /// <summary>Damage: 숨은 유닛·평화 조약 상대를 뺀다.</summary>
+        public bool SkipHidden;
+        public bool SkipPeace;
+
+        /// <summary>Damage: 공격으로 친다(전쟁 선포·은신 해제·가속 해제·공격·처치 과업).</summary>
+        public bool CountsAsAttack;
+    }
+
+    /// <summary>신전 패시브 하나(TemplePassives.csv). 팀 영토의 신전마다 체비쇼프 Radius 안에 효과들을 준다.</summary>
+    public struct TemplePassiveRow
+    {
+        public int Index;
+        public string Id;
+        public int Radius;
+
+        /// <summary>턴 시작 효과(Damage·Heal·Structure): 이 턴 수마다 한 번 발동.</summary>
+        public int Period;
+
+        /// <summary>FaithEffects Index 목록.</summary>
+        public int[] Effects;
+    }
+
+    /// <summary>신 하나(Gods.csv) — 신전 패시브들, 쓸 수 있는 신앙 펀치들, 강림하는 신화 유닛.</summary>
     public struct GodRow
     {
         public int Index;
         public string Id;
         public string Name;
         public string Description;
-        public GodPassiveKind Passive;
 
-        /// <summary>패시브가 무엇에 작용하는지(유형별로 뜻이 다르다 — csv/gods.md).</summary>
-        public string Target;
-        public float Value;
-        public float PerPrayer;
-
-        /// <summary>Resource 유형: 이 턴 수마다 한 번 발동.</summary>
-        public int Period;
+        /// <summary>TemplePassives Index 목록.</summary>
+        public int[] Passives;
 
         /// <summary>이 신이 쓸 수 있는 신앙 펀치(FaithPunches Index 목록).</summary>
         public int[] Punches;
@@ -113,7 +150,7 @@ namespace TacticsECS
         public int Mythic;
     }
 
-    /// <summary>신화 유닛 하나(MythicUnits.csv). 스탯·패시브는 Units.csv의 같은 Id 행(훈련 불가)이 정하고, 이 표는 유지 턴과 액티브 능력(약해진 신앙 펀치)을 정한다.</summary>
+    /// <summary>신화 유닛 하나(MythicUnits.csv). 스탯·패시브는 Units.csv의 같은 Id 행(훈련 불가)이 정하고, 이 표는 유지 턴과 액티브 능력(약한 신앙 펀치 행)을 정한다.</summary>
     public struct MythicRow
     {
         public int Index;
@@ -122,28 +159,24 @@ namespace TacticsECS
         /// <summary>강림 때 받는 유지 턴. 매 자기 턴 시작에 1씩 줄고 0이 되면 원본이 돌아온다.</summary>
         public int Upkeep;
 
-        /// <summary>액티브 능력으로 쓰는 FaithPunches Index(-1 = 없음), 약화된 신앙 비용·크기, 신화 유닛 기준 사거리, 쓸 때 줄어드는 유지 턴.</summary>
+        /// <summary>액티브 능력으로 쓰는 FaithPunches Index(-1 = 없음, 비용은 그 펀치의 Cost), 신화 유닛 기준 사거리, 쓸 때 줄어드는 유지 턴.</summary>
         public int ActivePunch;
-        public int ActiveFaithCost;
-        public int ActiveValue;
         public int ActiveReach;
         public int ActiveUpkeepCost;
     }
 
-    /// <summary>신앙 펀치 하나(FaithPunches.csv). 대상 칸 중심 체비쇼프 Range 안에 효과를 준다(Range 0 = 그 칸만).</summary>
+    /// <summary>신앙 펀치 하나(FaithPunches.csv). 대상 칸 중심 체비쇼프 Range 안에 효과들을 준다(Range 0 = 그 칸만).</summary>
     public struct FaithPunchRow
     {
         public int Index;
         public string Id;
         public string Name;
         public string Description;
-        public FaithPunchKind Kind;
         public int Cost;
         public int Range;
-        public int Value;
 
-        /// <summary>유형별 대상: Resource = 구조물 Id. 그 밖에는 쓰지 않는다.</summary>
-        public string Target;
+        /// <summary>FaithEffects Index 목록.</summary>
+        public int[] Effects;
     }
 
     /// <summary>종족 하나(Tribes.csv).</summary>

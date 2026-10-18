@@ -32,7 +32,7 @@ namespace TacticsECS
 
         /// <summary>방어 스탯(방어 태세 가산 포함, 위치 보너스 배수는 제외).</summary>
         public static float BaseDefense(EntityWorld world, int unitId) =>
-            world.GetOrDefault<Praying>(unitId).Value ? 0f // 기도 중에는 방어력 0 — docs/spec/game/faith.md
+            world.GetOrDefault<Praying>(unitId).Value ? GameRules.Faith.PrayDefense // 기도 중 방어 스탯 — docs/spec/game/faith.md
             : (world.Get<Defense>(unitId).Value + (world.Get<IsGuarding>(unitId).Value ? GameRules.Combat.GuardDefenseBonus + world.GetOrDefault<TempleAura>(unitId).GuardDefense : 0f)
               + world.GetOrDefault<TempleAura>(unitId).Defense) * (IsPoisoned(world, unitId) ? GameRules.Poison.DefenseMultiplier : 1f);
 

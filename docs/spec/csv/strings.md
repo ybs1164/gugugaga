@@ -30,7 +30,7 @@
 | `Tribe.<Id>.Name`, `.Desc` | [Tribes](tribes.md#tribescsv--종족) |
 | `God.<Id>.Name`, `.Desc` | [Gods](gods.md#godscsv--신) |
 | `Unit.<Id>.Name` (신화 유닛) | [MythicUnits](faith-punches.md#mythicunitscsv--신화-유닛) → `Units.csv` |
-| `FaithPunch.<Id>.Name`, `.Desc` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) |
+| `FaithPunch.<Id>.Name`, `.Desc` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) — 신화 유닛 액티브 전용 행 포함 |
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |
 | `Structure.<StructureId>.Name`, `.Desc` | 타일 구조물(`StructureDefinition`) |
 | `Action.<행동>.Name`, `.Tooltip` | 유닛 행동·패시브 — [unit](../game/unit.md#행동과-패시브) |
@@ -42,10 +42,10 @@
 | 형식 | 값 | 예 |
 |---|---|---|
 | `{컬럼}` | 그 문구가 설명하는 행(`<표>.<Id>.Desc`)의 CSV 칸 — 컬럼 이름 그대로 | `Building.Farm.Desc`의 `{Population}` |
-| `{표.Id.컬럼}` | 다른 표의 행. 표: `Building`(`Cost` `Population` `PopulationPerAdjacent`), `TileAction`(`Cost` `Population` `StarsGain`), `Task`(`Threshold`), `CityReward`(`Amount`), `Unit` — 유닛·배(`Cost` `MaxHp` `Defense` `Move.Range` `Attack.Attack` `Attack.Range`), `Tech`(`CostBase` `CostPerCity`), `Tribe`(`StartStars`), `StartRule` — 시작 조건 규칙 `Id`(`Count` `MinDistance` `MaxDistance`) | `{Building.Mine.Cost}` |
+| `{표.Id.컬럼}` | 다른 표의 행. 표: `Building`(`Cost` `Population` `PopulationPerAdjacent`), `TileAction`(`Cost` `Population` `StarsGain`), `Task`(`Threshold`), `CityReward`(`Amount`), `Unit` — 유닛·배(`Cost` `MaxHp` `Defense` `Move.Range` `Attack.Attack` `Attack.Range`), `Tech`(`CostBase` `CostPerCity`), `Tribe`(`StartStars`), `StartRule` — 시작 조건 규칙 `Id`(`Count` `MinDistance` `MaxDistance`), `FaithEffect`(`Amount` `PerPrayer` `MinHp`), `TemplePassive`(`Radius` `Period`) | `{Building.Mine.Cost}` |
 | `{Rule.키}` | [`GameRules.csv`](game-rules.md)의 `Key` | `{Rule.Score.Monument}` |
 
-- 다른 표 값은 먼저 읽힌 표만 볼 수 있다: 번역 → 규칙 → 타일 행동·도시 보상·과업 → 배·유닛·건물·해금 내역·기술·종족·시작 조건 규칙·시작 조건.
+- 다른 표 값은 먼저 읽힌 표만 볼 수 있다: 번역 → 규칙 → 타일 행동·도시 보상·과업 → 배·유닛·건물·해금 내역·기술·종족·신앙 효과·신전 패시브·신화 유닛·신앙 펀치·신·시작 조건 규칙·시작 조건.
 - 못 채운 자리표시자는 화면에 그대로 보인다. `scripts/check_spec.py`가 없는 규칙·Id·컬럼과 언어마다 다른 자리표시자를 잡는다.
 - 코드에만 있는 상수(예: `Herd`의 이동력 +1)와 구조적인 수(`1/`, "1차")는 문구에 그대로 둔다.
 

@@ -134,7 +134,7 @@ namespace TacticsECS.EditorTools
 
             // 6) 강림 → 신화 유닛 메뉴
             var god = GameTables.Gods[sun];
-            var descent = GameTables.FaithPunches[god.Punches.Select(i => i).First(i => GameTables.FaithPunches[i].Kind == FaithPunchKind.Descend)];
+            var descent = GameTables.FaithPunches[god.Punches.Select(i => i).First(i => FaithPunchSystem.Has(GameTables.FaithPunches[i], FaithEffectKind.Descend))];
             SetResources(20, 20, 50);
             var unitPos = world.Get<GridPosition>(unit).Value;
             var result = FaithPunchSystem.Apply(grid, world, econ, Team.Player, descent, unitPos);

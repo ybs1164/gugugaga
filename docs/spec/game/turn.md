@@ -1,16 +1,18 @@
 # 턴·별
 
-수치: [`GameRules.csv`](../csv/game-rules.md) `Economy.*`, `Heal.*`. 코드: `TurnSystem`, `CityResourceSystem`, `BattleController`.
+수치: [`GameRules.csv`](../csv/game-rules.md) `Economy.*`, `Heal.*`. 코드: `TurnSystem`, `CityResourceSystem`, `VictorySystem`(승패), `BattleController`(화면 흐름).
 
 ## 턴 순서
 - 두 팀(`Player`, `Enemy`)이 번갈아 진행한다. 턴 번호는 `Player` 차례가 올 때 오른다.
 - AI 팀은 경제 행동을 먼저 하고 유닛을 움직인다 — [ai](ai.md).
 
 ## 턴 시작 (그 팀)
-1. 별 수입을 한 번 받는다([city](city.md#별-수입)). 침투당했던 도시는 이 수입이 0이고, 받은 뒤 침투 상태가 풀린다.
+1. 2턴부터 별 수입을 한 번 받는다([city](city.md#별-수입)). 침투당했던 도시는 이 수입이 0이고, 받은 뒤 침투 상태가 풀린다.
 2. 유닛의 이동·행동·방어 태세를 초기화한다. 빙결된 유닛은 이번 턴 이동·행동이 막히고 빙결이 풀린다.
 3. 은신 유닛의 "턴 시작 시 숨어 있었는지"를 기록한다([vision](vision.md#은신)).
 4. 무리 오라를 다시 계산한다([unit](unit.md#행동과-패시브)).
+
+유닛 초기화 세부: `TurnSystem.StartTurn`. 경제(수입·신앙·신전·대신전·신화 유닛) 순서 세부: `TurnSystem.StartEconomyTurn`.
 
 ## 턴 종료 (그 팀)
 - 이번 턴 이동도 행동도 하지 않은 유닛은 자동으로 대기(회복)한다([unit](unit.md#회복)).

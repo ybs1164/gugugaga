@@ -250,6 +250,21 @@ namespace TacticsECS
 
         /// <summary>unitId가 지금 서 있는 칸을 점령할 수 있는지: 살아있고, 이번 턴 아직 이동/행동하지 않았고
         /// (= 그 칸에서 턴을 시작함), 칸이 마을/수도 구조물이며 자기 팀 도시가 아니다.</summary>
+        /// <summary>team이 점령하러 갈 칸(중립 마을/수도 구조물 + 다른 팀 도시) — EnemyAI 이동 목표.</summary>
+        public static List<Vector2Int> CaptureTargets(GridWorld grid, EconomyWorld econ, Team team)
+        {
+            var targets = new List<Vector2Int>();
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var p = new Vector2Int(x, y);
+                if (!IsSettlementTile(grid, p)) continue;
+                int city = FindCityAt(econ, p);
+                if (city < 0 || econ.Cities[city].Owner != team) targets.Add(p);
+            }
+            return targets;
+        }
+
         public static bool CanCapture(GridWorld grid, EntityWorld world, EconomyWorld econ, int unitId)
         {
             if (econ == null || !UnitQueries.IsAlive(world, unitId)) return false;

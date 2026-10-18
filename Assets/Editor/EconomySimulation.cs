@@ -229,7 +229,7 @@ namespace TacticsECS.EditorTools
             var wasEmbarked = new HashSet<int>();
             for (int i = 0; i < world.EntityCount; i++) if (EmbarkSystem.IsEmbarked(world, i)) wasEmbarked.Add(i);
 
-            EnemyAI.RunTurn(grid, world, econ, team, CaptureTargets(grid, econ, team));
+            EnemyAI.RunTurn(grid, world, econ, team, CitySystem.CaptureTargets(grid, econ, team));
 
             for (int i = 0; i < world.EntityCount; i++)
             {
@@ -254,21 +254,6 @@ namespace TacticsECS.EditorTools
                 if (!string.IsNullOrEmpty(t.BuildingId)) result.BuildingsBuilt.Add(t.BuildingId);
                 if (t.HasRoad) result.BuildingsBuilt.Add(BuildingDefinition.Road);
             }
-        }
-
-        /// <summary>BattleController.CaptureTargets와 같은 규칙: 중립 마을/수도 구조물 + 다른 팀 도시.</summary>
-        private static List<Vector2Int> CaptureTargets(GridWorld grid, EconomyWorld econ, Team team)
-        {
-            var targets = new List<Vector2Int>();
-            for (int y = 0; y < grid.Height; y++)
-            for (int x = 0; x < grid.Width; x++)
-            {
-                var p = new Vector2Int(x, y);
-                if (!CitySystem.IsSettlementTile(grid, p)) continue;
-                int city = CitySystem.FindCityAt(econ, p);
-                if (city < 0 || econ.Cities[city].Owner != team) targets.Add(p);
-            }
-            return targets;
         }
 
         private static string Row(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turn)

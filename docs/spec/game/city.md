@@ -1,6 +1,6 @@
 # 도시
 
-수치: [`GameRules.csv`](../csv/game-rules.md) `City.*`, [`CityRewards.csv`](../csv/city-rewards.md). 코드: `CitySystem`. 위키: [City](https://polytopia.fandom.com/wiki/City), [Population](https://polytopia.fandom.com/wiki/Population).
+수치: [`GameRules.csv`](../csv/game-rules.md) `City.*`, [`CityRewards.csv`](../csv/city-rewards.md). 코드: `CitySystem`, `EconomySetupSystem`(전투 시작 자원·수도·시작 유닛). 위키: [City](https://polytopia.fandom.com/wiki/City), [Population](https://polytopia.fandom.com/wiki/Population).
 
 ## 도시와 영토
 - 도시 = 수도 또는 점령한 마을. 칸의 `Capital`/`Village` 구조물 위에 있다.

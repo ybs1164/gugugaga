@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace TacticsECS
 {
     /// <summary>
@@ -24,6 +26,24 @@ namespace TacticsECS
             var next = current.ActiveTeam == Team.Player ? Team.Enemy : Team.Player;
             int turnNumber = next == Team.Player ? current.TurnNumber + 1 : current.TurnNumber;
             return StartTurn(world, next, turnNumber);
+        }
+
+        /// <summary>경제가 켜진 전투에서 team의 턴이 시작될 때(StartTurn 다음) 경제 쪽 처리를 정해진 순서로 돌린다.
+        /// 첫 턴은 시작 자원만 쓰고, 2턴부터 도시 수입·신앙·신전 패시브가 들어온다. 그다음 대신전·신화 유닛 유지 기간.
+        /// 규칙: docs/spec/game/turn.md, docs/spec/game/faith.md</summary>
+        public static EconomyTurnStartResult StartEconomyTurn(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turnNumber)
+        {
+            var result = new EconomyTurnStartResult { TempleHitIds = new List<int>() };
+            econ.Turn = turnNumber;
+            if (turnNumber > 1)
+            {
+                econ.Resources[team] = CityResourceSystem.ApplyTurnStart(econ.Resources[team], grid, world, econ, team);
+                econ.Resources[team] = FaithSystem.ApplyTurnStart(econ.Resources[team], grid, world, econ, team, turnNumber);
+                result.TempleHitIds = TemplePassiveSystem.OnTurnStart(grid, world, econ, team, turnNumber);
+            }
+            GreatTempleSystem.OnTurnStart(grid, world, econ, team, turnNumber);
+            result.ExpiredMythicIds = MythicSystem.OnTurnStart(grid, world, team);
+            return result;
         }
 
         private static void ResetUnitStates(EntityWorld world, Team team)

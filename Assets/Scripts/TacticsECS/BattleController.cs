@@ -340,7 +340,7 @@ namespace TacticsECS
             InitMapSizeSelection();
             if (setup.MapSize >= 0 && setup.MapSize < MapSizePresets.Length) _selectedMapSizeIndex = setup.MapSize;
             HandleGenerateTerrain();
-            _unitRows = LoadFallbackUnitRows();
+            _unitRows = EconomySetupSystem.DefaultUnitRows();
             BeginBattle();
         }
 
@@ -526,7 +526,7 @@ namespace TacticsECS
 
         /// <summary>배치 단계에서 불러온 유닛 CSV, 없으면 기본 유닛 표(Tables/Units.csv) — 종족 시작 유닛을 Id로 찾는 표.</summary>
         private List<UnitCsvRow> CurrentUnitRows() =>
-            _placementController != null && _placementController.Rows.Count > 0 ? new List<UnitCsvRow>(_placementController.Rows) : LoadFallbackUnitRows();
+            _placementController != null && _placementController.Rows.Count > 0 ? new List<UnitCsvRow>(_placementController.Rows) : EconomySetupSystem.DefaultUnitRows();
 
         private void HandleMapTypeSelected(int index)
         {
@@ -1166,17 +1166,10 @@ namespace TacticsECS
 
             if (_econ != null)
             {
-                _econ.Turn = turnNumber;
-                // 폴리토피아처럼 첫 턴은 시작 자원만 쓰고, 2턴부터 매 자기 턴 시작마다 도시 수입이 들어온다.
-                if (turnNumber > 1)
-                {
-                    _econ.Resources[team] = CityResourceSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team);
-                    _econ.Resources[team] = FaithSystem.ApplyTurnStart(_econ.Resources[team], _grid, _world, _econ, team, turnNumber);
-                    foreach (int hitId in TemplePassiveSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber))
-                        if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
-                }
-                GreatTempleSystem.OnTurnStart(_grid, _world, _econ, team, turnNumber);
-                foreach (int id in MythicSystem.OnTurnStart(_grid, _world, team))
+                var started = TurnSystem.StartEconomyTurn(_grid, _world, _econ, team, turnNumber);
+                foreach (int hitId in started.TempleHitIds)
+                    if (_viewsById.TryGetValue(hitId, out var hitView)) hitView.Refresh(_world, hitId);
+                foreach (int id in started.ExpiredMythicIds)
                 {
                     _hud.AddLogEntry(LocalizationSystem.F("UI.Mythic.Log.Expire", UnitLabel(id)));
                     if (_viewsById.TryGetValue(id, out var changedView)) changedView.Refresh(_world, id);
@@ -1247,7 +1240,7 @@ namespace TacticsECS
             var startPos = new Dictionary<int, Vector2Int>();
             for (int i = 0; i < _world.EntityCount; i++)
                 if (UnitQueries.IsAlive(_world, i)) startPos[i] = _world.Get<GridPosition>(i).Value;
-            var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CaptureTargets(Team.Enemy) : null);
+            var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CitySystem.CaptureTargets(_grid, _econ, Team.Enemy) : null);
             // 맞은 유닛은 자기 차례의 피해 숫자가 뜰 때까지 남아 있는다(아래에서 공격을 하나씩 보여준다).
             foreach (var entry in entries)
                 if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var hitView)) hitView.AwaitHit();
@@ -1364,15 +1357,11 @@ namespace TacticsECS
         private void CheckBattleEnd()
         {
             if (_battleOver) return;
-            if (_econ != null && _econ.FaithWinner >= 0)
-            {
-                _hud.AddLogEntry(LocalizationSystem.T("UI.GreatTemple.Log.Victory"));
-                EndBattle(_econ.FaithWinner == (int)Team.Player, "UI.Result.FaithVictory");
-                return;
-            }
-            bool playerAlive = !HasTeamLost(Team.Player);
-            bool enemyAlive = !HasTeamLost(Team.Enemy);
-            if (!playerAlive || !enemyAlive) EndBattle(playerAlive, "UI.Result.Conquest");
+            var outcome = VictorySystem.Evaluate(_world, _econ);
+            if (outcome.Reason == BattleEndReason.None) return;
+            bool faith = outcome.Reason == BattleEndReason.FaithVictory;
+            if (faith) _hud.AddLogEntry(LocalizationSystem.T("UI.GreatTemple.Log.Victory"));
+            EndBattle(outcome.Winner == Team.Player, faith ? "UI.Result.FaithVictory" : "UI.Result.Conquest");
         }
 
         /// <summary>승패가 정해졌다: 저장을 지우고(끝난 판은 이어할 수 없다) 결과 창을 띄운다. 규칙: docs/spec/game/session.md</summary>
@@ -1453,7 +1442,7 @@ namespace TacticsECS
             {
                 _titleHud = Instantiate(titleHudPrefab, transform);
                 _titleHud.name = "TitleHud";
-                var unitRows = LoadFallbackUnitRows();
+                var unitRows = EconomySetupSystem.DefaultUnitRows();
                 InitMapSizeSelection();
                 _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
                     GameTables.Gods.Select(g => new GodChoice { Name = g.Name, Description = g.Description }).ToList(),
@@ -1746,54 +1735,18 @@ namespace TacticsECS
 
         // ---------- Economy (도시/영토/기술/건설) ----------
 
-        /// <summary>전투 시작 시 경제 상태를 만든다: 두 팀 시작 자원/빈 기술, 훈련 가능한 유닛 목록(배치 단계에서
-        /// 불러온 유닛 CSV, 없으면 기본 유닛 표 Tables/Units.csv), 각 팀 수도(CitySystem.InitializeCapitals), 유닛 없이 시작한 팀의 시작 유닛(CitySystem.StartingUnitRequests).</summary>
+        /// <summary>전투 시작 시 EconomySetupSystem으로 경제 상태를 만들고, 시작 유닛 스폰·기술트리 HUD·화면 갱신을 마무리한다.</summary>
         private void InitEconomy()
         {
             // 종족이 하나라도 정해졌으면 기술트리는 배열형 기술 표(Resources/Tables/Techs.csv — 기술 그룹 Index가 이 표를 가리킨다).
             bool tribeMode = AnyTribe();
-            _econ = new EconomyWorld { TechNodes = tribeMode ? TechGroupSystem.BuildTechNodes() : CurrentTechNodes(), UnitRows = _unitRows ?? new List<UnitCsvRow>() };
-            if (_econ.UnitRows.Count == 0) _econ.UnitRows = LoadFallbackUnitRows();
-            foreach (var team in CitySystem.Teams)
-            {
-                var res = CityResourceData.Create(0, 0, false);
-                res.Stars = GameRules.Economy.StartingStars;
-                _econ.Resources[team] = res;
-                _econ.Tech[team] = TechTreeData.CreateEmpty();
-                _econ.GodIds[team] = _godByTeam[team];
-                // 종족: 시작 별 / 기술 그룹(연구 가능 목록) / 시작 기술 / 시작 유닛.
-                if (TribeOf(team) is TribeRow tribe) TribeSystem.Apply(_econ, team, tribe, _econ.UnitRows);
-            }
+            var tribes = CitySystem.Teams.ToDictionary(t => t, TribeOf);
+            _econ = EconomySetupSystem.Create(tribeMode ? TechGroupSystem.BuildTechNodes() : CurrentTechNodes(), _unitRows, _godByTeam, tribes);
             if (tribeMode && _techTreeHud != null)
                 _techTreeHud.SetNodes(TechGroupSystem.Filter(_econ.TechNodes, _econ.Tech[Team.Player].Allowed));
-            TaskSystem.Init(_econ);
-            // 시야(구름)는 경제가 켜진 전투에서만 쓴다: 수도 주변 5x5 + 유닛 주변 + 영토만 보인 채로 시작한다.
-            _grid.FogEnabled = true;
-            FoundTribeCapitals();
-            CitySystem.InitializeCapitals(_grid, _world, _econ, includeUnitlessTeams: true);
-            // 유닛 없이 시작한 팀은 수도에 기본 유닛(기술 없이 훈련 가능한 가장 싼 육지 유닛) 하나를 받는다.
-            ProcessEconomyLog(CitySystem.StartingUnitRequests(_world, _econ));
+            ProcessEconomyLog(EconomySetupSystem.Start(_grid, _world, _econ, _tribeCapitals, tribes));
             RefreshEconomyViews(false);
         }
-
-        /// <summary>생성한 지형이면 팀마다 자기 영역의 수도 자리(_tribeCapitals)를 수도로 세운다 — 시작 조건이 그 수도 주변에
-        /// 적용됐으므로. 지형을 생성하지 않았으면 InitializeCapitals의 기본 규칙(유닛 무게중심에서 가장 가까운 수도)을 따른다.</summary>
-        private void FoundTribeCapitals()
-        {
-            foreach (var kv in _tribeCapitals)
-            {
-                var pos = kv.Value;
-                if (!_grid.InBounds(pos) || _grid.GetStructure(pos) != StructureGenerationSystem.CapitalStructureId) continue;
-                if (CitySystem.FindCapital(_econ, kv.Key) >= 0 || CitySystem.FindCityAt(_econ, pos) >= 0) continue;
-                var tribe = TribeOf(kv.Key);
-                string name = tribe != null ? LocalizationSystem.F("UI.Common.TribeCapital", tribe.Value.Name)
-                    : LocalizationSystem.T(kv.Key == Team.Player ? "UI.Common.AllyCapital" : "UI.Common.EnemyCapital");
-                CitySystem.FoundCity(_grid, _econ, pos, kv.Key, true, name);
-                VisionSystem.Reveal(_grid, kv.Key, pos, GameRules.Vision.StartRevealRadius);
-            }
-        }
-
-        private static List<UnitCsvRow> LoadFallbackUnitRows() => new List<UnitCsvRow>(GameTables.Units);
 
         /// <summary>경제 상태가 바뀐 뒤 한 번에 다시 반영하는 곳: 생산량/유닛 수용량 재계산, 유닛 지형 제한/방어
         /// 보너스, 영토 색/건물/도시 원판, 숨겨진 자원, 자원 바/기술트리. terrainChanged면(벌목/숲 조성 등)
@@ -1838,28 +1791,6 @@ namespace TacticsECS
             if (!VisionSystem.IsExplored(_grid, Team.Player, pos)) return string.Empty;
             if (_econ != null && TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]).Contains(id)) return string.Empty;
             return id;
-        }
-
-        /// <summary>도시를 가졌던 팀은 도시를 전부 잃으면, 도시가 없던 팀(또는 경제 없는 씬)은 유닛이 전멸하면 패배.</summary>
-        private bool HasTeamLost(Team team)
-        {
-            if (_econ != null && _econ.HadCity.Contains(team)) return CitySystem.HasLost(_econ, team);
-            return !UnitQueries.AnyAlive(_world, team);
-        }
-
-        /// <summary>team이 점령할 수 있는 칸(중립 마을/수도 구조물 + 다른 팀 도시) — EnemyAI 이동 목표.</summary>
-        private List<Vector2Int> CaptureTargets(Team team)
-        {
-            var targets = new List<Vector2Int>();
-            for (int y = 0; y < _grid.Height; y++)
-            for (int x = 0; x < _grid.Width; x++)
-            {
-                var p = new Vector2Int(x, y);
-                if (!CitySystem.IsSettlementTile(_grid, p)) continue;
-                int city = CitySystem.FindCityAt(_econ, p);
-                if (city < 0 || _econ.Cities[city].Owner != team) targets.Add(p);
-            }
-            return targets;
         }
 
         /// <summary>경제 기록을 행동 로그에 옮기고, 유닛 스폰이 필요한 기록(훈련/슈퍼 유닛/유적 유닛)은 실제로

@@ -262,16 +262,8 @@ namespace TacticsECS.EditorTools
         private static void RunTeamTurn(Game game, GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turn, Stats stats, Dictionary<Team, int> lastMythic)
         {
             TurnSystem.StartTurn(world, team, turn);
-            econ.Turn = turn;
-            if (turn > 1)
-            {
-                econ.Resources[team] = CityResourceSystem.ApplyTurnStart(econ.Resources[team], grid, world, econ, team);
-                econ.Resources[team] = FaithSystem.ApplyTurnStart(econ.Resources[team], grid, world, econ, team, turn);
-                TemplePassiveSystem.OnTurnStart(grid, world, econ, team, turn);
-            }
-            GreatTempleSystem.OnTurnStart(grid, world, econ, team, turn);
             int mythicBefore = MythicSystem.FindMythic(world, team);
-            MythicSystem.OnTurnStart(grid, world, team);
+            TurnSystem.StartEconomyTurn(grid, world, econ, team, turn);
             if (mythicBefore >= 0 && MythicSystem.FindMythic(world, team) < 0) Add(stats.MythicReturns, team, 1);
             if (econ.FaithWinner >= 0) return;
 
@@ -288,7 +280,7 @@ namespace TacticsECS.EditorTools
             if (mythicNow >= 0 && mythicNow != mythicStart) Add(stats.Descents, team, 1);
             Refresh(grid, world, econ, null);
 
-            EnemyAI.RunTurn(grid, world, econ, team, CaptureTargets(grid, econ, team));
+            EnemyAI.RunTurn(grid, world, econ, team, CitySystem.CaptureTargets(grid, econ, team));
             Refresh(grid, world, econ, null);
             AbilitySystem.ApplyTurnEndWait(grid, world, team);
             TaskSystem.EndTurn(econ, team);
@@ -307,20 +299,6 @@ namespace TacticsECS.EditorTools
             foreach (var t in CitySystem.Teams)
                 econ.Resources[t] = CityResourceSystem.RefreshProduction(econ.Resources[t], grid, world, econ, t);
             TechEffectSystem.RefreshUnits(grid, world, econ);
-        }
-
-        private static List<Vector2Int> CaptureTargets(GridWorld grid, EconomyWorld econ, Team team)
-        {
-            var targets = new List<Vector2Int>();
-            for (int y = 0; y < grid.Height; y++)
-            for (int x = 0; x < grid.Width; x++)
-            {
-                var p = new Vector2Int(x, y);
-                if (!CitySystem.IsSettlementTile(grid, p)) continue;
-                int city = CitySystem.FindCityAt(econ, p);
-                if (city < 0 || econ.Cities[city].Owner != team) targets.Add(p);
-            }
-            return targets;
         }
 
         private static string Row(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int turn, Stats stats)

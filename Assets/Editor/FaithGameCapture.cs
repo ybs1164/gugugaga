@@ -142,7 +142,7 @@ namespace TacticsECS.EditorTools
                     Call("RefreshEconomyViews", true);
                     ScanEvents(dir, team, log, hpBefore, seen);
 
-                    EnemyAI.RunTurn(grid, world, econ, team, (List<Vector2Int>)Call("CaptureTargets", team));
+                    EnemyAI.RunTurn(grid, world, econ, team, CitySystem.CaptureTargets(grid, econ, team));
                     Call("RefreshEconomyViews", false);
                     Call("RefreshAllViews");
                     ScanEvents(dir, team, null, hpBefore, seen);

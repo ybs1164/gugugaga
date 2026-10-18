@@ -32,14 +32,14 @@
 |---|---|---|---|
 | 맵 생성 | [map](game/map.md) | [tribe-terrain](csv/tribe-terrain.md), [tribes](csv/tribes.md), [game-rules](csv/game-rules.md) `Map.*` | `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem` |
 | 타일·구조물 | [tile](game/tile.md) | [tribe-terrain](csv/tribe-terrain.md) | `TileImprovementSystem`, `RuinSystem` |
-| 도시 | [city](game/city.md) | [city-rewards](csv/city-rewards.md), [game-rules](csv/game-rules.md) | `CitySystem`, `CityResourceSystem` |
+| 도시 | [city](game/city.md) | [city-rewards](csv/city-rewards.md), [game-rules](csv/game-rules.md) | `CitySystem`, `CityResourceSystem`, `EconomySetupSystem` |
 | 건물·타일 행동 | [building](game/building.md) | [buildings](csv/buildings.md), [tile-actions](csv/tile-actions.md) | `TileImprovementSystem` |
 | 기술 | [tech](game/tech.md) | [tech](csv/tech.md) | `TechSystem`, `TechGroupSystem`, `TechEffectSystem` |
 | 유닛·배 | [unit](game/unit.md) | [units](csv/units.md) | `UnitFactorySystem`, `EmbarkSystem`, `VeteranSystem`, `Actions/*` |
 | 전투 | [combat](game/combat.md) | [game-rules](csv/game-rules.md) `Combat.*` | `CombatSystem` |
 | 이동 | [movement](game/movement.md) | [units](csv/units.md) | `PathfindingSystem`, `MovementSystem` |
 | 시야·은신·침투 | [vision](game/vision.md) | [game-rules](csv/game-rules.md) `Vision.*` | `VisionSystem`, `StealthSystem`, `InfiltrationSystem` |
-| 턴·별 | [turn](game/turn.md) | [game-rules](csv/game-rules.md) | `TurnSystem`, `CityResourceSystem` |
+| 턴·별 | [turn](game/turn.md) | [game-rules](csv/game-rules.md) | `TurnSystem`, `CityResourceSystem`, `VictorySystem` |
 | 신앙 | [faith](game/faith.md) | [faith-effects](csv/faith-effects.md) (효과·신전 패시브), [gods](csv/gods.md), [faith-punches](csv/faith-punches.md) (신앙 펀치·신화 유닛), [buildings](csv/buildings.md) `FaithCap`, [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `PrayerSystem`, `FaithEffectSystem`, `TemplePassiveSystem`, `FaithPunchSystem`, `MythicSystem`, `View/FaithPunchHud` |
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md), [tribe-terrain](csv/tribe-terrain.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |

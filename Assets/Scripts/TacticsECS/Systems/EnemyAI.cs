@@ -17,6 +17,7 @@ namespace TacticsECS
     ///   3. 이동 가능한 칸 중 목표까지의 "여행 거리"(지형을 고려한 BFS — 바다 건너 목표면 배로 가는 거리)가 가장 짧은 칸으로 간다.
     ///      육지로 닿지 않는 목표면 자기 항구로 가서 뗏목을 타고(EmbarkSystem), 배는 목표 쪽 해안에 내린다.
     ///   4. 이동 후 사거리 안에 적이 있으면(돌격 등으로 가능하면) 공격.
+    ///   5. 공격한 뒤(1 또는 4) 대피(RetreatAction)로 아직 움직일 수 있으면, 적에게 덜 노출되는 칸으로 물러난다.
     /// 침투 유닛(위키 Cloak)은 유닛을 공격하지 않고 (c)에서 보이는 적 도시 옆을 목표로 삼는다 — 침투는 다음 턴 시작에 EconomyAI가 한다.
     /// 시야: 구름(아직 탐험하지 않은 칸)의 적/정착지는 모른다 — VisionSystem.IsExplored로 거른다.
     /// </summary>
@@ -59,7 +60,7 @@ namespace TacticsECS
 
                 var enemies = VisibleEnemies(grid, world, team);
 
-                if (TryBestAttack(grid, world, econ, id, enemies, entries)) continue;
+                if (TryBestAttack(grid, world, econ, id, enemies, entries)) { RetreatAfterAttack(grid, world, id, team, entries); continue; }
 
                 // (a) 점령 대기
                 if (captureTargets != null && captureTargets.Contains(selfPos)) { claimedTargets.Add(selfPos); continue; }
@@ -153,7 +154,7 @@ namespace TacticsECS
                     VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
                 }
 
-                TryBestAttack(grid, world, econ, id, VisibleEnemies(grid, world, team), entries);
+                if (TryBestAttack(grid, world, econ, id, VisibleEnemies(grid, world, team), entries)) RetreatAfterAttack(grid, world, id, team, entries);
             }
 
             return entries;
@@ -201,6 +202,54 @@ namespace TacticsECS
             if (bestTarget < 0) return false;
             TryAttackAndLog(grid, world, econ, id, bestTarget, entries);
             return true;
+        }
+
+        /// <summary>대피(RetreatAction): 공격 뒤 아직 움직일 수 있으면, 다음 턴 자기를 칠 수 있는(이동+사거리 안) 보이는 적이
+        /// 가장 적은 칸으로 물러난다(같으면 가장 가까운 적과의 거리가 먼 칸). 지금 칸보다 나아지지 않으면 그대로 있는다.</summary>
+        private static void RetreatAfterAttack(GridWorld grid, EntityWorld world, int id, Team team, List<BattleLogEntry> entries)
+        {
+            if (!UnitQueries.IsAlive(world, id) || UnitActionQueries.Find<RetreatAction>(world, id) == null) return;
+            var move = UnitActionQueries.Find<MoveAction>(world, id);
+            if (move == null || !move.CanExecute(world, id)) return;
+
+            var enemyPositions = new List<(Vector2Int Pos, int Reach)>();
+            foreach (var e in VisibleEnemies(grid, world, team))
+            {
+                var enemyMove = UnitActionQueries.Find<MoveAction>(world, e);
+                enemyPositions.Add((world.Get<GridPosition>(e).Value, (enemyMove != null ? enemyMove.MoveRange : 0) + world.Get<AttackRange>(e).Value));
+            }
+            if (enemyPositions.Count == 0) return;
+
+            (int Threat, int Nearest) Score(Vector2Int tile)
+            {
+                int threat = 0, nearest = int.MaxValue;
+                foreach (var e in enemyPositions)
+                {
+                    int d = PathfindingSystem.Distance(tile, e.Pos);
+                    if (d <= e.Reach) threat++;
+                    if (d < nearest) nearest = d;
+                }
+                return (threat, nearest);
+            }
+
+            var selfPos = world.Get<GridPosition>(id).Value;
+            PathfindingSystem.GetReachable(grid, world, selfPos, id, out var reachable);
+            Vector2Int? best = null;
+            var bestScore = Score(selfPos);
+            foreach (var tile in reachable)
+            {
+                if (tile == selfPos || grid.IsOccupied(tile)) continue;
+                var s = Score(tile);
+                if (s.Threat < bestScore.Threat || (s.Threat == bestScore.Threat && s.Nearest > bestScore.Nearest))
+                {
+                    bestScore = s; best = tile;
+                }
+            }
+            if (!best.HasValue) return;
+            var path = MovementSystem.PathTo(grid, world, id, best.Value);
+            if (!MovementSystem.TryMove(grid, world, id, best.Value)) return;
+            entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget, Path = path });
+            VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
         }
 
         /// <summary>이번 턴 도달 가능한 칸 중 goal까지 여행 거리가 가장 짧은 칸으로 이동한다(같으면 직선 거리). 적이 목표면

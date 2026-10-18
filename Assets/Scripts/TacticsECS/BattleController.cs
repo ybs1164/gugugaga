@@ -2513,7 +2513,11 @@ namespace TacticsECS
             if (_econ != null) RefreshEconomyViews(drenched); else if (drenched) _gridView.RefreshTerrain(_grid);
 
             CheckBattleEnd();
-            ClearSelection();
+            // 대피(공격 뒤 이동)·연타(처치 뒤 추가 공격)로 아직 할 수 있는 게 남았으면 선택을 유지해 바로 이어서 고르게 한다.
+            if (UnitQueries.IsAlive(_world, attackerId) && !(_world.Get<HasMoved>(attackerId).Value && _world.Get<HasActed>(attackerId).Value))
+                SelectUnit(attackerId);
+            else
+                ClearSelection();
         }
 
         /// <summary>공격 연출: 공격자가 찌르고 → 맞는 쪽에 피해 숫자 → (반격이 있으면) 맞은 쪽이 되찌르고 → 공격자에 피해 숫자.

@@ -4,7 +4,7 @@
 
 ## 공격 조건
 - 살아 있는 다른 팀 유닛, 맨해튼 거리 1 ~ `Attack.Range`.
-- 턴당 한 번. 이번 턴 이동했으면 `Charge`가 있어야 한다. 이번 턴 공격했으면 `Retreat`가 있어야 이동할 수 있다.
+- 턴당 한 번. 이번 턴 이동했으면 `Charge`가 있어야 한다. `Retreat`가 있으면 공격 뒤 이동할 수 있다 — [movement](movement.md#기본).
 - 숨은 적은 노릴 수 없다. `Infiltrate` 유닛은 유닛을 공격하지 못한다([vision](vision.md#침투)).
 
 ## 피해 공식

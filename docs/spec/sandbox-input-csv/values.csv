@@ -36,6 +36,9 @@ VisualId 접두사,UI.,"UI 도형 / UI.Missing(없는 키 대체), UI.Solid, UI.
 자리표시자,{컬럼},그 문구가 설명하는 행(<표>.<Id>.Desc)의 CSV 칸 — 컬럼 이름 그대로 / Building.Farm.Desc의 {Population}
 자리표시자,{표.Id.컬럼},"다른 표의 행. 표: Building(Cost Population PopulationPerAdjacent), TileAction(Cost Population StarsGain), Task(Threshold), CityReward(Amount), Unit — 유닛·배(Cost MaxHp Defense Move.Range Attack.Attack Attack.Range), Tech(CostBase CostPerCity), Tribe(StartStars), StartRule — 시작 조건 규칙 Id(Count MinDistance MaxDistance), FaithEffect(Amount PerPrayer MinHp), TemplePassive(Radius Period) / {Building.Mine.Cost}"
 자리표시자,{Rule.키},GameRules.csv의 Key / {Rule.Score.Monument}
+Pack.csv — 매니페스트,Kind,Meta / File / O /  / 행 종류
+Pack.csv — 매니페스트,Key,"문자열 / O /  / Meta: Format·Name·BuildVersion. File: 표의 Resources 경로(확장자 없음, 예 Tables/Units)"
+Pack.csv — 매니페스트,Value,문자열 /  /  / Meta: 그 값. File: 그 표 파일 바이트의 SHA-256(16진수)
 Kind,TurnsWithoutAttack,Threshold 턴 연속 공격하지 않음(반격은 공격 아님)
 Kind,StarsHeld,별 Threshold 이상을 한 번에 보유
 Kind,AllLighthouses,맵의 등대 전부 발견
@@ -73,7 +76,7 @@ Boats.csv — 배,Special,유닛 BoatIndex가 가리키는 전용 배. 업그레
 행동과 패시브,Drench,"패시브 / 폭우: 공격 사거리 안의 빈 칸도 공격할 수 있고, 공격한 칸을 침수시킨다"
 행동과 패시브,AutoFreeze,패시브 / 이동할 때마다 주변 8칸의 빈 물을 얼리고 그 범위의 적을 빙결시킨다
 행동과 패시브,Charge,패시브 / 이동 후에도 공격 가능
-행동과 패시브,Retreat,패시브 / 공격 후에도 이동 가능
+행동과 패시브,Retreat,패시브 / 공격 후에도 이동 가능(이미 이동했어도) — movement
 행동과 패시브,Ambush,패시브 / 내 공격에 대상이 반격하지 않음
 행동과 패시브,Stiff,패시브 / 나는 반격하지 않음
 행동과 패시브,Splash,패시브 / 대상 주변 적에게 나눈 피해

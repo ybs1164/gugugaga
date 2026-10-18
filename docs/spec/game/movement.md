@@ -3,7 +3,8 @@
 값: [유닛 CSV](../csv/units.md) `Move.Range`, `Domain`. 코드: `PathfindingSystem`, `Actions/MoveAction`. 위키: [Movement](https://polytopia.fandom.com/wiki/Movement).
 
 ## 기본
-- 턴당 한 번. 이번 턴 공격했으면 `Retreat`가 있어야 이동할 수 있다.
+- 턴당 한 번. 이번 턴 공격했으면 `Retreat`가 있어야 이동할 수 있다. `Retreat` 유닛은 공격하면 이동 기회가 다시 생겨, 이미 이동했어도 공격 뒤 한 번 더 이동한다(이동 → 공격 → 이동). 그 뒤 다시 공격할 수는 없다.
+- 플레이어가 공격한 뒤 유닛이 아직 움직이거나 공격할 수 있으면 선택이 유지된다.
 - 기본 4방향, `AllowDiagonal`이면 8방향.
 - 실제 이동력 = `Move.Range` + 가속(`Accelerated`)이면 1 + 얼음 칸에서 출발하는 `Skate`면 1.
 - 칸 비용 1. 도로 칸끼리(도시·마을·다리 포함) 이동은 0.5. 적 영토·침수 칸의 도로는 쓰지 못한다. `Creep`·`Fly`·공중 유닛은 도로 보너스가 없다.

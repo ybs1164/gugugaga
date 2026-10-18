@@ -8,7 +8,8 @@ namespace TacticsECS
     /// 이제 이 행동을 찾아 실행한 뒤, 대상의 CounterAction을 찾아 이어서 실행해주는 진입점일 뿐이다.
     /// 반격(CounterAction)은 별도 값을 갖지 않고 이 행동의 Attack/AttackRange를 그대로 재사용한다.
     /// 기본적으로 이번 턴 이미 이동한 유닛은 공격할 수 없다(이동 또는 공격 중 하나만) — 돌격
-    /// (ChargeAction)을 가진 유닛만 그 제약의 예외로 이동 후에도 공격할 수 있다.
+    /// (ChargeAction)을 가진 유닛만 그 제약의 예외로 이동 후에도 공격할 수 있다. 대피(RetreatAction)를 가진 유닛은
+    /// 공격할 때 HasMoved가 되돌려져 공격 뒤 다시 이동할 수 있다.
     /// </summary>
     [System.Serializable]
     public class AttackAction : ITargetedAction
@@ -52,6 +53,8 @@ namespace TacticsECS
             PrayerSystem.OnHit(world, targetId);
             StealthSystem.OnHit(world, targetId);
             world.Set(actorId, new HasActed { Value = true });
+            // 대피: 이 패시브를 가졌다면 HasMoved를 되돌려 공격 뒤 한 번 더 이동할 수 있게 한다(이동 → 공격 → 이동).
+            if (UnitActionQueries.Find<RetreatAction>(world, actorId) != null) world.Set(actorId, new HasMoved { Value = false });
 
             if (!UnitQueries.IsAlive(world, targetId))
             {

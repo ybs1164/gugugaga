@@ -7,11 +7,15 @@ using UnityEngine;
 
 namespace TacticsECS.EditorTools
 {
+    /// <summary>PC(Windows) 빌드: 샌드박스 씬 하나만 exe로 만든다 — 모바일 빌드(MobileBuild, Mobile.unity)와 씬을 나눈다.
+    /// 빌드 설정(EditorBuildSettings)의 씬 목록은 쓰지 않는다.</summary>
     public static class Pixel2DBuild
     {
+        public const string PcScenePath = "Assets/Scenes/Sandbox.unity";
+
         public static void Run()
         {
-            var scenes=EditorBuildSettings.scenes.Where(s=>s.enabled).Select(s=>s.path).ToArray();
+            var scenes=new[]{PcScenePath};
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes=scenes,

@@ -86,6 +86,13 @@ namespace TacticsECS
         public static void LoadStrings(List<string> errors, TableSource source)
         {
             var values = StringTableCsvSerializer.Parse(Read(StringTable.CsvResourcePath, errors, source), StringTable.Language, errors);
+            if (!string.IsNullOrEmpty(source.Folder) || (source.Files != null && source.Files.ContainsKey(StringTable.CsvResourcePath)))
+            {
+                // 표 폴더·팩의 Strings.csv가 이 빌드보다 옛것이면 새 키(버튼 문구 등)가 없다 — 없는 키만 기본 표에서 채운다.
+                var builtIn = StringTableCsvSerializer.Parse(Read(StringTable.CsvResourcePath, null, TableSource.Resources), values.Language ?? StringTable.Language);
+                foreach (var kv in builtIn.Current) if (!values.Current.ContainsKey(kv.Key)) values.Current[kv.Key] = kv.Value;
+                foreach (var kv in builtIn.Source) if (!values.Source.ContainsKey(kv.Key)) values.Source[kv.Key] = kv.Value;
+            }
             if (values.Language != null) StringTable.Language = values.Language;
             StringTable.Languages = values.Languages.Length > 0 ? values.Languages : new[] { StringTable.SourceLanguage };
             StringTable.Current = values.Current;

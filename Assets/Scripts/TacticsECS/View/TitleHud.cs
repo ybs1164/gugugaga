@@ -32,7 +32,7 @@ namespace TacticsECS
 
     /// <summary>
     /// 빠른 한 판(quickPlay)의 시작 화면 두 장(PC·모바일 공용):
-    /// 1) 첫 화면 — 이어하기(저장이 있을 때만) · 새로하기 · 언어.
+    /// 1) 첫 화면 — 이어하기(저장이 있을 때만) · 새로하기 · 언어 · 표 가져오기/기본 표(표 팩, 지금 쓰는 표 이름).
     /// 2) 종족 고르기 — 왼쪽 카드 목록(맨 앞 "무작위"), 오른쪽 고른 종족 설명, 신·맵 크기 순환 버튼과 시작 버튼. 상대 종족·신은 무작위.
     /// 고른 결과는 이벤트로만 알린다 — 판을 만들고 불러오는 일은 BattleController가 한다.
     /// </summary>
@@ -49,6 +49,8 @@ namespace TacticsECS
         public event Action OnContinueClicked;
         public event Action<QuickPlaySetup> OnStartClicked;
         public event Action OnLanguageClicked;
+        public event Action OnImportPackClicked;
+        public event Action OnResetPackClicked;
 
         [Header("화면(프리팹 안)")]
         [Tooltip("캔버스 — 열고 닫는 단위.")]
@@ -91,6 +93,10 @@ namespace TacticsECS
         private int _selectedMapSize;
         private Button _godButton;
         private Button _mapSizeButton;
+        private Button _importPackButton;
+        private Button _resetPackButton;
+        // 표 팩 줄: 언어 버튼 바로 아래(프리팹의 첫 화면 열에 남은 자리).
+        private const float PackRowGap = 8f;
         private bool _canContinue;
 
         public bool IsOpen => root != null && root.activeSelf;
@@ -114,6 +120,7 @@ namespace TacticsECS
             backButton.onClick.AddListener(() => ShowTitle(_canContinue, null));
             startButton.onClick.AddListener(() => OnStartClicked?.Invoke(new QuickPlaySetup { Tribe = _selected, God = _selectedGod, MapSize = _selectedMapSize }));
             BuildOptionRow();
+            BuildPackRow();
             Canvas.willRenderCanvases += OnWillRender;
             root.SetActive(false);
         }
@@ -200,6 +207,36 @@ namespace TacticsECS
             PlaceHalf((RectTransform)_mapSizeButton.transform, 0.5f, 1f, 4f, -12f);
             var body = detailBody.rectTransform;
             body.offsetMin = new Vector2(body.offsetMin.x, OptionRowBottom + OptionRowHeight + 12f);
+        }
+
+        /// <summary>언어 버튼 아래 한 줄에 "표 가져오기"(왼쪽, 넓게)와 "기본 표"(오른쪽)를 놓는다. 글은 SetPack이 채운다.</summary>
+        private void BuildPackRow()
+        {
+            var language = (RectTransform)languageButton.transform;
+            _importPackButton = UiKit.Button(buttonPrefab, language.parent, "ImportPackButton", "", UiKit.ButtonColor, () => OnImportPackClicked?.Invoke(), UiKit.SmallText);
+            _resetPackButton = UiKit.Button(buttonPrefab, language.parent, "ResetPackButton", "", UiKit.ButtonColor, () => OnResetPackClicked?.Invoke(), UiKit.SmallText);
+            float top = language.anchoredPosition.y - language.sizeDelta.y - PackRowGap;
+            PlaceBelow((RectTransform)_importPackButton.transform, language, 0f, 0.68f, 0f, -4f, top);
+            PlaceBelow((RectTransform)_resetPackButton.transform, language, 0.68f, 1f, 4f, 0f, top);
+        }
+
+        private static void PlaceBelow(RectTransform rect, RectTransform like, float fromX, float toX, float left, float right, float top)
+        {
+            rect.anchorMin = new Vector2(fromX, 1f);
+            rect.anchorMax = new Vector2(toX, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.offsetMin = new Vector2(left, top - like.sizeDelta.y);
+            rect.offsetMax = new Vector2(right, top);
+        }
+
+        /// <summary>표 팩 줄의 글: 지금 쓰는 표(packLabel)와 마지막 가져오기 결과(message, 없으면 null). 팩을 쓰는 중일 때만 "기본 표"가 켜진다.</summary>
+        public void SetPack(string packLabel, string message, bool usingPack)
+        {
+            string detail = string.IsNullOrEmpty(message) ? packLabel : message;
+            UiKit.Label(_importPackButton).text = $"{LocalizationSystem.T("UI.Title.ImportPack")}\n<size={UiKit.SmallText - 2}>{detail}</size>";
+            UiKit.Label(_resetPackButton).text = LocalizationSystem.T("UI.Title.DefaultTables");
+            UiKit.SetEnabled(_importPackButton, true, UiKit.ButtonColor);
+            UiKit.SetEnabled(_resetPackButton, usingPack, UiKit.ButtonColor);
         }
 
         private static void PlaceHalf(RectTransform rect, float fromX, float toX, float left, float right)

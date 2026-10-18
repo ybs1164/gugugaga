@@ -27,6 +27,8 @@ namespace TacticsECS
         public event Action OnReloadTablesClicked;
         /// <summary>"기본 표" — 표 폴더를 버리고 Assets/Resources의 기본 표로 돌아간다.</summary>
         public event Action OnResetTablesClicked;
+        /// <summary>"팩 내보내기" — 지금 쓰는 표 전부를 zip 하나로(휴대폰 "표 가져오기"용).</summary>
+        public event Action OnExportPackClicked;
         public event Action OnGenerateTerrainClicked;
         public event Action OnMapSizeCycleClicked;
         public event Action OnWetnessCycleClicked;
@@ -146,6 +148,7 @@ namespace TacticsECS
             });
             _wetnessLabel = wetnessButtonTransform.Find("Label").GetComponent<Text>();
             WireOptionalButton(panel, "종족Button", () => { if (_tribeTab != null) ToggleTab(_tribeTab); });
+            AddExportPackButton(panel);
 
             panel.Find("지형생성Button").GetComponent<Button>().onClick.AddListener(() => OnGenerateTerrainClicked?.Invoke());
 
@@ -212,6 +215,7 @@ namespace TacticsECS
             SetLabel(toolbar, "기술내보내기Button", "UI.SandboxHud.ResetTables");
             SetLabel(toolbar, "지형생성Button", "UI.SandboxHud.GenerateTerrain");
             SetLabel(toolbar, "종족Button", "UI.SandboxHud.TribeTabButton");
+            SetLabel(toolbar, "팩내보내기Button", "UI.SandboxHud.ExportPack");
             var tab = _canvas.Find("GenerationTab");
             if (tab != null)
             {
@@ -322,6 +326,22 @@ namespace TacticsECS
         public void SetTribeInfo(string text)
         {
             if (_tribeInfoText != null) _tribeInfoText.text = text;
+        }
+
+        /// <summary>"팩 내보내기"는 프리팹에 자리가 없어 실행 중에 만든다 — 종족 버튼(한 줄 전체)을 왼쪽 반으로 줄이고 오른쪽 반에 놓는다.
+        /// 모양은 같은 줄 너비의 툴바 버튼(기술내보내기Button)을 복제한다.</summary>
+        private void AddExportPackButton(Transform panel)
+        {
+            var tribe = panel.Find("종족Button") as RectTransform;
+            var like = panel.Find("기술내보내기Button") as RectTransform;
+            if (tribe == null || like == null) return;
+            var button = Instantiate(like.gameObject, panel).GetComponent<Button>();
+            button.name = "팩내보내기Button";
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => OnExportPackClicked?.Invoke());
+            var rect = (RectTransform)button.transform;
+            rect.anchoredPosition = new Vector2(like.anchoredPosition.x, tribe.anchoredPosition.y);
+            tribe.sizeDelta = new Vector2(like.sizeDelta.x, tribe.sizeDelta.y);
         }
 
         /// <summary>프리팹에 없는 버튼이면 경고만 남기고 나머지 HUD는 그대로 동작하게 한다.</summary>

@@ -17,6 +17,7 @@ namespace TacticsECS.EditorTools
             Step("EconomyVerification", EconomyVerification.Run);
             Step("BuildingFeatureVerification", BuildingFeatureVerification.Run);
             Step("UnitCsvVerification", UnitCsvVerification.Run);
+            Step("TablePackVerification", TablePackVerification.Run);
             Step("TerrainGenerationVerification", TerrainGenerationVerification.Run);
             Step("StructureGenerationVerification", StructureGenerationVerification.Run);
             Step("UIVerification", UIVerification.Run);

@@ -259,6 +259,7 @@ UI.Sandbox.TechLoadNoRows,기술트리 불러오기 실패: 기술 행이 없습
 UI.Sandbox.TechLoaded,옛 형식 기술트리에서 기술 {0}개를 불러왔습니다.,Loaded {0} techs from an old-format tech tree file.
 UI.Sandbox.Warnings,경고 {0}개(콘솔).,{0} warnings (console).
 UI.Sandbox.TablesLoaded,표 {0}개를 {1}에서 읽었습니다(나머지는 기본 표).,Read {0} tables from {1} (the rest are defaults).
+UI.Sandbox.PackExported,팩 {0} · {1}을(를) 내보냈습니다(표 {2}개).,Exported pack {0} · {1} ({2} tables).
 UI.Sandbox.TablesDefault,기본 표를 다시 읽었습니다.,Reloaded the default tables.
 UI.Sandbox.TablesExported,표 {0}개를 {1}에 내보냈습니다.,Exported {0} tables to {1}.
 UI.Sandbox.TechLoadLocked,잠긴 채 남는 해금 {0}개.,{0} unlocks stay locked.
@@ -354,6 +355,7 @@ UI.SandboxHud.Export,표 내보내기,Export Tables
 UI.SandboxHud.Player,플레이어,Player
 UI.SandboxHud.Enemy,적,Enemy
 UI.SandboxHud.Reload,다시 읽기,Reload
+UI.SandboxHud.ExportPack,팩 내보내기,Export pack
 UI.SandboxHud.ResetTables,기본 표,Defaults
 UI.SandboxHud.GenerateTerrain,지형 생성,Generate Terrain
 UI.SandboxHud.MapSize,크기: {0} ({1}x{1}),Size: {0} ({1}x{1})
@@ -420,6 +422,13 @@ UI.Title.Continue,이어하기,Continue
 UI.Title.ContinueDetail,{0} · {1}턴,{0} · turn {1}
 UI.Title.NewGame,새로하기,New game
 UI.Title.Language,언어: {0},Language: {0}
+UI.Title.ImportPack,표 가져오기,Import tables
+UI.Title.DefaultTables,기본 표,Default tables
+UI.Title.PackDefault,지금: 기본 표,Now: default tables
+UI.Title.PackActive,지금: {0} · {1},Now: {0} · {1}
+UI.Title.PackWarnings,(경고 {0}),({0} warnings)
+UI.Title.PackImported,가져옴: {0} · {1},Imported: {0} · {1}
+UI.Title.PackImportFailed,가져오지 못함: {0},Import failed: {0}
 UI.Title.Back,뒤로,Back
 UI.Title.PickTribe,종족 고르기,Choose a tribe
 UI.Title.RandomTribe,무작위,Random

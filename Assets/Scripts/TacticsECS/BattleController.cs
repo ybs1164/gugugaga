@@ -145,6 +145,14 @@ namespace TacticsECS
         private static readonly Dictionary<string, string> s_csvFiles = new Dictionary<string, string>();
         private static TableSource SandboxTables => new TableSource { Folder = s_tableFolder, Files = s_csvFiles, FromFolder = new List<string>() };
 
+        /// <summary>빠른 한 판이 가져온 표 팩을 푼 폴더 — 있으면 기본 표 대신 읽는다. 규칙: docs/spec/game/session.md#표-팩</summary>
+        private static string PackFolder => System.IO.Path.Combine(Application.persistentDataPath, "TablePack");
+        /// <summary>이번 씬이 읽은 표 팩(null = 기본 표)과 그때 난 읽기 경고 수. Awake가 채운다.</summary>
+        private static TablePackInfo? s_activePack;
+        private static int s_packWarnings;
+        /// <summary>마지막 표 가져오기 결과 — 씬을 다시 연 뒤 시작 화면에 한 번 보인다.</summary>
+        private static string s_packMessage;
+
         /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
         /// (docs/reference/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
         private static readonly (string Name, int Size)[] MapSizePresets =
@@ -237,7 +245,9 @@ namespace TacticsECS
         {
             // 건물/타일 행동 등 게임 규칙 표(Assets/Resources/*.csv)를 Data 표에 채운다. 번역 표는 저장된 언어로.
             LanguagePreference.Apply();
-            GameDataLoader.LoadAll(sandboxMode ? SandboxTables : TableSource.Resources);
+            s_activePack = quickPlay ? TablePackSystem.ReadInfo(PackFolder) : null;
+            var loadErrors = GameDataLoader.LoadAll(sandboxMode ? SandboxTables : s_activePack != null ? TableSource.FromPath(PackFolder) : TableSource.Resources);
+            s_packWarnings = s_activePack != null ? loadErrors.Count : 0;
             _cam = Camera.main;
             if (_cam == null)
             {
@@ -414,6 +424,7 @@ namespace TacticsECS
             _sandboxHud.OnStartBattleClicked += HandleSandboxStartBattle;
             _sandboxHud.OnReloadTablesClicked += ReloadSandboxCsv;
             _sandboxHud.OnResetTablesClicked += () => { s_csvFiles.Clear(); ApplyTables(null); };
+            _sandboxHud.OnExportPackClicked += HandleExportPack;
             _sandboxHud.OnGenerateTerrainClicked += HandleGenerateTerrain;
             _sandboxHud.OnMapSizeCycleClicked += HandleMapSizeCycle;
             _sandboxHud.OnWetnessCycleClicked += HandleWetnessCycle;
@@ -1432,8 +1443,9 @@ namespace TacticsECS
 
         // ---------- 시작 화면 · 저장 · 이어하기 (빠른 한 판) ----------
 
-        /// <summary>저장 파일 하나(빠른 한 판 전용). 규칙: docs/spec/game/session.md</summary>
-        private static string SavePath => System.IO.Path.Combine(Application.persistentDataPath, "quickplay.sav");
+        /// <summary>저장 파일(빠른 한 판 전용) — 표 팩마다 따로. 규칙: docs/spec/game/session.md</summary>
+        private static string SavePath => System.IO.Path.Combine(Application.persistentDataPath,
+            s_activePack == null ? "quickplay.sav" : $"quickplay-{s_activePack.Value.Id}.sav");
 
         private void ShowTitle(bool tribeSelect)
         {
@@ -1450,7 +1462,11 @@ namespace TacticsECS
                 _titleHud.OnContinueClicked += ContinueGame;
                 _titleHud.OnStartClicked += setup => { _titleHud.Hide(); StartQuickPlay(setup); };
                 _titleHud.OnLanguageClicked += HandleLanguageClicked;
+                _titleHud.OnImportPackClicked += HandleImportPack;
+                _titleHud.OnResetPackClicked += HandleResetPack;
             }
+            _titleHud.SetPack(PackLabel(), s_packMessage, s_activePack != null);
+            s_packMessage = null;
             var save = SaveSystem.TryRead(SavePath, out _);
             string detail = null;
             if (save != null)
@@ -2187,6 +2203,60 @@ namespace TacticsECS
         }
 
         /// <summary>다음 언어로 바꿔 저장하고 씬을 다시 연다 — 표 이름·프리팹 글자·이미 만든 도시 이름까지 한 번에 바뀌도록(진행 중 전투는 처음부터).</summary>
+        // ---------- 표 팩 (Sandbox 내보내기 → 빠른 한 판 가져오기) ----------
+
+        private static string PackLabel()
+        {
+            if (s_activePack == null) return LocalizationSystem.T("UI.Title.PackDefault");
+            var pack = s_activePack.Value;
+            string label = LocalizationSystem.F("UI.Title.PackActive", pack.Name, pack.Id);
+            return s_packWarnings > 0 ? label + " " + LocalizationSystem.F("UI.Title.PackWarnings", s_packWarnings) : label;
+        }
+
+        /// <summary>시작 화면 "표 가져오기": zip을 골라 검증·풀기에 성공하면 씬을 다시 열어 그 표로 읽는다. 실패하면 지금 표 그대로.</summary>
+        private void HandleImportPack()
+        {
+            TablePackPicker.Open(LocalizationSystem.T("UI.Title.ImportPack"), path =>
+            {
+                if (string.IsNullOrEmpty(path)) return;
+                var pack = TablePackSystem.Import(path, PackFolder, out string error);
+                if (pack == null)
+                {
+                    s_packMessage = LocalizationSystem.F("UI.Title.PackImportFailed", error);
+                    if (_titleHud != null) _titleHud.SetPack(PackLabel(), s_packMessage, s_activePack != null);
+                    return;
+                }
+                s_packMessage = LocalizationSystem.F("UI.Title.PackImported", pack.Value.Name, pack.Value.Id);
+                ReloadScene();
+            });
+        }
+
+        private void HandleResetPack()
+        {
+            try { TablePackSystem.Clear(PackFolder); }
+            catch (System.IO.IOException e) { Debug.LogWarning("[BattleController] pack clear failed: " + e.Message); }
+            ReloadScene();
+        }
+
+        /// <summary>Sandbox "팩 내보내기": 지금 쓰는 표(고른 파일·표 폴더·기본 표를 합친 결과)를 zip 하나로 쓴다.</summary>
+        private void HandleExportPack()
+        {
+            var file = StandaloneFileDialog.SaveFilePanel(LocalizationSystem.T("UI.SandboxHud.ExportPack"), "", "TablePack", "zip");
+            if (string.IsNullOrEmpty(file)) return;
+            try
+            {
+                var pack = TablePackSystem.Export(SandboxTables, file, System.IO.Path.GetFileNameWithoutExtension(file), Application.version);
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.PackExported", pack.Name, pack.Id, pack.FileCount));
+            }
+            catch (System.Exception e) when (e is System.IO.IOException || e is System.UnauthorizedAccessException)
+            {
+                _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.LoadFailed", e.Message));
+            }
+        }
+
+        private static void ReloadScene() =>
+            UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
+
         private void HandleLanguageClicked()
         {
             SaveGame();

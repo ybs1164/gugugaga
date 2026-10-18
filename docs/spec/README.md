@@ -44,7 +44,7 @@
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md), [tribe-terrain](csv/tribe-terrain.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
 | AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI`, `FaithAI` |
-| 한 판 흐름·저장·화면 배치 | [session](game/session.md) | [strings](csv/strings.md) `UI.Title.*`·`UI.Menu.*`·`UI.Result.*`·`UI.Hud.*` | `SaveSystem`, `GraphSerializer`, `View/BattleHud`, `View/TitleHud`, `View/TechTreeHud`, `View/UiScale` |
+| 한 판 흐름·저장·화면 배치 | [session](game/session.md) | [strings](csv/strings.md) `UI.Title.*`·`UI.Menu.*`·`UI.Result.*`·`UI.Hud.*`, [table-pack](csv/table-pack.md) | `SaveSystem`, `GraphSerializer`, `TablePackSystem`, `View/TablePackPicker`, `View/BattleHud`, `View/TitleHud`, `View/TechTreeHud`, `View/UiScale` |
 | 화면 표시 | — | [sprites](csv/sprites.md) | `View/PixelSpriteCatalog` |
 | 화면 문구·언어 | — | [strings](csv/strings.md) | `LocalizationSystem`, `View/LanguagePreference` |
 

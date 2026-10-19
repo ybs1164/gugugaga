@@ -59,7 +59,7 @@ canvas.icon { image-rendering: pixelated; display: block; flex: none; }
 .chip { display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 8px 0 4px; }
 .chip .val { font-size: 12px; letter-spacing: 0; white-space: nowrap; }
 .chip .val .max { color: var(--muted); }
-.chip .gauge { position: absolute; left: 6px; right: 6px; bottom: 4px; height: var(--t); background: var(--ink); }
+.chip .gauge { position: absolute; left: 6px; right: 6px; bottom: 0; height: var(--t); background: var(--ink); }
 .chip .gauge i { display: block; height: 100%; background: var(--paper); }
 .spacer { flex: 1; }
 .iconbtn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
@@ -69,16 +69,23 @@ canvas.icon { image-rendering: pixelated; display: block; flex: none; }
   font-size: 12px; line-height: 12px; color: var(--muted);
   padding: 1px 3px; background: rgba(12,8,10,0.55);
 }
-.endturn:has(.key) { justify-content: flex-start; padding-left: 10px; }
+.punchbtn .key { top: 3px; bottom: auto; }
+.count { position: absolute; right: 4px; top: 3px; font-size: 12px; line-height: 12px; color: var(--paper); }
+:root { --team-p: #4f8ff0; --team-e: #ef4b55; }
+.team { font-weight: normal; }
+.team.p { color: var(--team-p); }
+.team.e { color: var(--team-e); }
+.team .mark { display: inline-block; width: 6px; height: 6px; margin: 0 4px 1px 0; background: var(--team-e); transform: rotate(45deg); box-shadow: 0 0 0 var(--t) var(--ink); }
+.toast div.old .team { opacity: 0.7; }
 .accent-fill .key { color: var(--ink); background: rgba(12,8,10,0.12); }
 
 .actionrow { position: absolute; display: flex; gap: 8px; align-items: stretch; }
 .act { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
 .act .lbl { font-size: 12px; color: var(--muted); }
-.act.endturn { flex: 1; flex-direction: row; gap: 8px; }
-.endturn .txt { display: flex; flex-direction: column; gap: 3px; }
-.endturn .big { font-size: 24px; line-height: 24px; font-family: 'Galmuri11', 'Jua', sans-serif; }
-.endturn .sub { font-size: 12px; }
+.act.punchbtn { flex: 1; flex-direction: row; gap: 8px; }
+.punchbtn .txt { display: flex; flex-direction: column; gap: 3px; }
+.punchbtn .big { font-size: 24px; line-height: 24px; font-family: 'Galmuri11', 'Jua', sans-serif; }
+.punchbtn .sub { font-size: 12px; }
 .badge-dot { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; background: var(--paper); box-shadow: 0 0 0 var(--t) var(--ink); }
 
 .punch { position: absolute; display: flex; flex-direction: column; gap: 6px; padding: 8px; }
@@ -320,19 +327,19 @@ const ICONS = {
 };
 
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-function icon(name, color = 'paper', scale = 2) {
+function icon(name, color = 'paper', scale = 2, detail = 'ink') {
   const g = ICONS[name], S = N + 2;
   const cv = document.createElement('canvas');
   cv.width = S; cv.height = S; cv.className = 'icon';
   cv.style.width = cv.style.height = (S * scale) + 'px';
   const ctx = cv.getContext('2d');
-  const fill = css('--' + color), ink = css('--ink');
+  const fill = css('--' + color), ink = css('--ink'), det = css('--' + detail);
   const at = (x, y) => (x >= 0 && y >= 0 && x < N && y < N) ? g[y][x] : '.';
   for (let y = -1; y <= N; y++) for (let x = -1; x <= N; x++) {
     const c = at(x, y);
     let col = null;
     if (c === '#') col = fill;
-    else if (c === 'd') col = ink;
+    else if (c === 'd') col = det;
     else if ([[1,0],[-1,0],[0,1],[0,-1]].some(([dx, dy]) => at(x + dx, y + dy) !== '.')) col = ink;
     if (col) { ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, 1, 1); }
   }
@@ -380,18 +387,19 @@ function actionRow(o) {
     return b;
   };
   const info = mk('info', o.labels ? '정보' : '', 'I', o.infoOpen ? 'hover' : '');
-  const punch = mk('fist', o.labels ? '펀치' : '', 'F', 'accent-line');
+  // 7 신앙 펀치: 유일한 A등급 — 남는 폭 전부 + 쓸 수 있으면 Accent 채움
+  const punch = box(h('div', 'frame act punchbtn accent-fill'), { height: o.height + 'px' });
+  put(punch, icon('fist', 'ink', 2, 'accent'));  // Accent 바탕 위: 칠은 잉크, 디테일은 바탕색
+  const txt = h('div', 'txt');
+  txt.appendChild(h('span', 'big', '신앙 펀치'));
+  txt.appendChild(h('span', 'sub', '쓸 수 있는 펀치 2'));
+  punch.appendChild(txt);
+  if (o.keys) punch.appendChild(key('F'));
   const tech = mk('tree', o.labels ? '기술' : '', 'T');
   tech.appendChild(h('span', 'badge-dot'));
-  const end = box(h('div', 'frame act endturn ' + (o.endState === 'noaction' ? 'accent-fill' : '')), { height: o.height + 'px' });
-  const endColor = o.endState === 'noaction' ? 'ink' : 'paper';
-  put(end, icon('ff', endColor));
-  const txt = h('div', 'txt');
-  txt.appendChild(h('span', 'big', '턴 종료'));
-  txt.appendChild(box(h('span', 'sub', o.endState === 'noaction' ? '할 행동 없음' : '남은 행동 2'),
-    { color: o.endState === 'noaction' ? 'var(--ink)' : 'var(--muted)' }));
-  end.appendChild(txt);
-  if (o.keys) end.appendChild(key('Space'));
+  // 9 턴 종료: D등급 — 정사각형, 포인트 컬러 없음. 행동 없음이면 Paper 테두리, 남았으면 남은 수
+  const end = mk(o.endState === 'over' ? 'flag' : 'ff', o.labels ? '종료' : '', 'Space', o.endState === 'noaction' ? 'hover' : '');
+  if (o.endState === 'left') end.appendChild(h('span', 'count', '2'));
   put(row, info, punch, tech, end);
   return { row, punch };
 }
@@ -426,6 +434,9 @@ function punchList(o) {
   return p;
 }
 
+// 행동 기록: 개체 이름 글자만 팀 색, 적 이름 앞에는 팀 표식(색에만 기대지 않게)
+const P = n => `<b class="team p">${n}</b>`;
+const E = n => `<b class="team e"><i class="mark"></i>${n}</b>`;
 function toast(pos, lines) {
   const t = box(h('div', 'toast'), pos);
   lines.forEach((l, i) => t.appendChild(h('div', i ? 'old' : '', l)));
@@ -478,17 +489,17 @@ if (v === 'mobile') {
   screen.appendChild(map(0.5));
   const chipW = Math.floor((W - 16 - 36 - 6 * 4) / 4);
   screen.appendChild(topbar({ height: 52, rank: 2, chipWidth: [chipW - 14, chipW + 14, chipW - 8, chipW + 8], turnLimit: 30 }));
-  screen.appendChild(toast({ left: '8px', top: '60px' }, ['궁수가 전사를 공격 -4', '도시 레벨 2']));
+  screen.appendChild(toast({ left: '8px', top: '60px' }, [`${P('궁수')}가 ${E('전사')}를 공격 -4`, `${E('기병')}이 ${P('방패병')}을 공격 -2`, '도시 레벨 2']));
   const { row } = actionRow({ pos: { left: pad + 'px', right: pad + 'px', bottom: pad + 'px' }, height: rowH, square: sq, labels: true, endState: 'noaction' });
   screen.appendChild(row);
   const punchX = pad + sq + 8;
-  screen.appendChild(punchList({ pos: { left: pad + 'px', right: pad + 'px', bottom: (pad + rowH + 12) + 'px' }, notchX: punchX - pad + sq / 2 + 4 - 6 }));
+  screen.appendChild(punchList({ pos: { left: pad + 'px', right: pad + 'px', bottom: (pad + rowH + 12) + 'px' }, notchX: (sq + 8) + (W - pad * 2 - sq * 3 - 24) / 2 - 6 }));
 } else {
   // PC(넓은 배치) · 키보드·마우스 · 유닛 정보 열림 · 신앙 칩에 마우스 · 행동 남음
   const colW = 360, pad = 12, rowH = 56, sq = 56;
   screen.appendChild(map(2 / 3));
   screen.appendChild(topbar({ height: 48, rank: 1, keys: true, faithHover: true, chipWidth: [84, 118, 76, 64] }));
-  screen.appendChild(toast({ left: '8px', top: '200px' }, ['궁수가 전사를 공격 -4', '도시 레벨 2']));
+  screen.appendChild(toast({ left: '8px', top: '200px' }, [`${P('궁수')}가 ${E('전사')}를 공격 -4`, `${E('기병')}이 ${P('방패병')}을 공격 -2`, '도시 레벨 2']));
   const { row } = actionRow({ pos: { right: pad + 'px', bottom: pad + 'px', width: colW + 'px' }, height: rowH, square: sq, labels: false, keys: true, infoOpen: true, endState: 'left' });
   screen.appendChild(row);
   screen.appendChild(unitPanel({ right: pad + 'px', top: '60px', width: colW + 'px' }));

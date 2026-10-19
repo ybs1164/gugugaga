@@ -913,6 +913,17 @@ namespace TacticsECS
         /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
+            // 고르지 않은 레벨업 보상이 있으면 턴을 넘기지 않고 그 도시 메뉴(보상 선택지)를 연다. 규칙: docs/spec/game/city.md#레벨업-보상
+            if (_turnState.ActiveTeam == Team.Player && !_battleOver)
+            {
+                int rewardCity = CitySystem.FirstPendingRewardCity(_econ, Team.Player);
+                if (rewardCity >= 0)
+                {
+                    _hud.AddLogEntry(LocalizationSystem.F("UI.Battle.PendingReward", _econ.Cities[rewardCity].Name));
+                    FocusTile(_econ.Cities[rewardCity].Position);
+                    return;
+                }
+            }
             CancelPunch();
             var hpBefore = SnapshotHp();
             var waitedIds = AbilitySystem.ApplyTurnEndWait(_grid, _world, _turnState.ActiveTeam);

@@ -343,6 +343,19 @@ namespace TacticsECS
         /// <summary>지금 고를 차례인 보상이 어느 레벨의 보상인지(가장 오래된 미선택 레벨부터).</summary>
         public static int PendingRewardLevel(CityData city) => city.Level - city.PendingRewards + 1;
 
+        /// <summary>team의 도시 중 아직 고르지 않은 레벨업 보상이 있는 첫 도시(없으면 -1). 그 레벨에 고를 선택지가 없는 보상은 세지 않는다.
+        /// 규칙: docs/spec/game/city.md#레벨업-보상</summary>
+        public static int FirstPendingRewardCity(EconomyWorld econ, Team team)
+        {
+            if (econ == null) return -1;
+            for (int i = 0; i < econ.Cities.Count; i++)
+            {
+                var city = econ.Cities[i];
+                if (city.Owner == team && city.PendingRewards > 0 && RewardOptions(PendingRewardLevel(city)).Length > 0) return i;
+            }
+            return -1;
+        }
+
         /// <summary>이 레벨에서 고를 수 있는 보상(CityRewards.csv에서 Level이 같은 행들). 표의 최고 레벨보다 높으면 최고 레벨 행들.</summary>
         public static CityRewardType[] RewardOptions(int level)
         {

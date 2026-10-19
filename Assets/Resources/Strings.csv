@@ -387,6 +387,7 @@ UI.Battle.Restart,다시 시작,Restart
 UI.Battle.Victory,승리!,Victory!
 UI.Battle.Defeat,패배...,Defeat...
 UI.Battle.EndTurn,턴 종료,End turn
+UI.Battle.PendingReward,{0}의 레벨업 보상을 먼저 고르세요.,Choose the level-up reward for {0} first.
 # 화면 문구 — Hud,,
 UI.Hud.Menu,메뉴,Menu
 UI.Hud.Turn,턴 {0},Turn {0}

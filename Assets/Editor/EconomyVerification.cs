@@ -200,8 +200,10 @@ namespace TacticsECS.EditorTools
             Check(TileImprovementSystem.Execute(grid, econ, p, fruit2, "HarvestFruit", log), "harvest fruit 2");
             Check(econ.Cities[0].Level == 2 && econ.Cities[0].Population == 0 && econ.Cities[0].PendingRewards == 1, "level up to 2 at 2 pop");
             Check(log.Exists(e => e.Kind == EconomyLogKind.LevelUp), "level up logged");
+            Check(CitySystem.FirstPendingRewardCity(econ, p) == 0, "pending reward blocks the turn end");
             Check(!CitySystem.ApplyReward(grid, econ, 0, CityRewardType.Park, log), "wrong-level reward rejected");
             Check(CitySystem.ApplyReward(grid, econ, 0, CityRewardType.Workshop, log), "workshop reward");
+            Check(CitySystem.FirstPendingRewardCity(econ, p) < 0, "turn end allowed once the reward is chosen");
             Check(CitySystem.StarsIncome(grid, world, econ, p) == 4, "L2 capital + workshop = 4 stars");
 
             // 농장 + 풍차 인접.

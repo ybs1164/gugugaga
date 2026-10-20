@@ -148,9 +148,11 @@ namespace TacticsECS
                 if (goal == null) { goal = NearestFrontier(grid, world, id, team); exploring = true; }
                 if (goal == null) continue;
 
+                var hpBeforeMove = CombatSystem.SnapshotHp(world);
                 if (MoveToward(grid, world, id, goal.Value, goalIsEnemy, out var path, allowSail: !exploring || !CanReachOnFoot(grid, world, id, goal.Value)))
                 {
                     entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget, Path = path });
+                    CombatSystem.LogSplash(world, id, hpBeforeMove, id, BattleLogEntry.NoTarget, entries); // 짓밟기
                     VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
                 }
 
@@ -248,8 +250,10 @@ namespace TacticsECS
             }
             if (!best.HasValue) return;
             var path = MovementSystem.PathTo(grid, world, id, best.Value);
+            var hpBefore = CombatSystem.SnapshotHp(world);
             if (!MovementSystem.TryMove(grid, world, id, best.Value)) return;
             entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget, Path = path });
+            CombatSystem.LogSplash(world, id, hpBefore, id, BattleLogEntry.NoTarget, entries); // 짓밟기
             VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
         }
 
@@ -406,11 +410,12 @@ namespace TacticsECS
         }
 
         /// <summary>공격 한 번(+반격/사망)을 실행하고 결과를 entries에 그대로 옮겨 담는다. 플레이어 쪽
-        /// BattleController.TryAttack과 같은 판단 순서(공격 -> 대상 사망 확인 -> 반격 -> 반격자 사망 확인)를
+        /// BattleController.TryAttack과 같은 판단 순서(공격 -> 대상 사망 확인 -> 스플래시 -> 반격 -> 반격자 사망 확인)를
         /// 따른다. econ이 있으면 과업(공격/처치)도 기록한다.</summary>
         private static void TryAttackAndLog(GridWorld grid, EntityWorld world, EconomyWorld econ, int attackerId, int targetId, List<BattleLogEntry> entries)
         {
             var aliveBefore = econ != null ? TaskSystem.SnapshotAlive(world) : null;
+            var hpBefore = CombatSystem.SnapshotHp(world);
             if (!CombatSystem.TryAttack(grid, world, attackerId, targetId, out int damage, out int counterDamage)) return;
             if (econ != null)
             {
@@ -421,6 +426,7 @@ namespace TacticsECS
             entries.Add(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage });
             if (!UnitQueries.IsAlive(world, targetId))
                 entries.Add(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget });
+            CombatSystem.LogSplash(world, attackerId, hpBefore, attackerId, targetId, entries); // 스플래시·전진 짓밟기 — 반격보다 먼저 일어난다
 
             if (counterDamage > 0)
             {

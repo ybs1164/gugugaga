@@ -278,6 +278,7 @@ UI.City.ScoreLine,점수 {0} · 적 {1},Score {0} · Enemy {1}
 UI.Log.Move,{0} 이동,{0} moves
 UI.Log.Attack,{0} 공격 → {1} ({2}),{0} attacks → {1} ({2})
 UI.Log.Counter,{0} 반격 → {1} ({2}),{0} counters → {1} ({2})
+UI.Log.Splash,{0} 스플래시 → {1} ({2}),{0} splashes → {1} ({2})
 UI.Log.Defend,{0} 방어 태세,{0} takes a defensive stance
 UI.Log.Heal,{0} 치유 ({1}명),{0} heals ({1} units)
 UI.Log.SelfDestruct,{0} 자폭,{0} self-destructs

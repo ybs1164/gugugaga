@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TacticsECS
@@ -129,6 +130,30 @@ namespace TacticsECS
                     grid.RemoveOccupant(pos);
                     VeteranSystem.RecordKill(world, actorId);
                 }
+            }
+        }
+
+        /// <summary>살아 있는 유닛의 체력 스냅샷(id → 체력). LogSplash의 비교 기준.</summary>
+        public static Dictionary<int, int> SnapshotHp(EntityWorld world)
+        {
+            var snapshot = new Dictionary<int, int>();
+            for (int i = 0; i < world.EntityCount; i++)
+                if (UnitQueries.IsAlive(world, i)) snapshot[i] = world.Get<Hp>(i).Value;
+            return snapshot;
+        }
+
+        /// <summary>행동 하나가 주 대상(exceptA/exceptB) 말고 다른 유닛에게 준 피해(스플래시·짓밟기)를 hpBefore와 비교해
+        /// Splash(+Defeated) 로그로 옮긴다 — 화면이 그 순서대로 피해 숫자를 바로 띄운다.</summary>
+        public static void LogSplash(EntityWorld world, int actorId, Dictionary<int, int> hpBefore, int exceptA, int exceptB, List<BattleLogEntry> entries)
+        {
+            foreach (var kv in hpBefore)
+            {
+                if (kv.Key == exceptA || kv.Key == exceptB) continue;
+                int lost = kv.Value - world.Get<Hp>(kv.Key).Value;
+                if (lost <= 0) continue;
+                entries.Add(new BattleLogEntry { ActorId = actorId, Verb = BattleLogVerb.Splash, TargetId = kv.Key, Amount = lost });
+                if (!UnitQueries.IsAlive(world, kv.Key))
+                    entries.Add(new BattleLogEntry { ActorId = kv.Key, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget });
             }
         }
 

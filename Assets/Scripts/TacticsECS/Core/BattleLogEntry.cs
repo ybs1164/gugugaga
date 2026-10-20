@@ -12,7 +12,8 @@ namespace TacticsECS
         SelfDestruct,
         Wait,
         Defeated,
-        Promote
+        Promote,
+        Splash
     }
 
     /// <summary>행동 로그 한 줄에 대응하는 값 하나. 계산이나 판정 로직은 전혀 없다 — BattleController가
@@ -27,7 +28,7 @@ namespace TacticsECS
         public int ActorId;
         public BattleLogVerb Verb;
 
-        /// <summary>공격/반격의 대상. 그 외 행동에서는 NoTarget.</summary>
+        /// <summary>공격/반격/스플래시(주 대상 주변 피해·짓밟기)의 대상. 그 외 행동에서는 NoTarget.</summary>
         public int TargetId;
 
         /// <summary>피해량(공격/반격), 회복 인원 수(치유)·대상 수(자폭), 회복량(대기) 등 행동별 부가값.

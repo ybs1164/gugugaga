@@ -1227,6 +1227,9 @@ namespace TacticsECS
                     yield return new WaitForSeconds(AttackImpactDelay);
                     if (IsHit(entry)) targetView.ShowDamagePopup(entry.Amount);
                 }
+                // 스플래시·짓밟기: 주 공격(또는 이동)과 같은 순간이라 기다리지 않고 바로 피해 숫자를 띄운다.
+                else if (IsHit(entry) && entry.Verb == BattleLogVerb.Splash && _viewsById.TryGetValue(entry.TargetId, out var splashView))
+                    splashView.ShowDamagePopup(entry.Amount);
                 _hud.AddLogEntry(FormatLogEntry(entry));
             }
 
@@ -1236,7 +1239,8 @@ namespace TacticsECS
                 EndTurn();
         }
 
-        private static bool IsHit(BattleLogEntry entry) => (entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) && entry.Amount > 0;
+        private static bool IsHit(BattleLogEntry entry) =>
+            (entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter || entry.Verb == BattleLogVerb.Splash) && entry.Amount > 0;
 
         /// <summary>AI의 신앙 펀치·강림 결과를 화면에 반영한다: 새 신화 유닛에 View를 붙이고, 체력이 깎인 유닛에 피해 팝업을 띄우고, 모든 유닛 View를 갱신한다.</summary>
         private void ShowAiFaithEffects(Dictionary<int, int> hpBefore)
@@ -1278,13 +1282,7 @@ namespace TacticsECS
         /// <summary>지금 살아있는 모든 유닛의 체력을 id별로 찍어둔다. 자폭/턴 종료 자동 대기처럼 한 번의
         /// 호출로 여러 유닛의 체력이 한꺼번에 바뀌는 행동에서, 실행 전후 차이로 데미지 팝업/회복량을
         /// 정확히 구하는 데 쓴다(단일 대상 공격은 CombatSystem.TryAttack의 out 값을 그대로 쓰므로 필요 없다).</summary>
-        private Dictionary<int, int> SnapshotHp()
-        {
-            var snapshot = new Dictionary<int, int>();
-            for (int i = 0; i < _world.EntityCount; i++)
-                if (UnitQueries.IsAlive(_world, i)) snapshot[i] = _world.Get<Hp>(i).Value;
-            return snapshot;
-        }
+        private Dictionary<int, int> SnapshotHp() => CombatSystem.SnapshotHp(_world);
 
         /// <summary>BattleLogEntry 값 하나를 우측 상단 행동 로그에 쓸 한 줄짜리 한글 문구로 바꾼다.
         /// 유닛 이름(UnitView.Label)과 소속 팀 강조색(BattleHud.PlayerAccent/EnemyAccent)은 View 쪽
@@ -1304,6 +1302,7 @@ namespace TacticsECS
                 case BattleLogVerb.Move: return LocalizationSystem.F("UI.Log.Move", Colored(entry.ActorId));
                 case BattleLogVerb.Attack: return LocalizationSystem.F("UI.Log.Attack", Colored(entry.ActorId), Colored(entry.TargetId), entry.Amount);
                 case BattleLogVerb.Counter: return LocalizationSystem.F("UI.Log.Counter", Colored(entry.ActorId), Colored(entry.TargetId), entry.Amount);
+                case BattleLogVerb.Splash: return LocalizationSystem.F("UI.Log.Splash", Colored(entry.ActorId), Colored(entry.TargetId), entry.Amount);
                 case BattleLogVerb.Defend: return LocalizationSystem.F("UI.Log.Defend", Colored(entry.ActorId));
                 case BattleLogVerb.Heal: return LocalizationSystem.F("UI.Log.Heal", Colored(entry.ActorId), entry.Amount);
                 case BattleLogVerb.SelfDestruct: return LocalizationSystem.F("UI.Log.SelfDestruct", Colored(entry.ActorId));
@@ -2349,6 +2348,9 @@ namespace TacticsECS
             CheckBattleEnd();
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = _selectedUnitId, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget }));
+            var stomped = new List<BattleLogEntry>();
+            CombatSystem.LogSplash(_world, _selectedUnitId, hpBefore, _selectedUnitId, BattleLogEntry.NoTarget, stomped); // 짓밟기
+            foreach (var entry in stomped) _hud.AddLogEntry(FormatLogEntry(entry));
             _viewsById[_selectedUnitId].Refresh(_world, _selectedUnitId);
             // 자동 빙결·파괴는 지형을 바꾼다.
             bool terrainChanged = UnitActionQueries.Find<AutoFreezeAction>(_world, _selectedUnitId) != null || UnitActionQueries.Find<RazeAction>(_world, _selectedUnitId) != null;
@@ -2366,7 +2368,10 @@ namespace TacticsECS
         private void TryAttack(int attackerId, int targetId)
         {
             var aliveBefore = TaskSystem.SnapshotAlive(_world);
+            var hpBefore = SnapshotHp();
             if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int damage, out int counterDamage)) return;
+            var splashes = new List<BattleLogEntry>(); // 스플래시·전진 짓밟기로 주변 유닛이 입은 피해
+            CombatSystem.LogSplash(_world, attackerId, hpBefore, attackerId, targetId, splashes);
             if (_econ != null)
             {
                 TaskSystem.RecordAttack(_econ, Team.Player);
@@ -2374,9 +2379,14 @@ namespace TacticsECS
             }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
-            StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage));
+            StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage, splashes));
             if (!UnitQueries.IsAlive(_world, targetId))
                 _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
+            foreach (var entry in splashes)
+            {
+                _hud.AddLogEntry(FormatLogEntry(entry));
+                if (entry.Verb == BattleLogVerb.Splash && _viewsById.TryGetValue(entry.TargetId, out var splashView)) splashView.Refresh(_world, entry.TargetId);
+            }
 
             if (counterDamage > 0)
             {
@@ -2399,15 +2409,20 @@ namespace TacticsECS
         }
 
         /// <summary>공격 연출: 공격자가 찌르고 → 맞는 쪽에 피해 숫자 → (반격이 있으면) 맞은 쪽이 되찌르고 → 공격자에 피해 숫자.
+        /// 스플래시·짓밟기 피해(splashes)는 주 대상과 같은 순간에 뜬다.
         /// 결과는 이미 데이터에 반영되어 있다 — 죽은 유닛은 자기 피해 숫자가 뜬 뒤 사라진다(UnitView.AwaitHit).</summary>
-        private IEnumerator PlayAttackRoutine(int attackerId, int targetId, int damage, int counterDamage)
+        private IEnumerator PlayAttackRoutine(int attackerId, int targetId, int damage, int counterDamage, List<BattleLogEntry> splashes)
         {
             if (!_viewsById.TryGetValue(attackerId, out var attacker) || !_viewsById.TryGetValue(targetId, out var target)) yield break;
             if (damage > 0) target.AwaitHit();
             if (counterDamage > 0) attacker.AwaitHit();
+            foreach (var entry in splashes)
+                if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var view)) view.AwaitHit();
             attacker.PlayAttackTowards(target.transform.position);
             yield return new WaitForSeconds(AttackImpactDelay);
             if (damage > 0) target.ShowDamagePopup(damage);
+            foreach (var entry in splashes)
+                if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var view)) view.ShowDamagePopup(entry.Amount);
             if (counterDamage <= 0) yield break;
             yield return new WaitForSeconds(CounterDelay);
             target.PlayAttackTowards(attacker.transform.position);

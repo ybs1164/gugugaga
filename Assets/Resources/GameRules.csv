@@ -92,6 +92,7 @@ AI.FaithPrayerSafeDistance,4,,신앙 AI: 이 거리(맨해튼) 안에 보이는 
 AI.FaithBaseTemples,2,,신앙 AI: 기본으로 짓는 신전 수,AI 전용
 AI.FaithMaxTemples,4,,신앙 AI: 대신전 과업 기준치가 신앙 최대치보다 클 때 짓는 신전 수,AI 전용
 AI.FaithMaxPunchesPerTurn,2,,신앙 AI: 한 턴에 쓰는 신앙 펀치 최대 횟수,AI 전용
+AI.FaithDescendBonus,10,,신앙 AI: 신화 유닛이 없을 때 강림 점수에 더하는 값(신화 유닛은 오래 남는 전력),AI 전용
 Diplomacy.EmbassyIncome,2,2,대사관 하나가 양쪽 부족에 주는 별/턴,
 Diplomacy.PeaceTreatyIncomeMultiplier,2,2,평화 조약 상태의 대사관 수입 배수,
 Diplomacy.EmbassySightRadius,1,1,대사관 건설 시 상대 수도 주변 공개 반경,

@@ -184,6 +184,7 @@ namespace TacticsECS
             public static int FaithBaseTemples = 2;
             public static int FaithMaxTemples = 4;
             public static int FaithMaxPunchesPerTurn = 2;
+            public static float FaithDescendBonus = 10f;
         }
     }
 }

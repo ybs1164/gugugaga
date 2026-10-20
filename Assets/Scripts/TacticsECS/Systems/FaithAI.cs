@@ -152,6 +152,11 @@ namespace TacticsECS
             var punches = FaithPunchSystem.Available(econ, team);
             if (punches.Count == 0) return;
             bool threatened = EconomyAI.IsThreatened(grid, world, econ, team);
+            // 아직 신화 유닛이 없고 강림을 쓸 수 있는 신이면 그 비용만큼 신앙을 남긴다 — 싼 펀치에 다 써 버려 강림까지 못 모으는 일을 막는다.
+            int descentCost = 0;
+            if (MythicSystem.FindMythic(world, team) < 0)
+                foreach (var punch in punches)
+                    if (FaithPunchSystem.Has(punch, FaithEffectKind.Descend)) descentCost = punch.Cost;
             for (int n = 0; n < GameRules.AI.FaithMaxPunchesPerTurn; n++)
             {
                 var res = econ.Resources[team];
@@ -164,6 +169,7 @@ namespace TacticsECS
                 foreach (var punch in punches)
                 {
                     if (punch.Cost > res.Faith) continue;
+                    if (descentCost > 0 && !FaithPunchSystem.Has(punch, FaithEffectKind.Descend) && res.Faith - punch.Cost < descentCost) continue;
                     foreach (var target in Candidates(grid, world, team, punch))
                     {
                         if (FaithPunchSystem.Check(grid, world, econ, team, punch, target) != null) continue;
@@ -202,7 +208,7 @@ namespace TacticsECS
         }
 
         /// <summary>대상 칸의 점수 = 효과마다 점수의 합: 적 피해 = 깎는 체력(처치는 가산), 아군 회복 = 회복량(크기만큼 못 채우면 0),
-        /// 강림 = 보이는 적이 가까운 센 유닛. 아군 피해·적 회복은 그만큼 뺀다.</summary>
+        /// 강림 = 보이는 적이 가까운 센 유닛(첫 신화 유닛이면 AI.FaithDescendBonus 가산). 아군 피해·적 회복은 그만큼 뺀다.</summary>
         private static float Score(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int target)
         {
             float score = 0f;
@@ -229,6 +235,7 @@ namespace TacticsECS
                         if (unit == TileData.NoOccupant || world.Get<Team>(unit) != team || MythicSystem.IsMythic(world, unit) ||
                             !EnemyNear(grid, world, team, target, GameRules.AI.FaithPrayerSafeDistance + 2)) break;
                         part = 1f + world.Get<Hp>(unit).Value * 0.1f + world.Get<Attack>(unit).Value * 0.5f;
+                        if (MythicSystem.FindMythic(world, team) < 0) part += GameRules.AI.FaithDescendBonus; // 첫 신화 유닛은 판 내내 남는다
                         break;
                 }
                 bool helpsUs = (e.Effect == FaithEffectKind.Damage) == (e.Side == FaithSide.Enemy) || e.Effect == FaithEffectKind.Descend;
@@ -238,6 +245,30 @@ namespace TacticsECS
         }
 
         // ---------- 신화 유닛 ----------
+
+        /// <summary>unit이 지금 자리에서 칠 수 있는 적 중 가장 큰 공격 가치 = 주 피해 + 스플래시 피해 합(Score와 같은 체력 단위). 칠 적이 없으면 0.</summary>
+        private static float AttackValue(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int unit)
+        {
+            if (UnitActionQueries.Find<AttackAction>(world, unit) == null) return 0f;
+            bool splash = UnitActionQueries.Find<SplashAction>(world, unit) != null;
+            float best = 0f;
+            for (int target = 0; target < world.EntityCount; target++)
+            {
+                if (!UnitQueries.IsAlive(world, target) || world.Get<Team>(target) == team || !CombatSystem.IsInAttackRange(world, unit, target)) continue;
+                if (DiplomacySystem.HasPeaceTreaty(econ, team, world.Get<Team>(target)) || StealthSystem.IsHiddenFrom(world, target, team)) continue;
+                float value = CombatSystem.CalculateDamage(world, unit, target);
+                var center = world.Get<GridPosition>(target).Value;
+                if (splash)
+                    for (int other = 0; other < world.EntityCount; other++)
+                    {
+                        if (other == target || !UnitQueries.IsAlive(world, other) || world.Get<Team>(other) == team) continue;
+                        var p = world.Get<GridPosition>(other).Value;
+                        if (Mathf.Max(Mathf.Abs(p.x - center.x), Mathf.Abs(p.y - center.y)) == 1) value += CombatSystem.CalculateSplashDamage(world, unit, other);
+                    }
+                best = Mathf.Max(best, value);
+            }
+            return best;
+        }
 
         private static void UseMythicActive(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, List<EconomyLogEntry> log)
         {
@@ -255,6 +286,8 @@ namespace TacticsECS
                 if (score > bestScore) { bestScore = score; best = target; }
             }
             if (best == null) return;
+            // 액티브는 이번 턴 행동을 끝낸다 — 지금 칠 수 있는 적에게 일반 공격(스플래시 포함)이 그 이상이면 공격하도록 아껴 둔다.
+            if (bestScore <= AttackValue(grid, world, econ, team, mythic)) return;
             var result = MythicSystem.UseActive(grid, world, econ, mythic, best.Value);
             if (result.Success) AddLog(log, team, EconomyLogKind.Action, LocalizationSystem.F("UI.FaithPunch.Log", punch.Name, result.UnitIds.Count + result.Tiles.Count));
         }

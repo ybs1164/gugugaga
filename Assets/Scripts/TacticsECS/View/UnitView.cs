@@ -27,7 +27,10 @@ namespace TacticsECS
         private Coroutine _attackRoutine, _hitRoutine, _deathRoutine;
         private Vector3 _moveTarget;
         private List<Vector3> _movePath; // 다음 이동이 따라갈 칸 중심들(SetMovePath)
-        private bool _awaitHit; // 죽었어도 피해 팝업이 뜰 때까지 사라지지 않는다(AwaitHit)
+        // 아직 피해 숫자가 안 뜬 피격 수(AwaitHit). 그동안 체력 표시는 맞기 전 값에 머물고, 죽었어도 사라지지 않는다.
+        private int _pendingHits;
+        private float _awaitUntil;
+        private int _shownHp = -1, _actualHp, _maxHp;
         private float _lastHitTime = -1;
         private Color _bodyTint = Color.white;
         private bool _visible = true;
@@ -77,6 +80,7 @@ namespace TacticsECS
         {
             if (!UnitQueries.IsAlive(world,id))
             {
+                _actualHp = 0;
                 // 죽은 유닛은 맞는 모습을 보인 뒤 깜빡이며 사라진다(Play 모드).
                 if (Application.isPlaying && gameObject.activeInHierarchy) { if (_deathRoutine == null) _deathRoutine = StartCoroutine(DeathRoutine()); }
                 else gameObject.SetActive(false);
@@ -87,13 +91,10 @@ namespace TacticsECS
             int hp = world.Get<Hp>(id).Value;
             int maxHp = world.GetOrDefault<MaxHp>(id).Value;
             if (maxHp <= 0) maxHp = _definition.MaxHp;
-            _hpText.text = hp.ToString();
+            _actualHp = hp; _maxHp = maxHp;
+            if (_pendingHits > 0 && Time.time > _awaitUntil) _pendingHits = 0; // 피해 숫자가 끝내 안 뜬 경우
+            ShowHp(_pendingHits > 0 && _shownHp > hp ? _shownHp : hp);
             _hpText.color = world.GetOrDefault<Veteran>(id).Value ? new Color(1f,.82f,.25f) : Color.white;
-            float fraction = maxHp > 0 ? Mathf.Clamp01((float)hp/maxHp) : 0;
-            float width = HpBarSize.x*fraction;
-            _hpBarFill.localScale = new Vector3(width,HpBarSize.y,1);
-            _hpBarFill.localPosition = new Vector3((width-HpBarSize.x)/2,HpBarLocalY,0);
-            if (_hpFill != null) _hpFill.color = HpColorScale.ForFraction(fraction);
             var teamColor = world.Get<Team>(id) == Team.Player ? PlayerColor : EnemyColor;
             _teamBadge.color = teamColor;
             _teamBadge.transform.localScale = world.Get<Team>(id) == Team.Player ? new Vector3(.5f,.0625f,1) : new Vector3(.375f,.125f,1);
@@ -130,6 +131,16 @@ namespace TacticsECS
             _movePath = null;
             UpdateSort();
             ApplyVisibility();
+        }
+        private void ShowHp(int hp)
+        {
+            _shownHp = hp;
+            _hpText.text = hp.ToString();
+            float fraction = _maxHp > 0 ? Mathf.Clamp01((float)hp/_maxHp) : 0;
+            float width = HpBarSize.x*fraction;
+            _hpBarFill.localScale = new Vector3(width,HpBarSize.y,1);
+            _hpBarFill.localPosition = new Vector3((width-HpBarSize.x)/2,HpBarLocalY,0);
+            if (_hpFill != null) _hpFill.color = HpColorScale.ForFraction(fraction);
         }
         public void SetVisible(bool visible) { _visible = visible; ApplyVisibility(); }
         private void ApplyVisibility() { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = _visible; }
@@ -189,13 +200,14 @@ namespace TacticsECS
             return new List<Vector3> { target };
         }
         /// <summary>곧 피해 팝업이 뜰 유닛: 그 전에 죽었다고 Refresh되어도 팝업이 뜰 때까지 남아 있는다.</summary>
-        public void AwaitHit() => _awaitHit = true;
+        /// <summary>곧 피해 숫자가 뜰 피격 하나를 예고한다 — 그 숫자가 뜰 때(ShowDamagePopup)까지 체력 표시를 내리지 않는다.</summary>
+        public void AwaitHit() { _pendingHits++; _awaitUntil = Time.time+3f; }
         private IEnumerator DeathRoutine()
         {
             float start = Time.time;
-            while ((_awaitHit && Time.time < start+3f) || Time.time < start+.2f || Time.time < _lastHitTime+.3f) yield return null;
+            while ((_pendingHits > 0 && Time.time < start+3f) || Time.time < start+.2f || Time.time < _lastHitTime+.3f) yield return null;
             for (int i=0;i<6;i++) { SetAlpha(i%2==0 ? .25f : 1f); yield return new WaitForSeconds(.06f); }
-            SetAlpha(1); _deathRoutine = null; _awaitHit = false;
+            SetAlpha(1); _deathRoutine = null; _pendingHits = 0;
             gameObject.SetActive(false);
         }
         private void SetAlpha(float alpha)
@@ -232,7 +244,10 @@ namespace TacticsECS
             var instance = Instantiate(damagePopupPrefab,transform.position+Vector3.up*HpNumberLocalY*_grid.TileSize,Quaternion.identity);
             instance.GetComponent<Renderer>().sortingOrder = PixelSpriteCatalog.OverlayOrder+10;
             instance.GetComponent<DamagePopup>().Play("-"+amount,new Color(.95f,.25f,.2f));
-            _awaitHit = false; _lastHitTime = Time.time;
+            if (_pendingHits > 0) _pendingHits--;
+            // 맞는 순간 체력 표시를 내린다. 남은 피격이 있으면 이번 피해만큼만(실제 값 아래로는 안 내려간다).
+            if (_shownHp >= 0) ShowHp(_pendingHits > 0 ? Mathf.Max(_actualHp, _shownHp-amount) : _actualHp);
+            _lastHitTime = Time.time;
             if (Application.isPlaying && gameObject.activeInHierarchy && _hitRoutine == null)
                 _hitRoutine = StartCoroutine(HitPulse());
         }

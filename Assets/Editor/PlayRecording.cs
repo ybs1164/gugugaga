@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,20 +12,21 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// 플레이 영상: 빠른 한 판(Mobile.unity, 가장 작은 맵)을 시작하고 양쪽 모두 AI(BattleController.RunAiTurnRoutine)로 두게 하면서
-    /// Seconds초(게임 시간)를 MP4로 찍는다 → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각).
+    /// -recordSeconds초(게임 시간, 없으면 DefaultSeconds, 0이면 승패가 날 때까지 — 최대 MaxSeconds)를 MP4로 찍는다
+    /// → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각).
     /// 시간은 Time.captureFramerate로 고정해 찍는 속도와 상관없이 연출 속도가 그대로 남는다. 이어하기 파일을 덮어쓴다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지) — 보통은 scripts/record_play.sh로 부른다.
     /// </summary>
     [InitializeOnLoad]
     public static class PlayRecording
     {
-        private const string ActiveKey = "PlayRecording.Active", NameKey = "PlayRecording.Name";
-        private const int Fps = 30, Width = 1280, Height = 720, Seconds = 60;
+        private const string ActiveKey = "PlayRecording.Active", NameKey = "PlayRecording.Name", SecondsKey = "PlayRecording.Seconds";
+        private const int Fps = 30, Width = 1280, Height = 720, DefaultSeconds = 60, MaxSeconds = 1200;
         private const string OutDir = "Logs/play_videos";
         private static BattleController _c;
-        private static int _frame, _lastFrameCount = -1, _lastAutoTurn;
+        private static int _frame, _lastFrameCount = -1, _endFrames;
         private static double _deadline;
-        private static bool _failed;
+        private static bool _failed, _aiRunning;
         private static RenderTexture _rt;
         private static Texture2D _read;
         private static MediaEncoder _encoder;
@@ -40,6 +42,9 @@ namespace TacticsECS.EditorTools
             var args = Environment.GetCommandLineArgs();
             int i = Array.IndexOf(args, "-recordName");
             SessionState.SetString(NameKey, i >= 0 && i + 1 < args.Length ? args[i + 1] : DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            int s = Array.IndexOf(args, "-recordSeconds");
+            int seconds = s >= 0 && s + 1 < args.Length && int.TryParse(args[s + 1], out var v) ? v : DefaultSeconds;
+            SessionState.SetInt(SecondsKey, seconds <= 0 ? MaxSeconds : Math.Min(seconds, MaxSeconds));
             SessionState.SetBool(ActiveKey, true);
             EditorSceneManager.OpenScene(MobileSceneSetup.MobileScenePath);
             EditorApplication.EnterPlaymode();
@@ -47,7 +52,7 @@ namespace TacticsECS.EditorTools
 
         private static void Resume()
         {
-            _deadline = EditorApplication.timeSinceStartup + 900;
+            _deadline = EditorApplication.timeSinceStartup + 900 + SessionState.GetInt(SecondsKey, DefaultSeconds) * 5; // 찍는 데 게임 시간의 몇 배가 걸린다
             EditorApplication.update += Tick;
             Application.logMessageReceived += Log;
         }
@@ -81,18 +86,25 @@ namespace TacticsECS.EditorTools
                 _lastFrameCount = Time.frameCount;
                 AutoPlayPlayer();
                 Capture();
-                if (_frame >= Fps * Seconds || Field<bool>("_battleOver")) Finish(!_failed, $"{_frame} frames → {Path.GetFullPath(_path)}");
+                if (Field<bool>("_battleOver")) _endFrames++; // 결과 창이 보이도록 몇 초 더 찍는다
+                if (_frame >= Fps * SessionState.GetInt(SecondsKey, DefaultSeconds) || _endFrames > Fps * 3) Finish(!_failed, $"{_frame} frames → {Path.GetFullPath(_path)}");
             }
             catch (Exception e) { Debug.LogException(e); Finish(false, e.Message); }
         }
 
-        /// <summary>아군 턴이 새로 시작되면 적 턴과 같은 AI 루틴을 아군에게도 돌린다.</summary>
+        /// <summary>아군 턴이면 적 턴과 같은 AI 루틴을 아군에게도 돌린다. 루틴이 끝났는데 턴이 안 넘어갔으면(턴 도중 레벨업한 도시의
+        /// 보상이 남아 턴 종료가 막힘 — EconomyAI는 보상을 턴 앞에서 고른다) 한 번 더 돌려 그 보상을 고르게 한다.</summary>
         private static void AutoPlayPlayer()
         {
-            var turn = Field<TurnState>("_turnState");
-            if (turn.ActiveTeam != Team.Player || turn.TurnNumber == _lastAutoTurn) return;
-            _lastAutoTurn = turn.TurnNumber;
-            _c.StartCoroutine((System.Collections.IEnumerator)Call("RunAiTurnRoutine", Team.Player));
+            if (_aiRunning || Field<bool>("_battleOver") || Field<TurnState>("_turnState").ActiveTeam != Team.Player) return;
+            _aiRunning = true;
+            _c.StartCoroutine(RunPlayerAi());
+        }
+
+        private static IEnumerator RunPlayerAi()
+        {
+            yield return _c.StartCoroutine((IEnumerator)Call("RunAiTurnRoutine", Team.Player));
+            _aiRunning = false;
         }
 
         private static void StartCapture()
@@ -109,6 +121,7 @@ namespace TacticsECS.EditorTools
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
                 canvas.worldCamera = cam;
                 canvas.planeDistance = cam.nearClipPlane + .5f;
+                canvas.sortingOrder = short.MaxValue; // 맵 스프라이트(sortingOrder)보다 위에 — 결과 창이 맵에 가려지지 않게
             }
             Call("PositionCamera"); // 캡처 화면 크기에 맞춰 맵 전체를 담는다
             _read = new Texture2D(Width, Height, TextureFormat.RGBA32, false);

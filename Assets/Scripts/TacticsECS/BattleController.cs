@@ -909,7 +909,7 @@ namespace TacticsECS
             if (_faithPunchHud != null && !visible) CancelPunch();
         }
 
-        /// <summary>턴 종료 버튼(플레이어)과 적 턴 종료(RunEnemyTurnRoutine) 모두에서 쓰는 공통 진입점.
+        /// <summary>턴 종료 버튼(플레이어)과 AI 턴 종료(RunAiTurnRoutine) 모두에서 쓰는 공통 진입점.
         /// 턴 종료 시 해당 팀의 미행동 유닛은 자동으로 대기(회복) 처리된다.</summary>
         private void EndTurn()
         {
@@ -1147,7 +1147,7 @@ namespace TacticsECS
             RefreshAllViews();
 
             if (team == Team.Enemy && !_battleOver)
-                StartCoroutine(RunEnemyTurnRoutine());
+                StartCoroutine(RunAiTurnRoutine(Team.Enemy));
             else if (team == Team.Player) SaveGame(); // 내 턴이 시작될 때마다 자동 저장(빠른 한 판만)
         }
 
@@ -1185,13 +1185,14 @@ namespace TacticsECS
             RefreshMenu();
         }
 
-        private IEnumerator RunEnemyTurnRoutine()
+        /// <summary>AI 한 턴(경제 → 유닛)을 연출과 함께 진행하고 턴을 넘긴다. 적 턴, 그리고 PlayRecording의 자동 플레이(아군)에서 쓴다.</summary>
+        private IEnumerator RunAiTurnRoutine(Team team)
         {
             yield return new WaitForSeconds(0.3f);
             if (_econ != null)
             {
                 var hpBefore = SnapshotHp();
-                ProcessEconomyLog(EconomyAI.RunTurn(_grid, _world, _econ, Team.Enemy));
+                ProcessEconomyLog(EconomyAI.RunTurn(_grid, _world, _econ, team));
                 ShowAiFaithEffects(hpBefore);
                 RefreshEconomyViews(true); // 신앙 펀치(지형 변화)가 있었을 수 있다
                 CheckBattleEnd();
@@ -1200,7 +1201,7 @@ namespace TacticsECS
             var startPos = new Dictionary<int, Vector2Int>();
             for (int i = 0; i < _world.EntityCount; i++)
                 if (UnitQueries.IsAlive(_world, i)) startPos[i] = _world.Get<GridPosition>(i).Value;
-            var entries = EnemyAI.RunTurn(_grid, _world, _econ, Team.Enemy, _econ != null ? CitySystem.CaptureTargets(_grid, _econ, Team.Enemy) : null);
+            var entries = EnemyAI.RunTurn(_grid, _world, _econ, team, _econ != null ? CitySystem.CaptureTargets(_grid, _econ, team) : null);
             // 맞은 유닛은 자기 차례의 피해 숫자가 뜰 때까지 남아 있는다(아래에서 공격을 하나씩 보여준다).
             foreach (var entry in entries)
                 if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var hitView)) hitView.AwaitHit();
@@ -1504,7 +1505,7 @@ namespace TacticsECS
             if (save.CameraSize > 0f) _pixelCamera.RequestedSize = Mathf.Clamp(save.CameraSize, minOrthoSize, maxOrthoSize);
             ClampCameraFocus();
             ApplyCameraTransform();
-            if (_turnState.ActiveTeam == Team.Enemy) StartCoroutine(RunEnemyTurnRoutine());
+            if (_turnState.ActiveTeam == Team.Enemy) StartCoroutine(RunAiTurnRoutine(Team.Enemy));
         }
 
         /// <summary>불러온 엔티티에 화면만 붙인다(엔티티 값은 그대로).</summary>

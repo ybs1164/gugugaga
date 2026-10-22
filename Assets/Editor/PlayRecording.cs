@@ -12,7 +12,7 @@ namespace TacticsECS.EditorTools
 {
     /// <summary>
     /// 플레이 영상: 빠른 한 판(Mobile.unity, 가장 작은 맵)을 시작하고 양쪽 모두 AI(BattleController.RunAiTurnRoutine)로 두게 하면서
-    /// -recordSeconds초(게임 시간, 없으면 DefaultSeconds, 0이면 승패가 날 때까지 — 최대 MaxSeconds)를 MP4로 찍는다
+    /// 승패가 날 때까지(-recordSeconds N을 주면 N초만, 게임 시간) MP4로 찍는다. MaxSeconds 안에 승패가 안 나면 멈춘 판으로 보고 FAIL(영상은 남는다)
     /// → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각).
     /// 시간은 Time.captureFramerate로 고정해 찍는 속도와 상관없이 연출 속도가 그대로 남는다. 이어하기 파일을 덮어쓴다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지) — 보통은 scripts/record_play.sh로 부른다.
@@ -21,7 +21,7 @@ namespace TacticsECS.EditorTools
     public static class PlayRecording
     {
         private const string ActiveKey = "PlayRecording.Active", NameKey = "PlayRecording.Name", SecondsKey = "PlayRecording.Seconds";
-        private const int Fps = 30, Width = 1280, Height = 720, DefaultSeconds = 60, MaxSeconds = 1200;
+        private const int Fps = 30, Width = 1280, Height = 720, MaxSeconds = 1200;
         private const string OutDir = "Logs/play_videos";
         private static BattleController _c;
         private static int _frame, _lastFrameCount = -1, _endFrames;
@@ -43,7 +43,7 @@ namespace TacticsECS.EditorTools
             int i = Array.IndexOf(args, "-recordName");
             SessionState.SetString(NameKey, i >= 0 && i + 1 < args.Length ? args[i + 1] : DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             int s = Array.IndexOf(args, "-recordSeconds");
-            int seconds = s >= 0 && s + 1 < args.Length && int.TryParse(args[s + 1], out var v) ? v : DefaultSeconds;
+            int seconds = s >= 0 && s + 1 < args.Length && int.TryParse(args[s + 1], out var v) ? v : 0;
             SessionState.SetInt(SecondsKey, seconds <= 0 ? MaxSeconds : Math.Min(seconds, MaxSeconds));
             SessionState.SetBool(ActiveKey, true);
             EditorSceneManager.OpenScene(MobileSceneSetup.MobileScenePath);
@@ -52,7 +52,7 @@ namespace TacticsECS.EditorTools
 
         private static void Resume()
         {
-            _deadline = EditorApplication.timeSinceStartup + 900 + SessionState.GetInt(SecondsKey, DefaultSeconds) * 5; // 찍는 데 게임 시간의 몇 배가 걸린다
+            _deadline = EditorApplication.timeSinceStartup + 900 + SessionState.GetInt(SecondsKey, MaxSeconds) * 5; // 찍는 데 게임 시간의 몇 배가 걸린다
             EditorApplication.update += Tick;
             Application.logMessageReceived += Log;
         }
@@ -87,7 +87,9 @@ namespace TacticsECS.EditorTools
                 AutoPlayPlayer();
                 Capture();
                 if (Field<bool>("_battleOver")) _endFrames++; // 결과 창이 보이도록 몇 초 더 찍는다
-                if (_frame >= Fps * SessionState.GetInt(SecondsKey, DefaultSeconds) || _endFrames > Fps * 3) Finish(!_failed, $"{_frame} frames → {Path.GetFullPath(_path)}");
+                if (_endFrames > Fps * 3) Finish(!_failed, $"{_frame} frames → {Path.GetFullPath(_path)}");
+                else if (_frame >= Fps * SessionState.GetInt(SecondsKey, MaxSeconds))
+                    Finish(!_failed && SessionState.GetInt(SecondsKey, MaxSeconds) < MaxSeconds, $"no winner after {_frame} frames → {Path.GetFullPath(_path)}");
             }
             catch (Exception e) { Debug.LogException(e); Finish(false, e.Message); }
         }

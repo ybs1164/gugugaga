@@ -30,7 +30,7 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 - 신앙 UI 상태별 캡처(화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/faith_ui.log -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run` → `docs/images/faith/`
 - 유닛 행동 GIF(데모 씬에서 고르기·이동·공격·처치·대기·적 턴을 실제로 눌러 찍는다, 화면 필요): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/action_ux.log -executeMethod TacticsECS.EditorTools.ActionUxCapture.Run` → `Logs/action_ux/frames`, 이어서 `python scripts/make_action_ux_gif.py` → `docs/images/ux/action_ux.gif`
 - 유닛 스킬 화면 점검 캡처((!) 표시·중독 배지·얼음·침수 칸·침수/얼음 깨기/상륙/약탈 버튼·폭우 공격 칸, 화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/unit_skills_capture.log -executeMethod TacticsECS.EditorTools.UnitSkillsCapture.Run` → `Logs/unit_skills_capture/`
-- 플레이 영상(업데이트 보고·확인용, 빌드와 무관. 빠른 한 판 가장 작은 맵에서 양쪽 모두 AI로, 화면 필요. 이어하기 파일을 덮어쓴다): `bash scripts/record_play.sh [이름] [초]` — 초는 기본 1분, `0`이면 승패가 날 때까지(상한은 `PlayRecording.MaxSeconds`) → `Logs/play_videos/<커밋 해시>.mp4` (이름을 주면 그 이름)
+- 플레이 영상(업데이트 보고·확인용, 빌드와 무관. 빠른 한 판 가장 작은 맵에서 양쪽 모두 AI로, 화면 필요. 이어하기 파일을 덮어쓴다): `bash scripts/record_play.sh [이름] [초]` — 기본은 승패가 날 때까지(결과 창까지, 상한 `PlayRecording.MaxSeconds` 안에 안 끝나면 멈춘 판으로 보고 실패), 초를 주면 그만큼만 → `Logs/play_videos/<커밋 해시>.mp4` (이름을 주면 그 이름)
 - 사용 전에 Unity 에디터를 닫는다(같은 프로젝트가 열려 있으면 실패한다).
 
 ## 조작

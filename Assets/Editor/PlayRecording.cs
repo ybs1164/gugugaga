@@ -13,14 +13,15 @@ namespace TacticsECS.EditorTools
     /// <summary>
     /// 플레이 영상: 빠른 한 판(Mobile.unity, 가장 작은 맵)을 시작하고 양쪽 모두 AI(BattleController.RunAiTurnRoutine)로 두게 하면서
     /// 승패가 날 때까지(-recordSeconds N을 주면 N초만, 게임 시간) MP4로 찍는다. MaxSeconds 안에 승패가 안 나면 멈춘 판으로 보고 FAIL(영상은 남는다)
-    /// → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각).
+    /// → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각). -recordTribe/-recordGod/-recordMapSize N으로 아군 종족·신(표 Index)과
+    /// 맵 크기(MapSizePresets 번호)를 고를 수 있다 — 생략하면 종족·신은 무작위, 맵은 가장 작은 것.
     /// 시간은 Time.captureFramerate로 고정해 찍는 속도와 상관없이 연출 속도가 그대로 남는다. 이어하기 파일을 덮어쓴다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지) — 보통은 scripts/record_play.sh로 부른다.
     /// </summary>
     [InitializeOnLoad]
     public static class PlayRecording
     {
-        private const string ActiveKey = "PlayRecording.Active", NameKey = "PlayRecording.Name", SecondsKey = "PlayRecording.Seconds";
+        private const string ActiveKey = "PlayRecording.Active", NameKey = "PlayRecording.Name", SecondsKey = "PlayRecording.Seconds", SetupKey = "PlayRecording.Setup.";
         private const int Fps = 30, Width = 1280, Height = 720, MaxSeconds = 1200;
         private const string OutDir = "Logs/play_videos";
         private static BattleController _c;
@@ -45,9 +46,18 @@ namespace TacticsECS.EditorTools
             int s = Array.IndexOf(args, "-recordSeconds");
             int seconds = s >= 0 && s + 1 < args.Length && int.TryParse(args[s + 1], out var v) ? v : 0;
             SessionState.SetInt(SecondsKey, seconds <= 0 ? MaxSeconds : Math.Min(seconds, MaxSeconds));
+            SessionState.SetInt(SetupKey + "Tribe", IntArg(args, "-recordTribe", TitleHud.RandomTribe));
+            SessionState.SetInt(SetupKey + "God", IntArg(args, "-recordGod", TitleHud.RandomGod));
+            SessionState.SetInt(SetupKey + "MapSize", IntArg(args, "-recordMapSize", 0));
             SessionState.SetBool(ActiveKey, true);
             EditorSceneManager.OpenScene(MobileSceneSetup.MobileScenePath);
             EditorApplication.EnterPlaymode();
+        }
+
+        private static int IntArg(string[] args, string name, int fallback)
+        {
+            int i = Array.IndexOf(args, name);
+            return i >= 0 && i + 1 < args.Length && int.TryParse(args[i + 1], out var v) ? v : fallback;
         }
 
         private static void Resume()
@@ -78,7 +88,12 @@ namespace TacticsECS.EditorTools
                     _c = UnityEngine.Object.FindFirstObjectByType<BattleController>();
                     if (_c == null || Field<TitleHud>("_titleHud") == null) { _c = null; return; }
                     Field<TitleHud>("_titleHud").Hide();
-                    Call("StartQuickPlay", new QuickPlaySetup { Tribe = -1, God = TitleHud.RandomGod, MapSize = 0 });
+                    Call("StartQuickPlay", new QuickPlaySetup
+                    {
+                        Tribe = SessionState.GetInt(SetupKey + "Tribe", TitleHud.RandomTribe),
+                        God = SessionState.GetInt(SetupKey + "God", TitleHud.RandomGod),
+                        MapSize = SessionState.GetInt(SetupKey + "MapSize", 0),
+                    });
                     StartCapture();
                     return;
                 }

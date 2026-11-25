@@ -127,6 +127,9 @@ namespace TacticsECS
             ("Tiny", 11), ("Small", 14), ("Normal", 16), ("Large", 18), ("Huge", 20), ("Massive", 30)
         };
         private int _selectedMapSizeIndex;
+        /// <summary>이번 판 상대 AI 난이도(AIDifficulty.csv Index, -1 = 기본). s_lastDifficulty는 다음 새 게임의 처음 선택.</summary>
+        private int _enemyDifficulty = -1;
+        private static int s_lastDifficulty = -1;
 
         /// <summary>Polytopia의 6종 습도(맵 타입) 프리셋 이름 + 대표 습도값(docs/reference/PolytopiaMapGeneration.md
         /// 2절 범위의 중간값). CSV에는 저장하지 않는 전역 생성 파라미터 — 맵 크기와 같은 이유로 Sandbox
@@ -303,6 +306,8 @@ namespace TacticsECS
             foreach (var team in CitySystem.Teams)
                 _godByTeam[team] = gods > 0 ? rng.Next(gods) : -1;
             if (setup.God >= 0 && setup.God < gods) _godByTeam[Team.Player] = setup.God;
+            _enemyDifficulty = setup.Difficulty;
+            s_lastDifficulty = setup.Difficulty;
             _tribeTerrain = null;
             InitMapSizeSelection();
             if (setup.MapSize >= 0 && setup.MapSize < MapSizePresets.Length) _selectedMapSizeIndex = setup.MapSize;
@@ -362,6 +367,7 @@ namespace TacticsECS
             _punchPhase = PunchPhase.None;
             _techTreeHud = null;
             _econ = null;
+            _enemyDifficulty = -1;
             _unitRows = null;
             _menuTile = null;
 
@@ -1407,7 +1413,9 @@ namespace TacticsECS
                 _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
                     GameTables.Gods.Select(g => new GodChoice { Name = g.Name, Description = g.Description }).ToList(),
                     Enumerable.Range(0, MapSizePresets.Length).Select(i => LocalizationSystem.F("UI.Title.MapSizeOption", MapSizeName(i), MapSizePresets[i].Size)).ToList(),
-                    _selectedMapSizeIndex);
+                    _selectedMapSizeIndex,
+                    GameTables.AIDifficulties.Select(d => new GodChoice { Name = d.Name, Description = d.Description }).ToList(),
+                    s_lastDifficulty >= 0 ? s_lastDifficulty : GameRules.AI.DefaultDifficulty);
                 _titleHud.OnContinueClicked += ContinueGame;
                 _titleHud.OnStartClicked += setup => { _titleHud.Hide(); StartQuickPlay(setup); };
                 _titleHud.OnLanguageClicked += HandleLanguageClicked;
@@ -1704,6 +1712,8 @@ namespace TacticsECS
             _econ = EconomySetupSystem.Create(tribeMode ? TechGroupSystem.BuildTechNodes() : CurrentTechNodes(), _unitRows, _godByTeam, tribes);
             if (tribeMode && _techTreeHud != null)
                 _techTreeHud.SetNodes(TechGroupSystem.Filter(_econ.TechNodes, _econ.Tech[Team.Player].Allowed));
+            // 상대 AI 난이도: 빠른 한 판은 시작 화면에서 고른 것, 샌드박스·데모는 기본 난이도. 규칙: docs/spec/game/ai.md#난이도
+            PolicySystem.ApplyDifficulty(_econ, Team.Enemy, _enemyDifficulty >= 0 ? _enemyDifficulty : GameRules.AI.DefaultDifficulty);
             ProcessEconomyLog(EconomySetupSystem.Start(_grid, _world, _econ, _tribeCapitals, tribes));
             RefreshEconomyViews(false);
         }

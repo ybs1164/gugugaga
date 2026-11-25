@@ -1,4 +1,6 @@
 ﻿Section,Value,Description
+모델 파일,PolicyModel 1,형식 표시
+모델 파일,layers <입력> <은닉…> 1,층 크기. 입력은 PolicySystem.InputSize와 같아야 한다
 Flag 태그,Road,건물이 아니라 타일 개량(도로) — 다른 건물과 한 칸에 공존
 Flag 태그,Neutral,중립 땅·물에도 지을 수 있음
 Flag 태그,OppositeLand,상하 또는 좌우 양쪽 이웃이 육지여야 함(다리)

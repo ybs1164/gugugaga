@@ -49,6 +49,8 @@ namespace TacticsECS
 
             var claimedTargets = new HashSet<Vector2Int>();
             var defendedCities = new HashSet<Vector2Int>();
+            // 학습한 AI(난이도)·학습 기록: 유닛마다 아래 규칙의 후보(공격 대상·목표 칸·대기)를 모아 PolicySystem이 고른다.
+            float[] global = PolicySystem.Wants(econ, team) ? PolicySystem.Global(grid, world, econ, team) : null;
 
             foreach (var id in ownIds)
             {
@@ -59,6 +61,12 @@ namespace TacticsECS
                 var selfPos = world.Get<GridPosition>(id).Value;
 
                 var enemies = VisibleEnemies(grid, world, team);
+
+                if (global != null)
+                {
+                    PolicyUnitTurn(grid, world, econ, team, id, enemies, captureTargets, claimedTargets, defendedCities, global, entries);
+                    continue;
+                }
 
                 if (TryBestAttack(grid, world, econ, id, enemies, entries)) { RetreatAfterAttack(grid, world, id, team, entries); continue; }
 
@@ -160,6 +168,225 @@ namespace TacticsECS
             }
 
             return entries;
+        }
+
+        private enum UnitOptionKind { Attack, Hold, Defend, Enemy, Capture, Starfish, Explore }
+
+        private struct UnitOption
+        {
+            public UnitOptionKind Kind;
+            public int Target;
+            public Vector2Int Goal;
+        }
+
+        /// <summary>정책 후보 중 (c) 목표(적·점령)를 몇 개까지 넣는지(여행 거리가 가까운 순).</summary>
+        private const int GoalCandidates = 6;
+
+        /// <summary>
+        /// RunTurn의 유닛 한 개 차례와 같은 단계를 후보로 모은다: 지금 칠 수 있는 대상(반격에 죽는 공격 제외) · 대기(점령·인양 대기 포함) ·
+        /// 도시 방어 · 가까운 적/점령 목표 · 불가사리 · 탐험. 규칙 AI가 고를 후보(ruleIndex)는 원래 순서(공격 &gt; 대기 &gt; 방어 &gt; 목표 &gt;
+        /// 불가사리 &gt; 탐험 &gt; 없음)의 첫 번째다 — 모델이 없으면 그것을 실행하므로 규칙 AI와 같은 수를 둔다.
+        /// 고른 뒤의 이동·이동 후 공격·후퇴는 규칙 그대로.
+        /// </summary>
+        private static void PolicyUnitTurn(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int id, List<int> enemies,
+            IReadOnlyCollection<Vector2Int> captureTargets, HashSet<Vector2Int> claimedTargets, HashSet<Vector2Int> defendedCities,
+            float[] global, List<BattleLogEntry> entries)
+        {
+            var selfPos = world.Get<GridPosition>(id).Value;
+            var options = new List<UnitOption>();
+            var features = new List<float[]>();
+            int rule = -1;
+            var enemyPositions = enemies.Select(e => world.Get<GridPosition>(e).Value).ToList();
+
+            float[] Base(UnitOptionKind kind, Vector2Int at)
+            {
+                var f = new float[PolicySystem.CandidateSize];
+                f[(int)kind] = 1f;
+                f[8] = world.Get<Hp>(id).Value / (float)Mathf.Max(1, world.Get<MaxHp>(id).Value);
+                f[9] = world.Get<Attack>(id).Value / 5f;
+                f[10] = world.Get<Defense>(id).Value / 5f;
+                f[11] = world.Get<MoveRange>(id).Value / 3f;
+                f[17] = econ != null && CitySystem.FindCityAt(econ, at) >= 0 ? 1f : 0f;
+                f[18] = enemyPositions.Count(p => PathfindingSystem.Distance(p, at) <= 3) / 5f;
+                f[19] = EmbarkSystem.IsEmbarked(world, id) ? 1f : 0f;
+                return f;
+            }
+            void Add(UnitOption o, float[] f, bool isRule)
+            {
+                if (isRule && rule < 0) rule = options.Count;
+                options.Add(o);
+                features.Add(f);
+            }
+
+            // 1. 지금 칠 수 있는 대상(TryBestAttack과 같은 거르기·점수 — 가장 좋은 대상이 규칙의 선택).
+            var attack = UnitActionQueries.Find<AttackAction>(world, id);
+            if (attack != null && attack.CanExecute(world, id) && UnitActionQueries.Find<InfiltrateAction>(world, id) == null)
+            {
+                int bestTarget = -1;
+                float bestScore = float.MinValue;
+                var attackOptions = new List<(int Target, float[] F)>();
+                foreach (var e in enemies)
+                {
+                    if (!UnitQueries.IsAlive(world, e) || !CombatSystem.IsInAttackRange(world, id, e)) continue;
+                    int dmg = CombatSystem.CalculateDamage(world, id, e);
+                    int targetHp = world.Get<Hp>(e).Value;
+                    bool kill = dmg >= targetHp;
+                    int retaliation = CombatSystem.PreviewRetaliation(world, id, e);
+                    if (!kill && retaliation >= world.Get<Hp>(id).Value) continue;
+                    float score = dmg - retaliation * 0.5f + (kill ? 100f : 0f);
+                    if (score > bestScore) { bestScore = score; bestTarget = e; }
+                    var f = Base(UnitOptionKind.Attack, world.Get<GridPosition>(e).Value);
+                    f[13] = dmg / (float)Mathf.Max(1, targetHp);
+                    f[14] = kill ? 1f : 0f;
+                    f[15] = retaliation / (float)Mathf.Max(1, world.Get<Hp>(id).Value);
+                    f[16] = world.Get<Attack>(e).Value / 5f;
+                    attackOptions.Add((e, f));
+                }
+                foreach (var a in attackOptions)
+                {
+                    if (a.Target == bestTarget) a.F[7] = 1f;
+                    Add(new UnitOption { Kind = UnitOptionKind.Attack, Target = a.Target }, a.F, a.Target == bestTarget);
+                }
+            }
+
+            // 2. 대기 — 점령 목표·불가사리 위면 규칙의 선택(다음 턴 점령·인양).
+            bool starfishBoat = CanSeekStarfish(grid, world, econ, id, team);
+            bool waiting = (captureTargets != null && captureTargets.Contains(selfPos)) ||
+                           (starfishBoat && grid.GetStructure(selfPos) == RuinSystem.StarfishStructureId);
+            int holdIndex = options.Count;
+            var hold = Base(UnitOptionKind.Hold, selfPos);
+            hold[16] = waiting ? 1f : 0f;
+            Add(new UnitOption { Kind = UnitOptionKind.Hold, Goal = selfPos }, hold, waiting);
+
+            // 3. 도시 방어(규칙은 첫 도시).
+            if (econ != null)
+                foreach (var city in econ.Cities)
+                {
+                    if (city.Owner != team || defendedCities.Contains(city.Position)) continue;
+                    if (!enemies.Any(e => PathfindingSystem.Distance(world.Get<GridPosition>(e).Value, city.Position) <= GameRules.AI.DefendRadius)) continue;
+                    int occ = grid.GetOccupant(city.Position);
+                    if (occ != TileData.NoOccupant && occ != id) continue;
+                    if (PathfindingSystem.Distance(selfPos, city.Position) > 4) continue;
+                    var f = Base(UnitOptionKind.Defend, city.Position);
+                    f[12] = PathfindingSystem.Distance(selfPos, city.Position) / 10f;
+                    Add(new UnitOption { Kind = UnitOptionKind.Defend, Goal = city.Position }, f, true);
+                }
+
+            // 4. 가까운 적·점령 목표(RunTurn (c)와 같은 후보, 여행 거리 순 GoalCandidates개).
+            var fromSelf = TravelMap(grid, world, id, selfPos, unitIsOrigin: true);
+            {
+                var candidates = new List<(Vector2Int Pos, bool IsEnemy)>();
+                bool infiltrator = UnitActionQueries.Find<InfiltrateAction>(world, id) != null;
+                if (infiltrator)
+                {
+                    if (econ != null)
+                        foreach (var c in econ.Cities)
+                            if (c.Owner != team && !c.Infiltrated && VisionSystem.IsExplored(grid, team, c.Position) &&
+                                !DiplomacySystem.HasPeaceTreaty(econ, c.Owner, team))
+                                candidates.Add((c.Position, true));
+                }
+                else
+                    foreach (var p in enemyPositions) candidates.Add((p, true));
+                if (captureTargets != null)
+                    foreach (var c in captureTargets)
+                    {
+                        if (claimedTargets.Contains(c) || !VisionSystem.IsExplored(grid, team, c)) continue;
+                        int occ = grid.GetOccupant(c);
+                        if (occ != TileData.NoOccupant && occ != id && world.Get<Team>(occ) == team) continue;
+                        candidates.Add((c, false));
+                    }
+
+                var reachable = new List<(Vector2Int Pos, bool IsEnemy, int D)>();
+                int best = Unreachable, bestIndex = -1;
+                foreach (var c in candidates)
+                {
+                    if (!fromSelf.TryGetValue(c.Pos, out int d)) continue;
+                    if (!c.IsEnemy) d -= 1; // 같은 거리면 점령 목표 우선
+                    if (d < best) { best = d; bestIndex = reachable.Count; }
+                    reachable.Add((c.Pos, c.IsEnemy, d));
+                }
+                if (reachable.Count == 0 && candidates.Count > 0 && (EmbarkSystem.IsEmbarked(world, id) || HasOwnPort(grid, team)))
+                {
+                    // 여행 거리로 닿지 않으면(바다 건너) 가장 가까운 목표(직선 거리)를 배로 노린다.
+                    var pick = candidates.OrderBy(c => PathfindingSystem.Distance(selfPos, c.Pos)).First();
+                    reachable.Add((pick.Pos, pick.IsEnemy, PathfindingSystem.Distance(selfPos, pick.Pos)));
+                    bestIndex = 0;
+                }
+                var ruleGoal = bestIndex >= 0 ? reachable[bestIndex] : default;
+                foreach (var c in reachable.Select((c, i) => (c, i)).OrderBy(x => x.c.D).ThenBy(x => x.i).Take(GoalCandidates).Select(x => x.c)
+                             .Concat(bestIndex >= 0 ? new[] { ruleGoal } : new (Vector2Int Pos, bool IsEnemy, int D)[0]).Distinct())
+                {
+                    bool isRule = bestIndex >= 0 && c.Pos == ruleGoal.Pos && c.IsEnemy == ruleGoal.IsEnemy;
+                    var kind = c.IsEnemy ? UnitOptionKind.Enemy : UnitOptionKind.Capture;
+                    var f = Base(kind, c.Pos);
+                    f[7] = isRule ? 1f : 0f;
+                    f[12] = c.D / 10f;
+                    if (c.IsEnemy)
+                    {
+                        int occ = grid.GetOccupant(c.Pos);
+                        f[16] = occ != TileData.NoOccupant ? world.Get<Attack>(occ).Value / 5f : 0f;
+                    }
+                    Add(new UnitOption { Kind = kind, Goal = c.Pos }, f, isRule);
+                }
+            }
+
+            // 5. 배: 가장 가까운 보이는 불가사리.
+            if (starfishBoat)
+            {
+                Vector2Int? goal = null;
+                int best = Unreachable;
+                foreach (var kv in fromSelf)
+                {
+                    if (kv.Value >= best || claimedTargets.Contains(kv.Key) || grid.GetStructure(kv.Key) != RuinSystem.StarfishStructureId) continue;
+                    if (!VisionSystem.IsExplored(grid, team, kv.Key) || (grid.GetOccupant(kv.Key) != TileData.NoOccupant && grid.GetOccupant(kv.Key) != id)) continue;
+                    best = kv.Value; goal = kv.Key;
+                }
+                if (goal.HasValue)
+                {
+                    var f = Base(UnitOptionKind.Starfish, goal.Value);
+                    f[12] = best / 10f;
+                    Add(new UnitOption { Kind = UnitOptionKind.Starfish, Goal = goal.Value }, f, true);
+                }
+            }
+
+            // 6. 탐험: 가장 가까운 구름 가장자리.
+            var frontier = NearestFrontier(grid, world, id, team);
+            if (frontier.HasValue)
+            {
+                var f = Base(UnitOptionKind.Explore, frontier.Value);
+                f[12] = PathfindingSystem.Distance(selfPos, frontier.Value) / 10f;
+                Add(new UnitOption { Kind = UnitOptionKind.Explore, Goal = frontier.Value }, f, true);
+            }
+
+            if (rule < 0) rule = holdIndex; // 목표가 없으면 그 자리에 있는다
+            features[rule][7] = 1f;
+            int chosen = PolicySystem.Choose(econ, team, PolicyDecisionKind.Unit, global, features, rule);
+            if (chosen < 0) return;
+            var o = options[chosen];
+
+            switch (o.Kind)
+            {
+                case UnitOptionKind.Attack:
+                    TryAttackAndLog(grid, world, econ, id, o.Target, entries);
+                    RetreatAfterAttack(grid, world, id, team, entries);
+                    return;
+                case UnitOptionKind.Hold:
+                    if (waiting) claimedTargets.Add(selfPos);
+                    return;
+                case UnitOptionKind.Defend: defendedCities.Add(o.Goal); break;
+                case UnitOptionKind.Capture:
+                case UnitOptionKind.Starfish: claimedTargets.Add(o.Goal); break;
+            }
+
+            bool exploring = o.Kind == UnitOptionKind.Explore;
+            var hpBeforeMove = CombatSystem.SnapshotHp(world);
+            if (MoveToward(grid, world, id, o.Goal, o.Kind == UnitOptionKind.Enemy, out var path, allowSail: !exploring || !CanReachOnFoot(grid, world, id, o.Goal)))
+            {
+                entries.Add(new BattleLogEntry { ActorId = id, Verb = BattleLogVerb.Move, TargetId = BattleLogEntry.NoTarget, Path = path });
+                CombatSystem.LogSplash(world, id, hpBeforeMove, id, BattleLogEntry.NoTarget, entries); // 짓밟기
+                VisionSystem.Reveal(grid, team, world.Get<GridPosition>(id).Value, VisionSystem.SightRadius(grid, world, id));
+            }
+            if (TryBestAttack(grid, world, econ, id, VisibleEnemies(grid, world, team), entries)) RetreatAfterAttack(grid, world, id, team, entries);
         }
 
         private static bool HasOwnPort(GridWorld grid, Team team)

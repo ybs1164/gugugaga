@@ -29,6 +29,7 @@
 | `CityReward.<Reward>.Name`, `.Desc` | [CityRewards](city-rewards.md) |
 | `Tribe.<Id>.Name`, `.Desc` | [Tribes](tribes.md#tribescsv--종족) |
 | `God.<Id>.Name`, `.Desc` | [Gods](gods.md#godscsv--신) |
+| `AIDifficulty.<Id>.Name`, `.Desc` | [AIDifficulty](ai-difficulty.md#aidifficultycsv--난이도) |
 | `Unit.<Id>.Name` (신화 유닛) | [MythicUnits](faith-punches.md#mythicunitscsv--신화-유닛) → `Units.csv` |
 | `FaithPunch.<Id>.Name`, `.Desc` | [FaithPunches](faith-punches.md#faithpunchescsv--신앙-펀치) — 신화 유닛 액티브 전용 행 포함 |
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |

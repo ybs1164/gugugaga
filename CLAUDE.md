@@ -40,3 +40,12 @@ CSV에서 한 값에 여러 속성이 담기는 경우(예: `a;b;c`) 한 칸에 
 작업 전에 [`docs/spec/README.md`](docs/spec/README.md)를 읽는다. 문서·주석을 쓸 때는 그 파일의 "단일 출처" 표에서 정보의 자리를 찾고,
 이미 다른 곳에 있는 정보는 다시 적지 않고 링크한다. 특히 수치는 CSV에만 두고 문서에는 키·컬럼 이름만 적는다.
 문서를 고친 뒤 `python scripts/check_spec.py`로 CSV 헤더·컬럼 표·링크가 맞는지 확인한다.
+
+## 8. AI 동작을 바꿀 때 (난이도 하네스)
+AI 난이도는 규칙 AI의 후보 위에서 학습한 모델이다(구성·명령: [README](README.md#ai-난이도-학습), 규칙: [ai](docs/spec/game/ai.md#난이도)).
+AI·게임 규칙을 고칠 때 같은 작업 안에서 지킨다:
+1. 규칙 AI의 결정(`EconomyAI`·`EnemyAI`의 고르기)을 바꾸면 그 결정 지점의 정책 후보 목록도 같이 고쳐, 규칙 AI가 고를 수가 늘 후보에 들고 ruleIndex가 그것을 가리키게 한다.
+   전체 검증의 `PolicyVerification`이 "기록을 켜도 규칙 AI와 같은 판"으로 확인한다.
+2. 새 결정 지점은 같은 틀(후보 목록 + `PolicySystem.Choose`)로 만든다. 모델 입력(`PolicySystem` 크기 상수·후보 특징 칸)을 바꾸면 모든 모델을 다시 학습한다.
+3. `Core`·`Data`·`Systems`·`Actions`에서 UnityEngine API를 새로 쓰면 `tools/TacticsSim/UnityShim`에 같은 동작으로 더하고 `dotnet build tools/TacticsSim -c Release`로 확인한다.
+4. 규칙·수치가 판의 흐름을 바꿀 만큼 바뀌면 재학습 → 사다리 재측정 → `AIDifficulty.csv`(`Note`에 측정값) → 난이도별 플레이 영상 순서로 다시 한다.

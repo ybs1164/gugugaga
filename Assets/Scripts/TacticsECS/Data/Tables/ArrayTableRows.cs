@@ -132,6 +132,18 @@ namespace TacticsECS
         public int[] Effects;
     }
 
+    /// <summary>AI 난이도 하나(AIDifficulty.csv) — 쓸 모델(Assets/Resources/AI/&lt;Model&gt;.txt, 비면 규칙 AI)과 고르는 방식.</summary>
+    public struct AIDifficultyRow
+    {
+        public int Index;
+        public string Id;
+        public string Name;
+        public string Description;
+        public string Model;
+        public float Temperature;
+        public float BlunderChance;
+    }
+
     /// <summary>신 하나(Gods.csv) — 신전 패시브들, 쓸 수 있는 신앙 펀치들, 강림하는 신화 유닛.</summary>
     public struct GodRow
     {

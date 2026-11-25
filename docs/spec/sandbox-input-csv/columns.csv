@@ -1,4 +1,10 @@
 ﻿Format,Column,Type,Required,Default,AppliesTo,Description
+Table.AIDifficulty,Index,정수,O,,,배열 위치(저장 파일·-recordDifficulty가 가리킨다)
+Table.AIDifficulty,Id,문자열,O,,,이름표(중복 불가). 이름·설명은 번역 표 AIDifficulty.<Id>.Name/.Desc
+Table.AIDifficulty,Model,문자열,,비움,,"모델 파일 이름(Assets/Resources/AI/<Model>.txt, 확장자 없이). 비우면 규칙 기반 AI. 파일이 없거나 틀리면 경고 후 규칙 AI"
+Table.AIDifficulty,Temperature,실수 ≥ 0,,0,,"후보 고르기의 무작위성. 0 = 늘 점수가 가장 높은 후보, 클수록 점수 차를 덜 믿고 고른다(softmax 온도)"
+Table.AIDifficulty,BlunderChance,0..1,,0,,결정마다 이 확률로 가장 좋은 후보 대신 두 번째 후보를 둔다(어이없는 수가 아니라 덜 좋은 수)
+Table.AIDifficulty,Note,메모,,,,로더 무시. 측정한 실력(규칙 AI 상대 승률)을 적어 둔다
 Table.Buildings,Index,정수,O,,,배열 위치. TechUnlocks BuildingIndex가 가리킨다
 Table.Buildings,Id,문자열,O,,,타일에 저장되는 건물 키. 코드가 특별 취급하는 Id는 바꾸지 않는다: Farm Mine LumberHut Windmill Forge Sawmill Market Port Road Bridge
 Table.Buildings,Cost,정수,,0,,별

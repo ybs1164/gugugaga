@@ -21,6 +21,10 @@ namespace TacticsECS
         public const string MythicUnitsPath = Folder + "MythicUnits";
         public const string StartConditionsPath = Folder + "StartConditions";
         public const string StartConditionRulesPath = Folder + "StartConditionRules";
+        public const string AIDifficultyPath = Folder + "AIDifficulty";
+
+        /// <summary>AI 모델 파일 폴더(Resources 경로) — AIDifficulty.csv Model이 이 아래 파일 이름이다.</summary>
+        public const string AIModelFolder = "AI/";
 
         /// <summary>건물 표. 행은 BuildingDefinition.All에 같은 순서로 담긴다(Buildings Index = 그 배열 위치).</summary>
         public const string BuildingsPath = Folder + "Buildings";
@@ -45,6 +49,7 @@ namespace TacticsECS
         public static MythicRow[] MythicUnits = new MythicRow[0];
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];
         public static StartConditionRuleRow[] StartConditionRules = new StartConditionRuleRow[0];
+        public static AIDifficultyRow[] AIDifficulties = new AIDifficultyRow[0];
 
         /// <summary>기본 유닛 표(샌드박스에서 유닛 CSV를 불러오지 않았을 때 전투에 쓰인다).</summary>
         public static UnitCsvRow[] Units = new UnitCsvRow[0];

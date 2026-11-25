@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 학습용 헤드리스 시뮬레이터: 게임 로직(Core/Data/Systems/Actions)을 복사하지 않고 링크로 컴파일한다.
+       UnityEngine은 UnityShim/의 최소 구현으로 대신한다. 사용법: README.md "AI 난이도 학습" -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>9.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Optimize>true</Optimize>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>CS0162;CS0168;CS0219;CS0414;CS0649;CS0169;CS8632;CS0067;CS0618</NoWarn>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="*.cs;UnityShim/*.cs" />
+    <Compile Include="../../Assets/Scripts/TacticsECS/Core/**/*.cs" LinkBase="Game/Core" />
+    <Compile Include="../../Assets/Scripts/TacticsECS/Data/**/*.cs" LinkBase="Game/Data" />
+    <Compile Include="../../Assets/Scripts/TacticsECS/Systems/**/*.cs" LinkBase="Game/Systems" />
+    <Compile Include="../../Assets/Scripts/TacticsECS/Actions/**/*.cs" LinkBase="Game/Actions" />
+  </ItemGroup>
+</Project>

@@ -1,4 +1,5 @@
 ﻿Format,ResourceRelativePath,DefaultCsvPath,InputRoute,Detection,RowStructure,Notes
+Table.AIDifficulty,Tables/AIDifficulty.csv,Assets/Resources/Tables/AIDifficulty.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
 Table.Buildings,Tables/Buildings.csv,Assets/Resources/Tables/Buildings.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
 Table.CityRewards,CityRewards.csv,Assets/Resources/CityRewards.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일
 Table.FaithEffects,Tables/FaithEffects.csv,Assets/Resources/Tables/FaithEffects.csv,Sandbox CSV 목록: 해당 항목의 파일 선택,선택한 UI 항목으로 종류 지정; 파일명과 폴더 구조 무관,한 행 = 데이터 항목,미선택 시 기본 파일

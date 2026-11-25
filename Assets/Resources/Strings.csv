@@ -436,6 +436,8 @@ UI.Title.God,신: {0},God: {0}
 UI.Title.RandomGod,무작위,Random
 UI.Title.GodDetail,신 {0}: {1},God {0}: {1}
 UI.Title.MapSize,맵: {0},Map: {0}
+UI.Title.Difficulty,난이도: {0},AI: {0}
+UI.Title.DifficultyDetail,난이도 {0}: {1},Difficulty {0}: {1}
 UI.Title.MapSizeOption,{0} {1}x{1},{0} {1}x{1}
 UI.Title.Start,시작,Start
 # Action,,
@@ -516,6 +518,16 @@ God.Merchant.Name,상업신,Merchant God
 God.Merchant.Desc,신전마다 별 +{FaithEffect.MerchantStars.Amount}/턴 (기도 유닛 하나당 +{FaithEffect.MerchantStars.PerPrayer}).,+{FaithEffect.MerchantStars.Amount} stars per turn per temple (+{FaithEffect.MerchantStars.PerPrayer} per praying unit).
 God.Sage.Name,현자신,Sage God
 God.Sage.Desc,신전마다 신앙 최대 보유량 +{FaithEffect.SageCap.Amount} (기도 유닛 하나당 +{FaithEffect.SageCap.PerPrayer}).,+{FaithEffect.SageCap.Amount} max faith per temple (+{FaithEffect.SageCap.PerPrayer} per praying unit).
+AIDifficulty.Novice.Name,입문,Novice
+AIDifficulty.Novice.Desc,"처음 하는 사람용. 자주 덜 좋은 수를 둔다.","For first games. Often picks a weaker move."
+AIDifficulty.Easy.Name,쉬움,Easy
+AIDifficulty.Easy.Desc,"규칙을 알면 이길 수 있다. 가끔 덜 좋은 수를 둔다.","Beatable once you know the rules. Sometimes picks a weaker move."
+AIDifficulty.Normal.Name,보통,Normal
+AIDifficulty.Normal.Desc,기본 상대.,The standard opponent.
+AIDifficulty.Hard.Name,어려움,Hard
+AIDifficulty.Hard.Desc,자기 대국으로 학습한 AI.,An AI trained by self-play.
+AIDifficulty.Master.Name,최강,Master
+AIDifficulty.Master.Desc,"가장 오래 학습한 AI. 늘 가장 좋다고 보는 수를 둔다.","The longest-trained AI. Always plays the move it rates best."
 UI.SandboxHud.PlayerGod,신(아군),God (ally)
 UI.SandboxHud.EnemyGod,신(적),God (enemy)
 UI.SandboxHud.NoGod,신 없음,No god

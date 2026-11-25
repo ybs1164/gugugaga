@@ -30,8 +30,30 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 - 신앙 UI 상태별 캡처(화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/faith_ui.log -executeMethod TacticsECS.EditorTools.FaithUiCapture.Run` → `docs/images/faith/`
 - 유닛 행동 GIF(데모 씬에서 고르기·이동·공격·처치·대기·적 턴을 실제로 눌러 찍는다, 화면 필요): `"<Unity 설치 경로>/Editor/Unity.exe" -batchmode -projectPath . -logFile Logs/action_ux.log -executeMethod TacticsECS.EditorTools.ActionUxCapture.Run` → `Logs/action_ux/frames`, 이어서 `python scripts/make_action_ux_gif.py` → `docs/images/ux/action_ux.gif`
 - 유닛 스킬 화면 점검 캡처((!) 표시·중독 배지·얼음·침수 칸·침수/얼음 깨기/상륙/약탈 버튼·폭우 공격 칸, 화면 필요, `-nographics` 금지): `unity run . -- -logFile Logs/unit_skills_capture.log -executeMethod TacticsECS.EditorTools.UnitSkillsCapture.Run` → `Logs/unit_skills_capture/`
-- 플레이 영상(업데이트 보고·확인용, 빌드와 무관. 빠른 한 판 양쪽 모두 AI로, 화면 필요. 이어하기 파일을 덮어쓴다): `bash scripts/record_play.sh [이름] [초] [-recordTribe N -recordGod N -recordMapSize N]` — 아군 종족·신(표 Index)·맵 크기 번호를 고를 수 있다(생략하면 종족·신 무작위, 가장 작은 맵). 기본은 승패가 날 때까지(결과 창까지, 상한 `PlayRecording.MaxSeconds` 안에 안 끝나면 멈춘 판으로 보고 실패), 초를 주면 그만큼만 → `Logs/play_videos/<커밋 해시>.mp4` (이름을 주면 그 이름)
+- 플레이 영상(업데이트 보고·확인용, 빌드와 무관. 빠른 한 판 양쪽 모두 AI로, 화면 필요. 이어하기 파일을 덮어쓴다): `bash scripts/record_play.sh [이름] [초] [-recordTribe N -recordGod N -recordMapSize N -recordDifficulty N -recordPlayerDifficulty N]` — 아군 종족·신(표 Index)·맵 크기 번호, 상대·아군 AI 난이도(`AIDifficulty.csv` Index, 아군은 생략하면 규칙 AI)를 고를 수 있다(생략하면 종족·신 무작위, 가장 작은 맵, 상대는 `AI.DefaultDifficulty`). 기본은 승패가 날 때까지(결과 창까지, 상한 `PlayRecording.MaxSeconds` 안에 안 끝나면 멈춘 판으로 보고 실패), 초를 주면 그만큼만 → `Logs/play_videos/<커밋 해시>.mp4` (이름을 주면 그 이름)
 - 사용 전에 Unity 에디터를 닫는다(같은 프로젝트가 열려 있으면 실패한다).
+
+## AI 난이도 학습
+난이도 규칙은 [ai](docs/spec/game/ai.md#난이도), 표는 [AIDifficulty.csv](docs/spec/csv/ai-difficulty.md), AI를 고칠 때 지킬 것은 [CLAUDE.md 규칙 8](CLAUDE.md#8-ai-동작을-바꿀-때-난이도-하네스). Unity 없이 돈다(.NET 8 SDK, Python + PyTorch).
+
+하네스 구성:
+| 부분 | 어디 | 하는 일 |
+|---|---|---|
+| 결정 지점 | `EconomyAI`·`EnemyAI` | 규칙 AI가 고르던 자리마다 합법 후보 목록 + 특징을 만들고 `PolicySystem.Choose`에 넘긴다(규칙 AI의 선택 = ruleIndex) |
+| 정책 | `PolicySystem`, `Data/PolicyData` | 모델 점수로 후보 하나를 고른다(온도·실수 확률). 모델이 없으면 ruleIndex. 학습 중에는 결정을 `EconomyWorld.PolicyTrace`에 남긴다 |
+| 한 판 진행 | `MatchSystem`, `Data/MatchData` | 화면 없이 빠른 한 판을 만들고 AI 턴을 돈다(`BattleController`와 같은 순서) |
+| 시뮬레이터 | `tools/TacticsSim` | 위 게임 코드를 링크로 컴파일한 .NET 콘솔(`UnityShim`이 UnityEngine 대신). `bench`·`rollout`·`eval` |
+| 학습기 | `tools/ai/train.py` | 모방 학습(규칙 AI 흉내) → 자기 대국 PPO, 모델을 텍스트로 내보낸다. C# 추론과 결과가 같다 |
+| 사다리 | `tools/ai/ladder.py` | 후보 설정(모델 × 온도 × 실수 확률)마다 규칙 AI 상대 점수를 잰다 — 그 점수를 보고 5단계를 고른다 |
+| 검증 | `PolicyVerification`(전체 검증), `scripts/record_play.sh` | 후보 목록이 규칙 AI를 담는지·모델이 읽히는지·재현되는지, 난이도별 영상 |
+
+명령:
+- 시뮬레이터 빌드: `dotnet build tools/TacticsSim -c Release`. 규칙 AI끼리 판 확인: `dotnet tools/TacticsSim/bin/Release/net8.0/TacticsSim.dll bench 8 1` (뒤에 `trace`를 붙이면 정책 경로로 — 결과가 같아야 한다)
+- 모방 학습(초기 정책): `python tools/ai/train.py bc --games 1500` → `tools/ai/runs/bc.txt`
+- 자기 대국 PPO: `python tools/ai/train.py ppo --iters 150 --batch 512 --epochs 4 --games-per-job 6 --entropy 0.005` (이어서: `--resume`) → `tools/ai/runs/ppo_XXXX.txt`, 기록 `ppo_state.json`
+- 두 모델 대국: `python tools/ai/train.py eval --a <모델|rule> --b <모델|rule> --games 224` (`--ta/--ba`, `--tb/--bb`: 온도·실수 확률)
+- 난이도 사다리: `python tools/ai/ladder.py` → `tools/ai/runs/ladder.json`. 점수가 고르게 벌어지는 다섯을 골라 모델을 `Assets/Resources/AI/`에 복사하고 `AIDifficulty.csv`(`Model`·`Temperature`·`BlunderChance`, `Note`에 점수)를 고친다. 이웃 단계끼리 직접 확인: `train.py eval`.
+- 난이도별 영상: `bash scripts/record_play.sh <이름> -recordDifficulty N` (아래 "플레이 영상")
 
 ## 조작
 - 좌클릭(놓을 때 처리): 아군 선택 → 파란 칸 이동 / 빨간 칸 공격. 다른 칸·유닛은 오른쪽 정보 패널(정보 + 할 수 있는 행동 목록). 같은 칸을 다시 누르면 유닛 ↔ 칸 전환. 패널의 X는 선택 해제.
@@ -61,3 +83,4 @@ unity run . -- -nographics -logFile Logs/verify_all.log -executeMethod TacticsEC
 | `Assets/Editor` | CLI용 에셋 생성·검증 |
 | `Assets/Resources` | 게임 데이터 CSV |
 | `scripts` | 픽셀 패턴 생성, spec 검사 |
+| `tools/TacticsSim`, `tools/ai` | AI 난이도 학습(헤드리스 시뮬레이터, 학습기) |

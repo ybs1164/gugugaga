@@ -54,5 +54,11 @@ namespace TacticsECS
         /// <summary>유적 탐험 보상 등 무작위 결과에 쓰는 시드 카운터(호출마다 CitySystem이 1씩 올린다) —
         /// System.Random 인스턴스를 들고 있지 않고 값만 저장해 재현 가능하게 한다.</summary>
         public int RandomCounter;
+
+        /// <summary>팀별 AI 정책(난이도). 키가 없거나 ModelId가 비면 규칙 기반 AI.</summary>
+        public readonly Dictionary<Team, AiPolicySettings> AiPolicy = new Dictionary<Team, AiPolicySettings>();
+
+        /// <summary>학습용 결정 기록 — 시뮬레이터만 채운다(게임에서는 null).</summary>
+        public List<PolicyDecision> PolicyTrace;
     }
 }

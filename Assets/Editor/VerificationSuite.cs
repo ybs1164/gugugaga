@@ -24,6 +24,7 @@ namespace TacticsECS.EditorTools
             Step("ArrayTableVerification", ArrayTableVerification.Run);
             Step("WikiParityVerification", WikiParityVerification.Run);
             Step("UnitPlanVerification", UnitPlanVerification.Run);
+            Step("PolicyVerification", PolicyVerification.Run);
             Debug.Log("[VerificationSuite] DONE");
         }
 

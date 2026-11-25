@@ -14,7 +14,8 @@ namespace TacticsECS.EditorTools
     /// 플레이 영상: 빠른 한 판(Mobile.unity, 가장 작은 맵)을 시작하고 양쪽 모두 AI(BattleController.RunAiTurnRoutine)로 두게 하면서
     /// 승패가 날 때까지(-recordSeconds N을 주면 N초만, 게임 시간) MP4로 찍는다. MaxSeconds 안에 승패가 안 나면 멈춘 판으로 보고 FAIL(영상은 남는다)
     /// → Logs/play_videos/&lt;이름&gt;.mp4 (이름: -recordName, 없으면 시각). -recordTribe/-recordGod/-recordMapSize N으로 아군 종족·신(표 Index)과
-    /// 맵 크기(MapSizePresets 번호)를 고를 수 있다 — 생략하면 종족·신은 무작위, 맵은 가장 작은 것.
+    /// 맵 크기(MapSizePresets 번호)를, -recordDifficulty N으로 상대 AI 난이도(AIDifficulty.csv Index, 생략하면 AI.DefaultDifficulty)를,
+    /// -recordPlayerDifficulty N으로 아군 쪽 AI 난이도(생략하면 규칙 AI)를 고를 수 있다 — 생략하면 종족·신은 무작위, 맵은 가장 작은 것.
     /// 시간은 Time.captureFramerate로 고정해 찍는 속도와 상관없이 연출 속도가 그대로 남는다. 이어하기 파일을 덮어쓴다.
     /// Play 모드라 에디터 실행 파일로(화면 필요, -nographics 금지) — 보통은 scripts/record_play.sh로 부른다.
     /// </summary>
@@ -49,6 +50,8 @@ namespace TacticsECS.EditorTools
             SessionState.SetInt(SetupKey + "Tribe", IntArg(args, "-recordTribe", TitleHud.RandomTribe));
             SessionState.SetInt(SetupKey + "God", IntArg(args, "-recordGod", TitleHud.RandomGod));
             SessionState.SetInt(SetupKey + "MapSize", IntArg(args, "-recordMapSize", 0));
+            SessionState.SetInt(SetupKey + "Difficulty", IntArg(args, "-recordDifficulty", GameRules.AI.DefaultDifficulty));
+            SessionState.SetInt(SetupKey + "PlayerDifficulty", IntArg(args, "-recordPlayerDifficulty", -1));
             SessionState.SetBool(ActiveKey, true);
             EditorSceneManager.OpenScene(MobileSceneSetup.MobileScenePath);
             EditorApplication.EnterPlaymode();
@@ -93,7 +96,10 @@ namespace TacticsECS.EditorTools
                         Tribe = SessionState.GetInt(SetupKey + "Tribe", TitleHud.RandomTribe),
                         God = SessionState.GetInt(SetupKey + "God", TitleHud.RandomGod),
                         MapSize = SessionState.GetInt(SetupKey + "MapSize", 0),
+                        Difficulty = SessionState.GetInt(SetupKey + "Difficulty", GameRules.AI.DefaultDifficulty),
                     });
+                    // 아군(자동으로 두는 쪽)의 AI 난이도 — 없으면(-1) 규칙 AI.
+                    PolicySystem.ApplyDifficulty(Field<EconomyWorld>("_econ"), Team.Player, SessionState.GetInt(SetupKey + "PlayerDifficulty", -1));
                     StartCapture();
                     return;
                 }

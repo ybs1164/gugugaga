@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace TacticsECS
@@ -60,17 +61,23 @@ namespace TacticsECS
             ChooseRewards(grid, econ, team, threatened, log);
             FaithAI.RunEarly(grid, world, econ, team, log); // 대신전은 연구·건설·훈련보다 먼저(별을 빼앗기기 전에)
             int faithReserve = FaithAI.StarReserve(grid, world, econ, team); // 못 지었으면 그 비용을 남겨 둔다
-            Research(econ, team, faithReserve, log);
+            // 학습한 AI(난이도)는 아래 결정마다 규칙 AI의 후보 중 하나를 고른다 — PolicySystem. 규칙 AI만 도는 팀은 global이 null.
+            float[] global = PolicySystem.Wants(econ, team) ? PolicySystem.Global(grid, world, econ, team) : null;
+            Research(econ, team, faithReserve, log, global);
 
-            if (threatened)
+            bool trainFirst = threatened;
+            if (global != null)
+                trainFirst = PolicySystem.Choose(econ, team, PolicyDecisionKind.Priority, global,
+                    new List<float[]> { PriorityFeatures(true, threatened), PriorityFeatures(false, threatened) }, threatened ? 0 : 1) == 0;
+            if (trainFirst)
             {
-                Train(grid, world, econ, team, 0, log); // 위협받을 땐 방어가 먼저
-                Improve(grid, world, econ, team, faithReserve, log);
+                Train(grid, world, econ, team, 0, log, global); // 위협받을 땐 방어가 먼저
+                Improve(grid, world, econ, team, faithReserve, log, global);
             }
             else
             {
-                Improve(grid, world, econ, team, TrainingReserve(world, econ, team) + faithReserve, log);
-                Train(grid, world, econ, team, faithReserve, log);
+                Improve(grid, world, econ, team, TrainingReserve(world, econ, team) + faithReserve, log, global);
+                Train(grid, world, econ, team, faithReserve, log, global);
             }
             UpgradeRafts(grid, world, econ, team, log);
             FaithAI.RunTurn(grid, world, econ, team, log); // 신을 고른 팀만 — docs/spec/game/ai.md
@@ -135,7 +142,7 @@ namespace TacticsECS
             return false;
         }
 
-        private static void Research(EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
+        private static void Research(EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log, float[] global = null)
         {
             int cityCount = CitySystem.CountCities(econ, team);
             var tech = econ.Tech[team];
@@ -147,6 +154,7 @@ namespace TacticsECS
                 int cost = TechSystem.Cost(econ.TechNodes, tech, node, cityCount);
                 if (cost < bestCost || (cost == bestCost && CitySystem.NextRandom(econ, 2) == 0)) { bestCost = cost; bestId = node.Id; }
             }
+            int cheapest = bestCost;
             // 신을 고른 팀은 신전·대신전 과업을 여는 기술을 먼저 연구한다(살 수 있을 때).
             string preferred = FaithAI.PreferredTech(econ, team);
             if (preferred != null && TechSystem.CanUnlock(econ.TechNodes, tech, econ.Resources[team], cityCount, preferred))
@@ -154,8 +162,33 @@ namespace TacticsECS
                 bestId = preferred;
                 bestCost = TechSystem.Cost(econ.TechNodes, tech, TechSystem.Find(econ.TechNodes, preferred).Value, cityCount);
             }
+            if (bestId != null && reserve > 0 && econ.Resources[team].Stars - bestCost < reserve) bestId = null; // 대신전 비용을 남긴다
+
+            if (global != null)
+            {
+                // 후보: 살 수 있는(남길 별을 지키는) 기술 전부 + 연구하지 않음(마지막).
+                var ids = new List<string>();
+                var features = new List<float[]>();
+                int stars = econ.Resources[team].Stars, rule = -1;
+                foreach (var node in econ.TechNodes)
+                {
+                    if (!TechSystem.CanUnlock(econ.TechNodes, tech, econ.Resources[team], cityCount, node.Id)) continue;
+                    int cost = TechSystem.Cost(econ.TechNodes, tech, node, cityCount);
+                    if (reserve > 0 && stars - cost < reserve) continue;
+                    if (node.Id == bestId) rule = ids.Count;
+                    ids.Add(node.Id);
+                    var f = new float[PolicySystem.CandidateSize];
+                    f[1] = cost / 20f; f[2] = (stars - cost) / 20f; f[3] = node.Tier / 4f;
+                    f[4] = node.Id == bestId ? 1f : 0f; f[5] = node.Id == preferred ? 1f : 0f; f[6] = cost == cheapest ? 1f : 0f;
+                    features.Add(f);
+                }
+                var skip = new float[PolicySystem.CandidateSize];
+                skip[0] = 1f; skip[2] = stars / 20f; skip[4] = bestId == null ? 1f : 0f;
+                features.Add(skip);
+                int pick = PolicySystem.Choose(econ, team, PolicyDecisionKind.Research, global, features, rule >= 0 ? rule : ids.Count);
+                bestId = pick >= 0 && pick < ids.Count ? ids[pick] : null;
+            }
             if (bestId == null) return;
-            if (reserve > 0 && econ.Resources[team].Stars - bestCost < reserve) return; // 대신전 비용을 남긴다
 
             var res = econ.Resources[team];
             if (TechSystem.Unlock(econ.TechNodes, tech, ref res, cityCount, bestId))
@@ -165,26 +198,64 @@ namespace TacticsECS
             }
         }
 
-        private static void Train(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
+        private static float[] PriorityFeatures(bool trainFirst, bool threatened)
+        {
+            var f = new float[PolicySystem.CandidateSize];
+            f[0] = trainFirst ? 1f : 0f;
+            f[1] = threatened ? 1f : 0f;
+            f[4] = trainFirst == threatened ? 1f : 0f;
+            return f;
+        }
+
+        private static void Train(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log, float[] global = null)
         {
             if (econ.UnitRows.Count == 0) return;
             int pending = 0;
             for (int i = 0; i < econ.Cities.Count; i++)
             {
                 if (econ.Cities[i].Owner != team) continue;
-                if (CityResourceSystem.CountPopulation(world, team) + pending >= CitySystem.UnitCapacity(econ, team)) return;
+                int population = CityResourceSystem.CountPopulation(world, team) + pending, capacity = CitySystem.UnitCapacity(econ, team);
+                if (population >= capacity) return;
 
                 UnitCsvRow best = null;
                 foreach (var row in econ.UnitRows)
                     if (CitySystem.CanTrain(grid, world, econ, team, i, row, out _) && (best == null || row.Cost > best.Cost)) best = row;
-                if (best == null || econ.Resources[team].Stars - best.Cost < reserve || !CitySystem.PayForTraining(grid, world, econ, team, i, best)) continue;
+                if (best != null && econ.Resources[team].Stars - best.Cost < reserve) best = null;
+                if (global != null && best != null)
+                {
+                    // 후보: 이 도시에서 훈련할 수 있는(남길 별을 지키는) 유닛 + 훈련하지 않음(마지막).
+                    var rows = new List<UnitCsvRow>();
+                    var features = new List<float[]>();
+                    int stars = econ.Resources[team].Stars, rule = -1;
+                    foreach (var row in econ.UnitRows)
+                    {
+                        if (!CitySystem.CanTrain(grid, world, econ, team, i, row, out _) || stars - row.Cost < reserve) continue;
+                        if (row == best) rule = rows.Count;
+                        rows.Add(row);
+                        var f = new float[PolicySystem.CandidateSize];
+                        f[1] = row.Cost / 10f; f[2] = (stars - row.Cost) / 20f; f[4] = row == best ? 1f : 0f;
+                        f[5] = row.AttackAttack / 5f; f[6] = row.Defense / 5f; f[7] = row.MaxHp / 20f; f[8] = row.MoveRange / 3f;
+                        f[9] = row.AttackRange / 3f; f[10] = row.Domain == TerrainType.Water ? 1f : 0f; f[11] = row.HealAmount > 0 ? 1f : 0f;
+                        f[12] = econ.Cities[i].Level / 5f; f[13] = population / (float)Mathf.Max(1, capacity);
+                        features.Add(f);
+                    }
+                    var skip = new float[PolicySystem.CandidateSize];
+                    skip[0] = 1f; skip[2] = stars / 20f; skip[12] = econ.Cities[i].Level / 5f; skip[13] = population / (float)Mathf.Max(1, capacity);
+                    features.Add(skip);
+                    int pick = PolicySystem.Choose(econ, team, PolicyDecisionKind.Train, global, features, rule);
+                    best = pick >= 0 && pick < rows.Count ? rows[pick] : null;
+                }
+                if (best == null || !CitySystem.PayForTraining(grid, world, econ, team, i, best)) continue;
 
                 pending++;
                 log.Add(new EconomyLogEntry { Team = team, Kind = EconomyLogKind.Train, Subject = best.Name, SpawnUnitId = best.Id, Position = econ.Cities[i].Position, CityIndex = i });
             }
         }
 
-        private static void Improve(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log)
+        /// <summary>정책이 고르는 건설 후보 수(점수 상위).</summary>
+        private const int ImproveCandidates = 8;
+
+        private static void Improve(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, int reserve, List<EconomyLogEntry> log, float[] global = null)
         {
             PlanConnections(grid, econ, team, reserve, log);
 
@@ -194,14 +265,37 @@ namespace TacticsECS
                 float bestScore = 0f;
                 int stars = econ.Resources[team].Stars;
                 bool hasPort = CountBuildings(grid, team, BuildingDefinition.Port) > 0;
+                var scored = global != null ? new List<((Vector2Int Pos, TileOption Option) C, float Score)>() : null;
                 foreach (var candidate in TileImprovementSystem.GetAllOptions(grid, econ, team))
                 {
                     if (!candidate.Option.Enabled) continue;
                     if (candidate.Option.Cost > 0 && stars - candidate.Option.Cost < reserve) continue;
                     float score = Score(grid, team, candidate.Pos, candidate.Option, hasPort);
                     if (score > bestScore) { bestScore = score; best = candidate; }
+                    if (scored != null && score > 0f) scored.Add((candidate, score));
                 }
                 if (best == null) return;
+                if (scored != null)
+                {
+                    // 후보: 점수 상위 ImproveCandidates개(같은 점수는 먼저 나온 것 — 규칙 AI의 선택이 0번) + 이번 턴 건설 끝(마지막).
+                    var top = scored.Select((c, i) => (c.C, c.Score, i)).OrderByDescending(c => c.Score).ThenBy(c => c.i).Take(ImproveCandidates).ToList();
+                    var features = new List<float[]>();
+                    foreach (var c in top)
+                    {
+                        var f = new float[PolicySystem.CandidateSize];
+                        int cost = c.C.Option.Cost;
+                        f[1] = cost / 10f; f[2] = (stars - cost) / 20f; f[3] = c.Score / bestScore; f[4] = features.Count == 0 ? 1f : 0f;
+                        f[5] = Mathf.Min(c.Score, 10f) / 10f; f[6] = c.C.Option.IsBuilding ? 1f : 0f; f[7] = c.Score >= 1000f ? 1f : 0f;
+                        f[8] = c.Score >= 100f && c.Score < 1000f ? 1f : 0f; f[9] = n / (float)GameRules.AI.MaxImprovementsPerTurn;
+                        features.Add(f);
+                    }
+                    var stop = new float[PolicySystem.CandidateSize];
+                    stop[0] = 1f; stop[2] = stars / 20f; stop[9] = n / (float)GameRules.AI.MaxImprovementsPerTurn;
+                    features.Add(stop);
+                    int pick = PolicySystem.Choose(econ, team, PolicyDecisionKind.Improve, global, features, 0);
+                    if (pick < 0 || pick >= top.Count) return;
+                    best = top[pick].C;
+                }
                 if (!TileImprovementSystem.Execute(grid, econ, team, best.Value.Pos, best.Value.Option.Id, log)) return;
             }
         }

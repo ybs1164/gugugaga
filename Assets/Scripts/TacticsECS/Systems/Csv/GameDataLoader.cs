@@ -25,7 +25,7 @@ namespace TacticsECS
             TileActionDefinition.CsvResourcePath, CityRewardDefinition.CsvResourcePath, TaskDefinition.CsvResourcePath,
             GameTables.UnitsPath, GameTables.BoatsPath, GameTables.BuildingsPath,
             GameTables.TechUnlocksPath, GameTables.TechsPath, GameTables.TechSlotsPath, GameTables.TechTreeLayoutPath, GameTables.TechGroupsPath,
-            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithEffectsPath, GameTables.TemplePassivesPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath,
+            GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithEffectsPath, GameTables.TemplePassivesPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath, GameTables.AIDifficultyPath,
         };
 
         public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
@@ -76,7 +76,24 @@ namespace TacticsECS
             GameTables.Gods = ArrayTableCsvSerializer.ParseGods(Read(GameTables.GodsPath, errors, source), errors);
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
+            GameTables.AIDifficulties = ArrayTableCsvSerializer.ParseAIDifficulties(Read(GameTables.AIDifficultyPath, errors, source), errors);
+            LoadAIModels(errors);
             errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(LoadTribeTerrain(source).Select(b => b.Id).ToList()));
+        }
+
+        /// <summary>난이도 표가 가리키는 모델 파일(Resources/AI/&lt;Model&gt;.txt)을 PolicyModels에 올린다. 표 팩·표 폴더로 덮어쓰지 않는다
+        /// (모델은 빌드에 들어 있는 것만). 없거나 틀리면 경고 — 그 난이도는 규칙 AI로 돈다.</summary>
+        private static void LoadAIModels(List<string> errors)
+        {
+            PolicyModels.All = new Dictionary<string, PolicyModel>();
+            foreach (var row in GameTables.AIDifficulties)
+            {
+                if (string.IsNullOrEmpty(row.Model) || PolicyModels.All.ContainsKey(row.Model)) continue;
+                var asset = Resources.Load<TextAsset>(GameTables.AIModelFolder + row.Model);
+                if (asset == null) { errors.Add($"Resources/{GameTables.AIModelFolder}{row.Model}.txt를 찾지 못함 — 난이도 {row.Id}는 규칙 AI로 돈다."); continue; }
+                var model = PolicySystem.Parse(row.Model, asset.text, errors);
+                if (model != null) PolicyModels.All[row.Model] = model;
+            }
         }
 
         public static void LoadStrings(List<string> errors) => LoadStrings(errors, TableSource.Resources);

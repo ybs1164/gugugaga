@@ -44,7 +44,7 @@
 | 신앙 | [faith](game/faith.md) | [faith-effects](csv/faith-effects.md) (효과·신전 패시브), [gods](csv/gods.md), [faith-punches](csv/faith-punches.md) (신앙 펀치·신화 유닛), [buildings](csv/buildings.md) `FaithCap`, [game-rules](csv/game-rules.md) `Faith.*` | `FaithSystem`, `PrayerSystem`, `FaithEffectSystem`, `TemplePassiveSystem`, `FaithPunchSystem`, `MythicSystem`, `View/FaithPunchHud` |
 | 종족 | [tribe](game/tribe.md) | [tribes](csv/tribes.md), [tribe-terrain](csv/tribe-terrain.md) | `TribeSystem`, `StartConditionSystem` |
 | 과업·점수 | [task-score](game/task-score.md) | [tasks](csv/tasks.md), [game-rules](csv/game-rules.md) `Score.*` | `TaskSystem`, `ScoreSystem` |
-| AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*` | `EnemyAI`, `EconomyAI`, `FaithAI` |
+| AI | [ai](game/ai.md) | [game-rules](csv/game-rules.md) `AI.*`, [ai-difficulty](csv/ai-difficulty.md) | `EnemyAI`, `EconomyAI`, `FaithAI`, `PolicySystem`, `MatchSystem` |
 | 한 판 흐름·저장·화면 배치 | [session](game/session.md) | [strings](csv/strings.md) `UI.Title.*`·`UI.Menu.*`·`UI.Result.*`·`UI.Hud.*`, [table-pack](csv/table-pack.md) | `SaveSystem`, `GraphSerializer`, `TablePackSystem`, `View/TablePackPicker`, `View/BattleHud`, `View/TitleHud`, `View/TechTreeHud`, `View/UiScale` |
 | 화면 표시 | — | [sprites](csv/sprites.md) | `View/PixelSpriteCatalog` |
 | 화면 문구·언어 | — | [strings](csv/strings.md) | `LocalizationSystem`, `View/LanguagePreference` |

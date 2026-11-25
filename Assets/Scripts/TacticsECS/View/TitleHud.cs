@@ -28,6 +28,8 @@ namespace TacticsECS
         public int God;
         /// <summary>Init에 넘긴 맵 크기 목록의 번호.</summary>
         public int MapSize;
+        /// <summary>상대 AI 난이도(AIDifficulty.csv Index).</summary>
+        public int Difficulty;
     }
 
     /// <summary>
@@ -91,8 +93,11 @@ namespace TacticsECS
         private int _selected = RandomTribe;
         private int _selectedGod = RandomGod;
         private int _selectedMapSize;
+        private IReadOnlyList<GodChoice> _difficulties = new List<GodChoice>();
+        private int _selectedDifficulty;
         private Button _godButton;
         private Button _mapSizeButton;
+        private Button _difficultyButton;
         private Button _importPackButton;
         private Button _resetPackButton;
         // 표 팩 줄: 언어 버튼 바로 아래(프리팹의 첫 화면 열에 남은 자리).
@@ -102,8 +107,12 @@ namespace TacticsECS
         public bool IsOpen => root != null && root.activeSelf;
 
         /// <param name="mapSizes">맵 크기 버튼에 보일 이름(순환 순서). defaultMapSize는 처음 고른 번호.</param>
-        public void Init(IReadOnlyList<TribeChoice> tribes, IReadOnlyList<GodChoice> gods, IReadOnlyList<string> mapSizes, int defaultMapSize)
+        /// <param name="difficulties">AI 난이도(이름·설명, AIDifficulty.csv 순서). defaultDifficulty는 처음 고른 번호.</param>
+        public void Init(IReadOnlyList<TribeChoice> tribes, IReadOnlyList<GodChoice> gods, IReadOnlyList<string> mapSizes, int defaultMapSize,
+            IReadOnlyList<GodChoice> difficulties, int defaultDifficulty)
         {
+            _difficulties = difficulties ?? new List<GodChoice>();
+            _selectedDifficulty = Mathf.Clamp(defaultDifficulty, 0, Mathf.Max(0, _difficulties.Count - 1));
             _tribes = tribes ?? new List<TribeChoice>();
             _gods = gods ?? new List<GodChoice>();
             _mapSizes = mapSizes ?? new List<string>();
@@ -118,7 +127,7 @@ namespace TacticsECS
             newGameButton.onClick.AddListener(ShowTribeSelect);
             languageButton.onClick.AddListener(() => OnLanguageClicked?.Invoke());
             backButton.onClick.AddListener(() => ShowTitle(_canContinue, null));
-            startButton.onClick.AddListener(() => OnStartClicked?.Invoke(new QuickPlaySetup { Tribe = _selected, God = _selectedGod, MapSize = _selectedMapSize }));
+            startButton.onClick.AddListener(() => OnStartClicked?.Invoke(new QuickPlaySetup { Tribe = _selected, God = _selectedGod, MapSize = _selectedMapSize, Difficulty = _difficulties.Count > 0 ? _selectedDifficulty : -1 }));
             BuildOptionRow();
             BuildPackRow();
             Canvas.willRenderCanvases += OnWillRender;
@@ -185,12 +194,14 @@ namespace TacticsECS
             }
             if (_selectedGod != RandomGod)
                 body += "\n\n" + LocalizationSystem.F("UI.Title.GodDetail", _gods[_selectedGod].Name, _gods[_selectedGod].Description);
+            if (_difficulties.Count > 0)
+                body += "\n\n" + LocalizationSystem.F("UI.Title.DifficultyDetail", _difficulties[_selectedDifficulty].Name, _difficulties[_selectedDifficulty].Description);
             detailBody.text = body;
             RefreshOptionLabels();
             PixelUIScaler.Attach(gameObject);
         }
 
-        /// <summary>상세 칸의 시작 버튼 위에 신·맵 크기 버튼을 반씩 놓고, 설명 글은 그 위까지만 쓴다. 누를 때마다 다음 값으로 넘어간다.</summary>
+        /// <summary>상세 칸의 시작 버튼 위에 신·맵 크기·난이도 버튼을 3등분해 놓고, 설명 글은 그 위까지만 쓴다. 누를 때마다 다음 값으로 넘어간다.</summary>
         private void BuildOptionRow()
         {
             _godButton = UiKit.Button(buttonPrefab, tribeDetail, "GodButton", "", UiKit.ButtonColor, () =>
@@ -203,8 +214,14 @@ namespace TacticsECS
                 if (_mapSizes.Count > 0) _selectedMapSize = (_selectedMapSize + 1) % _mapSizes.Count;
                 ShowTribeSelect();
             }, UiKit.SmallText);
-            PlaceHalf((RectTransform)_godButton.transform, 0f, 0.5f, 12f, -4f);
-            PlaceHalf((RectTransform)_mapSizeButton.transform, 0.5f, 1f, 4f, -12f);
+            _difficultyButton = UiKit.Button(buttonPrefab, tribeDetail, "DifficultyButton", "", UiKit.ButtonColor, () =>
+            {
+                if (_difficulties.Count > 0) _selectedDifficulty = (_selectedDifficulty + 1) % _difficulties.Count;
+                ShowTribeSelect();
+            }, UiKit.SmallText);
+            PlaceHalf((RectTransform)_godButton.transform, 0f, 1f / 3f, 12f, -4f);
+            PlaceHalf((RectTransform)_mapSizeButton.transform, 1f / 3f, 2f / 3f, 4f, -4f);
+            PlaceHalf((RectTransform)_difficultyButton.transform, 2f / 3f, 1f, 4f, -12f);
             var body = detailBody.rectTransform;
             body.offsetMin = new Vector2(body.offsetMin.x, OptionRowBottom + OptionRowHeight + 12f);
         }
@@ -254,6 +271,8 @@ namespace TacticsECS
             UiKit.Label(_godButton).text = LocalizationSystem.F("UI.Title.God", god);
             UiKit.Label(_mapSizeButton).text = LocalizationSystem.F("UI.Title.MapSize", _mapSizes.Count > 0 ? _mapSizes[_selectedMapSize] : "");
             UiKit.SetEnabled(_mapSizeButton, _mapSizes.Count > 1, UiKit.ButtonColor);
+            UiKit.Label(_difficultyButton).text = LocalizationSystem.F("UI.Title.Difficulty", _difficulties.Count > 0 ? _difficulties[_selectedDifficulty].Name : "");
+            UiKit.SetEnabled(_difficultyButton, _difficulties.Count > 1, UiKit.ButtonColor);
         }
 
         private void OnDestroy() => Canvas.willRenderCanvases -= OnWillRender;

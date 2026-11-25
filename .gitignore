@@ -67,3 +67,9 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# AI 난이도 학습 도구(tools/TacticsSim, tools/ai) — 빌드 결과와 학습 중간 파일은 올리지 않는다
+!/tools/TacticsSim/TacticsSim.csproj
+/tools/TacticsSim/bin/
+/tools/ai/runs/
+__pycache__/

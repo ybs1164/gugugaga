@@ -10,7 +10,7 @@ namespace TacticsECS
     public static class SaveSystem
     {
         /// <summary>데이터 타입의 필드가 바뀌어 옛 저장을 읽을 수 없게 되면 올린다.</summary>
-        public const int Version = 1;
+        public const int Version = 2; // 2: EconomyWorld.AiPolicy(AI 난이도)
 
         public static void Write(string path, SaveGameData data)
         {

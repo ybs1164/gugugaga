@@ -346,6 +346,30 @@ namespace TacticsECS
             return rows;
         }
 
+        public const string AIDifficultyStringTable = "AIDifficulty";
+
+        public static AIDifficultyRow[] ParseAIDifficulties(string text, List<string> errors = null)
+        {
+            var t = Begin("AIDifficulty.csv", text, new[] { "Index", "Id" }, new[] { "Model", "Temperature", "BlunderChance", "Note" }, new string[0], errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new AIDifficultyRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                string id = CsvTableReader.Get(t, r, "Id");
+                rows[r] = new AIDifficultyRow
+                {
+                    Index = r,
+                    Id = id,
+                    Name = LocalizationSystem.Name(AIDifficultyStringTable, id),
+                    Description = LocalizationSystem.Desc(AIDifficultyStringTable, id, null, c => CsvTableReader.Get(t, r, c)),
+                    Model = CsvTableReader.Get(t, r, "Model"),
+                    Temperature = CsvTableReader.GetFloat(t, r, "Temperature", 0f, errors),
+                    BlunderChance = CsvTableReader.GetFloat(t, r, "BlunderChance", 0f, errors),
+                };
+            }
+            return rows;
+        }
+
         public static StartConditionRow[] ParseStartConditions(string text, List<string> errors = null)
         {
             var t = Begin("StartConditions.csv", text, new[] { "Index", "Id" }, new[] { "Note" }, new[] { "Rule" }, errors);

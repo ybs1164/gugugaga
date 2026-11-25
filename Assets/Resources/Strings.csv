@@ -391,12 +391,17 @@ UI.Battle.EndTurn,턴 종료,End turn
 UI.Battle.PendingReward,{0}의 레벨업 보상을 먼저 고르세요.,Choose the level-up reward for {0} first.
 # 화면 문구 — Hud,,
 UI.Hud.Menu,메뉴,Menu
-UI.Hud.Turn,턴 {0},Turn {0}
-UI.Hud.Stars,별 {0},Stars {0}
-UI.Hud.StarsIncome,별 {0} (+{1}),Stars {0} (+{1})
+UI.Hud.Turn,{0},{0}
+UI.Hud.EnemyTurn,적 차례 {0},Enemy turn {0}
+UI.Hud.Stars,{0},{0}
+UI.Hud.StarsIncome,{0} (+{1}),{0} (+{1})
 UI.Hud.Units,유닛 {0}/{1},Units {0}/{1}
-UI.Hud.Faith,신앙 {0}/{1},Faith {0}/{1}
-UI.Hud.FaithIncome,신앙 {0}/{1} (+{2}),Faith {0}/{1} (+{2})
+UI.Hud.Faith,{0}/{1},{0}/{1}
+UI.Hud.FaithIncome,{0}/{1} (+{2}),{0}/{1} (+{2})
+UI.Hud.Punch,신앙 펀치,Faith punch
+UI.Hud.PunchCount,신앙 펀치 {0},Faith punch {0}
+UI.Reward.Title,{0} 레벨업 (Lv {1}),{0} levelled up (Lv {1})
+UI.Reward.Hint,하나를 골라야 계속할 수 있습니다.,Pick one to continue.
 UI.TileMenu.Info,칸 정보,Tile
 # 화면 문구 — Menu,,
 UI.Menu.Title,메뉴,Menu

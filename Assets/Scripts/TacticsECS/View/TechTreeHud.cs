@@ -16,9 +16,11 @@ namespace TacticsECS
     {
         public const int SortingOrder = 20;
 
-        private static readonly Color LockedColor = new Color(0.20f, 0.21f, 0.25f, 1f);
-        private static readonly Color AvailableColor = new Color(0.30f, 0.55f, 0.95f, 1f);
-        private static readonly Color UnlockedColor = new Color(0.30f, 0.70f, 0.35f, 1f);
+        // 노드 상태: 해금 완료 = 짙은 칸 + 흰 아이콘, 해금 가능 = 흰 칸 + 짙은 아이콘, 선행 필요 = 흐린 칸 + 흐린 아이콘. 고른 노드는 포인트 색.
+        private static readonly Color LockedColor = new Color(0.15f, 0.18f, 0.25f, 1f);
+        private static readonly Color AvailableColor = Color.white;
+        private static readonly Color UnlockedColor = new Color(0.27f, 0.33f, 0.46f, 1f);
+        private static readonly Color LockedIcon = new Color(0.55f, 0.60f, 0.70f, 1f);
         private static readonly Color ConnectorColor = new Color(1f, 1f, 1f, 0.28f);
         private static readonly Color HubColor = new Color(1f, 1f, 1f, 0.9f);
 
@@ -86,6 +88,7 @@ namespace TacticsECS
         public void Init(IReadOnlyList<TechNodeData> nodes)
         {
             _nodes = nodes ?? new List<TechNodeData>();
+            UiKit.ApplyTheme(transform);
             titleText.text = LocalizationSystem.T("UI.TechTree.Toggle");
             closeButton.onClick.AddListener(Close);
             unlockButton.onClick.AddListener(RequestUnlock);
@@ -312,7 +315,11 @@ namespace TacticsECS
                 var baseColor = _hasState && TechSystem.IsUnlocked(_tech, node.Id) ? UnlockedColor
                     : _hasState && TechSystem.IsAvailable(_nodes, _tech, node.Id) ? AvailableColor
                     : LockedColor;
-                bg.color = node.Id == _selectedId ? Color.Lerp(baseColor, Color.white, 0.4f) : baseColor;
+                bg.color = node.Id == _selectedId ? UiKit.PrimaryColor : baseColor;
+                var icon = bg.transform.Find("NodeSlot/NodeIcon");
+                if (icon != null)
+                    icon.GetComponent<Image>().color = node.Id == _selectedId || baseColor == AvailableColor ? UiKit.TextColor
+                        : baseColor == UnlockedColor ? Color.white : LockedIcon;
             }
         }
 

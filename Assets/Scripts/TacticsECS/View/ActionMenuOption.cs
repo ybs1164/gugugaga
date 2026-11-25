@@ -8,6 +8,8 @@ namespace TacticsECS
     {
         public string Label;
         public string Detail;
+        /// <summary>버튼 앞에 붙는 아이콘 이름(IconLibrary). 없으면 글자만.</summary>
+        public string Icon;
         public bool Enabled;
         /// <summary>대화 상자에서 강조할 기본 버튼.</summary>
         public bool Primary;

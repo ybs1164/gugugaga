@@ -12,25 +12,36 @@ namespace TacticsECS
     /// </summary>
     public static class UiKit
     {
-        // 프로젝트가 선형 색 공간이라 어두운 반투명 상자는 알파 값보다 훨씬 비쳐 보인다 — 글을 읽는 패널은 불투명하게.
-        public static readonly Color PanelColor = new Color(0.08f, 0.09f, 0.11f, 1f);
-        public static readonly Color BarColor = new Color(0.08f, 0.09f, 0.11f, 0.96f);
-        public static readonly Color ButtonColor = new Color(0.20f, 0.22f, 0.27f, 1f);
-        public static readonly Color PrimaryColor = new Color(0.22f, 0.40f, 0.72f, 1f);
-        public static readonly Color DisabledColor = new Color(0.22f, 0.22f, 0.25f, 1f);
+        // 두 톤(흰 카드 + 짙은 글자)에 포인트 색 하나. 틀(Panel/Button/Badge)은 흰 평면이라 Image.color가 그대로 보인다.
+        // 프로젝트가 선형 색 공간이라 반투명 상자는 알파 값보다 훨씬 비쳐 보인다 — 글을 읽는 패널은 불투명하게.
+        public static readonly Color PanelColor = Color.white;
+        public static readonly Color BarColor = Color.white;
+        public static readonly Color ButtonColor = new Color(0.933f, 0.945f, 0.965f, 1f);
+        /// <summary>포인트 색(호박색) — 지금 눌러야 하는 것에만.</summary>
+        public static readonly Color PrimaryColor = new Color(0.94f, 0.647f, 0.227f, 1f);
+        public static readonly Color DisabledColor = new Color(0.955f, 0.96f, 0.972f, 1f);
         public static readonly Color DimColor = new Color(0f, 0f, 0f, 0.6f);
-        public static readonly Color MutedText = new Color(0.80f, 0.82f, 0.87f);
-        public static readonly Color DisabledText = new Color(0.62f, 0.62f, 0.66f);
-        public static readonly Color StarColor = new Color(0.98f, 0.84f, 0.32f);
-        public static readonly Color FaithColor = new Color(0.93f, 0.80f, 0.35f);
+        /// <summary>흰 카드 위의 본문 글자·아이콘.</summary>
+        public static readonly Color TextColor = new Color(0.165f, 0.188f, 0.251f);
+        public static readonly Color MutedText = new Color(0.40f, 0.44f, 0.52f);
+        public static readonly Color DisabledText = new Color(0.60f, 0.635f, 0.69f);
+        public static readonly Color LineColor = new Color(0.875f, 0.89f, 0.925f);
+        public static readonly Color StarColor = TextColor;
+        public static readonly Color FaithColor = new Color(0.94f, 0.647f, 0.227f);
+        public static readonly Color PlayerColor = new Color(0.24f, 0.55f, 1f);
+        public static readonly Color EnemyColor = new Color(1f, 0.3f, 0.37f);
 
         /// <summary>화면 가장자리와 부품 사이 여백.</summary>
         public const float Gap = 8f;
         /// <summary>손가락으로 누를 수 있는 최소 높이(약 7mm, UiScale 참고).</summary>
         public const float TouchSize = 44f;
-        public const float TopBarHeight = 48f;
+        /// <summary>상단 칩 줄이 차지하는 높이(위 여백 + 칩).</summary>
+        public const float TopBarHeight = 52f;
         public const float SidePanelWidth = 300f;
-        public static readonly Vector2 EndTurnSize = new Vector2(150f, 56f);
+        /// <summary>하단 행동 줄(신앙 펀치 · 기술 · 턴 종료)의 턴 종료 버튼.</summary>
+        public static readonly Vector2 EndTurnSize = new Vector2(96f, 44f);
+        /// <summary>같은 묶음 안 부품 사이 간격.</summary>
+        public const float ItemGap = 4f;
 
         /// <summary>안전 영역 폭이 이보다 좁으면 좁은 배치.</summary>
         public const float CompactWidth = 700f;
@@ -39,8 +50,8 @@ namespace TacticsECS
 
         public static bool IsCompact(RectTransform safe) => safe != null && safe.rect.width > 1f && safe.rect.width < CompactWidth;
 
-        /// <summary>상단 막대 높이 — 좁은 배치는 두 줄.</summary>
-        public static float TopBarHeightFor(bool compact) => compact ? TopBarHeight * 2f : TopBarHeight;
+        /// <summary>상단 칩 줄 높이 — 넓은·좁은 배치 모두 한 줄.</summary>
+        public static float TopBarHeightFor(bool compact) => TopBarHeight;
 
         /// <summary>정보 패널·신앙 펀치가 쓰는 칸. 넓은 배치: 오른쪽 열(상단 막대 아래 ~ 턴 종료 위). 좁은 배치: 아래(턴 종료 위)부터 화면 절반까지, 폭 전체.</summary>
         public static void LayoutSheetArea(RectTransform area, bool compact)
@@ -114,7 +125,44 @@ namespace TacticsECS
         {
             var instance = UnityEngine.Object.Instantiate(prefab, parent, false);
             instance.name = name;
+            ApplyTheme(instance.transform);
             return instance;
+        }
+
+        /// <summary>틀 그림(Panel·Button·Badge) — 이 위의 글자는 짙은 색이다.</summary>
+        private static bool IsCard(Image image) =>
+            image != null && image.enabled && image.sprite != null && (image.sprite.name == "Panel" || image.sprite.name == "Button" || image.sprite.name == "Badge");
+
+        /// <summary>t의 글자가 흰 카드 위에 놓이는지 — 가장 가까운 불투명 바탕(자신 포함 조상의 Image)이 틀 그림이면 그렇다.</summary>
+        public static bool OnCard(Transform t)
+        {
+            for (; t != null; t = t.parent)
+            {
+                var image = t.GetComponent<Image>();
+                if (image == null || !image.enabled || image.color.a < 0.5f) continue;
+                if (IsCard(image)) return true;
+                if (image.sprite == null || image.type != Image.Type.Simple || image.GetComponent<UnityEngine.UI.Text>() != null) return false;
+                // 아이콘 같은 작은 그림은 바탕이 아니다 — 계속 올라간다.
+                if (image.rectTransform.rect.width > 64f || image.rectTransform.rect.height > 64f) return false;
+            }
+            return false;
+        }
+
+        /// <summary>그 자리에 맞는 글자색: 흰 카드 위면 짙은 색, 어두운 바탕 위면 흰색.</summary>
+        public static Color TextOn(Transform t) => OnCard(t) ? TextColor : Color.white;
+
+        /// <summary>프리팹에 구워진 옛 색(어두운 틀·흰 글자)을 지금 팔레트로 바꾼다: 패널은 흰색, 버튼·배지는 옅은 회색, 그 위 글자는 짙은 색.
+        /// 화면을 열 때와 부품을 꺼낼 때(Spawn) 부른다 — 그 뒤에 코드가 정하는 색(강조·팀 색 등)은 그대로 덮어쓴다.</summary>
+        public static void ApplyTheme(Transform root)
+        {
+            foreach (var image in root.GetComponentsInChildren<Image>(true))
+            {
+                if (image.sprite == null) continue;
+                if (image.sprite.name == "Panel") image.color = PanelColor;
+                else if (image.sprite.name == "Button" || image.sprite.name == "Badge") image.color = ButtonColor;
+            }
+            foreach (var text in root.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+                if (OnCard(text.transform)) text.color = TextColor;
         }
 
         /// <summary>부모를 꽉 채운다(left/bottom/right/top 안쪽 여백).</summary>
@@ -154,7 +202,7 @@ namespace TacticsECS
             var text = Spawn(prefab, parent, name);
             text.fontSize = size;
             text.alignment = anchor;
-            text.color = color ?? Color.white;
+            text.color = color ?? TextOn(text.transform);
             return text;
         }
 
@@ -180,7 +228,11 @@ namespace TacticsECS
 
         /// <summary>아이콘 부품(Icon.prefab의 Slot/Icon) 그림. 그림은 실행 중에 시트에서 잘라 만드는 것(PixelSpriteCatalog)이라 프리팹에 구울 수 없다 — 꺼낸 뒤 이 이름으로 채운다.
         /// 크기는 PixelUIScaler가 원래 픽셀 크기로 맞추고, 자리(Slot) 가운데에 남는다.</summary>
-        public static void SetIcon(Image image, string iconName) => image.sprite = IconLibrary.Get(iconName);
+        public static void SetIcon(Image image, string iconName)
+        {
+            image.sprite = IconLibrary.Get(iconName);
+            image.color = OnCard(image.transform.parent) ? TextColor : Color.white; // 아이콘은 흰 그림 — 카드 위에서는 짙게 물들인다
+        }
 
         public static void SetContentHeight(RectTransform content, float height) =>
             content.sizeDelta = new Vector2(content.sizeDelta.x, height);
@@ -192,7 +244,7 @@ namespace TacticsECS
             button.interactable = enabled;
             ((Image)button.targetGraphic).color = enabled ? enabledColor : DisabledColor;
             var label = button.transform.Find("Label");
-            if (label != null) label.GetComponent<UnityEngine.UI.Text>().color = enabled ? Color.white : DisabledText;
+            if (label != null) label.GetComponent<UnityEngine.UI.Text>().color = enabled ? TextColor : DisabledText;
         }
 
         /// <summary>그 폭에서 글자가 차지하는 높이(줄바꿈 포함).</summary>

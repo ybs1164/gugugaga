@@ -51,6 +51,7 @@ namespace TacticsECS
 
         public void Init()
         {
+            UiKit.ApplyTheme(transform);
             PixelUIScaler.Attach(gameObject);
             Canvas.willRenderCanvases += Fit;
             Hide();
@@ -70,7 +71,7 @@ namespace TacticsECS
         /// <summary>1단계: 펀치 카드 목록. 비활성 카드는 눌러도 반응이 없고 이유를 보여준다. message가 있으면 목록 위에 안내.</summary>
         public void ShowList(IReadOnlyList<FaithPunchOption> options, string message = null)
         {
-            float y = Begin(LocalizationSystem.T("UI.FaithPunch.Title"), UiKit.FaithColor);
+            float y = Begin(LocalizationSystem.T("UI.FaithPunch.Title"), UiKit.TextColor);
             if (!string.IsNullOrEmpty(message)) y = Paragraph(message, y, UiKit.MutedText);
             for (int i = 0; i < options.Count; i++)
             {
@@ -82,12 +83,12 @@ namespace TacticsECS
                 string line = o.Enabled || string.IsNullOrEmpty(o.Reason) ? o.Description : o.Reason;
                 var muted = ColorUtility.ToHtmlStringRGB(UiKit.MutedText);
                 label.text = $"{o.Name}\n<size={UiKit.SmallText - 1}><color=#{muted}>{line}</color></size>";
-                label.color = o.Enabled ? Color.white : UiKit.DisabledText;
+                label.color = o.Enabled ? UiKit.TextColor : UiKit.DisabledText;
                 // 설명이 여러 줄이면 카드를 그만큼 키운다.
                 float h = Mathf.Max(CardHeight, UiKit.PreferredHeight(label, UiKit.SheetWidth(area) - 8f - (Pad - 4f) * 2f - 80f) + 14f);
                 UiKit.Row((RectTransform)card.transform, y, h, Pad - 4f, Pad - 4f);
                 var cost = card.transform.Find("Cost").GetComponent<Text>();
-                cost.color = o.Enabled ? UiKit.FaithColor : UiKit.DisabledText;
+                cost.color = o.Enabled ? UiKit.TextColor : UiKit.DisabledText;
                 cost.text = LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost);
                 y += h + 4f;
             }
@@ -98,7 +99,7 @@ namespace TacticsECS
         /// <summary>2단계: 대상 칸을 고르라는 안내와 취소 버튼.</summary>
         public void ShowTargeting(string hint)
         {
-            float y = Begin(hint, Color.white);
+            float y = Begin(hint, UiKit.TextColor);
             y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
             Finish(y);
         }
@@ -106,8 +107,8 @@ namespace TacticsECS
         /// <summary>3단계: 확인. summary는 무엇이 어디에 영향을 주는지, costLine은 신앙 변화. canConfirm이 false면 이유(reason)를 보여주고 발동은 막는다.</summary>
         public void ShowConfirm(string summary, string costLine, bool canConfirm, string reason)
         {
-            float y = Begin(summary, Color.white);
-            y = Paragraph(canConfirm ? costLine : reason, y, canConfirm ? UiKit.FaithColor : new Color(1f, 0.55f, 0.5f));
+            float y = Begin(summary, UiKit.TextColor);
+            y = Paragraph(canConfirm ? costLine : reason, y, canConfirm ? UiKit.TextColor : UiKit.EnemyColor);
             y = Button(LocalizationSystem.T("UI.FaithPunch.Confirm"), y, canConfirm, () => OnConfirmClicked?.Invoke(), primary: true);
             y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
             Finish(y);

@@ -117,12 +117,14 @@ namespace TacticsECS
             _gods = gods ?? new List<GodChoice>();
             _mapSizes = mapSizes ?? new List<string>();
             _selectedMapSize = Mathf.Clamp(defaultMapSize, 0, Mathf.Max(0, _mapSizes.Count - 1));
+            UiKit.ApplyTheme(transform);
             titleText.text = LocalizationSystem.T("UI.Title.Name");
             goalText.text = LocalizationSystem.T("UI.Title.Goal");
             UiKit.Label(newGameButton).text = LocalizationSystem.T("UI.Title.NewGame");
             UiKit.Label(backButton).text = LocalizationSystem.T("UI.Title.Back");
             pickTitleText.text = LocalizationSystem.T("UI.Title.PickTribe");
             UiKit.Label(startButton).text = LocalizationSystem.T("UI.Title.Start");
+            ((Image)startButton.targetGraphic).color = UiKit.PrimaryColor; // 이 화면에서 지금 눌러야 하는 것
             continueButton.onClick.AddListener(() => OnContinueClicked?.Invoke());
             newGameButton.onClick.AddListener(ShowTribeSelect);
             languageButton.onClick.AddListener(() => OnLanguageClicked?.Invoke());

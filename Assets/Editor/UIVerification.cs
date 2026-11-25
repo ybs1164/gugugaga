@@ -55,7 +55,7 @@ namespace TacticsECS.EditorTools
             return true;
         }
 
-        /// <summary>알림(AddLogEntry)은 최근 줄만 남기고, 상단 막대가 턴·별·유닛 수·신앙 값을 그대로 보이며, 경제 없는 전투에서는 경제 칩을 숨기는지.</summary>
+        /// <summary>알림(AddLogEntry)은 최근 줄만 남기고, 상단 칩이 턴·별·순위·신앙 값을 그대로 보이며, 경제 없는 전투에서는 경제 칩을 숨기는지.</summary>
         private static bool VerifyBattleHudToastsAndBar()
         {
             var hud = NewHud();
@@ -64,13 +64,14 @@ namespace TacticsECS.EditorTools
             {
                 for (int i = 0; i < 6; i++) hud.AddLogEntry("테스트 로그 줄 " + i);
                 var toasts = hud.transform.Find("Canvas/Safe/Toasts");
-                if (toasts == null || toasts.childCount != 4) { Debug.LogError($"[UIVerification] toast count mismatch: expected 4, got {(toasts == null ? -1 : toasts.childCount)}"); ok = false; }
+                if (toasts == null || toasts.childCount != 2) { Debug.LogError($"[UIVerification] toast count mismatch: expected 2, got {(toasts == null ? -1 : toasts.childCount)}"); ok = false; }
 
                 hud.SetTurn(Team.Player, 7);
                 var city = CityResourceData.Create(populationCap: 10, starsProduction: 1, isCapital: true);
                 city.Stars = 5;
                 hud.SetResources(city, unitsUsed: 3);
                 hud.SetFaith(4, 12, 2, null);
+                hud.SetRank(2);
                 string Read(string path)
                 {
                     var t = hud.transform.Find("Canvas/Safe/TopBar/" + path);
@@ -78,7 +79,7 @@ namespace TacticsECS.EditorTools
                 }
                 if (!Read("TurnBadge/Number").Contains("7")) { Debug.LogError("[UIVerification] turn badge: " + Read("TurnBadge/Number")); ok = false; }
                 if (!Read("Stars/Text").Contains("5") || !Read("Stars/Text").Contains("+1")) { Debug.LogError("[UIVerification] stars chip: " + Read("Stars/Text")); ok = false; }
-                if (!Read("Units/Text").Contains("3/10")) { Debug.LogError("[UIVerification] units chip: " + Read("Units/Text")); ok = false; }
+                if (Read("Units/Text") != "2") { Debug.LogError("[UIVerification] rank chip: " + Read("Units/Text")); ok = false; }
                 if (!Read("FaithButton/Label").Contains("4/12")) { Debug.LogError("[UIVerification] faith chip: " + Read("FaithButton/Label")); ok = false; }
 
                 hud.SetEconomyVisible(false);

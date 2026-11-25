@@ -91,6 +91,8 @@ namespace TacticsECS.EditorTools
                     _c = UnityEngine.Object.FindFirstObjectByType<BattleController>();
                     if (_c == null || Field<TitleHud>("_titleHud") == null) { _c = null; return; }
                     Field<TitleHud>("_titleHud").Hide();
+                    // 내 팀도 AI가 두므로 레벨업 보상 창을 띄우지 않는다(AI가 직접 고른다).
+                    typeof(BattleController).GetField("_suppressRewardDialog", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(_c, true);
                     Call("StartQuickPlay", new QuickPlaySetup
                     {
                         Tribe = SessionState.GetInt(SetupKey + "Tribe", TitleHud.RandomTribe),

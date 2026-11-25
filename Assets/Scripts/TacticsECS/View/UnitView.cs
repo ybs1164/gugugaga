@@ -20,11 +20,21 @@ namespace TacticsECS
         private GameObject _model;
         private Transform _hpGroup, _hpBarFill;
         private TextMesh _hpText;
-        private SpriteRenderer _hpFill, _teamBadge, _guardBadge, _statusBadge, _poisonBadge;
+        private SpriteRenderer _teamBadge, _guardBadge, _statusBadge, _poisonBadge;
+        // 체력 표시: 숫자 없이 팀 색 칸 막대(HpPips칸). 규칙: docs/spec/game/session.md#화면-배치
+        public const int HpPips = 5;
+        private readonly SpriteRenderer[] _pips = new SpriteRenderer[HpPips];
+        private SpriteRenderer _veteranFrame;
+        private Color _hpColor = Color.white;
+        private static readonly Color HpBack = new Color(.12f,.14f,.19f);
+        private static readonly Color HpEmpty = new Color(.24f,.27f,.38f);
+        private static readonly Color HpPlayer = new Color(.24f,.55f,1f);
+        private static readonly Color HpEnemy = new Color(1f,.3f,.37f);
+        private static readonly Color VeteranGold = new Color(1f,.82f,.29f);
         private GameObject _alert; // 근처에 숨은 적이 있을 때 머리 위 (!) — docs/spec/game/vision.md#은신
         private SortingGroup _sorting;
         private Coroutine _moveRoutine;
-        private Coroutine _attackRoutine, _hitRoutine, _deathRoutine;
+        private Coroutine _attackRoutine, _deathRoutine;
         private Vector3 _moveTarget;
         private List<Vector3> _movePath; // 다음 이동이 따라갈 칸 중심들(SetMovePath)
         // 아직 피해 숫자가 안 뜬 피격 수(AwaitHit). 그동안 체력 표시는 맞기 전 값에 머물고, 죽었어도 사라지지 않는다.
@@ -32,7 +42,6 @@ namespace TacticsECS
         private float _awaitUntil;
         private int _shownHp = -1, _actualHp, _maxHp;
         private float _lastHitTime = -1;
-        private Color _bodyTint = Color.white;
         private bool _visible = true;
         private Vector3 _bodyOrigin;
         // Multiply the unit sheet's grey team ramp into the reference pack's blue/red (scripts/author_pixel_patterns.py TEAM_GAIN).
@@ -70,11 +79,18 @@ namespace TacticsECS
             if (hpDisplayPrefab == null) throw new System.InvalidOperationException("UnitView needs HpDisplay prefab");
             _hpGroup = Instantiate(hpDisplayPrefab,transform); _hpGroup.name = "HpDisplay";
             _hpGroup.localRotation = Quaternion.identity;
-            _hpBarFill = _hpGroup.Find("Bar_Fill"); _hpFill = _hpBarFill.GetComponent<SpriteRenderer>();
+            _hpBarFill = _hpGroup.Find("Bar_Fill");
             _hpText = _hpGroup.GetComponentInChildren<TextMesh>();
-            _hpGroup.Find("Bar_Bg").GetComponent<Renderer>().sortingOrder = 20;
-            _hpBarFill.GetComponent<Renderer>().sortingOrder = 21;
-            _hpText.GetComponent<Renderer>().sortingOrder = 22;
+            // 예전 숫자·가는 막대는 쓰지 않는다(프리팹에는 남아 있다) — 칸 막대를 그 자리에 만든다.
+            _hpGroup.Find("Bar_Bg").gameObject.SetActive(false);
+            _hpBarFill.gameObject.SetActive(false);
+            _hpText.gameObject.SetActive(false);
+            const float px = 1f/PixelSpriteCatalog.PixelsPerUnit;
+            var pips = new GameObject("HpPips").transform; pips.SetParent(_hpGroup,false);
+            float y = HpBarLocalY+px;
+            _veteranFrame = PixelSpriteCatalog.Rectangle(pips,"Veteran",new Vector2(0,y),new Vector2(23*px,8*px),VeteranGold,19);
+            PixelSpriteCatalog.Rectangle(pips,"Back",new Vector2(0,y),new Vector2(21*px,6*px),HpBack,20);
+            for (int i=0;i<HpPips;i++) _pips[i] = PixelSpriteCatalog.Rectangle(pips,"Pip"+i,new Vector2((-8+4*i)*px,y),new Vector2(3*px,4*px),HpEmpty,21);
         }
         public void Refresh(EntityWorld world, int id)
         {
@@ -93,11 +109,11 @@ namespace TacticsECS
             if (maxHp <= 0) maxHp = _definition.MaxHp;
             _actualHp = hp; _maxHp = maxHp;
             if (_pendingHits > 0 && Time.time > _awaitUntil) _pendingHits = 0; // 피해 숫자가 끝내 안 뜬 경우
+            _hpColor = world.Get<Team>(id) == Team.Player ? HpPlayer : HpEnemy; // 막대 색 = 팀
             ShowHp(_pendingHits > 0 && _shownHp > hp ? _shownHp : hp);
-            _hpText.color = world.GetOrDefault<Veteran>(id).Value ? new Color(1f,.82f,.25f) : Color.white;
+            _veteranFrame.gameObject.SetActive(world.GetOrDefault<Veteran>(id).Value);
             var teamColor = world.Get<Team>(id) == Team.Player ? PlayerColor : EnemyColor;
-            _teamBadge.color = teamColor;
-            _teamBadge.transform.localScale = world.Get<Team>(id) == Team.Player ? new Vector3(.5f,.0625f,1) : new Vector3(.375f,.125f,1);
+            _teamBadge.gameObject.SetActive(false); // 팀은 체력 막대 색으로 보인다
             _guardBadge.gameObject.SetActive(world.Get<IsGuarding>(id).Value);
             bool frozen = world.GetOrDefault<Frozen>(id).Value;
             bool hidden = world.GetOrDefault<Hidden>(id).Value;
@@ -117,8 +133,7 @@ namespace TacticsECS
             bodyRenderer.sprite = body;
             var tint = world.GetOrDefault<Mythic>(id).Active ? MythicTint : Color.white; // 신화 유닛은 금빛
             if (IsSpent(world,id)) tint *= SpentTint;
-            _bodyTint = tint;
-            if (_hitRoutine == null) bodyRenderer.color = tint;
+            bodyRenderer.color = tint;
             _model.transform.localScale = new Vector3(_model.transform.localScale.x < 0 ? -1 : 1,1,1);
             var target = PixelCoordinates.GridToWorld(_grid,world.Get<GridPosition>(id).Value);
             bool moving = _moveRoutine != null && (_moveTarget-target).sqrMagnitude < .0001f;
@@ -135,13 +150,12 @@ namespace TacticsECS
         private void ShowHp(int hp)
         {
             _shownHp = hp;
-            _hpText.text = hp.ToString();
-            float fraction = _maxHp > 0 ? Mathf.Clamp01((float)hp/_maxHp) : 0;
-            float width = HpBarSize.x*fraction;
-            _hpBarFill.localScale = new Vector3(width,HpBarSize.y,1);
-            _hpBarFill.localPosition = new Vector3((width-HpBarSize.x)/2,HpBarLocalY,0);
-            if (_hpFill != null) _hpFill.color = HpColorScale.ForFraction(fraction);
+            int filled = FilledPips(hp,_maxHp);
+            for (int i=0;i<HpPips;i++) _pips[i].color = i < filled ? _hpColor : HpEmpty;
         }
+        /// <summary>체력 hp/maxHp일 때 채워지는 칸 수 — 살아 있으면 적어도 한 칸.</summary>
+        public static int FilledPips(int hp, int maxHp) =>
+            hp <= 0 || maxHp <= 0 ? 0 : Mathf.Clamp(Mathf.CeilToInt((float)hp/maxHp*HpPips),1,HpPips);
         public void SetVisible(bool visible) { _visible = visible; ApplyVisibility(); }
         private void ApplyVisibility() { foreach (var r in GetComponentsInChildren<Renderer>(true)) r.enabled = _visible; }
         public void FaceTowards(Vector3 worldPosition)
@@ -243,24 +257,11 @@ namespace TacticsECS
             if (damagePopupPrefab == null) return;
             var instance = Instantiate(damagePopupPrefab,transform.position+Vector3.up*HpNumberLocalY*_grid.TileSize,Quaternion.identity);
             instance.GetComponent<Renderer>().sortingOrder = PixelSpriteCatalog.OverlayOrder+10;
-            instance.GetComponent<DamagePopup>().Play("-"+amount,new Color(.95f,.25f,.2f));
+            instance.GetComponent<DamagePopup>().Play("-"+amount,Color.white);
             if (_pendingHits > 0) _pendingHits--;
             // 맞는 순간 체력 표시를 내린다. 남은 피격이 있으면 이번 피해만큼만(실제 값 아래로는 안 내려간다).
             if (_shownHp >= 0) ShowHp(_pendingHits > 0 ? Mathf.Max(_actualHp, _shownHp-amount) : _actualHp);
             _lastHitTime = Time.time;
-            if (Application.isPlaying && gameObject.activeInHierarchy && _hitRoutine == null)
-                _hitRoutine = StartCoroutine(HitPulse());
-        }
-        private IEnumerator HitPulse()
-        {
-            var renderers = _model.GetComponentsInChildren<SpriteRenderer>();
-            var colors = new Color[renderers.Length];
-            for (int i=0;i<renderers.Length;i++) { colors[i]=renderers[i].color; renderers[i].color=new Color(1,.45f,.4f); }
-            yield return new WaitForSeconds(.12f);
-            for (int i=0;i<renderers.Length;i++) if (renderers[i] != null) renderers[i].color=colors[i];
-            _hitRoutine = null;
-            var body = _model.GetComponentInChildren<SpriteRenderer>();
-            if (body != null) body.color = new Color(_bodyTint.r,_bodyTint.g,_bodyTint.b,body.color.a); // 맞는 동안 바뀐 색(행동 마침 등)
         }
         public void ShowHealPopup(int amount)
         {

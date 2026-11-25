@@ -1164,8 +1164,47 @@ namespace TacticsECS
             var resources = _econ.Resources[Team.Player];
             _hud.SetResources(resources, CityResourceSystem.CountPopulation(_world, Team.Player));
             _hud.SetScoreLine(LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy)));
-            int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out _);
+            int gain = FaithSystem.IncomePreview(_grid, _world, Team.Player, _econ.Turn + 1, out int rank);
             _hud.SetFaith(resources.Faith, resources.MaxFaith, gain, GreatTempleSystem.StatusLine(_world, _econ, Team.Player, _econ.Turn));
+            _hud.SetRank(rank);
+            int usablePunches = 0;
+            foreach (var punch in FaithPunchSystem.Available(_econ, Team.Player)) if (resources.Faith >= punch.Cost) usablePunches++;
+            _hud.SetPunchCount(usablePunches);
+            ShowPendingReward();
+        }
+
+        // ---------- 레벨업 보상 창 ----------
+
+        /// <summary>영상 녹화처럼 내 팀도 AI가 두는 판에서는 보상 창을 띄우지 않는다(AI가 직접 고른다).</summary>
+        private bool _suppressRewardDialog;
+        private bool _rewardDialogOpen;
+
+        /// <summary>내 턴에 고르지 않은 레벨업 보상이 있으면 닫을 수 없는 창으로 묻는다 — 하나를 골라야 계속한다. 규칙: docs/spec/game/city.md#레벨업-보상</summary>
+        private void ShowPendingReward()
+        {
+            if (_suppressRewardDialog || !Application.isPlaying || _hud == null || !CanUseEconomyMenu) return;
+            if (_hud.IsDialogOpen && !_rewardDialogOpen) return; // 메뉴·결과 창이 먼저
+            int cityIndex = CitySystem.FirstPendingRewardCity(_econ, Team.Player);
+            if (cityIndex < 0)
+            {
+                if (_rewardDialogOpen) { _rewardDialogOpen = false; _hud.HideDialog(); }
+                return;
+            }
+            var city = _econ.Cities[cityIndex];
+            int level = CitySystem.PendingRewardLevel(city);
+            var buttons = new List<ActionMenuOption>();
+            foreach (var reward in CitySystem.RewardOptions(level))
+            {
+                var r = reward;
+                buttons.Add(new ActionMenuOption
+                {
+                    Label = CitySystem.RewardName(r), Detail = CitySystem.RewardDescription(r), Enabled = true, Primary = true,
+                    OnClick = () => HandleReward(cityIndex, r),
+                });
+            }
+            if (buttons.Count == 0) return;
+            _rewardDialogOpen = true;
+            _hud.ShowDialog(LocalizationSystem.F("UI.Reward.Title", city.Name, level), LocalizationSystem.T("UI.Reward.Hint"), buttons);
         }
 
         private void RefreshTechTree()
@@ -1344,6 +1383,7 @@ namespace TacticsECS
 
         private void ShowResult(bool playerWon, string reasonKey)
         {
+            _rewardDialogOpen = false;
             var body = new System.Text.StringBuilder();
             body.Append(LocalizationSystem.T(playerWon ? reasonKey + ".Win" : reasonKey + ".Lose"));
             int turn = _econ != null ? _econ.Turn : _turnState.TurnNumber;
@@ -1382,7 +1422,14 @@ namespace TacticsECS
             }
             else buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Battle.Restart"), Enabled = true, OnClick = HandleReturnToSetup });
             buttons.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.Title.Language", LocalizationSystem.LanguageName(StringTable.Language)), Enabled = true, OnClick = HandleLanguageClicked });
-            _hud.ShowDialog(LocalizationSystem.T("UI.Menu.Title"), quickPlay && !_battleOver ? LocalizationSystem.T("UI.Menu.SavedHint") : null, buttons);
+            // 점수는 상단 막대 대신 메뉴 창에서 보인다.
+            string body = quickPlay && !_battleOver ? LocalizationSystem.T("UI.Menu.SavedHint") : null;
+            if (_econ != null)
+            {
+                string score = LocalizationSystem.F("UI.City.ScoreLine", ScoreSystem.Compute(_grid, _world, _econ, Team.Player), ScoreSystem.Compute(_grid, _world, _econ, Team.Enemy));
+                body = string.IsNullOrEmpty(body) ? score : score + "\n" + body;
+            }
+            _hud.ShowDialog(LocalizationSystem.T("UI.Menu.Title"), body, buttons);
         }
 
         /// <summary>진행 중인 판이 있으면 새 판을 시작하기 전에 한 번 묻는다(저장은 새 판의 첫 턴에 덮어쓴다).</summary>
@@ -1570,6 +1617,7 @@ namespace TacticsECS
 
         private void HandleBack()
         {
+            if (_rewardDialogOpen && _hud.IsDialogOpen) return; // 보상 창은 골라야만 닫힌다
             if (_hud.IsDialogOpen) { _hud.HideDialog(); return; }
             if (_punchPhase != PunchPhase.None) { CancelPunch(); return; }
             if (_techTreeHud != null && _techTreeHud.IsOpen) { _techTreeHud.Close(); return; }
@@ -2075,18 +2123,18 @@ namespace TacticsECS
             var available = _world.Get<AvailableActions>(unitId).Value;
             if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
             if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
-            var actions = new (ActionType Flag, System.Action Handler)[]
+            var actions = new (ActionType Flag, System.Action Handler, string Icon)[]
             {
-                (ActionType.Defend, HandleDefendClicked),
-                (ActionType.Heal, HandleHealClicked),
-                (ActionType.SelfDestruct, HandleSelfDestructClicked),
-                (ActionType.Wait, HandleWaitClicked),
-                (ActionType.Pray, HandlePrayClicked),
+                (ActionType.Defend, HandleDefendClicked, "defense"),
+                (ActionType.Heal, HandleHealClicked, "heal"),
+                (ActionType.SelfDestruct, HandleSelfDestructClicked, "selfdestruct"),
+                (ActionType.Wait, HandleWaitClicked, "turn"),
+                (ActionType.Pray, HandlePrayClicked, "spiritualism"),
             };
             foreach (var a in actions)
             {
                 if ((available & a.Flag) == 0) continue;
-                options.Add(new ActionMenuOption { Label = BattleHud.ActionName(a.Flag), Detail = BattleHud.ActionTooltip(a.Flag), Enabled = true, OnClick = a.Handler });
+                options.Add(new ActionMenuOption { Label = BattleHud.ActionName(a.Flag), Detail = BattleHud.ActionTooltip(a.Flag), Icon = a.Icon, Enabled = true, OnClick = a.Handler });
             }
         }
 

@@ -7,16 +7,16 @@ namespace TacticsECS
 {
     /// <summary>
     /// GridWorld에 타일 위 구조물(수도/마을/자원/등대/유적/불가사리)을 배치하는 상태 없는 정적 시스템 —
-    /// TerrainGenerationSystem이 채운 지형/앵커 위에 얹는다. 9차 재정비: 원문(docs/reference/PolytopiaMapGeneration.md
-    /// 5절)의 순서를 단계별로 그대로 따른다 — 예전엔 마을/자원/유적/불가사리를 셔플된 한 번의 순회에서
-    /// 가중치로 경쟁시켜서, 자원을 놓는 시점에 마을이 아직 없어 "모든 도시 2칸 이내" 규칙을 지킬 수 없었다.
+    /// TerrainGenerationSystem이 채운 지형/앵커 위에 얹는다. 원문(docs/reference/PolytopiaMapGeneration.md
+    /// 5절)의 순서를 단계별로 그대로 따른다 — 자원을 놓는 시점에 마을이 모두 정해져 있어야
+    /// "모든 도시 2칸 이내" 규칙을 지킬 수 있다.
     ///   1. 수도 + Suburb/사전 확정 마을(지형 단계에서 위치가 정해진 것)
     ///   2. Post-terrain 마을 포화 채우기 -> 외딴 섬 마을(Pangea/Continents/Waterworld) -> Lakes 육로 보장
     ///   3. 물 칸 얕은 물/깊은 바다 재분류(2단계가 지형을 바꿨을 수 있으므로)
     ///   4. 등대(맵 네 모서리 — 자원보다 먼저 놓아야 모서리 근처 도시의 자원에 자리를 뺏기지 않고 항상 4개가 된다)
     ///   5. 자원: 모든 도시 2칸 이내, Inner(거리 1)/Outer(거리 2) 비율 쿼터
     ///   6. 유적/불가사리 등 개수 기반 구조물(맵 전체 목표 개수, 유적은 맵 크기별 고정 개수표)
-    /// BattleController.HandleGenerateTerrain이 TerrainGenerationSystem.Generate가 반환한 anchors로 이어서
+    /// MatchSystem.GenerateMap이 지형 생성이 반환한 anchors로 이어서
     /// 호출한다. 구조물은 순수 시각 요소라 이동/점유 판정에 관여하지 않는다(TileData.StructureId 참고).
     /// </summary>
     public static class StructureGenerationSystem
@@ -179,8 +179,8 @@ namespace TacticsECS
         /// <summary>2단계 — Post-terrain 마을(원문 7.4절). 바이옴 CSV의 도시(Village) 엔트리를 맵 전체 칸을 셔플된
         /// 순서로 한 번 훑으며, 허용 타일/가장자리 여백/도시 간격(PostTerrainCityMinDistance와 CSV MinDistance 중
         /// 큰 값)을 지키는 칸마다 놓는다 — 제약이 단조롭게만 강해지므로 한 번의 순회로 "더 넣을 자리가 없을
-        /// 때까지"가 된다. 바이옴 순서와 무관하게 맵 전체가 고르게 채워진다(예전엔 바이옴별 루프라 먼저 도는
-        /// 바이옴이 경계 자리를 선점했다).</summary>
+        /// 때까지"가 된다. 바이옴 순서와 무관하게 맵 전체가 고르게 채워진다(바이옴별로 돌면 먼저 도는
+        /// 바이옴이 경계 자리를 선점한다).</summary>
         private static void PlacePostTerrainVillages(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
             Dictionary<string, List<Vector2Int>> placedPositionsByStructure, Random rng)
         {

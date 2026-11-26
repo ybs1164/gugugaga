@@ -19,8 +19,8 @@ namespace TacticsECS
 
         /// <summary>CSV 행(UnitCsvRow)의 Move 파라미터로 인스턴스를 만든다. 같은 클래스 안이라 private
         /// 필드에 직접 대입할 수 있어, Inspector용 필드를 리플렉션 없이 그대로 재사용한다. 장애물 통과/
-        /// 지형 무시/대각선 이동은 더 이상 이 행동 자신의 값이 아니라 별도 패시브(IgnoreTerrainAction/
-        /// IgnoreUnitBlockingAction/AllowDiagonalAction, Actions에 별도로 담긴다)로 옮겨졌다.</summary>
+        /// 지형 무시/대각선 이동은 이 행동의 값이 아니라 별도 패시브(IgnoreTerrainAction/
+        /// IgnoreUnitBlockingAction/AllowDiagonalAction, Actions에 따로 담긴다)다.</summary>
         public static MoveAction FromCsv(int moveRange) => new MoveAction { moveRange = moveRange };
 
         public int MoveRange => moveRange;

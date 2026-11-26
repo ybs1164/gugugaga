@@ -7,7 +7,7 @@ namespace TacticsECS.EditorTools
     /// <summary>
     /// 타일 위 구조물(수도/마을/자원/등대/유적/불가사리) 생성 파이프라인을 자동으로 검증하는 배치모드 전용
     /// 스크립트. TerrainGenerationVerification과 같은 패턴 — Play 모드 없이 Console 로그의 PASS/FAIL만
-    /// 확인하면 된다. 9차 재정비(원문 순서대로 단계별 배치) 반영.
+    /// 확인하면 된다. 원문 순서대로 단계별 배치(StructureGenerationSystem)를 따른다.
     /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.StructureGenerationVerification.Run -quit
     /// </summary>
     public static class StructureGenerationVerification
@@ -227,7 +227,7 @@ namespace TacticsECS.EditorTools
         }
 
         /// <summary>원문 3절 "자원은 도시/마을 2칸 이내" — 자원이 수도뿐 아니라 마을 주변에도 생기고, 수도 바로 옆
-        /// (Inner)에도 생기며, 어떤 도시로부터도 2칸 밖에는 절대 안 생기는지 확인한다(예전엔 수도 기준 + 수도 인접 금지).</summary>
+        /// (Inner)에도 생기며, 어떤 도시로부터도 2칸 밖에는 절대 안 생기는지 확인한다(기준은 수도만이 아니라 모든 도시이고, 수도 인접 칸도 허용).</summary>
         private static bool VerifyResourcesAroundAllCities()
         {
             var biome = GrassOnlyBiome(

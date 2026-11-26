@@ -87,9 +87,9 @@ namespace TacticsECS.EditorTools
         };
 
         /// <summary>회귀 검증: 샌드박스에서 "지형 생성"이 맵 크기 프리셋 변경으로 GridWorld를 새로 만든 뒤에도
-        /// (BattleController.RebuildGridForSize) 배치 컨트롤러가 새 그리드에 유닛을 놓는지 확인한다. 예전에는
-        /// 컨트롤러가 생성 시점의 옛 그리드를 캐시해, 옛 범위 밖 칸은 IndexOutOfRange로 배치가 실패하고 범위 안
-        /// 칸은 옛 그리드에만 점유가 기록됐다.</summary>
+        /// (BattleController.RebuildGridForSize) 배치 컨트롤러가 새 그리드에 유닛을 놓는지 확인한다.
+        /// 컨트롤러가 생성 시점의 그리드를 캐시하면 옛 범위 밖 칸은 IndexOutOfRange로 배치가 실패하고 범위 안
+        /// 칸은 옛 그리드에만 점유가 기록된다.</summary>
         private static bool VerifyPlacementAfterGridRebuild(string relativePath)
         {
             var rows = UnitCsvSerializer.Parse(ReadCsv(relativePath));

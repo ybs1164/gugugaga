@@ -37,9 +37,9 @@ namespace TacticsECS
     [System.Serializable] public struct AvailableActions { public ActionType Value; }
 
     // ---- 이동 방식 (스폰 후 불변) ----
-    // 장애물 통과/장애물(유닛) 통과/대각선 이동 여부는 더 이상 여기 별도 컴포넌트로 두지 않는다 — 대부분의
+    // 장애물 통과/장애물(유닛) 통과/대각선 이동 여부는 여기 컴포넌트로 두지 않는다 — 대부분의
     // 유닛에는 해당 없는 드문 케이스라 Charge/Retreat와 같은 값 없는 순수 마커 패시브(IgnoreTerrainAction/
-    // IgnoreUnitBlockingAction/AllowDiagonalAction, Actions/ 폴더)로 옮겼고, MoveAction.Execute/
+    // IgnoreUnitBlockingAction/AllowDiagonalAction, Actions/ 폴더)이고, MoveAction.Execute/
     // PathfindingSystem.GetReachable이 UnitActionQueries.Find<T>로 보유 여부만 그때그때 확인한다.
     [System.Serializable] public struct MoveRange { public int Value; }
 

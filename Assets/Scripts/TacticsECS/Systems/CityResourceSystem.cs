@@ -4,8 +4,7 @@ namespace TacticsECS
     /// 팀 자원(별/유닛 수용량) 계산을 담당하는 순수 함수형 시스템. 자체 상태는 없다 —
     /// CityResourceData 값을 인자로 받아 다음 값을 계산해 반환할 뿐이고, 실제 보관은 EconomyWorld가 맡는다.
     ///
-    /// 예전엔 타일/영토 시스템이 없어 생산량이 인스펙터 고정값이었고 수도 연결 판정은 항상 false인
-    /// 플레이스홀더였다. 이제 도시(CityData)/영토(TileData.OwnerCity)/도로·항구가 생겨서 생산량은 도시 목록으로
+    /// 생산량은 도시(CityData)/영토(TileData.OwnerCity)/도로·항구에서 도시 목록으로
     /// 계산하고(CitySystem.StarsIncome/UnitCapacity), 수도 연결은 CitySystem.RefreshConnections가
     /// 도로망을 탐색해 CityData.ConnectedToCapital에 기록한다.
     /// </summary>

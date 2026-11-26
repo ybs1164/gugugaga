@@ -8,11 +8,10 @@ namespace TacticsECS
     /// <summary>
     /// GridWorld를 바이옴 CSV 규칙에 따라 절차적으로 채우는 상태 없는 정적 시스템(규칙 3) — 자체 필드를
     /// 갖지 않고, 매번 GridWorld/BiomeCsvRow와 시드를 인자로 받아 결과를 GridWorld에 직접 써넣는다.
-    /// docs/reference/PolytopiaMapGeneration.md 기준 2차 재정비: 완전 랜덤 Voronoi 시드 대신 쿼드런트(구역) 기반
-    /// 앵커 배치(Polytopia의 수도 배치), 앵커 기준 Inner/Outer 이중 확률, 일반화된 거리 제약(MinDistance/
-    /// EdgeMargin) + 맵 크기 비례 개수(CountPerTiles)를 반영했다. 3차 재정비: 습도 배율 지원(2절) +
-    /// 계산된 앵커를 StructureGenerationSystem이 재사용할 수 있도록 반환.
-    /// Sandbox/BattleController.HandleGenerateTerrain이 호출한다.
+    /// docs/reference/PolytopiaMapGeneration.md 기준: 쿼드런트(구역) 기반 앵커 배치(Polytopia의 수도 배치),
+    /// 앵커 기준 Inner/Outer 이중 확률, 일반화된 거리 제약(MinDistance/EdgeMargin), 맵 크기 비례
+    /// 개수(CountPerTiles), 습도 배율(2절). 계산한 앵커는 StructureGenerationSystem이 다시 쓰도록 반환한다.
+    /// 호출 순서는 MatchSystem.GenerateMap.
     /// </summary>
     public static class TerrainGenerationSystem
     {
@@ -23,7 +22,7 @@ namespace TacticsECS
         public const string ForestTileId = "Forest";
         public const string MountainTileId = "Mountain";
 
-        /// <summary>깊은 바다 TileTypeId(9차 재정비 — 원문 3/9절의 얕은 물/깊은 바다 구분). 육지와 상하좌우
+        /// <summary>깊은 바다 TileTypeId(원문 3/9절의 얕은 물/깊은 바다 구분). 육지와 상하좌우
         /// 4방향으로 맞닿지 않은 물 칸이 이 타일이 되고(ClassifyWaterDepth), 육지와 맞닿은 물 칸은 바이옴 CSV의 물
         /// 타일(얕은 물) 그대로 남는다. TerrainType은 둘 다 Water.</summary>
         public const string OceanTileId = "Ocean";
@@ -38,7 +37,7 @@ namespace TacticsECS
             MapShapeMode shapeMode = MapShapeMode.Freeform, float targetWaterFraction = 0.5f)
             => Generate(grid, biomes, seed, wetnessMultiplier, shapeMode, targetWaterFraction, out _, out _);
 
-        /// <summary>지형을 생성하고, 수도 앵커 + Suburb/사전 확정 마을 위치를 반환한다(7차 재정비 —
+        /// <summary>지형을 생성하고, 수도 앵커 + Suburb/사전 확정 마을 위치를 반환한다(
         /// docs/reference/PolytopiaMapGeneration.md 5절 순서대로 "수도 -> 마을 -> 지형" 순으로 위치를 먼저 확정한
         /// 뒤 지형을 채운다). 파이프라인:
         /// 1. 쿼드런트 맵이면 수도를 먼저 뽑는다(GenerateQuadrantAnchors).
@@ -263,9 +262,9 @@ namespace TacticsECS
             return (capitalAnchors, suburbs, preTerrain);
         }
 
-        /// <summary>수도/Suburb/Pre-terrain 마을 위치(guaranteedLand)는 프리셋과 무관하게 항상 육지로
-        /// 보호해야 하므로(7차 재정비), 이전에 Waterworld 전용이었던 "앵커 보호" 플래그는 더 이상 프리셋별
-        /// 파라미터가 아니다 — GenerateMapShapeLandMask가 guaranteedLand 인자를 받아 항상 보호한다.</summary>
+        /// <summary>맵 타입별 마스크 파라미터. 수도/Suburb/Pre-terrain 마을 위치(guaranteedLand)는 맵 타입과 무관하게
+        /// 항상 육지로 보호하므로 "앵커 보호"는 타입별 파라미터가 아니다 — GenerateMapShapeLandMask가
+        /// guaranteedLand 인자를 받아 항상 보호한다.</summary>
         private static MapShapeParams GetShapeParams(MapShapeMode mode, int biomeCount) => mode switch
         {
             // 중앙 대륙 + 외곽 바다(2/7.5절).
@@ -283,8 +282,8 @@ namespace TacticsECS
 
         /// <summary>랜드마스 마스크 기반 파이프라인(공통, Pangea 전용 코드를 일반화). (1) 맵 타입별
         /// 파라미터로 랜드마스 마스크를 목표 물 비율에 정확히 맞춰 만들되, 수도+Suburb+Pre-terrain
-        /// 마을 위치(guaranteedLand)는 항상 육지로 보호한다(7차 재정비 — 예전엔 Waterworld의 수도만
-        /// 보호했지만, 이제 모든 프리셋의 모든 "사전 확정된 마을/수도"가 보호 대상이다), (2) 그래도
+        /// 마을 위치(guaranteedLand)는 항상 육지로 보호한다(모든 맵 타입의 모든 "사전 확정된
+        /// 마을/수도"가 보호 대상이다), (2) 그래도
         /// 마스크 컷에서 탈락했을 경우를 대비해 가장 가까운 육지 칸으로 옮기는 안전망을 유지하고,
         /// (3) 마스크가 물인 칸은 그 칸이 속한 바이옴의 물 타일로 직접 채우고(MinDistance 등 개별 제약을
         /// 건너뛰어 바다가 실제로 하나로 이어지게 함), (4) 마스크가 육지인 칸은 기존 가중치 알고리즘으로
@@ -782,8 +781,8 @@ namespace TacticsECS
         }
 
         /// <summary>capital로부터 GameRules.Map.SuburbRadius 이내에서 Suburb 자리를 찾는다 — 가장자리 1칸 여백 + 이미 정해진
-        /// 수도/마을 전부와 GameRules.Map.CityMinDistance 이상(12절 보강 4: 예전엔 거리 검사가 없어 수도/다른 Suburb에 바로
-        /// 붙을 수 있었다) + 모든 수도와 GameRules.Map.SuburbMinDistance 이상. 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
+        /// 수도/마을 전부와 GameRules.Map.CityMinDistance 이상(12절 보강 4: 거리 검사가 없으면 수도/다른 Suburb에 바로
+        /// 붙을 수 있다) + 모든 수도와 GameRules.Map.SuburbMinDistance 이상. 못 찾으면 null(Suburb는 "0개나 1개도 나올 수 있음"이라 실패해도 괜찮다).</summary>
         private static Vector2Int? FindSuburbCell(GridWorld grid, Vector2Int capital, Vector2Int[] capitals, List<Vector2Int> reserved, Random rng)
         {
             var candidates = new List<Vector2Int>();
@@ -920,7 +919,7 @@ namespace TacticsECS
         }
 
         /// <summary>바이옴(수도) 수만큼 쿼드런트를 나눠 서로 다른 구역에서 앵커를 하나씩 뽑는다(6절 공정성 배치).
-        /// 구역 수는 원문대로 1~4명=4, 5~9명=9, 10~16명=16. 8차 재정비(12절 보강 1/3) — 간격을 고르게 하려고
+        /// 구역 수는 원문대로 1~4명=4, 5~9명=9, 10~16명=16. 12절 보강 1/3 — 간격을 고르게 하려고
         /// (1) 빈 구역이 남을 때는 서로 가장 먼 구역부터 채우고(PickSpreadQuadrants), (2) 구역 안에서도 구역
         /// 중심 근처(구역 한 변의 1/5 반경)만 후보로 삼고 구역 경계 칸은 제외하며, (3) 맵 가장자리로부터
         /// GameRules.Map.CapitalEdgeMargin 이상, 이미 뽑힌 앵커와 GameRules.Map.CapitalMinDistance 이상 떨어진 칸만 쓴다. 조건을 만족하는
@@ -1269,7 +1268,7 @@ namespace TacticsECS
         /// <summary>남은 빈 칸을 셔플된 순서로 순회하며, 제약(EdgeMargin/MinDistance/ExcludeAdjacent)을
         /// 위반하는 후보를 제거하고 남은 후보를 Inner/Outer 가중치 + 노이즈로 랜덤 선택한다. Inner/Outer는
         /// 가장 가까운 "이미 위치가 정해진 도시"(수도 + Suburb + 사전 확정 마을) 기준이다(원문 3절 "도시/마을에
-        /// 인접한 칸" — 예전엔 수도 하나만 기준이었다).
+        /// 인접한 칸" — 수도 하나만이 아니라 정해진 도시 전부가 기준이다).
         /// 후보가 하나도 안 남으면 그 바이옴의 첫 엔트리로 폴백한다(완전히 막힌 칸도 항상 무언가로
         /// 채워지도록).</summary>
         private static void FillRemaining(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,

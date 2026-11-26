@@ -6,7 +6,7 @@ namespace TacticsECS
     /// 항구에 들어가면 뗏목(Raft)이 되고(EmbarkSystem), 뗏목은 자기 영토 안에서 별을 내고 정찰선/충각선/폭격선으로
     /// 업그레이드한다. 배의 체력은 태운 유닛의 체력 그대로이고, 육지에 내리면 원래 유닛으로 돌아온다(업그레이드는 사라짐).
     ///
-    /// 3차(위키 전투 공식 도입) 이후 공격력은 위키 원값 그대로다(예전엔 뺄셈 공식 척도에 맞춰 x2). 행동 태그는 위키 스킬과
+    /// 공격력은 위키 원값 그대로다(전투 공식이 위키 공식이라 척도가 같다). 행동 태그는 위키 스킬과
     /// 대응: Dash → Charge, Scout → Scout, Splash/Stiff 그대로, 뻣뻣함이 없는 배는 반격(Counter).
     /// </summary>
     public static class NavalUnitDefinition

@@ -8,7 +8,7 @@ namespace TacticsECS.EditorTools
     /// 바이옴 지형 생성 파이프라인(CSV 왕복, 노이즈/Inner-Outer 가중치/제약(인접배제·최소거리·가장자리
     /// 여백)/맵 크기 비례 개수/쿼드런트 공정 배치/시드 재현성)을 자동으로 검증하는 배치모드 전용
     /// 스크립트. UnitCsvVerification과 같은 패턴 — Play 모드 없이 Console 로그의 PASS/FAIL만 확인하면
-    /// 된다. docs/reference/PolytopiaMapGeneration.md 기준 2차 재정비 반영.
+    /// 된다. 기준: docs/reference/PolytopiaMapGeneration.md.
     /// 사용법: unity run . -- -nographics -executeMethod TacticsECS.EditorTools.TerrainGenerationVerification.Run -quit
     /// </summary>
     public static class TerrainGenerationVerification
@@ -614,7 +614,7 @@ namespace TacticsECS.EditorTools
             return total > 0 ? (float)land / total : 0f;
         }
 
-        /// <summary>7차 재정비 — docs/reference/PolytopiaMapGeneration.md 7.1절 매트릭스대로, Suburb/Pre-terrain
+        /// <summary>docs/reference/PolytopiaMapGeneration.md 7.1절 매트릭스대로, Suburb/Pre-terrain
         /// 마을이 맵 타입마다 있을 수도/없을 수도 있는지 확인한다. Drylands(Freeform)/Pangea/Continents는
         /// 둘 다 없어야 하고, Lakes/Archipelago/Waterworld는 Pre-terrain이 있어야 하며(Suburb는
         /// Waterworld만 없음), 있는 경우 서로/수도로부터 최소 거리 2, 가장자리 여백 1을 지켜야 한다.</summary>
@@ -717,7 +717,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>7차 재정비 핵심 — 수도/Suburb/Pre-terrain 마을 위치는 어떤 맵 타입이든 항상 육지여야
+        /// <summary>수도/Suburb/Pre-terrain 마을 위치는 어떤 맵 타입이든 항상 육지여야
         /// 한다(마스크 경로는 GenerateMapShapeLandMask의 보호 보너스로, Freeform은 ForceLandAt으로 보장).</summary>
         private static bool VerifyGuaranteedLandAtReservedPositions()
         {
@@ -778,7 +778,7 @@ namespace TacticsECS.EditorTools
             return result;
         }
 
-        /// <summary>8차 재정비(docs/reference/PolytopiaMapGeneration.md 12절 보강 1~3) — 모든 맵 타입/크기/바이옴 수에서
+        /// <summary>docs/reference/PolytopiaMapGeneration.md 12절 보강 1~3 — 모든 맵 타입/크기/바이옴 수에서
         /// (1) 수도가 가장자리로부터 2칸 이상, (2) 수도가 9칸 이상 육지 덩어리 위(쿼드런트 맵은 3x3 전체가 육지),
         /// (3) 수도끼리 충분히 떨어져 있는지(쿼드런트 맵: 구역 한 변의 절반 이상, Pangea/Continents: 육지 면적/수도 수의 제곱근 x 0.9 이상).</summary>
         private static bool VerifyCapitalPlacementRules()
@@ -862,7 +862,7 @@ namespace TacticsECS.EditorTools
             return seen.Count;
         }
 
-        /// <summary>8차 재정비(12절 보강 4) — 지형+구조물까지 전부 생성한 뒤, 모든 수도/마을(Suburb/Pre-terrain/
+        /// <summary>12절 보강 4 — 지형+구조물까지 전부 생성한 뒤, 모든 수도/마을(Suburb/Pre-terrain/
         /// Post-terrain/외딴 섬 포함)이 서로 체비쇼프 거리 2 이상(인접 금지)인지 확인한다.</summary>
         private static bool VerifyCitiesNeverAdjacent()
         {
@@ -968,7 +968,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>9차 재정비 — 모든 맵 타입에서 물 칸은 8방향에 육지가 있으면 얕은 물(바이옴 물 타일), 없으면
+        /// <summary>모든 맵 타입에서 물 칸은 8방향에 육지가 있으면 얕은 물(바이옴 물 타일), 없으면
         /// 깊은 바다(Ocean)여야 한다(구조물 단계가 지형을 바꾼 뒤까지 포함).</summary>
         private static bool VerifyWaterDepthClassification()
         {

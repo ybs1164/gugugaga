@@ -23,7 +23,7 @@ namespace TacticsECS
             new StructureInfo { Id = "Resource_Fish" },
             new StructureInfo { Id = "Lighthouse" },
             new StructureInfo { Id = "Starfish" },
-            // 예전 CSV 호환용(9차 재정비 이전 자원 Id).
+            // 옛 CSV 호환용 자원 Id — docs/spec/game/tile.md#구조물
             new StructureInfo { Id = "Resource_Food" },
             new StructureInfo { Id = "Resource_Ore" },
         };

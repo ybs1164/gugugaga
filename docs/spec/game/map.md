@@ -1,6 +1,6 @@
 # 맵 생성
 
-값: [종족 지형 CSV](../csv/tribe-terrain.md), [시작 조건 CSV](../csv/tribes.md), [게임 규칙 CSV](../csv/game-rules.md) `Map.*`. 코드: `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem`.
+값: [종족 지형 CSV](../csv/tribe-terrain.md), [시작 조건 CSV](../csv/tribes.md), [게임 규칙 CSV](../csv/game-rules.md) `Map.*`. 코드: `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem`. 한 장을 만드는 순서(땅 모양 → 지형 → 구조물 → 시작 조건)는 `MatchSystem.GenerateMap` 하나이고, 빠른 한 판·샌드박스·헤드리스 시뮬레이션이 모두 이것을 부른다.
 위키 조사 요약: [reference/PolytopiaMapGeneration](../../reference/PolytopiaMapGeneration.md) — 코드 주석의 "원문 N절"은 이 문서의 절 번호다.
 
 ## 입력

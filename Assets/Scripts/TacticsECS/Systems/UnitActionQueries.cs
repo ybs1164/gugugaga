@@ -18,5 +18,16 @@ namespace TacticsECS
 
         /// <summary>독립(WildAction) 유닛 — 플레이어도 AI도 지휘하지 않는다.</summary>
         public static bool IsWild(EntityWorld world, int unitId) => Find<WildAction>(world, unitId) != null;
+
+        /// <summary>지금 고를 수 있는 기본 행동(방어·치유·자폭·대기·기도 …)의 묶음 — 행동 메뉴가 이것만 보인다.
+        /// 이번 턴 이미 행동했으면 없음. 대기는 움직이지 않았을 때만, 기도는 PrayerSystem.CanPray일 때 더한다.</summary>
+        public static ActionType UsableNow(GridWorld grid, EntityWorld world, int unitId)
+        {
+            if (world.Get<HasActed>(unitId).Value) return ActionType.None;
+            var usable = world.Get<AvailableActions>(unitId).Value;
+            if (world.Get<HasMoved>(unitId).Value) usable &= ~ActionType.Wait;
+            if (PrayerSystem.CanPray(grid, world, unitId)) usable |= ActionType.Pray;
+            return usable;
+        }
     }
 }

@@ -18,6 +18,11 @@ namespace TacticsECS
             return !grid.FogEnabled || (grid.GetTile(p).ExploredMask & TeamBit(team)) != 0;
         }
 
+        /// <summary>unitId가 viewer에게 보이는지: 자기 팀이거나, 선 칸이 viewer에게 탐험된 칸이고 숨지 않았다. 규칙: docs/spec/game/vision.md</summary>
+        public static bool IsUnitVisibleTo(GridWorld grid, EntityWorld world, int unitId, Team viewer) =>
+            world.Get<Team>(unitId) == viewer ||
+            (IsExplored(grid, viewer, world.Get<GridPosition>(unitId).Value) && !StealthSystem.IsHiddenFrom(world, unitId, viewer));
+
         public static int CountExplored(GridWorld grid, Team team)
         {
             int n = 0;

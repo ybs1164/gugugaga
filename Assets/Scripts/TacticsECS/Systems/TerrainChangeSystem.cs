@@ -63,13 +63,14 @@ namespace TacticsECS
             return list;
         }
 
-        /// <summary>폭우로 빈 칸을 공격한다: 그 칸이 잠기고 공격 행동을 쓴다.</summary>
+        /// <summary>폭우로 빈 칸을 공격한다: 그 칸이 잠기고 공격 행동을 쓴다. 공격으로 과업에 기록한다.</summary>
         public static bool DrenchTile(GridWorld grid, EntityWorld world, int unitId, Vector2Int p)
         {
             if (!DrenchTargets(grid, world, unitId).Contains(p)) return false;
             StealthSystem.Reveal(world, unitId);
             Flood(grid, p);
             world.Set(unitId, new HasActed { Value = true });
+            TaskSystem.RecordAttack(grid.Economy, world.Get<Team>(unitId));
             return true;
         }
 

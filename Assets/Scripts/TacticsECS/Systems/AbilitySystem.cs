@@ -20,7 +20,13 @@ namespace TacticsECS
         {
             var selfDestruct = UnitActionQueries.Find<SelfDestructAction>(world, unitId);
             if (selfDestruct == null) { damagedIds = new List<int>(); return false; }
-            return selfDestruct.Execute(grid, world, unitId, out damagedIds);
+            var aliveBefore = grid.Economy != null ? TaskSystem.SnapshotAlive(world) : null;
+            var team = world.Get<Team>(unitId);
+            if (!selfDestruct.Execute(grid, world, unitId, out damagedIds)) return false;
+            // 자폭도 공격이다 — 과업 기록(자신을 포함해 죽은 유닛의 처치 수). 규칙: docs/spec/game/task-score.md
+            TaskSystem.RecordAttack(grid.Economy, team);
+            TaskSystem.RecordDeaths(grid.Economy, world, aliveBefore);
+            return true;
         }
 
         /// <summary>대기(회복) 행동을 실행한다.</summary>

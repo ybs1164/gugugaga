@@ -800,27 +800,17 @@ namespace TacticsECS
             if (!EnsureGridSize()) return;
 
             var mapTypeName = SelectedMapType.Id;
-            var shapeMode = SelectedMapType.Shape;
-            var regions = ResolveRegionBiomes();
             int seed = System.Guid.NewGuid().GetHashCode();
-            var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, shapeMode, _waterRatio);
+            // 생성 순서(땅 모양 → 지형 → 구조물 → 시작 조건)는 헤드리스 판과 같은 MatchSystem.GenerateMap.
+            var map = MatchSystem.GenerateMap(_grid, ResolveRegionBiomes(), CitySystem.Teams.Select(TribeOf).ToList(), mapTypeName, _waterRatio, seed);
+            var outline = map.Outline;
+            int startChanges = map.StartChanges;
             _outline = outline;
-            var anchors = TerrainGenerationSystem.GenerateFromOutline(_grid, regions, outline, seed);
-            StructureGenerationSystem.Generate(_grid, regions, anchors, seed, outline.Suburbs, outline.PlannedVillages, shapeMode);
 
-            // 영역 i = CitySystem.Teams[i]. 그 팀 종족의 시작 조건을 수도 주변에 적용하고, 전투 시작 때 그 자리를 수도로 쓴다.
+            // 영역 i = CitySystem.Teams[i] — 전투 시작 때 그 자리를 수도로 쓴다.
             _tribeCapitals.Clear();
-            int startChanges = 0;
-            for (int i = 0; i < CitySystem.Teams.Length && i < anchors.Length; i++)
-            {
-                var team = CitySystem.Teams[i];
-                _tribeCapitals[team] = anchors[i];
-                var tribe = TribeOf(team);
-                var condition = tribe != null ? TribeSystem.StartCondition(tribe.Value) : null;
-                if (condition != null)
-                    startChanges += StartConditionSystem.Apply(_grid, anchors[i], condition.Value, GameTables.StartConditionRules, mapTypeName, seed + i);
-            }
-            if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(_grid, regions, anchors);
+            for (int i = 0; i < CitySystem.Teams.Length && i < map.Anchors.Length; i++)
+                _tribeCapitals[CitySystem.Teams[i]] = map.Anchors[i];
 
             // 구조물 단계가 지형을 바꿀 수 있으므로(외딴 섬 마을, Lakes 육지 다리, 얕은 물/깊은 바다 재분류)
             // 지형 표시는 구조물 생성까지 끝난 뒤에 갱신한다.
@@ -1271,8 +1261,7 @@ namespace TacticsECS
             foreach (var kv in _viewsById)
             {
                 if (kv.Value == null) continue;
-                bool shown = UnitQueries.IsAlive(_world, kv.Key) && (_world.Get<Team>(kv.Key) == Team.Player ||
-                    (VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value) && !StealthSystem.IsHiddenFrom(_world, kv.Key, Team.Player)));
+                bool shown = UnitQueries.IsAlive(_world, kv.Key) && VisionSystem.IsUnitVisibleTo(_grid, _world, kv.Key, Team.Player);
                 var pos = _world.Get<GridPosition>(kv.Key).Value;
                 bool onObject = shown && _gridView.HasObject(pos);
                 kv.Value.SetOnObject(onObject);
@@ -1451,9 +1440,7 @@ namespace TacticsECS
             {
                 if (!UnitQueries.IsAlive(_world, kv.Key)) continue;
                 // 구름 속 적, 숨은 적(은신 — docs/spec/game/vision.md#은신)은 그리지 않는다.
-                bool visible = _world.Get<Team>(kv.Key) == Team.Player ||
-                               (VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value) && !StealthSystem.IsHiddenFrom(_world, kv.Key, Team.Player));
-                kv.Value.SetVisible(visible);
+                kv.Value.SetVisible(VisionSystem.IsUnitVisibleTo(_grid, _world, kv.Key, Team.Player));
             }
         }
 
@@ -2185,7 +2172,7 @@ namespace TacticsECS
                 var mythicState = _world.Get<Mythic>(unitId);
                 var mythicRow = GameTables.MythicUnits[mythicState.MythicIndex];
                 var activePunch = MythicSystem.ActivePunchRow(mythicRow);
-                bool can = _econ.Resources[Team.Player].Faith >= activePunch.Cost && mythicState.TurnsLeft > mythicRow.ActiveUpkeepCost;
+                bool can = MythicSystem.CanAffordActive(_world, _econ, unitId);
                 options.Add(new ActionMenuOption
                 {
                     Label = LocalizationSystem.F("UI.Mythic.Active", activePunch.Name),
@@ -2261,10 +2248,7 @@ namespace TacticsECS
         /// 행동 이름·설명은 번역 표 Action.&lt;행동&gt;.Name/Tooltip.</summary>
         private void AddUnitActionOptions(List<ActionMenuOption> options, int unitId)
         {
-            if (_world.Get<HasActed>(unitId).Value) return;
-            var available = _world.Get<AvailableActions>(unitId).Value;
-            if (_world.Get<HasMoved>(unitId).Value) available &= ~ActionType.Wait;
-            if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
+            var available = UnitActionQueries.UsableNow(_grid, _world, unitId);
             var actions = new (ActionType Flag, System.Action Handler, string Icon)[]
             {
                 (ActionType.Defend, HandleDefendClicked, "hud.shield"),
@@ -2461,7 +2445,6 @@ namespace TacticsECS
         private void HandleDrench(int unitId, Vector2Int tile)
         {
             if (!TerrainChangeSystem.DrenchTile(_grid, _world, unitId, tile)) return;
-            if (_econ != null) TaskSystem.RecordAttack(_econ, Team.Player);
             _viewsById[unitId].Refresh(_world, unitId);
             _viewsById[unitId].PlayAttackTowards(PixelCoordinates.GridToWorld(_grid, tile));
             if (_econ != null) RefreshEconomyViews(true); else _gridView.RefreshTerrain(_grid);
@@ -2519,12 +2502,7 @@ namespace TacticsECS
             }
             else if (attack != null && attack.CanExecute(_world, unitId))
             {
-                for (int enemyId = 0; enemyId < _world.EntityCount; enemyId++)
-                {
-                    if (!UnitQueries.IsAlive(_world, enemyId) || _world.Get<Team>(enemyId) == _world.Get<Team>(unitId)) continue;
-                    if (CombatSystem.IsInAttackRange(_world, unitId, enemyId))
-                        _attackableTargets.Add(enemyId);
-                }
+                _attackableTargets = CombatSystem.TargetsInRange(_world, unitId);
                 _gridView.HighlightAttack(_attackableTargets.Select(id => _world.Get<GridPosition>(id).Value));
             }
             // 약탈(적 도시 칸)·폭우(빈 칸)도 공격 칸으로 보인다.
@@ -2568,18 +2546,12 @@ namespace TacticsECS
 
         private void TryAttack(int attackerId, int targetId)
         {
-            var aliveBefore = TaskSystem.SnapshotAlive(_world);
             var hpBefore = SnapshotHp();
             var cutIn = BeginCutIn(attackerId, targetId);
             if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int damage, out int counterDamage)) return;
             var splashes = new List<BattleLogEntry>(); // 스플래시·전진 짓밟기로 주변 유닛이 입은 피해
             CombatSystem.LogSplash(_world, attackerId, hpBefore, attackerId, targetId, splashes);
             cutIn = EndCutIn(cutIn, attackerId, targetId, damage, counterDamage, splashes);
-            if (_econ != null)
-            {
-                TaskSystem.RecordAttack(_econ, Team.Player);
-                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
-            }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
             StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage, splashes, cutIn));
@@ -2698,13 +2670,7 @@ namespace TacticsECS
             if (_state != SelectState.UnitSelected) return;
             int unitId = _selectedUnitId;
             var hpBefore = SnapshotHp();
-            var aliveBefore = TaskSystem.SnapshotAlive(_world);
             if (!AbilitySystem.TrySelfDestruct(_grid, _world, unitId, out var damagedIds)) return;
-            if (_econ != null)
-            {
-                TaskSystem.RecordAttack(_econ, Team.Player);
-                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
-            }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = unitId, Verb = BattleLogVerb.SelfDestruct, TargetId = BattleLogEntry.NoTarget, Amount = damagedIds.Count }));
             foreach (var id in damagedIds)

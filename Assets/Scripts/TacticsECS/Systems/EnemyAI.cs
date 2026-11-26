@@ -632,14 +632,8 @@ namespace TacticsECS
         /// 따른다. econ이 있으면 과업(공격/처치)도 기록한다.</summary>
         private static void TryAttackAndLog(GridWorld grid, EntityWorld world, EconomyWorld econ, int attackerId, int targetId, List<BattleLogEntry> entries)
         {
-            var aliveBefore = econ != null ? TaskSystem.SnapshotAlive(world) : null;
             var hpBefore = CombatSystem.SnapshotHp(world);
-            if (!CombatSystem.TryAttack(grid, world, attackerId, targetId, out int damage, out int counterDamage)) return;
-            if (econ != null)
-            {
-                TaskSystem.RecordAttack(econ, world.Get<Team>(attackerId));
-                TaskSystem.RecordDeaths(econ, world, aliveBefore);
-            }
+            if (!CombatSystem.TryAttack(grid, world, attackerId, targetId, out int damage, out int counterDamage)) return; // 과업 기록은 TryAttack이 한다
 
             entries.Add(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage });
             if (!UnitQueries.IsAlive(world, targetId))

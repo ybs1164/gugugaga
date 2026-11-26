@@ -19,6 +19,29 @@ namespace TacticsECS
             return MapShapeMode.Freeform;
         }
 
+        /// <summary>
+        /// 맵 한 장을 grid에 만든다 — 빠른 한 판·샌드박스("지형 생성")·헤드리스 시뮬레이션이 모두 이 순서를 쓴다:
+        /// 땅 모양(아웃라인) → 영역 지형 → 구조물 → 영역(팀)마다 그 종족의 시작 조건 → 시작 조건이 칸을 바꿨으면 물 깊이 재분류.
+        /// regions[i]·tribes[i]는 영역 i(= CitySystem.Teams[i])의 지형 묶음과 종족(없으면 null). 규칙: docs/spec/game/map.md
+        /// </summary>
+        public static GeneratedMap GenerateMap(GridWorld grid, IReadOnlyList<BiomeCsvRow> regions, IReadOnlyList<TribeRow?> tribes, string mapType, float waterRatio, int seed)
+        {
+            var mode = ShapeMode(mapType);
+            var outline = TerrainGenerationSystem.PlanOutline(grid, regions.Count, seed, mode, waterRatio);
+            var anchors = TerrainGenerationSystem.GenerateFromOutline(grid, regions, outline, seed);
+            StructureGenerationSystem.Generate(grid, regions, anchors, seed, outline.Suburbs, outline.PlannedVillages, mode);
+
+            int startChanges = 0;
+            for (int i = 0; i < tribes.Count && i < anchors.Length; i++)
+            {
+                var condition = tribes[i] != null ? TribeSystem.StartCondition(tribes[i].Value) : null;
+                if (condition != null)
+                    startChanges += StartConditionSystem.Apply(grid, anchors[i], condition.Value, GameTables.StartConditionRules, mapType, seed + i);
+            }
+            if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(grid, regions, anchors);
+            return new GeneratedMap { Outline = outline, Anchors = anchors, StartChanges = startChanges };
+        }
+
         private static TribeRow? Tribe(int index) => TribeSystem.IsValid(index) ? GameTables.Tribes[index] : (TribeRow?)null;
 
         /// <summary>지형 생성 → 수도·시작 조건 → 경제 시작까지 하고, 1턴 플레이어 차례(턴 시작 처리 전)로 둔다.</summary>
@@ -28,23 +51,13 @@ namespace TacticsECS
             var tribes = new Dictionary<Team, TribeRow?> { [Team.Player] = Tribe(setup.PlayerTribe), [Team.Enemy] = Tribe(setup.EnemyTribe) };
             var gods = new Dictionary<Team, int> { [Team.Player] = setup.PlayerGod, [Team.Enemy] = setup.EnemyGod };
 
-            var regions = TribeSystem.RegionBiomes(CitySystem.Teams.Select(t => tribes[t]).ToList(), GameDataLoader.LoadTribeTerrain());
-            var mode = ShapeMode(setup.MapType);
-            var outline = TerrainGenerationSystem.PlanOutline(grid, regions.Count, setup.Seed, mode, setup.WaterRatio);
-            var anchors = TerrainGenerationSystem.GenerateFromOutline(grid, regions, outline, setup.Seed);
-            StructureGenerationSystem.Generate(grid, regions, anchors, setup.Seed, outline.Suburbs, outline.PlannedVillages, mode);
+            var teamTribes = CitySystem.Teams.Select(t => tribes[t]).ToList();
+            var regions = TribeSystem.RegionBiomes(teamTribes, GameDataLoader.LoadTribeTerrain());
+            var map = GenerateMap(grid, regions, teamTribes, setup.MapType, setup.WaterRatio, setup.Seed);
 
             var capitals = new Dictionary<Team, Vector2Int>();
-            int startChanges = 0;
-            for (int i = 0; i < CitySystem.Teams.Length && i < anchors.Length; i++)
-            {
-                var team = CitySystem.Teams[i];
-                capitals[team] = anchors[i];
-                var condition = tribes[team] != null ? TribeSystem.StartCondition(tribes[team].Value) : null;
-                if (condition != null)
-                    startChanges += StartConditionSystem.Apply(grid, anchors[i], condition.Value, GameTables.StartConditionRules, setup.MapType, setup.Seed + i);
-            }
-            if (startChanges > 0) TerrainGenerationSystem.ClassifyWaterDepth(grid, regions, anchors);
+            for (int i = 0; i < CitySystem.Teams.Length && i < map.Anchors.Length; i++)
+                capitals[CitySystem.Teams[i]] = map.Anchors[i];
 
             var world = new EntityWorld();
             var econ = EconomySetupSystem.Create(TechGroupSystem.BuildTechNodes(), EconomySetupSystem.DefaultUnitRows(), gods, tribes);

@@ -135,6 +135,14 @@ namespace TacticsECS
             return HasActive(m) && !FaithPunchSystem.Has(ActivePunchRow(m), FaithEffectKind.Descend);
         }
 
+        /// <summary>대상을 고르기 전에 알 수 있는 조건 — 신앙이 액티브 펀치 비용만큼 있고, 유지 턴이 액티브 비용보다 많이 남았는지(메뉴 버튼 활성 여부).</summary>
+        public static bool CanAffordActive(EntityWorld world, EconomyWorld econ, int mythicId)
+        {
+            var state = world.Get<Mythic>(mythicId);
+            var m = GameTables.MythicUnits[state.MythicIndex];
+            return state.TurnsLeft > m.ActiveUpkeepCost && econ.Resources[world.Get<Team>(mythicId)].Faith >= ActivePunchRow(m).Cost;
+        }
+
         /// <summary>대상으로 쓸 수 없으면 이유 문구 키, 쓸 수 있으면 null(사거리, 유지 턴, 그리고 펀치 자체 조건).</summary>
         public static string CheckActive(GridWorld grid, EntityWorld world, EconomyWorld econ, int mythicId, Vector2Int target)
         {

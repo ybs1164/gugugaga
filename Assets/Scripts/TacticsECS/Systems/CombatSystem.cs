@@ -11,7 +11,7 @@ namespace TacticsECS
     /// EffectiveDefense/CalculateDamage)를 제공한다 — 이 계산 함수들은 BattleHud(UI 표시)에서도
     /// 그대로 재사용한다.
     ///
-    /// 피해 공식은 위키 Combat 문서 그대로(3차 비교분석 — docs/history/GameDataCsv.md):
+    /// 피해 공식은 위키 Combat 문서 그대로(규칙: docs/spec/game/combat.md):
     ///   attackForce  = 공격자.공격 x (공격자 체력 / 최대 체력)
     ///   defenseForce = 대상.방어 x (대상 체력 / 최대 체력) x 방어 보너스(없음 1 / 지형·도시 1.5 / 성벽 4)
     ///   공격 피해 = round(attackForce / (attackForce + defenseForce) x 공격자.공격 x 4.5)
@@ -56,6 +56,16 @@ namespace TacticsECS
             int level = world.Get<PositionalDefenseBonus>(unitId).Value;
             if (level >= 2) return GameRules.Combat.WallDefenseMultiplier;
             return level == 1 ? GameRules.Combat.DefenseBonusMultiplier : 1f;
+        }
+
+        /// <summary>attackerId가 지금 자리에서 공격 사거리 안에 둔 살아있는 다른 팀 유닛들(공격 행동을 쓸 수 있는지는 따로 본다).</summary>
+        public static List<int> TargetsInRange(EntityWorld world, int attackerId)
+        {
+            var list = new List<int>();
+            var team = world.Get<Team>(attackerId);
+            for (int id = 0; id < world.EntityCount; id++)
+                if (UnitQueries.IsAlive(world, id) && world.Get<Team>(id) != team && IsInAttackRange(world, attackerId, id)) list.Add(id);
+            return list;
         }
 
         /// <summary>위치 방어 보너스가 성벽 등급인지(등급은 TechEffectSystem이 계산) — 화면 연출용.</summary>
@@ -169,12 +179,15 @@ namespace TacticsECS
         /// (ConvertAction) 여부를 먼저 반영한 뒤 대상의 반격 행동(CounterAction)을 찾아 이어서 실행한다.
         /// 공격자가 기습(AmbushAction)을 가졌거나 대상이 뻣뻣함(StiffAction)을 가졌으면 반격 자체를
         /// 건너뛴다. 공격이 실제로 성사됐는지와 별개로, 대상이 반격으로 되돌려준 피해량을
-        /// counterDamageDealt로 함께 돌려준다(반격이 없었거나 발동하지 않았으면 0).</summary>
+        /// counterDamageDealt로 함께 돌려준다(반격이 없었거나 발동하지 않았으면 0).
+        /// 성사된 공격은 여기서 과업에 기록한다 — 공격한 팀의 "이번 턴 공격함"과, 이 공격(스플래시·반격 포함)으로 죽은 유닛의 처치 수.
+        /// 규칙: docs/spec/game/task-score.md</summary>
         public static bool TryAttack(GridWorld grid, EntityWorld world, int attackerId, int targetId, out int damageDealt, out int counterDamageDealt)
         {
             damageDealt = 0;
             counterDamageDealt = 0;
 
+            var aliveBefore = grid.Economy != null ? TaskSystem.SnapshotAlive(world) : null;
             var attack = UnitActionQueries.Find<AttackAction>(world, attackerId);
             // 위키 공식은 반격도 대상의 "공격 전" 체력으로 계산한다 — 공격이 체력을 깎기 전에 기억해 둔다(지역 변수, 상태 아님).
             int targetHpBeforeHit = UnitQueries.IsAlive(world, targetId) ? world.Get<Hp>(targetId).Value : 0;
@@ -203,6 +216,8 @@ namespace TacticsECS
                 }
             }
 
+            TaskSystem.RecordAttack(grid.Economy, world.Get<Team>(attackerId));
+            TaskSystem.RecordDeaths(grid.Economy, world, aliveBefore);
             return true;
         }
 

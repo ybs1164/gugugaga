@@ -14,6 +14,14 @@ namespace TacticsECS
         public int EnemyGod;
     }
 
+    /// <summary>맵 한 장을 만든 결과(MatchSystem.GenerateMap) — 땅 모양, 영역별 수도 자리(영역 i = CitySystem.Teams[i]), 시작 조건이 바꾼 칸 수.</summary>
+    public struct GeneratedMap
+    {
+        public TerrainOutlineData Outline;
+        public UnityEngine.Vector2Int[] Anchors;
+        public int StartChanges;
+    }
+
     /// <summary>화면 없이 진행하는 한 판의 상태 — 시뮬레이션·학습·검증이 쓴다(MatchSystem).</summary>
     public class MatchState
     {

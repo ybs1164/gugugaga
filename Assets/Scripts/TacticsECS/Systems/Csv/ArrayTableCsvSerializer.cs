@@ -370,6 +370,46 @@ namespace TacticsECS
             return rows;
         }
 
+        /// <summary>맵 크기 표(docs/spec/csv/map.md#mapsizescsv--맵-크기). 한 변이 1보다 작은 행은 오류로 남긴다.</summary>
+        public static MapSizeRow[] ParseMapSizes(string text, List<string> errors = null)
+        {
+            var t = Begin("MapSizes.csv", text, new[] { "Index", "Id", "Size" }, new[] { "TinyIslands", "Ruins", "Note" }, new string[0], errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new MapSizeRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                rows[r] = new MapSizeRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Size = CsvTableReader.GetInt(t, r, "Size", 0, errors),
+                    TinyIslands = CsvTableReader.GetInt(t, r, "TinyIslands", 0, errors),
+                    Ruins = CsvTableReader.GetInt(t, r, "Ruins", 0, errors),
+                };
+                if (rows[r].Size < 1) CsvTableReader.Report(t, r, "Size", "한 변이 1보다 작음", errors);
+            }
+            return rows;
+        }
+
+        /// <summary>맵 타입 표(docs/spec/csv/map.md#maptypescsv--맵-타입).</summary>
+        public static MapTypeRow[] ParseMapTypes(string text, List<string> errors = null)
+        {
+            var t = Begin("MapTypes.csv", text, new[] { "Index", "Id" }, new[] { "Shape", "Wetness", "Note" }, new string[0], errors);
+            CsvTableReader.CheckUniqueIds(t, "Id", errors);
+            var rows = new MapTypeRow[t.Rows.Count];
+            for (int r = 0; r < rows.Length; r++)
+            {
+                rows[r] = new MapTypeRow
+                {
+                    Index = r,
+                    Id = CsvTableReader.Get(t, r, "Id"),
+                    Shape = CsvTableReader.GetEnum(t, r, "Shape", MapShapeMode.Freeform, errors),
+                    Wetness = Math.Min(1f, Math.Max(0f, CsvTableReader.GetFloat(t, r, "Wetness", 0f, errors))),
+                };
+            }
+            return rows;
+        }
+
         public static StartConditionRow[] ParseStartConditions(string text, List<string> errors = null)
         {
             var t = Begin("StartConditions.csv", text, new[] { "Index", "Id" }, new[] { "Note" }, new[] { "Rule" }, errors);

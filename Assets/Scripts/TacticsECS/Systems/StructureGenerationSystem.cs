@@ -26,21 +26,6 @@ namespace TacticsECS
         public const string RuinStructureId = "Ruin";
         public const string LighthouseStructureId = "Lighthouse";
 
-
-
-        /// <summary>Polytopia의 맵 크기별 외딴 섬 마을 개수표(8절) — MapSizePresets(BattleController)의
-        /// 변 길이와 같은 값으로 조회한다.</summary>
-        private static readonly (int Size, int Count)[] TinyIslandCounts =
-        {
-            (11, 0), (14, 1), (16, 2), (18, 3), (20, 4), (30, 9)
-        };
-
-        /// <summary>Polytopia의 맵 크기별 유적 개수표(9절, 맵 전체 기준). 표에 없는 크기는 약 36칸당 1개.</summary>
-        private static readonly (int Size, int Count)[] RuinCounts =
-        {
-            (11, 4), (14, 5), (16, 7), (18, 9), (20, 11), (30, 23)
-        };
-
         /// <summary>지형 생성 전에 이미 확정된 Suburb/사전 확정 마을 위치(TerrainGenerationSystem.Generate의
         /// out 파라미터)를 받아 Village로 먼저 배치한 뒤, 클래스 주석의 단계 순서대로 나머지를 배치한다.
         /// 뒤 3개 인자는 생략 가능(null=빈 배열, shapeMode 기본값 Freeform = 외딴 섬 마을/Lakes 규칙 비활성).
@@ -267,7 +252,7 @@ namespace TacticsECS
         private static void PlaceTinyIslandVillages(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
             Dictionary<string, List<Vector2Int>> placedPositionsByStructure, Random rng)
         {
-            int count = LookupBySize(TinyIslandCounts, grid.Width, Mathf.FloorToInt(grid.Width * grid.Height / (float)GameRules.Map.TinyIslandTilesPerVillage));
+            int count = MapSizeOf(grid.Width)?.TinyIslands ?? Mathf.FloorToInt(grid.Width * grid.Height / (float)GameRules.Map.TinyIslandTilesPerVillage);
             if (count <= 0) return;
 
             var candidates = new List<Vector2Int>();
@@ -500,8 +485,8 @@ namespace TacticsECS
                 }
             }
             if (targets.TryGetValue(RuinStructureId, out var ruinTarget) && ruinTarget != int.MaxValue)
-                targets[RuinStructureId] = LookupBySize(RuinCounts, grid.Width,
-                    Mathf.Max(1, Mathf.RoundToInt(grid.Width * grid.Height / (float)GameRules.Map.RuinTilesPerRuin)));
+                targets[RuinStructureId] = MapSizeOf(grid.Width)?.Ruins
+                    ?? Mathf.Max(1, Mathf.RoundToInt(grid.Width * grid.Height / (float)GameRules.Map.RuinTilesPerRuin));
 
             bool isLakes = shapeMode == MapShapeMode.Lakes;
             foreach (var structureId in order)
@@ -543,11 +528,12 @@ namespace TacticsECS
             }
         }
 
-        private static int LookupBySize((int Size, int Count)[] table, int size, int fallback)
+        /// <summary>한 변이 size인 맵 크기 행(MapSizes.csv). 표에 없는 크기면 null — 부르는 쪽이 칸 수 비례 공식으로 센다.</summary>
+        private static MapSizeRow? MapSizeOf(int size)
         {
-            foreach (var (s, c) in table)
-                if (s == size) return c;
-            return fallback;
+            foreach (var row in GameTables.MapSizes)
+                if (row.Size == size) return row;
+            return null;
         }
 
         private static string FindFirstLandTileId(BiomeCsvRow biome)

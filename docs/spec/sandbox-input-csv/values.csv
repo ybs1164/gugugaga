@@ -24,6 +24,7 @@ Effect,GuardStat,범위 안 Side 유닛이 방어 태세(Defend)일 때 방어�
 Effect,Stars,신전마다 별 +크기/턴 / 늘 / 
 Effect,FaithCap,신전마다 신앙 최대 보유량 +크기 / 늘 / 
 Effect,Descend,대상 아군을 신의 신화 유닛으로 바꾼다(강림) /  / O
+Shape,Freeform,마스크 없이 타일 확률대로 채운다
 VisualId 접두사,Ground.,"지면 타일 / Ground.<TileTypeId>(숲·산 칸은 그 아래 맨땅 Ground.<GroundTileId>), 없으면 Ground.Grass. 얼음 칸은 Ground.Ice, 침수 칸은 Ground.Flooded"
 VisualId 접두사,Terrain.,숲·산·바위·구름 오버레이 / Terrain.Cloud(시야) 등
 VisualId 접두사,Building.,건물 / Building.<건물 Id>

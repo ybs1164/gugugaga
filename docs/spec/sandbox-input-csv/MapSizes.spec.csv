@@ -1,0 +1,7 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치(시작 화면 선택·-recordMapSize가 가리킨다)
+Id,문자열,O,,,이름표(중복 불가). 표시 이름은 번역 표 UI.MapSize.<Id>
+Size,정수 ≥ 1,O,,,정사각형 맵의 한 변(칸)
+TinyIslands,정수,,0,,한 변이 Size인 맵에 놓는 외딴 섬 마을 수
+Ruins,정수,,0,,한 변이 Size인 맵에 놓는 유적 수
+Note,메모,,,,로더 무시. 원문과 다르면 이유를 적는다

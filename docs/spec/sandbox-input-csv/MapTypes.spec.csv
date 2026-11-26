@@ -1,0 +1,6 @@
+﻿Column,Type,Required,Default,AppliesTo,Description
+Index,정수,O,,,배열 위치(Map.DefaultType이 가리킨다)
+Id,문자열,O,,,이름표(중복 불가). 시작 조건 MapType이 이 값과 비교한다. 표시 이름은 번역 표 UI.MapType.<Id>
+Shape,열거,,Freeform,,땅 모양 — 아래
+Wetness,0..1,,0,,"이 타입을 골랐을 때의 목표 물 비율. 샌드박스 습도 탭 슬라이더의 처음 값이고, 빠른 한 판은 이 값을 그대로 쓴다"
+Note,메모,,,,로더 무시. 원문과 다르면 이유를 적는다

@@ -19,6 +19,7 @@ namespace TacticsECS.EditorTools
             _ok = true;
             var errors = GameDataLoader.LoadAll();
             Check(errors.Count == 0, "game data CSVs load without errors: " + string.Join(" | ", errors));
+            VerifyMapTables();
             VerifyReader();
             VerifyBuildingsAndActions();
             VerifyTechTreeMatchesWiki();
@@ -32,6 +33,27 @@ namespace TacticsECS.EditorTools
             VerifyPlaceholders();
             GameDataLoader.LoadAll(); // 규칙을 바꿔 본 검사 뒤 원래 CSV 값으로 되돌린다.
             Debug.Log(_ok ? "[GameDataCsvVerification] ALL PASS" : "[GameDataCsvVerification] SOME CHECKS FAILED - see errors above");
+        }
+
+        /// <summary>맵 크기·맵 타입 표(docs/spec/csv/map.md)가 읽히고, 코드가 그 표의 값으로 판을 만드는지.</summary>
+        private static void VerifyMapTables()
+        {
+            var sizes = GameTables.MapSizes;
+            var types = GameTables.MapTypes;
+            Check(sizes.Length > 0 && sizes.All(s => s.Size >= 1 && s.Index == System.Array.IndexOf(sizes, s)), "MapSizes.csv: rows loaded, sizes positive");
+            Check(types.Length > 0 && types.All(t => t.Wetness >= 0f && t.Wetness <= 1f), "MapTypes.csv: rows loaded, wetness within 0..1");
+            Check(GameRules.Map.DefaultType >= 0 && GameRules.Map.DefaultType < types.Length, "Map.DefaultType points at a MapTypes row");
+            foreach (var t in types)
+                Check(MatchSystem.ShapeMode(t.Id) == t.Shape, $"MapTypes {t.Id}: MatchSystem.ShapeMode reads Shape from the table");
+            Check(MatchSystem.ShapeMode("NoSuchType") == MapShapeMode.Freeform, "unknown map type falls back to Freeform");
+
+            var errors = new List<string>();
+            var parsed = ArrayTableCsvSerializer.ParseMapTypes("Index,Id,Shape,Wetness\n0,A,Lakes,0.3\n1,B,Nope,2\n", errors);
+            Check(parsed.Length == 2 && parsed[0].Shape == MapShapeMode.Lakes && parsed[1].Shape == MapShapeMode.Freeform && parsed[1].Wetness == 1f && errors.Count == 1,
+                "MapTypes: unknown Shape reported, Wetness clamped: " + string.Join(" | ", errors));
+            errors.Clear();
+            ArrayTableCsvSerializer.ParseMapSizes("Index,Id,Size\n0,A,0\n", errors);
+            Check(errors.Count == 1, "MapSizes: non-positive Size reported: " + string.Join(" | ", errors));
         }
 
         private static void VerifyIndividualFiles()

@@ -73,6 +73,8 @@ Map.ResourceCityRadius,int,자원은 도시·마을로부터 이 거리(체비�
 Map.TinyIslandEdgeMargin,int,외딴 섬 마을은 맵 가장자리로부터 최소 N칸
 Map.TinyIslandTilesPerVillage,int,맵 크기 표에 없는 크기의 외딴 섬 마을 수 = 칸 수 / N(내림)
 Map.RuinTilesPerRuin,int,맵 크기 표에 없는 크기의 유적 수 = 칸 수 / N(반올림; 최소 1)
+Map.DefaultType,int,처음 고른 맵 타입(MapTypes.csv Index) — 샌드박스 습도 탭의 처음 선택과 빠른 한 판의 맵 타입
+CutIn.BigUnitHp,int,최대 체력이 이 값 이상인 유닛은 전투 컷인에서 큰 유닛 연출(띠 흔들림)을 쓴다
 AI.MaxImprovementsPerTurn,int,경제 AI가 한 턴에 하는 건설/채집 최대 횟수
 AI.ThreatRadius,int,경제 AI: 자기 영토 N칸 안의 적 유닛을 위협으로 센다
 AI.MaxConnectionBudget,int,경제 AI: 도시 연결 계획 최대 별

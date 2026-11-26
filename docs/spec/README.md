@@ -31,7 +31,7 @@
 
 | 요소 | 규칙 | CSV | 주요 System |
 |---|---|---|---|
-| 맵 생성 | [map](game/map.md) | [tribe-terrain](csv/tribe-terrain.md), [tribes](csv/tribes.md), [game-rules](csv/game-rules.md) `Map.*` | `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem` |
+| 맵 생성 | [map](game/map.md) | [map](csv/map.md) (맵 크기·맵 타입), [tribe-terrain](csv/tribe-terrain.md), [tribes](csv/tribes.md), [game-rules](csv/game-rules.md) `Map.*` | `TerrainGenerationSystem`, `StructureGenerationSystem`, `StartConditionSystem` |
 | 타일·구조물 | [tile](game/tile.md) | [tribe-terrain](csv/tribe-terrain.md) | `TileImprovementSystem`, `RuinSystem` |
 | 도시 | [city](game/city.md) | [city-rewards](csv/city-rewards.md), [game-rules](csv/game-rules.md) | `CitySystem`, `CityResourceSystem`, `EconomySetupSystem`, `EconomyRefreshSystem` |
 | 건물·타일 행동 | [building](game/building.md) | [buildings](csv/buildings.md), [tile-actions](csv/tile-actions.md) | `TileImprovementSystem` |

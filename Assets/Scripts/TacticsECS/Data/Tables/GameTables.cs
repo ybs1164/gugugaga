@@ -22,6 +22,8 @@ namespace TacticsECS
         public const string StartConditionsPath = Folder + "StartConditions";
         public const string StartConditionRulesPath = Folder + "StartConditionRules";
         public const string AIDifficultyPath = Folder + "AIDifficulty";
+        public const string MapSizesPath = Folder + "MapSizes";
+        public const string MapTypesPath = Folder + "MapTypes";
 
         /// <summary>AI 모델 파일 폴더(Resources 경로) — AIDifficulty.csv Model이 이 아래 파일 이름이다.</summary>
         public const string AIModelFolder = "AI/";
@@ -50,6 +52,8 @@ namespace TacticsECS
         public static StartConditionRow[] StartConditions = new StartConditionRow[0];
         public static StartConditionRuleRow[] StartConditionRules = new StartConditionRuleRow[0];
         public static AIDifficultyRow[] AIDifficulties = new AIDifficultyRow[0];
+        public static MapSizeRow[] MapSizes = new MapSizeRow[0];
+        public static MapTypeRow[] MapTypes = new MapTypeRow[0];
 
         /// <summary>기본 유닛 표(샌드박스에서 유닛 CSV를 불러오지 않았을 때 전투에 쓰인다).</summary>
         public static UnitCsvRow[] Units = new UnitCsvRow[0];

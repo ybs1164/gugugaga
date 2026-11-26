@@ -132,6 +132,25 @@ namespace TacticsECS
         public int[] Effects;
     }
 
+    /// <summary>맵 크기 하나(MapSizes.csv) — 정사각형 한 변과, 그 크기의 맵에 놓는 외딴 섬 마을·유적 수.</summary>
+    public struct MapSizeRow
+    {
+        public int Index;
+        public string Id;
+        public int Size;
+        public int TinyIslands;
+        public int Ruins;
+    }
+
+    /// <summary>맵 타입 하나(MapTypes.csv) — 땅 모양과 처음 제안하는 물 비율(0~1).</summary>
+    public struct MapTypeRow
+    {
+        public int Index;
+        public string Id;
+        public MapShapeMode Shape;
+        public float Wetness;
+    }
+
     /// <summary>AI 난이도 하나(AIDifficulty.csv) — 쓸 모델(Assets/Resources/AI/&lt;Model&gt;.txt, 비면 규칙 AI)과 고르는 방식.</summary>
     public struct AIDifficultyRow
     {

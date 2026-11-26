@@ -26,6 +26,7 @@ namespace TacticsECS
             GameTables.UnitsPath, GameTables.BoatsPath, GameTables.BuildingsPath,
             GameTables.TechUnlocksPath, GameTables.TechsPath, GameTables.TechSlotsPath, GameTables.TechTreeLayoutPath, GameTables.TechGroupsPath,
             GameTables.TribesPath, GameTables.GodsPath, GameTables.FaithEffectsPath, GameTables.TemplePassivesPath, GameTables.FaithPunchesPath, GameTables.MythicUnitsPath, GameTables.StartConditionsPath, GameTables.StartConditionRulesPath, GameTables.TribeTerrainPath, GameTables.AIDifficultyPath,
+            GameTables.MapSizesPath, GameTables.MapTypesPath,
         };
 
         public static string[] SandboxCsvPaths => new List<string>(TableCsvPaths)
@@ -77,6 +78,8 @@ namespace TacticsECS
             GameTables.StartConditionRules = ArrayTableCsvSerializer.ParseStartConditionRules(Read(GameTables.StartConditionRulesPath, errors, source), errors);
             GameTables.StartConditions = ArrayTableCsvSerializer.ParseStartConditions(Read(GameTables.StartConditionsPath, errors, source), errors);
             GameTables.AIDifficulties = ArrayTableCsvSerializer.ParseAIDifficulties(Read(GameTables.AIDifficultyPath, errors, source), errors);
+            GameTables.MapSizes = ArrayTableCsvSerializer.ParseMapSizes(Read(GameTables.MapSizesPath, errors, source), errors);
+            GameTables.MapTypes = ArrayTableCsvSerializer.ParseMapTypes(Read(GameTables.MapTypesPath, errors, source), errors);
             LoadAIModels(errors);
             errors.AddRange(ArrayTableValidationSystem.ValidateLoaded(LoadTribeTerrain(source).Select(b => b.Id).ToList()));
         }

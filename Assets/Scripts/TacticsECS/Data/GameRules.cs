@@ -171,6 +171,13 @@ namespace TacticsECS
             public static int TinyIslandEdgeMargin = 1;
             public static int TinyIslandTilesPerVillage = 100;
             public static int RuinTilesPerRuin = 36;
+            public static int DefaultType = 2;
+        }
+
+        /// <summary>전투 컷인 연출(View/BattleCutIn). 위키 무관.</summary>
+        public static class CutIn
+        {
+            public static int BigUnitHp = 30;
         }
 
         /// <summary>AI 튜닝 값(위키 무관).</summary>

@@ -102,7 +102,7 @@ namespace TacticsECS
         /// 개수만큼(반올림) 목표를 늘린다 — 예를 들어 Starfish는 AllowedTileTypes=Water|Ocean이므로 이 값이
         /// "물 타일 몇 칸당 하나"를 뜻하게 된다(Polytopia의 "물 타일 25칸당 불가사리 1개" 규칙). 바이옴별
         /// 목표를 맵 전체로 합산해 한 번에 배치한다. MinCount와 비교해 더 큰 쪽을 쓴다. 단 "Ruin"은
-        /// 원문의 맵 크기별 고정 개수표를 쓴다(StructureGenerationSystem.RuinCounts).</summary>
+        /// 원문의 맵 크기별 고정 개수표를 쓴다(MapSizes.csv Ruins).</summary>
         public float CountPerTiles;
 
         /// <summary>같은 StructureId끼리 유지해야 하는 최소 거리(체비쇼프, 맵 전체 기준). 0이면 제약 없음.</summary>

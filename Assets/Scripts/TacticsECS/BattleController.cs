@@ -117,30 +117,31 @@ namespace TacticsECS
         /// <summary>마지막 표 가져오기 결과 — 씬을 다시 연 뒤 시작 화면에 한 번 보인다.</summary>
         private static string s_packMessage;
 
-        /// <summary>Polytopia의 6종 맵 크기 프리셋(이름, 정사각형 한 변 길이)을 그대로 채택
-        /// (docs/reference/PolytopiaMapGeneration.md 1절) — Sandbox의 "맵 크기" 버튼이 이 목록을 순환한다.</summary>
-        private static readonly (string Name, int Size)[] MapSizePresets =
-        {
-            ("Tiny", 11), ("Small", 14), ("Normal", 16), ("Large", 18), ("Huge", 20), ("Massive", 30)
-        };
+        /// <summary>고른 맵 크기(MapSizes.csv Index) — Sandbox의 "맵 크기" 버튼과 시작 화면의 맵 줄이 이 표를 순환한다.</summary>
         private int _selectedMapSizeIndex;
         /// <summary>이번 판 상대 AI 난이도(AIDifficulty.csv Index, -1 = 기본). s_lastDifficulty는 다음 새 게임의 처음 선택.</summary>
         private int _enemyDifficulty = -1;
         private static int s_lastDifficulty = -1;
 
-        /// <summary>Polytopia의 6종 습도(맵 타입) 프리셋 이름 + 대표 습도값(docs/reference/PolytopiaMapGeneration.md
-        /// 2절 범위의 중간값). CSV에는 저장하지 않는 전역 생성 파라미터 — 맵 크기와 같은 이유로 Sandbox
-        /// UI 순환 버튼으로만 선택한다. Continents(0.55)를 배율 1.0의 기준으로 삼는다
-        /// (TerrainGenerationSystem.Generate의 wetnessMultiplier = 선택값 / Continents값).</summary>
-        private static readonly (string Name, float Wetness)[] WetnessPresets =
-        {
-            ("Drylands", 0.05f), ("Lakes", 0.275f), ("Continents", 0.55f), ("Pangea", 0.50f), ("Archipelago", 0.70f), ("Waterworld", 0.95f)
-        };
-        private const int WetnessBaselineIndex = 2; // "Continents"
-        private int _selectedWetnessIndex = WetnessBaselineIndex;
+        /// <summary>고른 맵 타입(MapTypes.csv Index). 처음 값은 Map.DefaultType — 표를 읽은 뒤 Awake가 정한다(SelectMapType).</summary>
+        private int _selectedWetnessIndex;
 
-        /// <summary>습도 탭 슬라이더 — 1차 지형(아웃라인)의 목표 물 비율. 맵 타입을 고르면 그 타입의 대표값으로 돌아간다.</summary>
-        private float _waterRatio = WetnessPresets[WetnessBaselineIndex].Wetness;
+        /// <summary>습도 탭 슬라이더 — 1차 지형(아웃라인)의 목표 물 비율. 맵 타입을 고르면 그 타입의 Wetness로 돌아간다.</summary>
+        private float _waterRatio;
+
+        /// <summary>고른 맵 크기·맵 타입 행. 표가 비었으면(읽기 실패) 빈 행 — 크기는 지금 그리드 그대로, 땅 모양은 Freeform.</summary>
+        private static MapSizeRow MapSizeAt(int index) =>
+            GameTables.MapSizes.Length == 0 ? default : GameTables.MapSizes[Mathf.Clamp(index, 0, GameTables.MapSizes.Length - 1)];
+        private static MapTypeRow MapTypeAt(int index) =>
+            GameTables.MapTypes.Length == 0 ? default : GameTables.MapTypes[Mathf.Clamp(index, 0, GameTables.MapTypes.Length - 1)];
+        private MapTypeRow SelectedMapType => MapTypeAt(_selectedWetnessIndex);
+
+        /// <summary>맵 타입을 고르고 물 비율을 그 타입의 값으로 돌린다(화면 갱신은 부르는 쪽).</summary>
+        private void SelectMapType(int index)
+        {
+            _selectedWetnessIndex = Mathf.Clamp(index, 0, Mathf.Max(0, GameTables.MapTypes.Length - 1));
+            _waterRatio = SelectedMapType.Wetness;
+        }
 
         /// <summary>종족 탭 종족 드롭다운(Tribes.csv Index). 없는 팀은 기본 규칙. "다시 시작"해도 유지한다.</summary>
         private readonly Dictionary<Team, int> _tribeByTeam = new Dictionary<Team, int> { [Team.Player] = -1, [Team.Enemy] = -1 };
@@ -215,6 +216,7 @@ namespace TacticsECS
             s_activePack = quickPlay ? TablePackSystem.ReadInfo(PackFolder) : null;
             var loadErrors = GameDataLoader.LoadAll(sandboxMode ? SandboxTables : s_activePack != null ? TableSource.FromPath(PackFolder) : TableSource.Resources);
             s_packWarnings = s_activePack != null ? loadErrors.Count : 0;
+            SelectMapType(GameRules.Map.DefaultType);
             _cam = Camera.main;
             if (_cam == null)
             {
@@ -310,7 +312,7 @@ namespace TacticsECS
             s_lastDifficulty = setup.Difficulty;
             _tribeTerrain = null;
             InitMapSizeSelection();
-            if (setup.MapSize >= 0 && setup.MapSize < MapSizePresets.Length) _selectedMapSizeIndex = setup.MapSize;
+            if (setup.MapSize >= 0 && setup.MapSize < GameTables.MapSizes.Length) _selectedMapSizeIndex = setup.MapSize;
             HandleGenerateTerrain();
             _unitRows = EconomySetupSystem.DefaultUnitRows();
             BeginBattle();
@@ -414,10 +416,7 @@ namespace TacticsECS
             _sandboxHud.OnGodSelected += HandleGodSelected;
 
             InitMapSizeSelection();
-            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), MapSizePresets[_selectedMapSizeIndex].Size);
-            _sandboxHud.SetMapTypeOptions(WetnessPresets.Select(p => LocalizationSystem.F("UI.Sandbox.MapTypeOption", MapTypeName(p.Name), Mathf.RoundToInt(p.Wetness * 100f))).ToList(), _selectedWetnessIndex);
-            _sandboxHud.SetWaterRatio(_waterRatio);
-            RefreshWetnessLabel();
+            RefreshMapOptions();
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
             _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
@@ -475,12 +474,23 @@ namespace TacticsECS
         private bool AnyTribe() => CitySystem.Teams.Any(t => TribeOf(t) != null);
 
         private void RefreshWetnessLabel() =>
-            _sandboxHud.SetWetnessLabel(LocalizationSystem.F("UI.Sandbox.WetnessLabel", MapTypeName(WetnessPresets[_selectedWetnessIndex].Name), Mathf.RoundToInt(_waterRatio * 100f)));
+            _sandboxHud.SetWetnessLabel(LocalizationSystem.F("UI.Sandbox.WetnessLabel", MapTypeName(SelectedMapType.Id), Mathf.RoundToInt(_waterRatio * 100f)));
 
-        /// <summary>맵 타입 프리셋의 표시 이름(프리셋 Name은 규칙 키라 바꾸지 않는다 — StartConditionRules.MapType과 비교).</summary>
-        private static string MapTypeName(string preset) => LocalizationSystem.T("UI.MapType." + preset, preset);
+        /// <summary>샌드박스의 맵 크기 버튼·맵 타입 목록·물 비율 슬라이더를 지금 표와 선택으로 다시 그린다(표를 다시 읽은 뒤에도 부른다).</summary>
+        private void RefreshMapOptions()
+        {
+            _selectedMapSizeIndex = Mathf.Clamp(_selectedMapSizeIndex, 0, Mathf.Max(0, GameTables.MapSizes.Length - 1));
+            _selectedWetnessIndex = Mathf.Clamp(_selectedWetnessIndex, 0, Mathf.Max(0, GameTables.MapTypes.Length - 1));
+            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), MapSizeAt(_selectedMapSizeIndex).Size);
+            _sandboxHud.SetMapTypeOptions(GameTables.MapTypes.Select(p => LocalizationSystem.F("UI.Sandbox.MapTypeOption", MapTypeName(p.Id), Mathf.RoundToInt(p.Wetness * 100f))).ToList(), _selectedWetnessIndex);
+            _sandboxHud.SetWaterRatio(_waterRatio);
+            RefreshWetnessLabel();
+        }
 
-        private static string MapSizeName(int index) => LocalizationSystem.T("UI.MapSize." + MapSizePresets[index].Name, MapSizePresets[index].Name);
+        /// <summary>맵 타입의 표시 이름(Id는 규칙 키라 바꾸지 않는다 — StartConditionRules.MapType과 비교).</summary>
+        private static string MapTypeName(string id) => LocalizationSystem.T("UI.MapType." + id, id);
+
+        private static string MapSizeName(int index) => LocalizationSystem.T("UI.MapSize." + MapSizeAt(index).Id, MapSizeAt(index).Id);
 
         private void RefreshTribeInfo()
         {
@@ -506,8 +516,7 @@ namespace TacticsECS
 
         private void HandleMapTypeSelected(int index)
         {
-            _selectedWetnessIndex = Mathf.Clamp(index, 0, WetnessPresets.Length - 1);
-            _waterRatio = WetnessPresets[_selectedWetnessIndex].Wetness;
+            SelectMapType(index);
             _sandboxHud.SetWaterRatio(_waterRatio);
             RefreshWetnessLabel();
         }
@@ -673,8 +682,8 @@ namespace TacticsECS
 
         private bool EnsureGridSize()
         {
-            int targetSize = MapSizePresets[_selectedMapSizeIndex].Size;
-            if (targetSize == _grid.Width) return true;
+            int targetSize = MapSizeAt(_selectedMapSizeIndex).Size;
+            if (targetSize < 1 || targetSize == _grid.Width) return true;
             if (!RebuildGridForSize(targetSize)) return false;
             _outline = null;
             return true;
@@ -686,7 +695,7 @@ namespace TacticsECS
         {
             if (!EnsureGridSize()) return;
             var regions = ResolveRegionBiomes();
-            var mode = ResolveShapeMode(WetnessPresets[_selectedWetnessIndex].Name);
+            var mode = SelectedMapType.Shape;
             int seed = System.Environment.TickCount;
             var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, mode, _waterRatio);
             _outline = outline;
@@ -695,7 +704,7 @@ namespace TacticsECS
             _gridView.RefreshTerrain(_grid);
             _gridView.RefreshStructures(_grid);
             _sandboxHud.SetStatus(LocalizationSystem.F("UI.Sandbox.OutlineDone", Mathf.RoundToInt(TerrainGenerationSystem.OutlineWaterFraction(outline) * 100f),
-                Mathf.RoundToInt(_waterRatio * 100f), MapTypeName(WetnessPresets[_selectedWetnessIndex].Name), outline.Anchors.Length,
+                Mathf.RoundToInt(_waterRatio * 100f), MapTypeName(SelectedMapType.Id), outline.Anchors.Length,
                 outline.Suburbs.Length + outline.PlannedVillages.Length));
         }
 
@@ -713,26 +722,25 @@ namespace TacticsECS
 
         private void HandleWetnessCycle()
         {
-            HandleMapTypeSelected((_selectedWetnessIndex + 1) % WetnessPresets.Length);
+            HandleMapTypeSelected((_selectedWetnessIndex + 1) % Mathf.Max(1, GameTables.MapTypes.Length));
         }
 
-        /// <summary>현재 gridWidth(인스펙터 값)와 가장 가까운 프리셋을 기본 선택값으로 삼는다.</summary>
+        /// <summary>현재 gridWidth(인스펙터 값)와 가장 가까운 맵 크기 행을 기본 선택값으로 삼는다.</summary>
         private void InitMapSizeSelection()
         {
             _selectedMapSizeIndex = 0;
             int bestDiff = int.MaxValue;
-            for (int i = 0; i < MapSizePresets.Length; i++)
+            for (int i = 0; i < GameTables.MapSizes.Length; i++)
             {
-                int diff = Mathf.Abs(MapSizePresets[i].Size - gridWidth);
+                int diff = Mathf.Abs(GameTables.MapSizes[i].Size - gridWidth);
                 if (diff < bestDiff) { bestDiff = diff; _selectedMapSizeIndex = i; }
             }
         }
 
         private void HandleMapSizeCycle()
         {
-            _selectedMapSizeIndex = (_selectedMapSizeIndex + 1) % MapSizePresets.Length;
-            var preset = MapSizePresets[_selectedMapSizeIndex];
-            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), preset.Size);
+            _selectedMapSizeIndex = (_selectedMapSizeIndex + 1) % Mathf.Max(1, GameTables.MapSizes.Length);
+            _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), MapSizeAt(_selectedMapSizeIndex).Size);
         }
 
         /// <summary>표 폴더(null = 기본 표)를 읽어 전부 다시 올린다 — 폴더에 없는 표는 기본 표. 연결·검증 경고는 콘솔에, 개수는 상태 줄에.
@@ -754,6 +762,7 @@ namespace TacticsECS
                 if (_godByTeam[team] < 0 || _godByTeam[team] >= GameTables.Gods.Length) _godByTeam[team] = -1;
 
             _sandboxHud.RefreshLabels();
+            RefreshMapOptions();
             SetPaletteRows(new List<UnitCsvRow>(GameTables.Units));
             _sandboxHud.SetTribeOptions(GameTables.Tribes.Select(t => t.Name).ToList(), _tribeByTeam[Team.Player], _tribeByTeam[Team.Enemy]);
             _sandboxHud.SetGodOptions(GameTables.Gods.Select(g => g.Name).ToList(), _godByTeam[Team.Player], _godByTeam[Team.Enemy]);
@@ -790,8 +799,8 @@ namespace TacticsECS
             }
             if (!EnsureGridSize()) return;
 
-            var mapTypeName = WetnessPresets[_selectedWetnessIndex].Name;
-            var shapeMode = ResolveShapeMode(mapTypeName);
+            var mapTypeName = SelectedMapType.Id;
+            var shapeMode = SelectedMapType.Shape;
             var regions = ResolveRegionBiomes();
             int seed = System.Guid.NewGuid().GetHashCode();
             var outline = TerrainGenerationSystem.PlanOutline(_grid, regions.Count, seed, shapeMode, _waterRatio);
@@ -824,18 +833,6 @@ namespace TacticsECS
                 Mathf.RoundToInt(outline.WaterFraction * 100f), LocalizationSystem.T("UI.Sandbox.OutlineNew"),
                 startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));
         }
-
-        /// <summary>습도 프리셋 이름 -> MapShapeMode. Drylands만 Freeform(마스크
-        /// 없이 습도 배율만 적용)이고, 나머지 5종은 같은 이름의 마스크 모드로 1:1 매핑한다.</summary>
-        private static MapShapeMode ResolveShapeMode(string wetnessPresetName) => wetnessPresetName switch
-        {
-            "Pangea" => MapShapeMode.Pangea,
-            "Lakes" => MapShapeMode.Lakes,
-            "Continents" => MapShapeMode.Continents,
-            "Archipelago" => MapShapeMode.Archipelago,
-            "Waterworld" => MapShapeMode.Waterworld,
-            _ => MapShapeMode.Freeform,
-        };
 
         /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다
         /// (맵 크기는 유닛을 배치하기 전에만 바꿀 수 있다는 안전 규칙 — TerrainGenerationSystem이 점유 칸을
@@ -1187,11 +1184,9 @@ namespace TacticsECS
                 Name = UnitLabel(id), Body = _viewsById.TryGetValue(id, out var view) ? view.Body : null, Player = _world.Get<Team>(id) == Team.Player,
                 HpBefore = hpBefore, HpAfter = hpAfter, MaxHp = Mathf.Max(maxHp, hpBefore),
                 Terrain = city ? LocalizationSystem.T("UI.CutIn.City") : TileClassName(cls), Background = background,
-                Boat = _world.GetOrDefault<Embarked>(id).Value, Big = maxHp >= BigUnitHp,
+                Boat = _world.GetOrDefault<Embarked>(id).Value, Big = maxHp >= GameRules.CutIn.BigUnitHp,
             };
         }
-        /// <summary>이 체력 이상인 유닛은 컷인에서 "큰 유닛" 연출(띠 흔들림)을 쓴다.</summary>
-        private const int BigUnitHp = 30;
 
         /// <summary>공격 전에 부른다: 두 유닛의 모습·체력·속성(공격이 바꾸기 전 값)을 담는다.</summary>
         private CutInData BeginCutIn(int attackerId, int targetId)
@@ -1209,7 +1204,7 @@ namespace TacticsECS
             d.Combo = UnitActionQueries.Find<ComboAction>(_world, attackerId) != null;
             d.Guard = _world.Get<IsGuarding>(targetId).Value;
             d.DefenseMultiplier = CombatSystem.DefenseMultiplier(_world, targetId);
-            d.Wall = _world.Get<PositionalDefenseBonus>(targetId).Value >= 2;
+            d.Wall = CombatSystem.HasWallDefense(_world, targetId);
             var cls = TileImprovementSystem.Classify(_grid, t);
             d.Particle = d.Wall ? CutInParticle.Brick : d.DefenseMultiplier <= 1f ? CutInParticle.None
                 : cls == TileClass.Forest ? CutInParticle.Leaf : cls == TileClass.ShallowWater || cls == TileClass.Ocean ? CutInParticle.Water : CutInParticle.Stone;
@@ -1596,7 +1591,7 @@ namespace TacticsECS
                 InitMapSizeSelection();
                 _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Id = t.Id, Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
                     GameTables.Gods.Select(g => new GodChoice { Id = g.Id, Name = g.Name, Description = g.Description }).ToList(),
-                    Enumerable.Range(0, MapSizePresets.Length).Select(i => LocalizationSystem.F("UI.Title.MapSizeOption", MapSizeName(i), MapSizePresets[i].Size)).ToList(),
+                    GameTables.MapSizes.Select(s => LocalizationSystem.F("UI.Title.MapSizeOption", MapSizeName(s.Index), s.Size)).ToList(),
                     _selectedMapSizeIndex,
                     GameTables.AIDifficulties.Select(d => new GodChoice { Name = d.Name, Description = d.Description }).ToList(),
                     s_lastDifficulty >= 0 ? s_lastDifficulty : GameRules.AI.DefaultDifficulty);

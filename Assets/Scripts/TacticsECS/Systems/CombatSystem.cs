@@ -58,6 +58,9 @@ namespace TacticsECS
             return level == 1 ? GameRules.Combat.DefenseBonusMultiplier : 1f;
         }
 
+        /// <summary>위치 방어 보너스가 성벽 등급인지(등급은 TechEffectSystem이 계산) — 화면 연출용.</summary>
+        public static bool HasWallDefense(EntityWorld world, int unitId) => world.Get<PositionalDefenseBonus>(unitId).Value >= 2;
+
         /// <summary>UI 표시용 실제 방어력 = 방어 스탯 x 위치 보너스 배수.</summary>
         public static float EffectiveDefense(EntityWorld world, int unitId) => BaseDefense(world, unitId) * DefenseMultiplier(world, unitId);
 

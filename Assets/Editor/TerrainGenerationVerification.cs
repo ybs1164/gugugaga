@@ -31,6 +31,7 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll(); // 맵 크기별 개수(MapSizes.csv)와 Map.* 규칙을 읽는다
             bool ok = VerifyRoundTrip() &
                       VerifySingleBiomeRules() &
                       VerifyDeterministicSeed() &
@@ -346,7 +347,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        /// <summary>습도 배율(BattleController.WetnessPresets, 3차 재정비)이 실제로 Water 타일 비율을
+        /// <summary>습도 배율(맵 타입 Wetness — MapTypes.csv)이 실제로 Water 타일 비율을
         /// 바꾸는지 확인한다 — 같은 시드/바이옴으로 낮은 배율과 높은 배율 두 번 생성해서 Water 타일 수가
         /// 유의미하게 달라지는지 비교한다.</summary>
         private static bool VerifyWetnessMultiplier()
@@ -458,7 +459,7 @@ namespace TacticsECS.EditorTools
 
         /// <summary>Pangea 랜드마스 마스크 기법을 일반화한 나머지 4종(Lakes/Continents/Archipelago/
         /// Waterworld — Drylands는 마스크가 필요 없어 제외)이 각자 목표 물 비율에 근접하면서 그 타입
-        /// 고유의 모양 특징도 나타내는지 확인한다. BattleController.WetnessPresets의 대표 습도값을
+        /// 고유의 모양 특징도 나타내는지 확인한다. MapTypes.csv의 Wetness 값을
         /// 그대로 목표치로 쓴다.</summary>
         private static bool VerifyOtherMapShapes()
         {

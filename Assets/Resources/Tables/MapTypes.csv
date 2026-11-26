@@ -1,0 +1,7 @@
+﻿Index,Id,Shape,Wetness,Note
+0,Drylands,Freeform,0.05,원문 습도 0~10%의 가운데 값. 물이 거의 없어 땅 모양 마스크 없이 만든다
+1,Lakes,Lakes,0.275,원문 습도 25~30%의 가운데 값
+2,Continents,Continents,0.55,원문 습도 40~70%의 가운데 값
+3,Pangea,Pangea,0.5,원문 습도 40~60%의 가운데 값
+4,Archipelago,Archipelago,0.7,원문 습도 60~80%의 가운데 값
+5,Waterworld,Waterworld,0.95,원문 습도 90~100%의 가운데 값

@@ -36,6 +36,7 @@
 | `StartCondition.<Id>.Name`, `.Desc` | [StartConditions](tribes.md#startconditionscsv--시작-조건-묶음) |
 | `Structure.<StructureId>.Name`, `.Desc` | 타일 구조물(`StructureDefinition`) |
 | `Action.<행동>.Name`, `.Tooltip` | 유닛 행동·패시브 — [unit](../game/unit.md#행동과-패시브) |
+| `UI.MapSize.<Id>`, `UI.MapType.<Id>` | [MapSizes](map.md#mapsizescsv--맵-크기), [MapTypes](map.md#maptypescsv--맵-타입) 행의 표시 이름 |
 | `UI.<화면>.<이름>` | 화면 문구(버튼·안내·로그). `<화면>`은 그 문구를 쓰는 View/System |
 
 ## 자리표시자

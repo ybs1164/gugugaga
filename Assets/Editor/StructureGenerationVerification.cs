@@ -15,6 +15,7 @@ namespace TacticsECS.EditorTools
 
         public static void Run()
         {
+            GameDataLoader.LoadAll(); // 맵 크기별 개수(MapSizes.csv)와 Map.* 규칙을 읽는다
             bool ok = VerifyCapitalsAtAnchors() &
                       VerifyPlacementRules() &
                       VerifyDeterministicSeed() &

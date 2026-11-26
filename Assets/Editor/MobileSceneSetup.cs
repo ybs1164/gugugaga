@@ -15,7 +15,7 @@ namespace TacticsECS.EditorTools
     {
         private const string SourceScenePath = "Assets/Scenes/Sandbox.unity";
         public const string MobileScenePath = "Assets/Scenes/Mobile.unity";
-        /// <summary>BattleController.MapSizePresets에서 가장 작은 "Tiny"와 같은 한 변 — InitMapSizeSelection이 이 값에 가장 가까운 프리셋을 고른다.</summary>
+        /// <summary>MapSizes.csv의 가장 작은 크기(Tiny)와 같은 한 변 — InitMapSizeSelection이 이 값에 가장 가까운 프리셋을 고른다.</summary>
         private const int MapSize = 11;
 
         public static void Generate()

@@ -17,9 +17,8 @@ namespace TacticsSim
     /// </summary>
     public static class Program
     {
-        private static readonly string[] MapTypes = { "Drylands", "Lakes", "Continents", "Pangea", "Archipelago", "Waterworld" };
-        private static readonly float[] Wetness = { 0.05f, 0.275f, 0.55f, 0.50f, 0.70f, 0.95f };
-        private static readonly int[] MapSizes = { 11, 14, 16 };
+        /// <summary>판 설정에 쓰는 맵 크기 수 — MapSizes.csv의 앞에서부터(작은 것부터) 이만큼만 쓴다(큰 맵은 학습 시간이 길다).</summary>
+        private const int MapSizeChoices = 3;
         public const int MaxTurns = 100;
 
         public static int Main(string[] args)
@@ -48,11 +47,12 @@ namespace TacticsSim
         {
             var rng = new Random(seed * 7919 + 17);
             int tribes = GameTables.Tribes.Length, gods = GameTables.Gods.Length;
-            int t = rng.Next(6);
+            var type = GameTables.MapTypes[rng.Next(GameTables.MapTypes.Length)];
             int pt = rng.Next(tribes);
             return new MatchSetup
             {
-                Seed = seed, MapType = MapTypes[t], WaterRatio = Wetness[t], MapSize = MapSizes[rng.Next(MapSizes.Length)],
+                Seed = seed, MapType = type.Id, WaterRatio = type.Wetness,
+                MapSize = GameTables.MapSizes[rng.Next(Math.Min(MapSizeChoices, GameTables.MapSizes.Length))].Size,
                 PlayerTribe = pt, EnemyTribe = tribes > 1 ? (pt + 1 + rng.Next(tribes - 1)) % tribes : pt,
                 PlayerGod = gods > 0 ? rng.Next(gods) : -1, EnemyGod = gods > 0 ? rng.Next(gods) : -1,
             };

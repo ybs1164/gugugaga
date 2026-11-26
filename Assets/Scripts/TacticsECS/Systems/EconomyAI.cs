@@ -19,8 +19,6 @@ namespace TacticsECS
     /// </summary>
     public static class EconomyAI
     {
-        /// <summary>도로 연결 계획이 한 도시에 쓰는 최대 별(이보다 먼 도시는 연결을 미룬다).</summary>
-
         public static List<EconomyLogEntry> RunTurn(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team)
         {
             var log = new List<EconomyLogEntry>();

@@ -130,10 +130,6 @@ namespace TacticsECS
             return text.Length > 0 ? BiomeCsvSerializer.Parse(text) : new List<BiomeCsvRow>();
         }
 
-        /// <summary>모델 팔레트 + 파츠 CSV(Assets/Resources/Models) -&gt; ModelDefinition. 파일이 없으면 그 모델들만 비어 있다
-        /// (그리는 쪽이 옛 표시로 대체한다). 표 폴더로 덮어쓰지 않는다.</summary>
-
-
         /// <summary>슬롯 구조 + 기술 배치 + 기술/해금 표를 조합한다. 매번 CSV를 다시 읽으므로 비용 수정도 반영된다.
         /// 해금 내역의 건물/유닛/배 Index는 LoadAll이 올린 표로 푼다.</summary>
         public static List<TechNodeData> LoadTechNodes(TableSource source = default)

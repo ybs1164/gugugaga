@@ -29,8 +29,6 @@ namespace TacticsECS.EditorTools
             return picked;
         }
 
-        /// <summary>옛 형식(한 행 = 한 바이옴, Tiles/Structures 칸에 ";" 묶음) 호환 확인용 — 규칙 6 전환 전 sample_biomes.csv의 Grassland 행.</summary>
-
         public static void Run()
         {
             bool ok = VerifyRoundTrip() &

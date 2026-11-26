@@ -102,9 +102,6 @@ namespace TacticsECS
         private UnitPlacementController _placementController;
         private bool _placementActive;
 
-        /// <summary>샌드박스 "표 불러오기"로 옛 단일 파일 기술트리(TechTree.csv 형식)를 읽었을 때만 채워진다. null이면 지금 표(기술 표들).
-        /// 유닛/바이옴과 달리 "다시 시작"(HandleReturnToSetup)해도 유지한다 — 같은 트리로 여러 판을 시험하기 위함.</summary>
-
         /// <summary>샌드박스 "표 불러오기"로 고른 표 폴더(null = Assets/Resources 기본 표). 언어 버튼이 씬을 다시 열어도 유지되도록
         /// 정적으로 둔다(같은 실행 안에서만). 데모 씬은 쓰지 않는다.</summary>
         private static string s_tableFolder;
@@ -738,10 +735,6 @@ namespace TacticsECS
             _sandboxHud.SetMapSizeLabel(MapSizeName(_selectedMapSizeIndex), preset.Size);
         }
 
-        /// <summary>"표 불러오기": 고른 파일이 표 이름(Units.csv, Strings.csv …)이면 그 파일이 든 표 폴더 전체를 읽고(ApplyTables),
-        /// 아니면 옛 단일 파일로 보고 헤더로 종류를 가른다 — 기술트리(Branch/Tier 칸), 바이옴(Kind+Biome), 그 밖은 키형 유닛 CSV.</summary>
-
-
         /// <summary>표 폴더(null = 기본 표)를 읽어 전부 다시 올린다 — 폴더에 없는 표는 기본 표. 연결·검증 경고는 콘솔에, 개수는 상태 줄에.
         /// 팔레트(Units.csv)·종족·바이옴·기술트리 패널을 새 표로 다시 그린다. 이미 배치한 유닛은 그대로 둔다.</summary>
         private void ApplyTables(string folder)
@@ -774,9 +767,6 @@ namespace TacticsECS
             _sandboxHud.SetCsvSources(s_csvFiles);
         }
 
-        /// <summary>"표 내보내기": 지금 쓰는 표 전부를 Resources와 같은 구조로 그 폴더에 쓴다 — 고친 뒤 "표 불러오기"로 다시 읽는다.</summary>
-
-
         private void SetPaletteRows(List<UnitCsvRow> rows)
         {
             _placementController.SetRows(rows);
@@ -784,15 +774,7 @@ namespace TacticsECS
             _sandboxHud.SetSelectedUnit(rows.Count > 0 ? 0 : -1);
         }
 
-        /// <summary>옛 형식(키형) 유닛 CSV — 읽기만 한다. 팔레트만 이 파일로 바꾸고, 종족 시작 유닛은 이 표에서 Id로 찾는다.</summary>
-
-
         private List<TechNodeData> CurrentTechNodes() => GameDataLoader.LoadTechNodes(SandboxTables);
-
-        /// <summary>옛 형식 기술트리 CSV(TechTree.csv와 같은 한 파일 형식, 읽기만)를 불러와 이후 전투의 기술트리로 쓴다. 기술트리 패널도 바로 다시 그려
-        /// 배치 단계에서 모양을 확인할 수 있다. 형식 오류(TechCsvSerializer)와 참조 오류(TechTreeValidationSystem)는 콘솔에
-        /// 경고로 남기고, 상태 줄에는 개수만 보인다 — 경고가 있어도 읽을 수 있는 만큼은 적용한다.</summary>
-
 
         /// <summary>바이옴으로 그리드를 다시 채운다. 선택된 맵 크기 프리셋이 지금 그리드와 다르면 먼저 그리드 자체를 다시 만든다
         /// (RebuildGridForSize). 이미 유닛이 놓인 칸은 생성 시스템이 건드리지 않으므로 배치 중에 눌러도 안전하다.
@@ -2303,7 +2285,6 @@ namespace TacticsECS
             }
         }
 
-        /// <summary>다음 언어로 바꿔 저장하고 씬을 다시 연다 — 표 이름·프리팹 글자·이미 만든 도시 이름까지 한 번에 바뀌도록(진행 중 전투는 처음부터).</summary>
         // ---------- 표 팩 (Sandbox 내보내기 → 빠른 한 판 가져오기) ----------
 
         private static string PackLabel()
@@ -2358,6 +2339,7 @@ namespace TacticsECS
         private static void ReloadScene() =>
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex);
 
+        /// <summary>다음 언어로 바꿔 저장하고 씬을 다시 연다 — 표 이름·프리팹 글자·이미 만든 도시 이름까지 한 번에 바뀌도록(진행 중 전투는 처음부터).</summary>
         private void HandleLanguageClicked()
         {
             SaveGame();

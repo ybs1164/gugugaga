@@ -32,8 +32,12 @@ VisualId 접두사,Unit.,"육지 유닛 / Unit.<유닛 Id>, 없으면 BaseVisual
 VisualId 접두사,Boat.,배 / Boat.<배 Id>
 VisualId 접두사,Icon.,"아이콘 / Icon.<이름>(기술 Icon, 행동 배지)"
 VisualId 접두사,UI.,"UI 도형 / UI.Missing(없는 키 대체), UI.Solid, UI.Shadow"
+HUD 그림,Icons/<이름>,"HUD 아이콘 한 벌. 흰 그림이라 놓이는 자리의 글자색으로 물든다. 코드에서는 IconLibrary.Get(""hud.<이름>"") / 상단 칩, 행동 줄, 유닛 스탯·행동 버튼, 신앙 펀치, 컷인"
+HUD 그림,CutIn/<칸>,전투 컷인 배경: city field forest mountain shallow ocean. 게임 픽셀 크기 그대로 두고 화면에서 키운다. 좌우로 이어 붙는다 / 컷인
+HUD 그림,Guide/guide,길잡이 그림. 저장소에는 없다(.gitignore) — 받은 팩의 단독 재배포 금지 조건 때문에 각자 넣는다. 없으면 말풍선만 나온다 / 길잡이
 키 규칙,Language.Name,언어 선택 버튼에 보이는 그 언어의 이름
 키 규칙,Unit.<Id>.Name,Units·Boats 행 이름. 샌드박스 유닛 파일의 Name보다 앞선다
+키 규칙,Tech.<Id>.Brief,기술 트리에서 고른 기술 아래에 보이는 요점 한 문장(수치 없이). 없으면 .Desc를 보인다
 키 규칙,UI.<화면>.<이름>,화면 문구(버튼·안내·로그). <화면>은 그 문구를 쓰는 View/System
 자리표시자,{컬럼},그 문구가 설명하는 행(<표>.<Id>.Desc)의 CSV 칸 — 컬럼 이름 그대로 / Building.Farm.Desc의 {Population}
 자리표시자,{표.Id.컬럼},"다른 표의 행. 표: Building(Cost Population PopulationPerAdjacent), TileAction(Cost Population StarsGain), Task(Threshold), CityReward(Amount), Unit — 유닛·배(Cost MaxHp Defense Move.Range Attack.Attack Attack.Range), Tech(CostBase CostPerCity), Tribe(StartStars), StartRule — 시작 조건 규칙 Id(Count MinDistance MaxDistance), FaithEffect(Amount PerPrayer MinHp), TemplePassive(Radius Period) / {Building.Mine.Cost}"

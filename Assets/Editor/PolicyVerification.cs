@@ -50,9 +50,10 @@ namespace TacticsECS.EditorTools
             var rng = new System.Random(seed * 7919 + 17);
             int tribes = GameTables.Tribes.Length, gods = GameTables.Gods.Length;
             int pt = tribes > 0 ? rng.Next(tribes) : -1;
+            var mapType = GameTables.MapTypes[GameRules.Map.DefaultType]; // 기본 맵 타입, 가장 작은 맵
             var s = MatchSystem.Create(new MatchSetup
             {
-                Seed = seed, MapType = "Continents", WaterRatio = 0.55f, MapSize = 11,
+                Seed = seed, MapType = mapType.Id, WaterRatio = mapType.Wetness, MapSize = GameTables.MapSizes[0].Size,
                 PlayerTribe = pt, EnemyTribe = tribes > 1 ? (pt + 1) % tribes : pt,
                 PlayerGod = gods > 0 ? rng.Next(gods) : -1, EnemyGod = gods > 0 ? rng.Next(gods) : -1,
             });

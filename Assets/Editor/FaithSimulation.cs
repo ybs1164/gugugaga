@@ -58,19 +58,19 @@ namespace TacticsECS.EditorTools
             var list = new List<Game>();
             var shapes = new[]
             {
-                (MapShapeMode.Pangea, 0.50f, 14),
-                (MapShapeMode.Continents, 0.55f, 16),
-                (MapShapeMode.Lakes, 0.275f, 14),
-                (MapShapeMode.Freeform, 0.05f, 14),
+                (MapShapeMode.Pangea, 14),
+                (MapShapeMode.Continents, 16),
+                (MapShapeMode.Lakes, 14),
+                (MapShapeMode.Freeform, 14),
             };
             int godCount = GameTables.Gods.Length;
             for (int i = 0; i < 24; i++)
             {
-                var (mode, wet, size) = shapes[i % shapes.Length];
+                var (mode, size) = shapes[i % shapes.Length];
                 list.Add(new Game
                 {
                     Name = $"G{i:00}_{mode}_{size}_s{i + SeedOffset}",
-                    Mode = mode, Wetness = wet, Size = size, Seed = i + SeedOffset,
+                    Mode = mode, Wetness = EconomySimulation.WetnessOf(mode), Size = size, Seed = i + SeedOffset,
                     PlayerGod = i % godCount, EnemyGod = (i * 5 + 2) % godCount,
                 });
             }
@@ -169,7 +169,7 @@ namespace TacticsECS.EditorTools
         {
             var stats = new Stats();
             var grid = new GridWorld(game.Size, game.Size);
-            float wetMult = game.Wetness / 0.55f;
+            float wetMult = game.Wetness / EconomySimulation.BaselineWetness();
             var anchors = TerrainGenerationSystem.Generate(grid, biomes, game.Seed, wetMult, game.Mode, game.Wetness, out var suburbs, out var planned);
             StructureGenerationSystem.Generate(grid, biomes, anchors, game.Seed, suburbs, planned, game.Mode);
 

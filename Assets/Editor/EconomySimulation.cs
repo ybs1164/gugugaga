@@ -27,7 +27,6 @@ namespace TacticsECS.EditorTools
         {
             public string Name;
             public MapShapeMode Mode;
-            public float Wetness;
             public int Size;
             public int Seed;
             public bool WaterMap;
@@ -35,12 +34,12 @@ namespace TacticsECS.EditorTools
 
         private static readonly Scenario[] Scenarios =
         {
-            new Scenario { Name = "Continents_16_s1", Mode = MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 1, WaterMap = true },
-            new Scenario { Name = "Continents_16_s7", Mode = MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 7, WaterMap = true },
-            new Scenario { Name = "Pangea_14_s3", Mode = MapShapeMode.Pangea, Wetness = 0.50f, Size = 14, Seed = 3 },
-            new Scenario { Name = "Lakes_14_s4", Mode = MapShapeMode.Lakes, Wetness = 0.275f, Size = 14, Seed = 4 },
-            new Scenario { Name = "Archipelago_16_s5", Mode = MapShapeMode.Archipelago, Wetness = 0.70f, Size = 16, Seed = 5, WaterMap = true },
-            new Scenario { Name = "Drylands_14_s6", Mode = MapShapeMode.Freeform, Wetness = 0.05f, Size = 14, Seed = 6 },
+            new Scenario { Name = "Continents_16_s1", Mode = MapShapeMode.Continents, Size = 16, Seed = 1, WaterMap = true },
+            new Scenario { Name = "Continents_16_s7", Mode = MapShapeMode.Continents, Size = 16, Seed = 7, WaterMap = true },
+            new Scenario { Name = "Pangea_14_s3", Mode = MapShapeMode.Pangea, Size = 14, Seed = 3 },
+            new Scenario { Name = "Lakes_14_s4", Mode = MapShapeMode.Lakes, Size = 14, Seed = 4 },
+            new Scenario { Name = "Archipelago_16_s5", Mode = MapShapeMode.Archipelago, Size = 16, Seed = 5, WaterMap = true },
+            new Scenario { Name = "Drylands_14_s6", Mode = MapShapeMode.Freeform, Size = 14, Seed = 6 },
         };
 
         /// <summary>한 판의 누적 관측치.</summary>
@@ -134,12 +133,23 @@ namespace TacticsECS.EditorTools
             Debug.LogError("[EconomySimulation] FAIL: " + message);
         }
 
+        /// <summary>그 땅 모양을 쓰는 맵 타입의 물 비율(MapTypes.csv Wetness). 표에 없으면 기본 맵 타입의 값.</summary>
+        internal static float WetnessOf(MapShapeMode mode)
+        {
+            foreach (var t in GameTables.MapTypes)
+                if (t.Shape == mode) return t.Wetness;
+            return BaselineWetness();
+        }
+
+        /// <summary>습도 배율 1의 기준 — 기본 맵 타입(Map.DefaultType)의 물 비율.</summary>
+        internal static float BaselineWetness() => GameTables.MapTypes[GameRules.Map.DefaultType].Wetness;
+
         private static Result Simulate(Scenario sc, List<BiomeCsvRow> biomes, List<UnitCsvRow> units, List<TechNodeData> techNodes)
         {
             var result = new Result();
             var grid = new GridWorld(sc.Size, sc.Size);
-            float wetMult = sc.Wetness / 0.55f;
-            var anchors = TerrainGenerationSystem.Generate(grid, biomes, sc.Seed, wetMult, sc.Mode, sc.Wetness, out var suburbs, out var planned);
+            float wetness = WetnessOf(sc.Mode);
+            var anchors = TerrainGenerationSystem.Generate(grid, biomes, sc.Seed, wetness / BaselineWetness(), sc.Mode, wetness, out var suburbs, out var planned);
             StructureGenerationSystem.Generate(grid, biomes, anchors, sc.Seed, suburbs, planned, sc.Mode);
 
             var world = new EntityWorld();

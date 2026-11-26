@@ -15,8 +15,6 @@ namespace TacticsECS.EditorTools
     {
         private const string SourceScenePath = "Assets/Scenes/Sandbox.unity";
         public const string MobileScenePath = "Assets/Scenes/Mobile.unity";
-        /// <summary>MapSizes.csv의 가장 작은 크기(Tiny)와 같은 한 변 — InitMapSizeSelection이 이 값에 가장 가까운 프리셋을 고른다.</summary>
-        private const int MapSize = 11;
 
         public static void Generate()
         {
@@ -31,6 +29,9 @@ namespace TacticsECS.EditorTools
             if (controller == null)
                 throw new System.InvalidOperationException($"[MobileSceneSetup] BattleController not found in {MobileScenePath}");
 
+            // 가장 작은 맵 크기(MapSizes.csv 첫 행)의 한 변 — InitMapSizeSelection이 이 값에 가장 가까운 행을 고른다.
+            GameDataLoader.LoadAll();
+            int MapSize = GameTables.MapSizes[0].Size;
             SetPrivateField(controller, "sandboxMode", false);
             SetPrivateField(controller, "quickPlay", true);
             SetPrivateField(controller, "gridWidth", MapSize);

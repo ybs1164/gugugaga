@@ -183,8 +183,8 @@ namespace TacticsECS.EditorTools
         {
             var biomes = TerrainGenerationVerification.SampleTerrains();
             var grid = new GridWorld(12, 12, TileSize);
-            var anchors = TerrainGenerationSystem.Generate(grid, biomes, 1, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.5f, out var suburbs, out var planned);
-            StructureGenerationSystem.Generate(grid, biomes, anchors, 1, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);
+            var anchors = TerrainGenerationSystem.Generate(grid, biomes, 1, 1f, MapShapeMode.Continents, 0.5f, out var suburbs, out var planned);
+            StructureGenerationSystem.Generate(grid, biomes, anchors, 1, suburbs, planned, MapShapeMode.Continents);
             var cities = new List<CityData>();
             for (int i = 0; i < anchors.Length && i < 2; i++)
             {

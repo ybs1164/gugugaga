@@ -162,9 +162,12 @@ namespace TacticsECS.EditorTools
             ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain\n0,A,Field\n1,A,Forest\n", errors);
             Check(errors.Exists(e => e.Contains("중복")), "duplicate id reported");
 
-            var nodes = TechCsvSerializer.Parse("Unlocks,Id,Tier\nBuild.Farm,A,2\n");
+            var nodes = TechCsvSerializer.Parse("Unlock1,Id,Tier\nBuild.Farm,A,2\n");
             Check(nodes.Count == 1 && nodes[0].Id == "A" && nodes[0].Tier == 2 && nodes[0].CostPerCity == 2 && nodes[0].Unlocks[0] == "Build.Farm",
-                "tech CSV is header-based too (legacy Unlocks column)");
+                "tech CSV is header-based too (column order does not matter)");
+            errors.Clear();
+            var joined = ArrayTableCsvSerializer.ParseBuildings("Index,Id,Terrain1\n0,J,Field;Forest\n", errors);
+            Check(joined.Length == 1 && joined[0].Terrain == TileClass.None && errors.Count > 0, "a ';' list in one cell is one unknown value, not two: " + string.Join(" | ", errors));
 
             // CLAUDE.md 규칙 6: 여러 값은 번호 붙은 반복 컬럼(한 칸에 값 하나). 빈 칸은 건너뛰고 헤더 순서대로 모은다.
             errors.Clear();

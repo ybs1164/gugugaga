@@ -170,15 +170,6 @@ namespace TacticsECS
             return entries;
         }
 
-        private enum UnitOptionKind { Attack, Hold, Defend, Enemy, Capture, Starfish, Explore }
-
-        private struct UnitOption
-        {
-            public UnitOptionKind Kind;
-            public int Target;
-            public Vector2Int Goal;
-        }
-
         /// <summary>정책 후보 중 (c) 목표(적·점령)를 몇 개까지 넣는지(여행 거리가 가까운 순).</summary>
         private const int GoalCandidates = 6;
 

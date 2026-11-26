@@ -29,7 +29,7 @@ namespace TacticsECS.EditorTools
         private struct Game
         {
             public string Name;
-            public TerrainGenerationSystem.MapShapeMode Mode;
+            public MapShapeMode Mode;
             public float Wetness;
             public int Size;
             public int Seed;
@@ -58,10 +58,10 @@ namespace TacticsECS.EditorTools
             var list = new List<Game>();
             var shapes = new[]
             {
-                (TerrainGenerationSystem.MapShapeMode.Pangea, 0.50f, 14),
-                (TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, 16),
-                (TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f, 14),
-                (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f, 14),
+                (MapShapeMode.Pangea, 0.50f, 14),
+                (MapShapeMode.Continents, 0.55f, 16),
+                (MapShapeMode.Lakes, 0.275f, 14),
+                (MapShapeMode.Freeform, 0.05f, 14),
             };
             int godCount = GameTables.Gods.Length;
             for (int i = 0; i < 24; i++)

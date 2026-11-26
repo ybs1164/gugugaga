@@ -199,7 +199,7 @@ namespace TacticsECS.EditorTools
         {
             var biomes = TerrainGenerationVerification.SampleTerrains();
             bool ok = true;
-            foreach (TerrainGenerationSystem.MapShapeMode mode in System.Enum.GetValues(typeof(TerrainGenerationSystem.MapShapeMode)))
+            foreach (MapShapeMode mode in System.Enum.GetValues(typeof(MapShapeMode)))
             {
                 var gridA = new GridWorld(16, 16, 1f);
                 var gridB = new GridWorld(16, 16, 1f);
@@ -368,7 +368,7 @@ namespace TacticsECS.EditorTools
             // 물이 대부분인 20x20(유적 목표 11) — 제한이 없으면 물 위 유적이 다수가 된다.
             var grid = FilledGrid(20, p => p.x > 3);
             var anchors = new[] { new Vector2Int(2, 10) };
-            StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 9, shapeMode: TerrainGenerationSystem.MapShapeMode.Lakes);
+            StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 9, shapeMode: MapShapeMode.Lakes);
 
             int total = 0, onWater = 0;
             foreach (var pos in Positions(grid, "Ruin"))
@@ -423,12 +423,12 @@ namespace TacticsECS.EditorTools
             var biomes = TerrainGenerationVerification.SampleTerrains();
             bool ok = true;
             int seed = 1300, starfish = 0, ruins = 0, resources = 0;
-            foreach (TerrainGenerationSystem.MapShapeMode mode in System.Enum.GetValues(typeof(TerrainGenerationSystem.MapShapeMode)))
+            foreach (MapShapeMode mode in System.Enum.GetValues(typeof(MapShapeMode)))
                 foreach (int size in new[] { 14, 20 })
                 {
                     var grid = new GridWorld(size, size, 1f);
                     int s = seed++;
-                    float water = mode == TerrainGenerationSystem.MapShapeMode.Waterworld ? 0.95f : mode == TerrainGenerationSystem.MapShapeMode.Lakes ? 0.275f : 0.55f;
+                    float water = mode == MapShapeMode.Waterworld ? 0.95f : mode == MapShapeMode.Lakes ? 0.275f : 0.55f;
                     var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, mode, water, out var suburbs, out var planned);
                     StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, mode);
                     var cities = Cities(grid);
@@ -484,7 +484,7 @@ namespace TacticsECS.EditorTools
         private static bool VerifyTinyIslandVillages()
         {
             bool ok = true;
-            foreach (var mode in new[] { TerrainGenerationSystem.MapShapeMode.Continents, TerrainGenerationSystem.MapShapeMode.Waterworld })
+            foreach (var mode in new[] { MapShapeMode.Continents, MapShapeMode.Waterworld })
             {
                 var biome = new BiomeCsvRow
                 {
@@ -521,7 +521,7 @@ namespace TacticsECS.EditorTools
         private static bool VerifyTinyIslandVillagesGatedByShapeMode()
         {
             bool ok = true;
-            foreach (var mode in new[] { TerrainGenerationSystem.MapShapeMode.Freeform, TerrainGenerationSystem.MapShapeMode.Lakes, TerrainGenerationSystem.MapShapeMode.Archipelago })
+            foreach (var mode in new[] { MapShapeMode.Freeform, MapShapeMode.Lakes, MapShapeMode.Archipelago })
             {
                 var grid = FilledGrid(14, _ => true);
                 StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { BuildTestBiome() }, new[] { new Vector2Int(7, 7) }, seed: 1, shapeMode: mode);
@@ -544,8 +544,8 @@ namespace TacticsECS.EditorTools
                 {
                     var grid = new GridWorld(size, size, 1f);
                     int s = seed++;
-                    var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f, out var suburbs, out var planned);
-                    StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Lakes);
+                    var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, MapShapeMode.Lakes, 0.275f, out var suburbs, out var planned);
+                    StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, MapShapeMode.Lakes);
                     maps++;
                     ok &= CheckCapitalsReachTwoVillages(grid, anchors, $"Lakes {size}x{size} seed={s}");
                 }
@@ -557,7 +557,7 @@ namespace TacticsECS.EditorTools
                 var biome = GrassOnlyBiome();
                 biome.Tiles.Add(new BiomeTileEntry { TileId = "Water", TerrainType = TerrainType.Water, InnerWeight = 1f, OuterWeight = 1f });
                 StructureGenerationSystem.Generate(grid, new List<BiomeCsvRow> { biome }, anchors, seed: 3,
-                    plannedVillagePositions: new[] { new Vector2Int(11, 11), new Vector2Int(14, 14) }, shapeMode: TerrainGenerationSystem.MapShapeMode.Lakes);
+                    plannedVillagePositions: new[] { new Vector2Int(11, 11), new Vector2Int(14, 14) }, shapeMode: MapShapeMode.Lakes);
                 ok &= CheckCapitalsReachTwoVillages(grid, anchors, "Lakes forced island");
             }
 

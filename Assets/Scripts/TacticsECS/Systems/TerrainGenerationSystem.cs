@@ -31,11 +31,6 @@ namespace TacticsECS
         /// <summary>Pangea/Continents 수도 선택 시도 횟수 — 가장 고르게 퍼진(최소 쌍 거리가 가장 큰) 조합을 쓴다.</summary>
         private const int CapitalSelectionTrials = 12;
 
-        /// <summary>docs/reference/PolytopiaMapGeneration.md 2절의 6종 맵 타입 중, 개별 타일 확률(+MinDistance)에
-        /// 맡기지 않고 전용 "랜드마스 마스크"로 모양 자체를 만드는 타입들. Drylands는 원래도 물이 거의
-        /// 없어(목표 0~10%) 기존 방식으로 충분해 여기 포함하지 않는다 — 마스크가 필요 없다.</summary>
-        public enum MapShapeMode { Freeform, Pangea, Lakes, Continents, Archipelago, Waterworld }
-
         /// <summary>지형을 생성하고, 바이옴별(수도) 앵커를 반환한다 — Suburb/Pre-terrain 마을 위치까지
         /// 필요 없는 대부분의 호출부(검증 스크립트 등)를 위한 얇은 오버로드. 내부적으로 전체 오버로드에
         /// 위임하고 마을 위치는 버린다.</summary>
@@ -266,29 +261,6 @@ namespace TacticsECS
 
             ApplyForestAndMountains(grid, biomes, biomeIndexPerCell, cities, rng);
             return (capitalAnchors, suburbs, preTerrain);
-        }
-
-        /// <summary>맵 타입별 랜드마스 마스크 파라미터. 전부 같은 "방사형 감쇠 + 노이즈 점수 -> 순위 컷"
-        /// 마스크 하나를 재사용하고, 타입마다 파라미터만 바꾼다(Pangea 전용 코드를 그대로 일반화한 것).</summary>
-        private readonly struct MapShapeParams
-        {
-            /// <summary>랜드마스 중심점 개수. 0=순수 노이즈(중심 없음, Lakes), 1=맵 정중앙 한 점(Pangea),
-            /// 2 이상=쿼드런트로 흩어진 여러 중심점(Continents/Archipelago/Waterworld — 바이옴마다 자기
-            /// 땅덩이를 갖는 효과).</summary>
-            public readonly int CenterCount;
-            /// <summary>방사형 감쇠와 노이즈의 혼합 비율(0~1) — 클수록 중심점 주변에 둥글게 뭉치고,
-            /// 작을수록 노이즈가 지배적이라 해안선이 조각조각 들쭉날쭉해진다.</summary>
-            public readonly float RadialWeight;
-            /// <summary>true면 맨 바깥 테두리 칸에 큰 점수 보너스를 줘서 순위 컷에서 거의 항상 육지로
-            /// 살아남게 한다(Lakes의 "가장자리 육지 다리" 규칙).</summary>
-            public readonly bool ForceBorderLand;
-
-            public MapShapeParams(int centerCount, float radialWeight, bool forceBorderLand)
-            {
-                CenterCount = centerCount;
-                RadialWeight = radialWeight;
-                ForceBorderLand = forceBorderLand;
-            }
         }
 
         /// <summary>수도/Suburb/Pre-terrain 마을 위치(guaranteedLand)는 프리셋과 무관하게 항상 육지로

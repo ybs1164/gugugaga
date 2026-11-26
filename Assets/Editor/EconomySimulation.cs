@@ -26,7 +26,7 @@ namespace TacticsECS.EditorTools
         private struct Scenario
         {
             public string Name;
-            public TerrainGenerationSystem.MapShapeMode Mode;
+            public MapShapeMode Mode;
             public float Wetness;
             public int Size;
             public int Seed;
@@ -35,12 +35,12 @@ namespace TacticsECS.EditorTools
 
         private static readonly Scenario[] Scenarios =
         {
-            new Scenario { Name = "Continents_16_s1", Mode = TerrainGenerationSystem.MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 1, WaterMap = true },
-            new Scenario { Name = "Continents_16_s7", Mode = TerrainGenerationSystem.MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 7, WaterMap = true },
-            new Scenario { Name = "Pangea_14_s3", Mode = TerrainGenerationSystem.MapShapeMode.Pangea, Wetness = 0.50f, Size = 14, Seed = 3 },
-            new Scenario { Name = "Lakes_14_s4", Mode = TerrainGenerationSystem.MapShapeMode.Lakes, Wetness = 0.275f, Size = 14, Seed = 4 },
-            new Scenario { Name = "Archipelago_16_s5", Mode = TerrainGenerationSystem.MapShapeMode.Archipelago, Wetness = 0.70f, Size = 16, Seed = 5, WaterMap = true },
-            new Scenario { Name = "Drylands_14_s6", Mode = TerrainGenerationSystem.MapShapeMode.Freeform, Wetness = 0.05f, Size = 14, Seed = 6 },
+            new Scenario { Name = "Continents_16_s1", Mode = MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 1, WaterMap = true },
+            new Scenario { Name = "Continents_16_s7", Mode = MapShapeMode.Continents, Wetness = 0.55f, Size = 16, Seed = 7, WaterMap = true },
+            new Scenario { Name = "Pangea_14_s3", Mode = MapShapeMode.Pangea, Wetness = 0.50f, Size = 14, Seed = 3 },
+            new Scenario { Name = "Lakes_14_s4", Mode = MapShapeMode.Lakes, Wetness = 0.275f, Size = 14, Seed = 4 },
+            new Scenario { Name = "Archipelago_16_s5", Mode = MapShapeMode.Archipelago, Wetness = 0.70f, Size = 16, Seed = 5, WaterMap = true },
+            new Scenario { Name = "Drylands_14_s6", Mode = MapShapeMode.Freeform, Wetness = 0.05f, Size = 14, Seed = 6 },
         };
 
         /// <summary>한 판의 누적 관측치.</summary>

@@ -825,16 +825,16 @@ namespace TacticsECS
                 startChanges > 0 ? LocalizationSystem.F("UI.Sandbox.StartChanges", startChanges) : string.Empty, seed));
         }
 
-        /// <summary>습도 프리셋 이름 -> TerrainGenerationSystem.MapShapeMode. Drylands만 Freeform(마스크
+        /// <summary>습도 프리셋 이름 -> MapShapeMode. Drylands만 Freeform(마스크
         /// 없이 습도 배율만 적용)이고, 나머지 5종은 같은 이름의 마스크 모드로 1:1 매핑한다.</summary>
-        private static TerrainGenerationSystem.MapShapeMode ResolveShapeMode(string wetnessPresetName) => wetnessPresetName switch
+        private static MapShapeMode ResolveShapeMode(string wetnessPresetName) => wetnessPresetName switch
         {
-            "Pangea" => TerrainGenerationSystem.MapShapeMode.Pangea,
-            "Lakes" => TerrainGenerationSystem.MapShapeMode.Lakes,
-            "Continents" => TerrainGenerationSystem.MapShapeMode.Continents,
-            "Archipelago" => TerrainGenerationSystem.MapShapeMode.Archipelago,
-            "Waterworld" => TerrainGenerationSystem.MapShapeMode.Waterworld,
-            _ => TerrainGenerationSystem.MapShapeMode.Freeform,
+            "Pangea" => MapShapeMode.Pangea,
+            "Lakes" => MapShapeMode.Lakes,
+            "Continents" => MapShapeMode.Continents,
+            "Archipelago" => MapShapeMode.Archipelago,
+            "Waterworld" => MapShapeMode.Waterworld,
+            _ => MapShapeMode.Freeform,
         };
 
         /// <summary>그리드를 size x size로 다시 만든다. 이미 배치된 유닛이 있으면 좌표가 깨지므로 거부한다

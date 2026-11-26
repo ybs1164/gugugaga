@@ -47,7 +47,7 @@ namespace TacticsECS
         /// shapeMode는 맵 타입 전용 규칙(외딴 섬 마을, Lakes 육로 보장, Lakes 유적 물 비율 상한)을 켜는 데만 쓴다.</summary>
         public static void Generate(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, Vector2Int[] anchors, int seed,
             Vector2Int[] suburbPositions = null, Vector2Int[] plannedVillagePositions = null,
-            TerrainGenerationSystem.MapShapeMode shapeMode = TerrainGenerationSystem.MapShapeMode.Freeform)
+            MapShapeMode shapeMode = MapShapeMode.Freeform)
         {
             if (grid == null || biomes == null || biomes.Count == 0 || anchors == null || anchors.Length == 0) return;
 
@@ -70,10 +70,10 @@ namespace TacticsECS
 
             // 2단계 — 마을.
             PlacePostTerrainVillages(grid, biomes, biomeIndexPerCell, placedPositionsByStructure, rng);
-            if (shapeMode == TerrainGenerationSystem.MapShapeMode.Pangea || shapeMode == TerrainGenerationSystem.MapShapeMode.Continents ||
-                shapeMode == TerrainGenerationSystem.MapShapeMode.Waterworld)
+            if (shapeMode == MapShapeMode.Pangea || shapeMode == MapShapeMode.Continents ||
+                shapeMode == MapShapeMode.Waterworld)
                 PlaceTinyIslandVillages(grid, biomes, biomeIndexPerCell, placedPositionsByStructure, rng);
-            if (shapeMode == TerrainGenerationSystem.MapShapeMode.Lakes)
+            if (shapeMode == MapShapeMode.Lakes)
                 EnsureLakesVillageConnections(grid, biomes, biomeIndexPerCell, anchors, placedPositionsByStructure);
 
             // 3단계 — 2단계가 물을 육지로 바꿨을 수 있으니 얕은 물/깊은 바다를 다시 나눈다(자원의 물고기가 얕은 물 기준).
@@ -474,7 +474,7 @@ namespace TacticsECS
         /// CSV에 처음 등장하는 순서대로(샘플 CSV는 유적 -> 불가사리로 원문 순서와 같음) StructureId별로 맵 전체
         /// 칸을 셔플된 순서로 훑으며 배치한다. Lakes 맵에서는 MaxWaterFractionOnLakes로 물 위 비율을 제한한다.</summary>
         private static void PlaceCountedStructures(GridWorld grid, IReadOnlyList<BiomeCsvRow> biomes, int[] biomeIndexPerCell,
-            Dictionary<string, List<Vector2Int>> placedPositionsByStructure, TerrainGenerationSystem.MapShapeMode shapeMode, Random rng)
+            Dictionary<string, List<Vector2Int>> placedPositionsByStructure, MapShapeMode shapeMode, Random rng)
         {
             var order = new List<string>();
             var targets = new Dictionary<string, int>();
@@ -503,7 +503,7 @@ namespace TacticsECS
                 targets[RuinStructureId] = LookupBySize(RuinCounts, grid.Width,
                     Mathf.Max(1, Mathf.RoundToInt(grid.Width * grid.Height / (float)GameRules.Map.RuinTilesPerRuin)));
 
-            bool isLakes = shapeMode == TerrainGenerationSystem.MapShapeMode.Lakes;
+            bool isLakes = shapeMode == MapShapeMode.Lakes;
             foreach (var structureId in order)
             {
                 int target = targets[structureId];

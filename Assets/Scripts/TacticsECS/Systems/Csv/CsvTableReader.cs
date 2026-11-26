@@ -10,15 +10,12 @@ namespace TacticsECS
     ///   - 컬럼은 이름으로 찾는다(순서 무관). 없는 컬럼은 기본값, 모르는 컬럼은 오류 목록에 경고로 남긴다.
     ///   - 큰따옴표 인용("쉼표, 포함", "" = 따옴표 한 개)을 지원한다 — 엑셀/구글 시트가 저장한 파일을 그대로 읽기 위함.
     ///   - 한 칸에는 값 하나만 둔다(CLAUDE.md 규칙 6). 여러 값을 가진 속성은 번호 붙은 반복 컬럼으로 나열한다 —
-    ///     예: Terrain1,Terrain2 / Unlock1..Unlock4 / Action1..Action7(GetList). 옛 파일 호환을 위해 legacyColumn에 한 칸 세미콜론
-    ///     목록("a;b")도 읽지만, 작성기(ListHeader/ListCells)는 항상 반복 컬럼으로 쓴다.
+    ///     예: Terrain1,Terrain2 / Unlock1..Unlock4 / Action1..Action7(GetList, 작성기는 ListHeader/ListCells).
     ///   - 숫자/열거형이 잘못되면 "파일:줄 컬럼: 값" 형식의 메시지를 errors에 넣고 기본값을 쓴다(게임은 멈추지 않는다).
     /// 자체 상태는 없다.
     /// </summary>
     public static class CsvTableReader
     {
-        public const char ListSeparator = ';';
-
         /// <summary>BOM/CRLF를 정리하고 첫 줄을 헤더로 읽는다. 빈 줄과 첫 칸이 '#'으로 시작하는 줄(주석)은 건너뛴다. 첫 칸이 빈 줄도
         /// 건너뛰는데(Id 없는 행), keepBlankFirstCell이면 남긴다 — 모델 CSV처럼 첫 칸을 비워 "윗 행과 같음"을 뜻하는 표용.</summary>
         public static CsvTable Parse(string name, string text, bool keepBlankFirstCell = false)
@@ -92,9 +89,8 @@ namespace TacticsECS
             return fallback;
         }
 
-        /// <summary>반복 컬럼 column1, column2, ...(헤더 순서)의 비어있지 않은 값들 + column 자체(값 하나) + legacyColumn(옛 한 칸
-        /// 세미콜론 목록, 호환용)을 모은다.</summary>
-        public static string[] GetList(CsvTable t, int row, string column, string legacyColumn = null)
+        /// <summary>반복 컬럼 column1, column2, ...(헤더 순서)의 비어있지 않은 값들 + column 자체(값 하나)를 모은다. 칸 하나가 값 하나다.</summary>
+        public static string[] GetList(CsvTable t, int row, string column)
         {
             var list = new List<string>();
             if (row < 0 || row >= t.Rows.Count) return list.ToArray();
@@ -102,10 +98,9 @@ namespace TacticsECS
             for (int c = 0; c < t.Header.Length && c < cells.Length; c++)
             {
                 var h = t.Header[c];
-                bool match = string.Equals(h, column, StringComparison.OrdinalIgnoreCase) || IsNumberedColumn(h, column) ||
-                             (legacyColumn != null && string.Equals(h, legacyColumn, StringComparison.OrdinalIgnoreCase));
-                if (!match) continue;
-                list.AddRange(SplitList(cells[c]));
+                if (!string.Equals(h, column, StringComparison.OrdinalIgnoreCase) && !IsNumberedColumn(h, column)) continue;
+                var v = cells[c].Trim();
+                if (v.Length > 0) list.Add(v);
             }
             return list.ToArray();
         }
@@ -132,18 +127,6 @@ namespace TacticsECS
             for (int i = 0; i < count; i++) yield return values != null && i < values.Count ? Quote(values[i]) : string.Empty;
         }
 
-        public static string[] SplitList(string s)
-        {
-            var list = new List<string>();
-            if (string.IsNullOrEmpty(s)) return list.ToArray();
-            foreach (var part in s.Split(ListSeparator))
-            {
-                var v = part.Trim();
-                if (v.Length > 0) list.Add(v);
-            }
-            return list.ToArray();
-        }
-
         public static TEnum GetEnum<TEnum>(CsvTable t, int row, string column, TEnum fallback, List<string> errors) where TEnum : struct
         {
             string s = Get(t, row, column);
@@ -154,10 +137,10 @@ namespace TacticsECS
         }
 
         /// <summary>[Flags] 열거형을 목록(GetList — 반복 컬럼)으로 읽어 OR한다. 모르는 항목은 오류로 남기고 건너뛴다.</summary>
-        public static TEnum GetFlags<TEnum>(CsvTable t, int row, string column, List<string> errors, string legacyColumn = null) where TEnum : struct
+        public static TEnum GetFlags<TEnum>(CsvTable t, int row, string column, List<string> errors) where TEnum : struct
         {
             int bits = 0;
-            foreach (var part in GetList(t, row, column, legacyColumn))
+            foreach (var part in GetList(t, row, column))
             {
                 if (Enum.TryParse(part, true, out TEnum v) && Enum.IsDefined(typeof(TEnum), v)) bits |= Convert.ToInt32(v);
                 else Report(t, row, column, $"알 수 없는 값 '{part}' (가능: {string.Join("/", Enum.GetNames(typeof(TEnum)))})", errors);
@@ -166,10 +149,10 @@ namespace TacticsECS
         }
 
         /// <summary>정해진 이름 목록(allowed) 중에서만 고를 수 있는 태그 목록 칸(예: 건물 Flags). 모르는 태그는 오류.</summary>
-        public static HashSet<string> GetTags(CsvTable t, int row, string column, string[] allowed, List<string> errors, string legacyColumn = null)
+        public static HashSet<string> GetTags(CsvTable t, int row, string column, string[] allowed, List<string> errors)
         {
             var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var part in GetList(t, row, column, legacyColumn))
+            foreach (var part in GetList(t, row, column))
             {
                 if (Array.Exists(allowed, a => string.Equals(a, part, StringComparison.OrdinalIgnoreCase))) set.Add(part);
                 else Report(t, row, column, $"알 수 없는 태그 '{part}' (가능: {string.Join("/", allowed)})", errors);

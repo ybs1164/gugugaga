@@ -396,7 +396,7 @@ namespace TacticsECS.EditorTools
         {
             var biomes = SampleTerrains();
             var grid = new GridWorld(20, 20, 1f);
-            TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Pangea, targetWaterFraction: 0.5f);
+            TerrainGenerationSystem.Generate(grid, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Pangea, targetWaterFraction: 0.5f);
 
             bool ok = true;
 
@@ -440,7 +440,7 @@ namespace TacticsECS.EditorTools
 
             // (4) 시드 결정론.
             var gridB = new GridWorld(20, 20, 1f);
-            TerrainGenerationSystem.Generate(gridB, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Pangea, targetWaterFraction: 0.5f);
+            TerrainGenerationSystem.Generate(gridB, biomes, seed: 4242, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Pangea, targetWaterFraction: 0.5f);
             for (int y = 0; y < grid.Height; y++)
                 for (int x = 0; x < grid.Width; x++)
                 {
@@ -465,15 +465,15 @@ namespace TacticsECS.EditorTools
             var biomes = SampleTerrains();
             bool ok = true;
 
-            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, targetWaterFraction: 0.275f, tolerance: 0.15f, seed: 111);
-            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Continents, targetWaterFraction: 0.55f, tolerance: 0.15f, seed: 222);
-            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Archipelago, targetWaterFraction: 0.70f, tolerance: 0.15f, seed: 333);
-            ok &= VerifyMapShapeWaterFraction(biomes, TerrainGenerationSystem.MapShapeMode.Waterworld, targetWaterFraction: 0.95f, tolerance: 0.15f, seed: 444);
+            ok &= VerifyMapShapeWaterFraction(biomes, MapShapeMode.Lakes, targetWaterFraction: 0.275f, tolerance: 0.15f, seed: 111);
+            ok &= VerifyMapShapeWaterFraction(biomes, MapShapeMode.Continents, targetWaterFraction: 0.55f, tolerance: 0.15f, seed: 222);
+            ok &= VerifyMapShapeWaterFraction(biomes, MapShapeMode.Archipelago, targetWaterFraction: 0.70f, tolerance: 0.15f, seed: 333);
+            ok &= VerifyMapShapeWaterFraction(biomes, MapShapeMode.Waterworld, targetWaterFraction: 0.95f, tolerance: 0.15f, seed: 444);
 
             // Lakes: 가장자리 육지 다리(ForceBorderLand)가 실제로 걸리는지 — 맨 바깥 테두리 칸 대부분이 육지여야 함.
             {
                 var grid = new GridWorld(20, 20, 1f);
-                TerrainGenerationSystem.Generate(grid, biomes, seed: 111, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Lakes, targetWaterFraction: 0.275f);
+                TerrainGenerationSystem.Generate(grid, biomes, seed: 111, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Lakes, targetWaterFraction: 0.275f);
                 int borderLand = 0, borderTotal = 0;
                 for (int x = 0; x < grid.Width; x++)
                 {
@@ -502,7 +502,7 @@ namespace TacticsECS.EditorTools
             // Waterworld: 거의 전부 물인 상황에서도 바이옴 앵커(수도 자리)는 항상 육지에 있어야 함(ProtectAnchors).
             {
                 var grid = new GridWorld(20, 20, 1f);
-                var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed: 444, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Waterworld, targetWaterFraction: 0.95f);
+                var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed: 444, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Waterworld, targetWaterFraction: 0.95f);
                 bool allAnchorsOnLand = true;
                 foreach (var a in anchors)
                     if (grid.GetTerrain(a) != TerrainType.Land) allAnchorsOnLand = false;
@@ -520,9 +520,9 @@ namespace TacticsECS.EditorTools
             // Archipelago: 노이즈 비중이 높아 Continents보다 육지가 더 잘게 쪼개져야 함(연결된 육지 덩어리 개수 비교).
             {
                 var continentsGrid = new GridWorld(20, 20, 1f);
-                TerrainGenerationSystem.Generate(continentsGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Continents, targetWaterFraction: 0.55f);
+                TerrainGenerationSystem.Generate(continentsGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Continents, targetWaterFraction: 0.55f);
                 var archipelagoGrid = new GridWorld(20, 20, 1f);
-                TerrainGenerationSystem.Generate(archipelagoGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: TerrainGenerationSystem.MapShapeMode.Archipelago, targetWaterFraction: 0.70f);
+                TerrainGenerationSystem.Generate(archipelagoGrid, biomes, seed: 555, wetnessMultiplier: 1f, shapeMode: MapShapeMode.Archipelago, targetWaterFraction: 0.70f);
 
                 int continentsComponents = CountConnectedLandComponents(continentsGrid);
                 int archipelagoComponents = CountConnectedLandComponents(archipelagoGrid);
@@ -542,7 +542,7 @@ namespace TacticsECS.EditorTools
 
         /// <summary>주어진 MapShapeMode로 생성해서 물 비율이 목표치 ±tolerance 안에 들고, 물 타일끼리
         /// 실제로 인접 가능한지(target이 0에 가깝지 않은 한) 확인하는 공통 검사.</summary>
-        private static bool VerifyMapShapeWaterFraction(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, float tolerance, int seed)
+        private static bool VerifyMapShapeWaterFraction(IReadOnlyList<BiomeCsvRow> biomes, MapShapeMode mode, float targetWaterFraction, float tolerance, int seed)
         {
             var grid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(grid, biomes, seed: seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction);
@@ -622,19 +622,19 @@ namespace TacticsECS.EditorTools
             var biomes = SampleTerrains();
             bool ok = true;
 
-            ok &= VerifyNoPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f, seed: 601);
+            ok &= VerifyNoPreTerrainVillages(biomes, MapShapeMode.Freeform, 0.05f, seed: 601);
             // Pangea/Continents는 Suburb/Pre-terrain이 없고, 대신 본토 마을이 사전 확정 마을로 반환된다(7.5절).
-            ok &= VerifyMainlandVillages(biomes, TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f, seed: 602);
-            ok &= VerifyMainlandVillages(biomes, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, seed: 603);
+            ok &= VerifyMainlandVillages(biomes, MapShapeMode.Pangea, 0.5f, seed: 602);
+            ok &= VerifyMainlandVillages(biomes, MapShapeMode.Continents, 0.55f, seed: 603);
 
-            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f, seed: 604, expectSuburbs: true);
-            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f, seed: 605, expectSuburbs: true);
-            ok &= VerifyHasPreTerrainVillages(biomes, TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f, seed: 606, expectSuburbs: false);
+            ok &= VerifyHasPreTerrainVillages(biomes, MapShapeMode.Lakes, 0.275f, seed: 604, expectSuburbs: true);
+            ok &= VerifyHasPreTerrainVillages(biomes, MapShapeMode.Archipelago, 0.70f, seed: 605, expectSuburbs: true);
+            ok &= VerifyHasPreTerrainVillages(biomes, MapShapeMode.Waterworld, 0.95f, seed: 606, expectSuburbs: false);
 
             return ok;
         }
 
-        private static bool VerifyNoPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed)
+        private static bool VerifyNoPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, MapShapeMode mode, float targetWaterFraction, int seed)
         {
             var grid = new GridWorld(20, 20, 1f);
             TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
@@ -650,7 +650,7 @@ namespace TacticsECS.EditorTools
 
         /// <summary>Pangea/Continents 본토 마을(원문 7.5절) — Suburb 없음, 본토 마을이 존재하고 수도와 서로 모두
         /// Post-terrain 간격(3) 이상, 전부 육지 위.</summary>
-        private static bool VerifyMainlandVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed)
+        private static bool VerifyMainlandVillages(IReadOnlyList<BiomeCsvRow> biomes, MapShapeMode mode, float targetWaterFraction, int seed)
         {
             var grid = new GridWorld(20, 20, 1f);
             var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
@@ -672,7 +672,7 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        private static bool VerifyHasPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, TerrainGenerationSystem.MapShapeMode mode, float targetWaterFraction, int seed, bool expectSuburbs)
+        private static bool VerifyHasPreTerrainVillages(IReadOnlyList<BiomeCsvRow> biomes, MapShapeMode mode, float targetWaterFraction, int seed, bool expectSuburbs)
         {
             var grid = new GridWorld(20, 20, 1f);
             var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed, wetnessMultiplier: 1f, shapeMode: mode, targetWaterFraction: targetWaterFraction,
@@ -723,12 +723,12 @@ namespace TacticsECS.EditorTools
             var biomes = SampleTerrains();
             var modes = new[]
             {
-                (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f),
-                (TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f),
-                (TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f),
-                (TerrainGenerationSystem.MapShapeMode.Continents, 0.55f),
-                (TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f),
-                (TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f),
+                (MapShapeMode.Freeform, 0.05f),
+                (MapShapeMode.Pangea, 0.5f),
+                (MapShapeMode.Lakes, 0.275f),
+                (MapShapeMode.Continents, 0.55f),
+                (MapShapeMode.Archipelago, 0.70f),
+                (MapShapeMode.Waterworld, 0.95f),
             };
 
             bool ok = true;
@@ -751,14 +751,14 @@ namespace TacticsECS.EditorTools
             return ok;
         }
 
-        private static readonly (TerrainGenerationSystem.MapShapeMode Mode, float Water)[] AllModes =
+        private static readonly (MapShapeMode Mode, float Water)[] AllModes =
         {
-            (TerrainGenerationSystem.MapShapeMode.Freeform, 0.05f),
-            (TerrainGenerationSystem.MapShapeMode.Pangea, 0.5f),
-            (TerrainGenerationSystem.MapShapeMode.Lakes, 0.275f),
-            (TerrainGenerationSystem.MapShapeMode.Continents, 0.55f),
-            (TerrainGenerationSystem.MapShapeMode.Archipelago, 0.70f),
-            (TerrainGenerationSystem.MapShapeMode.Waterworld, 0.95f),
+            (MapShapeMode.Freeform, 0.05f),
+            (MapShapeMode.Pangea, 0.5f),
+            (MapShapeMode.Lakes, 0.275f),
+            (MapShapeMode.Continents, 0.55f),
+            (MapShapeMode.Archipelago, 0.70f),
+            (MapShapeMode.Waterworld, 0.95f),
         };
 
         private static readonly int[] MapSizes = { 11, 14, 16, 18, 20, 30 };
@@ -799,7 +799,7 @@ namespace TacticsECS.EditorTools
                             var anchors = TerrainGenerationSystem.Generate(grid, biomes, seed++, 1f, mode, water, out _, out _);
                             checkedMaps++;
                             string tag = $"{mode} {size}x{size} biomes={biomeCount} seed={seed - 1}";
-                            bool quadrantMode = mode != TerrainGenerationSystem.MapShapeMode.Pangea && mode != TerrainGenerationSystem.MapShapeMode.Continents;
+                            bool quadrantMode = mode != MapShapeMode.Pangea && mode != MapShapeMode.Continents;
 
                             foreach (var a in anchors)
                             {
@@ -1013,8 +1013,8 @@ namespace TacticsECS.EditorTools
                     {
                         var grid = new GridWorld(size, size, 1f);
                         int s = seed++;
-                        var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, TerrainGenerationSystem.MapShapeMode.Continents, 0.55f, out var suburbs, out var planned);
-                        StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, TerrainGenerationSystem.MapShapeMode.Continents);
+                        var anchors = TerrainGenerationSystem.Generate(grid, biomes, s, 1f, MapShapeMode.Continents, 0.55f, out var suburbs, out var planned);
+                        StructureGenerationSystem.Generate(grid, biomes, anchors, s, suburbs, planned, MapShapeMode.Continents);
                         maps++;
                         string tag = $"Continents {size}x{size} biomes={biomeCount} seed={s}";
 

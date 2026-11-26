@@ -61,7 +61,7 @@ namespace TacticsECS
                 using (var zip = new ZipArchive(File.OpenRead(zipPath), ZipArchiveMode.Read))
                 {
                     var manifestEntry = zip.GetEntry(ManifestFile);
-                    if (manifestEntry == null) { error = ManifestFile + " 없음"; return null; }
+                    if (manifestEntry == null) { error = LocalizationSystem.F("UI.Title.PackError.Missing", ManifestFile); return null; }
                     var manifestBytes = ReadEntry(manifestEntry);
                     var info = ParseManifest(Utf8Bom.GetString(manifestBytes), out var hashes, out error);
                     if (info == null) return null;
@@ -72,9 +72,9 @@ namespace TacticsECS
                     {
                         if (!GameDataLoader.SandboxCsvPaths.Contains(h.Key)) continue;
                         var entry = zip.GetEntry(h.Key + ".csv");
-                        if (entry == null) { error = h.Key + ".csv 없음"; return null; }
+                        if (entry == null) { error = LocalizationSystem.F("UI.Title.PackError.Missing", h.Key + ".csv"); return null; }
                         var bytes = ReadEntry(entry);
-                        if (!string.Equals(Hash(bytes), h.Value, StringComparison.OrdinalIgnoreCase)) { error = h.Key + ".csv 해시가 Pack.csv와 다름"; return null; }
+                        if (!string.Equals(Hash(bytes), h.Value, StringComparison.OrdinalIgnoreCase)) { error = LocalizationSystem.F("UI.Title.PackError.Hash", h.Key + ".csv", ManifestFile); return null; }
                         var file = Path.Combine(temp, h.Key + ".csv");
                         Directory.CreateDirectory(Path.GetDirectoryName(file));
                         File.WriteAllBytes(file, bytes);
@@ -124,8 +124,8 @@ namespace TacticsECS
                 if (kind == "Meta") meta[key] = value;
                 else if (kind == "File" && key.Length > 0) hashes.Add(new KeyValuePair<string, string>(key, value));
             }
-            if (!meta.TryGetValue("Format", out var format) || !int.TryParse(format, out int f) || f > Format) { error = "Format " + format + " — 이 빌드는 " + Format + "까지 읽음"; return null; }
-            if (hashes.Count == 0) { error = ManifestFile + "에 File 행이 없음"; return null; }
+            if (!meta.TryGetValue("Format", out var format) || !int.TryParse(format, out int f) || f > Format) { error = LocalizationSystem.F("UI.Title.PackError.Format", format, Format); return null; }
+            if (hashes.Count == 0) { error = LocalizationSystem.F("UI.Title.PackError.NoFiles", ManifestFile); return null; }
             meta.TryGetValue("Name", out var name);
             meta.TryGetValue("BuildVersion", out var build);
             return new TablePackInfo { Name = name ?? "", Id = PackId(hashes), FileCount = hashes.Count, BuildVersion = build ?? "" };

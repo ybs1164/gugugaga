@@ -116,8 +116,6 @@ namespace TacticsECS
             return true;
         }
 
-        private enum RuinReward { Stars, Tech, Population, Explorer, Unit }
-
         /// <summary>center 주변 반경 radius 안에 team에게 아직 구름인 칸이 있는지(위키: 탐험가 보상 조건 5x5).</summary>
         private static bool HasFogAround(GridWorld grid, Team team, Vector2Int center, int radius)
         {

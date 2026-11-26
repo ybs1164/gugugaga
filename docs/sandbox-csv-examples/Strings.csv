@@ -454,6 +454,10 @@ UI.Title.PackActive,지금: {0} · {1},Now: {0} · {1}
 UI.Title.PackWarnings,(경고 {0}),({0} warnings)
 UI.Title.PackImported,가져옴: {0} · {1},Imported: {0} · {1}
 UI.Title.PackImportFailed,가져오지 못함: {0},Import failed: {0}
+UI.Title.PackError.Missing,{0} 없음,{0} is missing
+UI.Title.PackError.Hash,{0} 해시가 {1}와 다름,{0} hash does not match {1}
+UI.Title.PackError.Format,Format {0} — 이 빌드는 {1}까지 읽음,Format {0} — this build reads up to {1}
+UI.Title.PackError.NoFiles,{0}에 File 행이 없음,{0} has no File rows
 UI.Title.Back,뒤로,Back
 UI.Title.PickTribe,종족 고르기,Choose a tribe
 UI.Title.RandomTribe,무작위,Random

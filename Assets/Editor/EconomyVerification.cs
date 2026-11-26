@@ -70,7 +70,7 @@ namespace TacticsECS.EditorTools
                       && round[i].CostPerCity == nodes[i].CostPerCity, $"tech CSV round-trip mismatch at {nodes[i].Id}");
 
             // 인용 부호 안의 쉼표.
-            var quoted = TechCsvSerializer.Parse("Id,Name,Branch,Parent,Tier,Slot,Icon,CostBase,CostPerCity,Unlocks,Effect\nA,에이,,,1,0,x,,,Build.Farm,\"쉼표, 포함\"\n");
+            var quoted = TechCsvSerializer.Parse("Id,Name,Branch,Parent,Tier,Slot,Icon,CostBase,CostPerCity,Unlock1,Effect\nA,에이,,,1,0,x,,,Build.Farm,\"쉼표, 포함\"\n");
             Check(quoted.Count == 1 && quoted[0].Effect == "쉼표, 포함" && quoted[0].Branch == "A" && quoted[0].CostBase == 4 && quoted[0].CostPerCity == 1, "quoted CSV field / defaults");
         }
 

@@ -276,8 +276,8 @@ namespace TacticsECS.EditorTools
         {
             var modes = new[]
             {
-                TerrainGenerationSystem.MapShapeMode.Freeform, TerrainGenerationSystem.MapShapeMode.Lakes, TerrainGenerationSystem.MapShapeMode.Pangea,
-                TerrainGenerationSystem.MapShapeMode.Continents, TerrainGenerationSystem.MapShapeMode.Archipelago, TerrainGenerationSystem.MapShapeMode.Waterworld
+                MapShapeMode.Freeform, MapShapeMode.Lakes, MapShapeMode.Pangea,
+                MapShapeMode.Continents, MapShapeMode.Archipelago, MapShapeMode.Waterworld
             };
             foreach (var mode in modes)
                 foreach (var target in new[] { 0.1f, 0.3f, 0.5f, 0.7f })
@@ -287,7 +287,7 @@ namespace TacticsECS.EditorTools
                         var o = TerrainGenerationSystem.PlanOutline(grid, 2, seed * 97, mode, target);
                         float actual = TerrainGenerationSystem.OutlineWaterFraction(o);
                         // Continents는 대륙 크기(30~200칸)/간격 규칙 때문에 목표를 정확히 못 맞출 수 있어 허용 폭을 넓힌다.
-                        float tolerance = mode == TerrainGenerationSystem.MapShapeMode.Continents ? 0.2f : 0.08f;
+                        float tolerance = mode == MapShapeMode.Continents ? 0.2f : 0.08f;
                         Check(Mathf.Abs(actual - target) <= tolerance, $"{mode} outline water {actual:0.00} ~ target {target:0.00} (seed {seed})");
                         Check(o.Anchors.Length == 2 && o.Anchors.All(a => o.LandMask[grid.Index(a)]), $"{mode} outline: 2 capitals on land");
                         var again = TerrainGenerationSystem.PlanOutline(new GridWorld(18, 18, 1f), 2, seed * 97, mode, target);
@@ -295,8 +295,8 @@ namespace TacticsECS.EditorTools
                     }
 
             // 슬라이더: 물 비율을 올리면 물이 실제로 늘어난다.
-            var low = TerrainGenerationSystem.PlanOutline(new GridWorld(16, 16, 1f), 2, 5, TerrainGenerationSystem.MapShapeMode.Lakes, 0.2f);
-            var high = TerrainGenerationSystem.PlanOutline(new GridWorld(16, 16, 1f), 2, 5, TerrainGenerationSystem.MapShapeMode.Lakes, 0.6f);
+            var low = TerrainGenerationSystem.PlanOutline(new GridWorld(16, 16, 1f), 2, 5, MapShapeMode.Lakes, 0.2f);
+            var high = TerrainGenerationSystem.PlanOutline(new GridWorld(16, 16, 1f), 2, 5, MapShapeMode.Lakes, 0.6f);
             Check(TerrainGenerationSystem.OutlineWaterFraction(high) > TerrainGenerationSystem.OutlineWaterFraction(low) + 0.3f, "higher slider -> more water");
         }
 
@@ -309,7 +309,7 @@ namespace TacticsECS.EditorTools
             var allowed = new HashSet<string>(desert.Tiles.Select(t => t.TileId))
                 { TerrainGenerationSystem.ForestTileId, TerrainGenerationSystem.MountainTileId, TerrainGenerationSystem.OceanTileId };
 
-            foreach (var mode in new[] { TerrainGenerationSystem.MapShapeMode.Freeform, TerrainGenerationSystem.MapShapeMode.Pangea, TerrainGenerationSystem.MapShapeMode.Archipelago })
+            foreach (var mode in new[] { MapShapeMode.Freeform, MapShapeMode.Pangea, MapShapeMode.Archipelago })
             {
                 var grid = new GridWorld(16, 16, 1f);
                 var outline = TerrainGenerationSystem.PlanOutline(grid, 2, 11, mode, 0.4f);

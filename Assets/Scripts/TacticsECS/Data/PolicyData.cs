@@ -5,6 +5,17 @@ namespace TacticsECS
     /// <summary>학습한 AI가 고르는 결정 지점의 종류. 규칙: docs/spec/game/ai.md#난이도</summary>
     public enum PolicyDecisionKind { Research, Priority, Train, Improve, Unit }
 
+    /// <summary>유닛 결정 지점(PolicyDecisionKind.Unit)의 후보 종류. 번호가 후보 특징 칸에 들어가므로 순서를 바꾸면 모델을 다시 학습한다.</summary>
+    public enum UnitOptionKind { Attack, Hold, Defend, Enemy, Capture, Starfish, Explore }
+
+    /// <summary>유닛 한 개 차례의 후보 하나 — 공격이면 Target(유닛 id), 그 밖에는 Goal(칸). 만들기·실행: EnemyAI.PolicyUnitTurn.</summary>
+    public struct UnitOption
+    {
+        public UnitOptionKind Kind;
+        public int Target;
+        public UnityEngine.Vector2Int Goal;
+    }
+
     /// <summary>팀 하나의 AI 정책 설정 — 난이도 표(AIDifficulty.csv)의 한 행에서 온 값. ModelId가 비어 있으면 규칙 기반 AI.</summary>
     [System.Serializable]
     public struct AiPolicySettings

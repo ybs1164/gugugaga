@@ -21,9 +21,8 @@ namespace TacticsECS
             "Id", "Name", "Branch", "Parent", "Tier", "Slot", "Icon", "CostBase", "CostPerCity"
         };
 
-        /// <summary>해금 키는 한 칸에 하나씩 반복 컬럼 Unlock1..N으로 나열한다(CLAUDE.md 규칙 6). 옛 "Unlocks" 한 칸 목록도 읽는다.</summary>
+        /// <summary>해금 키는 한 칸에 하나씩 반복 컬럼 Unlock1..N으로 나열한다(CLAUDE.md 규칙 6).</summary>
         public const string UnlockColumn = "Unlock";
-        private const string LegacyUnlocksColumn = "Unlocks";
 
         /// <summary>헤더 이름으로 컬럼을 찾아(순서 무관 — CsvTableReader) 한 행씩 노드로 만든다. 빈 줄과 Id가 빈 줄은 무시한다.
         /// 숫자 칸이 비었거나 잘못됐으면 기본값(Tier 1, Slot 0, CostBase 4, CostPerCity = Tier)으로 채운다.
@@ -33,7 +32,7 @@ namespace TacticsECS
             var nodes = new List<TechNodeData>();
             var t = CsvTableReader.Parse("TechTree.csv", csvText);
             if (t.Rows.Count == 0) return nodes;
-            CsvTableReader.CheckColumns(t, new[] { "Id" }, new[] { "Name", "Branch", "Parent", "Tier", "Slot", "Icon", "CostBase", "CostPerCity", "Effect", "Wiki", "Note", LegacyUnlocksColumn }, errors,
+            CsvTableReader.CheckColumns(t, new[] { "Id" }, new[] { "Name", "Branch", "Parent", "Tier", "Slot", "Icon", "CostBase", "CostPerCity", "Effect", "Wiki", "Note" }, errors,
                 new[] { UnlockColumn });
             CsvTableReader.CheckUniqueIds(t, "Id", errors);
             for (int r = 0; r < t.Rows.Count; r++)
@@ -51,7 +50,7 @@ namespace TacticsECS
                     Icon = CsvTableReader.Get(t, r, "Icon"),
                     CostBase = CsvTableReader.GetInt(t, r, "CostBase", GameRules.Tech.DefaultCostBase, errors),
                     CostPerCity = CsvTableReader.GetInt(t, r, "CostPerCity", tier, errors),
-                    Unlocks = CsvTableReader.GetList(t, r, UnlockColumn, LegacyUnlocksColumn),
+                    Unlocks = CsvTableReader.GetList(t, r, UnlockColumn),
                     Effect = LocalizationSystem.Desc(ArrayTableCsvSerializer.TechStringTable, id, CsvTableReader.Get(t, r, "Effect"), c => CsvTableReader.Get(t, r, c)),
                 });
             }

@@ -12,14 +12,14 @@ namespace TacticsECS
     public static class MatchSystem
     {
         /// <summary>맵 타입 이름 → 모양 모드. Drylands만 Freeform(마스크 없이 습도 배율만).</summary>
-        public static TerrainGenerationSystem.MapShapeMode ShapeMode(string mapType) => mapType switch
+        public static MapShapeMode ShapeMode(string mapType) => mapType switch
         {
-            "Pangea" => TerrainGenerationSystem.MapShapeMode.Pangea,
-            "Lakes" => TerrainGenerationSystem.MapShapeMode.Lakes,
-            "Continents" => TerrainGenerationSystem.MapShapeMode.Continents,
-            "Archipelago" => TerrainGenerationSystem.MapShapeMode.Archipelago,
-            "Waterworld" => TerrainGenerationSystem.MapShapeMode.Waterworld,
-            _ => TerrainGenerationSystem.MapShapeMode.Freeform,
+            "Pangea" => MapShapeMode.Pangea,
+            "Lakes" => MapShapeMode.Lakes,
+            "Continents" => MapShapeMode.Continents,
+            "Archipelago" => MapShapeMode.Archipelago,
+            "Waterworld" => MapShapeMode.Waterworld,
+            _ => MapShapeMode.Freeform,
         };
 
         private static TribeRow? Tribe(int index) => TribeSystem.IsValid(index) ? GameTables.Tribes[index] : (TribeRow?)null;

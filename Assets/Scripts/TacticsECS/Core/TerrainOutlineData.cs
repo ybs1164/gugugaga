@@ -12,7 +12,7 @@ namespace TacticsECS
         public int Seed;
         public int Width;
         public int Height;
-        public TerrainGenerationSystem.MapShapeMode ShapeMode;
+        public MapShapeMode ShapeMode;
 
         /// <summary>목표 물 비율(0~1) — 습도 탭 슬라이더 값.</summary>
         public float WaterFraction;

@@ -101,11 +101,12 @@ namespace TacticsECS
         /// <summary>펀치 효과 하나의 크기(기도 보너스 없음).</summary>
         public static int Amount(FaithEffectRow e) => Mathf.RoundToInt(FaithEffectSystem.Strength(e, 0));
 
-        /// <summary>신앙을 쓰고 효과를 적용한다. Check가 null이어야 한다.</summary>
+        /// <summary>신앙을 쓰고 효과를 적용한다. Check가 null이어야 한다. 공격으로 치는 효과(CountsAsAttack)가 유닛에 닿으면 공격·처치 과업에 센다.</summary>
         public static FaithPunchResult Apply(GridWorld grid, EntityWorld world, EconomyWorld econ, Team team, FaithPunchRow punch, Vector2Int target)
         {
             var result = new FaithPunchResult { UnitIds = new List<int>(), Tiles = new List<Vector2Int>(), SpawnedIds = new List<int>() };
             if (Check(grid, world, econ, team, punch, target) != null) return result;
+            var aliveBefore = TaskSystem.SnapshotAlive(world);
 
             var resources = econ.Resources[team];
             resources = FaithSystem.Add(resources, -punch.Cost);
@@ -158,6 +159,12 @@ namespace TacticsECS
             }
             foreach (int id in touched)
                 if (!result.UnitIds.Contains(id)) result.UnitIds.Add(id);
+            // 공격으로 치는 효과가 닿았으면 과업에 기록한다(누가 쓰든 — 플레이어·AI·신화 유닛 액티브). 규칙: docs/spec/game/faith.md
+            if (result.Attacked)
+            {
+                TaskSystem.RecordAttack(econ, team);
+                TaskSystem.RecordDeaths(econ, world, aliveBefore);
+            }
             return result;
         }
     }

@@ -600,17 +600,11 @@ namespace TacticsECS
             if (_punchPhase != PunchPhase.Confirm) return;
             var punch = _punchActive;
             var hpBefore = SnapshotHp();
-            var aliveBefore = TaskSystem.SnapshotAlive(_world);
             int mythicId = _punchMythicId;
             var result = mythicId >= 0 ? MythicSystem.UseActive(_grid, _world, _econ, mythicId, _punchTarget)
                                        : FaithPunchSystem.Apply(_grid, _world, _econ, Team.Player, punch, _punchTarget);
             if (!result.Success) { PreviewPunchTarget(_punchTarget); return; }
 
-            if (result.Attacked)
-            {
-                TaskSystem.RecordAttack(_econ, Team.Player);
-                TaskSystem.RecordDeaths(_econ, _world, aliveBefore);
-            }
             _hud.AddLogEntry(LocalizationSystem.F("UI.FaithPunch.Log", punch.Name, result.UnitIds.Count + result.Tiles.Count));
             foreach (int id in result.UnitIds)
             {

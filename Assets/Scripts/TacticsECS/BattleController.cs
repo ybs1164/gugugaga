@@ -258,6 +258,9 @@ namespace TacticsECS
             _hud.OnMenuClicked += OpenMenu;
             _hud.OnDeselectClicked += ClearSelection;
             _hud.SetEconomyVisible(EconomyMode);
+            _hud.SetGuideVisible(false);
+            _cutIn = BattleCutIn.Create(transform);
+            _guideActive = false;
 
             if (EconomyMode)
             {
@@ -325,6 +328,7 @@ namespace TacticsECS
         private void BeginBattle()
         {
             if (EconomyMode) InitEconomy();
+            _guideActive = true;
             FocusStartCamera();
             _hud.OnEndTurnClicked += EndTurn;
             // TurnSystem.StartTurn이 HandleTurnStart를 바로 이 호출 중에 동기로 트리거하므로,
@@ -363,6 +367,8 @@ namespace TacticsECS
             _outline = null;
             _tribeCapitals.Clear();
             _faithPunchHud = null;
+            _cutIn = null;
+            _guideActive = false;
             _titleHud = null;
             _punchPhase = PunchPhase.None;
             _techTreeHud = null;
@@ -541,7 +547,7 @@ namespace TacticsECS
             if (_punchPhase != PunchPhase.List || index < 0 || index >= _punchChoices.Count) return;
             _punchActive = _punchChoices[index];
             _punchPhase = PunchPhase.Targeting;
-            _faithPunchHud.ShowTargeting(LocalizationSystem.F("UI.FaithPunch.PickTarget", _punchActive.Name));
+            _faithPunchHud.ShowTargeting(_punchActive.Name, _punchActive.Cost);
         }
 
         /// <summary>대상 칸 선택: 영향 범위를 하이라이트하고 확인 화면을 띄운다. 다른 칸을 다시 누르면 대상이 바뀐다.</summary>
@@ -558,7 +564,9 @@ namespace TacticsECS
             _punchTarget = pos;
             _punchPhase = PunchPhase.Confirm;
             _gridView.ClearHighlights();
-            _gridView.HighlightAttack(FaithPunchSystem.Area(_grid, _punchActive, pos));
+            // 범위는 포인트 색 테두리, 그 안에서 효과를 받을 유닛은 빨간 테두리.
+            _gridView.HighlightArea(FaithPunchSystem.Area(_grid, _punchActive, pos));
+            _gridView.HighlightAttack(FaithPunchSystem.AffectedUnits(_grid, _world, Team.Player, _punchActive, pos).Select(id => _world.Get<GridPosition>(id).Value));
 
             bool mythic = _punchMythicId >= 0;
             string reason = mythic ? MythicSystem.CheckActive(_grid, _world, _econ, _punchMythicId, pos)
@@ -567,10 +575,8 @@ namespace TacticsECS
             int faith = _econ.Resources[Team.Player].Faith;
             string costLine = mythic
                 ? LocalizationSystem.F("UI.Mythic.CostLine", _punchActive.Cost, GameTables.MythicUnits[_world.Get<Mythic>(_punchMythicId).MythicIndex].ActiveUpkeepCost)
-                : LocalizationSystem.F("UI.FaithPunch.CostLine", _punchActive.Cost, faith - _punchActive.Cost);
-            _faithPunchHud.ShowConfirm(
-                LocalizationSystem.F("UI.FaithPunch.ConfirmLine", _punchActive.Name, pos.x, pos.y, affected),
-                costLine,
+                : null;
+            _faithPunchHud.ShowConfirm(_punchActive.Name, LocalizationSystem.F("UI.FaithPunch.Affected", affected), faith, faith - _punchActive.Cost, costLine,
                 reason == null, reason == null ? string.Empty : LocalizationSystem.T(reason));
         }
 
@@ -649,7 +655,7 @@ namespace TacticsECS
             _punchMythicId = mythicId;
             _punchActive = punch;
             _punchPhase = PunchPhase.Targeting;
-            _faithPunchHud.ShowTargeting(LocalizationSystem.F("UI.FaithPunch.PickTarget", punch.Name));
+            _faithPunchHud.ShowTargeting(punch.Name, punch.Cost);
         }
 
         private void HandleGodSelected(Team team, int godIndex)
@@ -1179,6 +1185,125 @@ namespace TacticsECS
         private bool _suppressRewardDialog;
         private bool _rewardDialogOpen;
 
+        // ---------- 전투 컷인 ----------
+
+        private BattleCutIn _cutIn;
+        /// <summary>화면 검증처럼 연출 시간을 기다릴 수 없는 실행에서는 컷인을 끈다.</summary>
+        private bool _suppressCutIn;
+        private bool CutInEnabled => _cutIn != null && !_suppressCutIn && Application.isPlaying;
+
+        private CutInUnit CutInSide(int id, int hpBefore, int hpAfter)
+        {
+            var pos = _world.Get<GridPosition>(id).Value;
+            var cls = TileImprovementSystem.Classify(_grid, pos);
+            bool city = _econ != null && CitySystem.FindCityAt(_econ, pos) >= 0;
+            int maxHp = _world.GetOrDefault<MaxHp>(id).Value;
+            string background = city ? "city" : cls == TileClass.Forest ? "forest" : cls == TileClass.Mountain ? "mountain"
+                : cls == TileClass.ShallowWater ? "shallow" : cls == TileClass.Ocean ? "ocean" : "field";
+            return new CutInUnit
+            {
+                Name = UnitLabel(id), Body = _viewsById.TryGetValue(id, out var view) ? view.Body : null, Player = _world.Get<Team>(id) == Team.Player,
+                HpBefore = hpBefore, HpAfter = hpAfter, MaxHp = Mathf.Max(maxHp, hpBefore),
+                Terrain = city ? LocalizationSystem.T("UI.CutIn.City") : TileClassName(cls), Background = background,
+                Boat = _world.GetOrDefault<Embarked>(id).Value, Big = maxHp >= BigUnitHp,
+            };
+        }
+        /// <summary>이 체력 이상인 유닛은 컷인에서 "큰 유닛" 연출(띠 흔들림)을 쓴다.</summary>
+        private const int BigUnitHp = 30;
+
+        /// <summary>공격 전에 부른다: 두 유닛의 모습·체력·속성(공격이 바꾸기 전 값)을 담는다.</summary>
+        private CutInData BeginCutIn(int attackerId, int targetId)
+        {
+            int Hp(int id) => UnitQueries.IsAlive(_world, id) ? _world.Get<Hp>(id).Value : 0;
+            var d = new CutInData { Attacker = CutInSide(attackerId, Hp(attackerId), Hp(attackerId)), Target = CutInSide(targetId, Hp(targetId), Hp(targetId)) };
+            var a = _world.Get<GridPosition>(attackerId).Value; var t = _world.Get<GridPosition>(targetId).Value;
+            d.Ranged = Mathf.Max(Mathf.Abs(a.x - t.x), Mathf.Abs(a.y - t.y)) > 1;
+            d.Charge = !d.Ranged && UnitActionQueries.Find<ChargeAction>(_world, attackerId) != null && _world.Get<HasMoved>(attackerId).Value;
+            d.Fly = !d.Ranged && UnitActionQueries.Find<FlyAction>(_world, attackerId) != null;
+            d.Splash = UnitActionQueries.Find<SplashAction>(_world, attackerId) != null || UnitActionQueries.Find<StompAction>(_world, attackerId) != null;
+            d.Freeze = UnitActionQueries.Find<FreezeAction>(_world, attackerId) != null;
+            d.Poison = UnitActionQueries.Find<PoisonAction>(_world, attackerId) != null;
+            d.Convert = UnitActionQueries.Find<ConvertAction>(_world, attackerId) != null;
+            d.Combo = UnitActionQueries.Find<ComboAction>(_world, attackerId) != null;
+            d.Guard = _world.Get<IsGuarding>(targetId).Value;
+            d.DefenseMultiplier = CombatSystem.DefenseMultiplier(_world, targetId);
+            d.Wall = _world.Get<PositionalDefenseBonus>(targetId).Value >= 2;
+            var cls = TileImprovementSystem.Classify(_grid, t);
+            d.Particle = d.Wall ? CutInParticle.Brick : d.DefenseMultiplier <= 1f ? CutInParticle.None
+                : cls == TileClass.Forest ? CutInParticle.Leaf : cls == TileClass.ShallowWater || cls == TileClass.Ocean ? CutInParticle.Water : CutInParticle.Stone;
+            return d;
+        }
+
+        /// <summary>공격 뒤에 부른다: 결과(피해·반격·남은 체력·주변 피해)를 채운다.</summary>
+        private CutInData EndCutIn(CutInData d, int attackerId, int targetId, int damage, int counter, List<BattleLogEntry> splashes)
+        {
+            d.Damage = damage; d.Counter = counter;
+            d.Target.HpAfter = Mathf.Max(0, d.Target.HpBefore - damage);
+            d.Attacker.HpAfter = Mathf.Max(0, d.Attacker.HpBefore - counter);
+            bool alive = d.Target.HpAfter > 0;
+            d.Convert &= alive;
+            d.Freeze &= alive && _world.GetOrDefault<Frozen>(targetId).Value;
+            d.Poison &= alive;
+            d.NoCounter = alive && counter <= 0 && !d.Convert;
+            d.SplashDamages = new List<int>();
+            if (splashes != null) foreach (var s in splashes) if (IsHit(s)) d.SplashDamages.Add(s.Amount);
+            d.Splash &= d.SplashDamages.Count > 0;
+            return d;
+        }
+
+        // ---------- 길잡이 · 겹침 ----------
+
+        private bool _guideActive;
+        private readonly HashSet<Vector2Int> _occupiedTiles = new HashSet<Vector2Int>();
+
+        /// <summary>길잡이 말풍선: 지금 상태에서 할 일 한 줄. 문구 UI.Guide.*</summary>
+        private void UpdateGuide()
+        {
+            if (_hud == null) return;
+            bool active = _guideActive && !_battleOver && !_placementActive && !(_titleHud != null && _titleHud.IsOpen);
+            _hud.SetGuideVisible(active);
+            if (!active) return;
+            string line;
+            if (_turnState.ActiveTeam != Team.Player) line = LocalizationSystem.T("UI.Guide.EnemyTurn");
+            else if (_rewardDialogOpen) line = LocalizationSystem.T("UI.Guide.Reward");
+            else if (_punchPhase == PunchPhase.List) line = LocalizationSystem.T("UI.Guide.PunchList");
+            else if (_punchPhase == PunchPhase.Targeting) line = LocalizationSystem.F("UI.Guide.PunchTarget", _punchActive.Name);
+            else if (_punchPhase == PunchPhase.Confirm) line = LocalizationSystem.T("UI.Guide.PunchConfirm");
+            else if (_state == SelectState.UnitSelected)
+            {
+                bool canAttack = (_attackableTargets != null && _attackableTargets.Count > 0) || (_infiltrateTargets != null && _infiltrateTargets.Count > 0)
+                    || (_plunderTargets != null && _plunderTargets.Count > 0) || (_drenchTargets != null && _drenchTargets.Count > 0);
+                line = LocalizationSystem.T(canAttack ? "UI.Guide.Attack" : _reachableTiles != null && _reachableTiles.Count > 0 ? "UI.Guide.Move" : "UI.Guide.Spent");
+            }
+            else if (_hud.IsInspectorOpen) line = LocalizationSystem.T("UI.Guide.Inspect");
+            else
+            {
+                bool any = false;
+                for (int i = 0; i < _world.EntityCount && !any; i++)
+                    any = UnitQueries.IsAlive(_world, i) && _world.Get<Team>(i) == Team.Player && !(_world.Get<HasMoved>(i).Value && _world.Get<HasActed>(i).Value);
+                line = LocalizationSystem.T(any ? "UI.Guide.Idle" : "UI.Guide.EndTurn");
+            }
+            _hud.SetGuideLine(line);
+        }
+
+        /// <summary>겹침 규칙: 보이는 유닛이 선 칸의 칸 그림은 반으로 줄고, 그 유닛은 오른쪽 아래로 비켜 선다. 규칙: docs/spec/game/tile.md#겹침</summary>
+        private void UpdateOverlap()
+        {
+            if (_gridView == null || _world == null) return;
+            _occupiedTiles.Clear();
+            foreach (var kv in _viewsById)
+            {
+                if (kv.Value == null) continue;
+                bool shown = UnitQueries.IsAlive(_world, kv.Key) && (_world.Get<Team>(kv.Key) == Team.Player ||
+                    (VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(kv.Key).Value) && !StealthSystem.IsHiddenFrom(_world, kv.Key, Team.Player)));
+                var pos = _world.Get<GridPosition>(kv.Key).Value;
+                bool onObject = shown && _gridView.HasObject(pos);
+                kv.Value.SetOnObject(onObject);
+                if (onObject) _occupiedTiles.Add(pos);
+            }
+            _gridView.RefreshOccupancy(_occupiedTiles);
+        }
+
         /// <summary>내 턴에 고르지 않은 레벨업 보상이 있으면 닫을 수 없는 창으로 묻는다 — 하나를 골라야 계속한다. 규칙: docs/spec/game/city.md#레벨업-보상</summary>
         private void ShowPendingReward()
         {
@@ -1246,6 +1371,7 @@ namespace TacticsECS
             var startPos = new Dictionary<int, Vector2Int>();
             for (int i = 0; i < _world.EntityCount; i++)
                 if (UnitQueries.IsAlive(_world, i)) startPos[i] = _world.Get<GridPosition>(i).Value;
+            var hpTrack = SnapshotHp(); // 컷인에 보일 "맞기 전" 체력을 기록 순서대로 따라간다
             var entries = EnemyAI.RunTurn(_grid, _world, _econ, team, _econ != null ? CitySystem.CaptureTargets(_grid, _econ, team) : null);
             // 맞은 유닛은 자기 차례의 피해 숫자가 뜰 때까지 남아 있는다(아래에서 공격을 하나씩 보여준다).
             foreach (var entry in entries)
@@ -1263,11 +1389,14 @@ namespace TacticsECS
             RefreshAllViews();
             if (walk > 0) yield return new WaitForSeconds(walk + .15f); // 이동이 끝난 뒤 공격
 
-            foreach (var entry in entries)
+            for (int index = 0; index < entries.Count; index++)
             {
+                var entry = entries[index];
                 if ((entry.Verb == BattleLogVerb.Attack || entry.Verb == BattleLogVerb.Counter) &&
                     _viewsById.TryGetValue(entry.ActorId, out var actorView) && _viewsById.TryGetValue(entry.TargetId, out var targetView))
                 {
+                    if (entry.Verb == BattleLogVerb.Attack && CutInEnabled && IsShown(entry.ActorId) && IsShown(entry.TargetId))
+                        yield return _cutIn.Play(CutInFromLog(entries, index, hpTrack));
                     if (entry.Verb == BattleLogVerb.Counter) yield return new WaitForSeconds(CounterDelay);
                     actorView.PlayAttackTowards(targetView.transform.position);
                     yield return new WaitForSeconds(AttackImpactDelay);
@@ -1276,6 +1405,7 @@ namespace TacticsECS
                 // 스플래시·짓밟기: 주 공격(또는 이동)과 같은 순간이라 기다리지 않고 바로 피해 숫자를 띄운다.
                 else if (IsHit(entry) && entry.Verb == BattleLogVerb.Splash && _viewsById.TryGetValue(entry.TargetId, out var splashView))
                     splashView.ShowDamagePopup(entry.Amount);
+                if (IsHit(entry) && hpTrack.TryGetValue(entry.TargetId, out int tracked)) hpTrack[entry.TargetId] = Mathf.Max(0, tracked - entry.Amount);
                 _hud.AddLogEntry(FormatLogEntry(entry));
             }
 
@@ -1283,6 +1413,31 @@ namespace TacticsECS
             yield return new WaitForSeconds(0.3f);
             if (!_battleOver)
                 EndTurn();
+        }
+
+        /// <summary>그 유닛이 선 칸을 플레이어가 볼 수 있는지(구름 밖).</summary>
+        private bool IsShown(int id) => _econ == null || VisionSystem.IsExplored(_grid, Team.Player, _world.Get<GridPosition>(id).Value);
+
+        /// <summary>AI 턴의 공격 기록(entries[index])으로 컷인 재료를 만든다. 결과는 이미 적용돼 있어 맞기 전 체력은 hpTrack에서 읽고,
+        /// 바로 뒤 기록이 그 대상의 반격이면 함께 담는다.</summary>
+        private CutInData CutInFromLog(List<BattleLogEntry> entries, int index, Dictionary<int, int> hpTrack)
+        {
+            var entry = entries[index];
+            int counter = 0;
+            var splashes = new List<BattleLogEntry>();
+            for (int i = index + 1; i < entries.Count; i++)
+            {
+                var next = entries[i];
+                if (next.Verb == BattleLogVerb.Splash && next.ActorId == entry.ActorId) { splashes.Add(next); continue; }
+                if (next.Verb == BattleLogVerb.Counter && next.ActorId == entry.TargetId && next.TargetId == entry.ActorId) counter = next.Amount;
+                if (next.Verb != BattleLogVerb.Defeated) break;
+            }
+            int Before(int id) => hpTrack.TryGetValue(id, out int hp) ? hp : UnitQueries.IsAlive(_world, id) ? _world.Get<Hp>(id).Value : 0;
+            var d = BeginCutIn(entry.ActorId, entry.TargetId);
+            d.Attacker.HpBefore = Before(entry.ActorId); d.Target.HpBefore = Before(entry.TargetId);
+            d.Attacker.MaxHp = Mathf.Max(d.Attacker.MaxHp, d.Attacker.HpBefore); d.Target.MaxHp = Mathf.Max(d.Target.MaxHp, d.Target.HpBefore);
+            d.Charge = false; // 이동했는지는 기록에 없다
+            return EndCutIn(d, entry.ActorId, entry.TargetId, entry.Amount, counter, splashes);
         }
 
         private static bool IsHit(BattleLogEntry entry) =>
@@ -1421,7 +1576,7 @@ namespace TacticsECS
                 buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Menu.MainMenu"), Detail = null, Enabled = true, OnClick = () => { SaveGame(); ReturnToSetup(false); } });
             }
             else buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Battle.Restart"), Enabled = true, OnClick = HandleReturnToSetup });
-            buttons.Add(new ActionMenuOption { Label = LocalizationSystem.F("UI.Title.Language", LocalizationSystem.LanguageName(StringTable.Language)), Enabled = true, OnClick = HandleLanguageClicked });
+            buttons.Add(new ActionMenuOption { Label = LocalizationSystem.T("UI.Title.LanguageLabel") + " · " + LocalizationSystem.LanguageName(StringTable.Language), Enabled = true, OnClick = HandleLanguageClicked });
             // 점수는 상단 막대 대신 메뉴 창에서 보인다.
             string body = quickPlay && !_battleOver ? LocalizationSystem.T("UI.Menu.SavedHint") : null;
             if (_econ != null)
@@ -1457,8 +1612,8 @@ namespace TacticsECS
                 _titleHud.name = "TitleHud";
                 var unitRows = EconomySetupSystem.DefaultUnitRows();
                 InitMapSizeSelection();
-                _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
-                    GameTables.Gods.Select(g => new GodChoice { Name = g.Name, Description = g.Description }).ToList(),
+                _titleHud.Init(GameTables.Tribes.Select(t => new TribeChoice { Id = t.Id, Name = t.Name, Description = t.Description, Summary = TribeSystem.Summary(t, unitRows) }).ToList(),
+                    GameTables.Gods.Select(g => new GodChoice { Id = g.Id, Name = g.Name, Description = g.Description }).ToList(),
                     Enumerable.Range(0, MapSizePresets.Length).Select(i => LocalizationSystem.F("UI.Title.MapSizeOption", MapSizeName(i), MapSizePresets[i].Size)).ToList(),
                     _selectedMapSizeIndex,
                     GameTables.AIDifficulties.Select(d => new GodChoice { Name = d.Name, Description = d.Description }).ToList(),
@@ -1560,6 +1715,7 @@ namespace TacticsECS
             if (save.CameraSize > 0f) _pixelCamera.RequestedSize = Mathf.Clamp(save.CameraSize, minOrthoSize, maxOrthoSize);
             ClampCameraFocus();
             ApplyCameraTransform();
+            _guideActive = true;
             if (_turnState.ActiveTeam == Team.Enemy) StartCoroutine(RunAiTurnRoutine(Team.Enemy));
         }
 
@@ -1583,6 +1739,14 @@ namespace TacticsECS
         {
             // HUD 버튼(BattleHud/SandboxHud, uGUI) 위에서 시작한 누름은 탭·팬이 되지 않는다(PointerGestures).
             _gestures.Update();
+            UpdateGuide();
+            UpdateOverlap();
+            // 컷인이 도는 동안은 지도 입력을 받지 않는다(화면을 누르면 컷인이 건너뛴다).
+            if (_cutIn != null && _cutIn.IsPlaying)
+            {
+                if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) _cutIn.Skip();
+                return;
+            }
             // 시작 화면·기술 트리·대화 상자가 지도를 덮고 있으면 지도 카메라는 그대로(기술 트리는 자기 나무를 끌고 확대한다).
             bool covered = (_titleHud != null && _titleHud.IsOpen) || (_techTreeHud != null && _techTreeHud.IsOpen) || (_hud != null && _hud.IsDialogOpen);
             if (!covered) HandleCameraControl();
@@ -1784,6 +1948,7 @@ namespace TacticsECS
             _gridView.RefreshStructures(_grid, TechSystem.HiddenStructures(_econ.TechNodes, _econ.Tech[Team.Player]));
             _gridView.RefreshFog(_grid, Team.Player);
             RefreshUnitVisibility();
+            UpdateOverlap();
             RefreshCityResources();
             RefreshTechTree();
         }
@@ -2125,11 +2290,11 @@ namespace TacticsECS
             if (PrayerSystem.CanPray(_grid, _world, unitId)) available |= ActionType.Pray;
             var actions = new (ActionType Flag, System.Action Handler, string Icon)[]
             {
-                (ActionType.Defend, HandleDefendClicked, "defense"),
-                (ActionType.Heal, HandleHealClicked, "heal"),
+                (ActionType.Defend, HandleDefendClicked, "hud.shield"),
+                (ActionType.Heal, HandleHealClicked, "hud.heart"),
                 (ActionType.SelfDestruct, HandleSelfDestructClicked, "selfdestruct"),
-                (ActionType.Wait, HandleWaitClicked, "turn"),
-                (ActionType.Pray, HandlePrayClicked, "spiritualism"),
+                (ActionType.Wait, HandleWaitClicked, "hud.hourglass"),
+                (ActionType.Pray, HandlePrayClicked, "hud.flame"),
             };
             foreach (var a in actions)
             {
@@ -2428,9 +2593,11 @@ namespace TacticsECS
         {
             var aliveBefore = TaskSystem.SnapshotAlive(_world);
             var hpBefore = SnapshotHp();
+            var cutIn = BeginCutIn(attackerId, targetId);
             if (!CombatSystem.TryAttack(_grid, _world, attackerId, targetId, out int damage, out int counterDamage)) return;
             var splashes = new List<BattleLogEntry>(); // 스플래시·전진 짓밟기로 주변 유닛이 입은 피해
             CombatSystem.LogSplash(_world, attackerId, hpBefore, attackerId, targetId, splashes);
+            cutIn = EndCutIn(cutIn, attackerId, targetId, damage, counterDamage, splashes);
             if (_econ != null)
             {
                 TaskSystem.RecordAttack(_econ, Team.Player);
@@ -2438,7 +2605,7 @@ namespace TacticsECS
             }
 
             _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = attackerId, Verb = BattleLogVerb.Attack, TargetId = targetId, Amount = damage }));
-            StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage, splashes));
+            StartCoroutine(PlayAttackRoutine(attackerId, targetId, damage, counterDamage, splashes, cutIn));
             if (!UnitQueries.IsAlive(_world, targetId))
                 _hud.AddLogEntry(FormatLogEntry(new BattleLogEntry { ActorId = targetId, Verb = BattleLogVerb.Defeated, TargetId = BattleLogEntry.NoTarget }));
             foreach (var entry in splashes)
@@ -2470,13 +2637,14 @@ namespace TacticsECS
         /// <summary>공격 연출: 공격자가 찌르고 → 맞는 쪽에 피해 숫자 → (반격이 있으면) 맞은 쪽이 되찌르고 → 공격자에 피해 숫자.
         /// 스플래시·짓밟기 피해(splashes)는 주 대상과 같은 순간에 뜬다.
         /// 결과는 이미 데이터에 반영되어 있다 — 죽은 유닛은 자기 피해 숫자가 뜬 뒤 사라진다(UnitView.AwaitHit).</summary>
-        private IEnumerator PlayAttackRoutine(int attackerId, int targetId, int damage, int counterDamage, List<BattleLogEntry> splashes)
+        private IEnumerator PlayAttackRoutine(int attackerId, int targetId, int damage, int counterDamage, List<BattleLogEntry> splashes, CutInData cutIn)
         {
             if (!_viewsById.TryGetValue(attackerId, out var attacker) || !_viewsById.TryGetValue(targetId, out var target)) yield break;
             if (damage > 0) target.AwaitHit();
             if (counterDamage > 0) attacker.AwaitHit();
             foreach (var entry in splashes)
                 if (IsHit(entry) && _viewsById.TryGetValue(entry.TargetId, out var view)) view.AwaitHit();
+            if (CutInEnabled) yield return _cutIn.Play(cutIn); // 컷인이 끝난 뒤 지도에서 결과를 한 번 더 짧게 보인다
             attacker.PlayAttackTowards(target.transform.position);
             yield return new WaitForSeconds(AttackImpactDelay);
             if (damage > 0) target.ShowDamagePopup(damage);

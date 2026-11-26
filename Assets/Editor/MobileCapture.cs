@@ -86,7 +86,29 @@ namespace TacticsECS.EditorTools
             var r = econ.Resources[Team.Player]; r.Faith = 8; econ.Resources[Team.Player] = r; // 펀치 하나는 켜진 모습으로
             Call("OpenPunchList");
             Shot("07_faith");
+            Call("HandlePunchSelected", 0);
+            Shot("07b_punch_target");
+            Call("PreviewPunchTarget", econ.Cities[CitySystem.FindCapital(econ, Team.Enemy)].Position);
+            Shot("07c_punch_confirm");
             Call("CancelPunch");
+
+            // 전투 컷인: 맞는 순간의 모습(아군 하나가 적 하나를 친 것으로 꾸민다).
+            int ally = -1, foe = -1;
+            for (int i = 0; i < world.EntityCount; i++)
+            {
+                if (!UnitQueries.IsAlive(world, i)) continue;
+                if (world.Get<Team>(i) == Team.Player && ally < 0) ally = i;
+                if (world.Get<Team>(i) == Team.Enemy && foe < 0) foe = i;
+            }
+            if (ally >= 0 && foe >= 0)
+            {
+                var data = Call("BeginCutIn", ally, foe);
+                data = Call("EndCutIn", data, ally, foe, 3, 2, null);
+                var cutIn = Field<BattleCutIn>("_cutIn");
+                cutIn.ShowStill((CutInData)data);
+                Shot("10_cutin");
+                cutIn.Hide();
+            }
 
             Call("OpenMenu");
             Shot("08_menu");
@@ -99,6 +121,7 @@ namespace TacticsECS.EditorTools
         private static void Shot(string key)
         {
             if (Field<EconomyWorld>("_econ") != null) Call("RefreshEconomyViews", false);
+            Call("UpdateGuide");
             Pixel2DVerification.CaptureCamera(Camera.main, Path.Combine(OutDir, $"{_prefix}_{key}.png"), _w, _h, true);
         }
     }

@@ -44,6 +44,22 @@ namespace TacticsECS
         private float _lastHitTime = -1;
         private bool _visible = true;
         private Vector3 _bodyOrigin;
+        private bool _onObject;
+        private Transform _shadow;
+        private static readonly Vector3 ShadowOrigin = new Vector3(0,-.34375f,0);
+        // 칸 그림(건물·숲·자원)이 있는 칸에서는 오른쪽 아래로 비켜 선다. 규칙: docs/spec/game/tile.md#겹침
+        private static readonly Vector3 ObjectOffset = new Vector3(.1875f,-.03125f,0);
+        /// <summary>지금 보이는 몸 그림(팀 색 포함).</summary>
+        public Sprite Body => _model.GetComponentInChildren<SpriteRenderer>(true).sprite;
+        /// <summary>칸 그림이 있는 칸에 서 있는지(GridView가 그 칸 그림을 반으로 줄인다).</summary>
+        public void SetOnObject(bool on)
+        {
+            if (_onObject == on) return;
+            _onObject = on;
+            _bodyOrigin = on ? ObjectOffset : Vector3.zero;
+            if (_shadow != null) _shadow.localPosition = ShadowOrigin + _bodyOrigin;
+            if (_moveRoutine == null && _attackRoutine == null) _model.transform.localPosition = _bodyOrigin;
+        }
         // Multiply the unit sheet's grey team ramp into the reference pack's blue/red (scripts/author_pixel_patterns.py TEAM_GAIN).
         public static readonly Color PlayerColor = new Color(.29f,.54f,1f);
         public static readonly Color EnemyColor = new Color(.97f,0f,.31f);
@@ -60,7 +76,7 @@ namespace TacticsECS
             _sorting = GetComponent<SortingGroup>();
             if (_sorting == null) _sorting = gameObject.AddComponent<SortingGroup>();
             _model = PixelSpriteCatalog.Build(_definition.ModelId,transform,order:1);
-            PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.34375f),new Vector2(.5f,.125f),new Color(.1f,.14f,.2f,.3f),-1);
+            _shadow = PixelSpriteCatalog.Add(transform,"Shadow",PixelSpriteCatalog.Get("UI.Shadow"),new Vector2(0,-.34375f),new Vector2(.5f,.125f),new Color(.1f,.14f,.2f,.3f),-1).transform;
             _teamBadge = PixelSpriteCatalog.Rectangle(transform,"Team",new Vector2(0,-.4375f),new Vector2(.5f,.0625f),Color.white,3);
             _guardBadge = PixelSpriteCatalog.Add(transform,"Guarding",PixelSpriteComposer.Compose("Icon.guard"),new Vector2(.3125f,.1875f),Vector2.one,Color.white,4);
             _statusBadge = PixelSpriteCatalog.Add(transform,"Status",PixelSpriteComposer.Compose("Icon.freeze"),new Vector2(-.3125f,.1875f),Vector2.one,Color.white,4);
@@ -124,7 +140,7 @@ namespace TacticsECS
             // 플레이어 유닛 옆(8칸)에 숨은 적이 있으면 위치는 모른 채 (!)만 보인다.
             _alert.SetActive(world.Get<Team>(id) == Team.Player && StealthSystem.AdjacentHiddenEnemy(_grid,world,id));
             var embarked = world.GetOrDefault<Embarked>(id);
-            _bodyOrigin = Vector3.zero;
+            _bodyOrigin = _onObject ? ObjectOffset : Vector3.zero;
             _model.transform.localPosition = _bodyOrigin;
             string visual = PixelSpriteCatalog.Has(_definition.ModelId) ? _definition.ModelId : "UI.Missing";
             // Embarked units show the ship alone (the ship sprites fill the tile); team pixels take the team colour.

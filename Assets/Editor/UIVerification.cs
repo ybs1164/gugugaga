@@ -33,7 +33,7 @@ namespace TacticsECS.EditorTools
             return instance;
         }
 
-        /// <summary>BattleHud가 코드로 만드는 글자와 HpDisplay(TextMesh) 둘 다 공용 폰트(Jua)를 쓰는지.</summary>
+        /// <summary>BattleHud의 칩 숫자가 HUD 숫자 글꼴(HudArt.Number)을 쓰고, HpDisplay(TextMesh) 프리팹의 글꼴이 살아 있는지.</summary>
         private static bool VerifyFont()
         {
             var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/Fonts/Jua-Regular.ttf");
@@ -43,7 +43,8 @@ namespace TacticsECS.EditorTools
             try
             {
                 var badgeText = hud.transform.Find("Canvas/Safe/TopBar/TurnBadge/Number")?.GetComponent<Text>();
-                if (badgeText == null || badgeText.font != font) { Debug.LogError("[UIVerification] TurnBadge/Number is not using the shared Jua font"); return false; }
+                if (HudArt.Number == null || HudArt.Body == null) { Debug.LogError("[UIVerification] HUD fonts missing under Assets/Resources/Fonts"); return false; }
+                if (badgeText == null || badgeText.font != HudArt.Number) { Debug.LogError("[UIVerification] TurnBadge/Number is not using the HUD number font"); return false; }
             }
             finally { Object.DestroyImmediate(hud.gameObject); }
 
@@ -80,7 +81,7 @@ namespace TacticsECS.EditorTools
                 if (!Read("TurnBadge/Number").Contains("7")) { Debug.LogError("[UIVerification] turn badge: " + Read("TurnBadge/Number")); ok = false; }
                 if (!Read("Stars/Text").Contains("5") || !Read("Stars/Text").Contains("+1")) { Debug.LogError("[UIVerification] stars chip: " + Read("Stars/Text")); ok = false; }
                 if (Read("Units/Text") != "2") { Debug.LogError("[UIVerification] rank chip: " + Read("Units/Text")); ok = false; }
-                if (!Read("FaithButton/Label").Contains("4/12")) { Debug.LogError("[UIVerification] faith chip: " + Read("FaithButton/Label")); ok = false; }
+                if (!Read("FaithButton/Label").StartsWith("4") || !Read("FaithButton/Label").Contains("/12")) { Debug.LogError("[UIVerification] faith chip: " + Read("FaithButton/Label")); ok = false; }
 
                 hud.SetEconomyVisible(false);
                 if (hud.transform.Find("Canvas/Safe/TopBar/Stars").gameObject.activeSelf) { Debug.LogError("[UIVerification] economy chips should hide without economy"); ok = false; }

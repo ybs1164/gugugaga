@@ -73,3 +73,7 @@ crashlytics-build.properties
 /tools/TacticsSim/bin/
 /tools/ai/runs/
 __pycache__/
+
+# 길잡이 그림: 받은 팩이 단독 재배포를 금지해 저장소에 올리지 않는다(docs/spec/csv/sprites.md#hud-그림)
+/Assets/Resources/Hud/Guide/
+/Assets/Resources/Hud/Guide.meta

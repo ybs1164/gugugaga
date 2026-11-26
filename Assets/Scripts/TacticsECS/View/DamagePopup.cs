@@ -20,6 +20,13 @@ namespace TacticsECS
         public void Play(string text, Color color)
         {
             _text = GetComponent<TextMesh>();
+            // HUD와 같은 글꼴(굵게) — TextMesh는 글꼴을 바꾸면 그 글꼴의 재질도 함께 바꿔야 한다.
+            if (HudArt.Body != null)
+            {
+                _text.font = HudArt.Body;
+                _text.fontStyle = FontStyle.Bold;
+                GetComponent<Renderer>().sharedMaterial = HudArt.Body.material;
+            }
             _text.text = text;
             _text.color = color;
             StartCoroutine(Animate(color));

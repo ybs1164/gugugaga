@@ -25,6 +25,7 @@
 | `Building.<Id>.Name`, `.Desc` | [Buildings](buildings.md) |
 | `TileAction.<Id>.Name`, `.Desc` | [TileActions](tile-actions.md) |
 | `Tech.<Id>.Name`, `.Desc` | [Techs](tech.md#techscsv--기술). 샌드박스 기술 파일의 `Name`·`Effect`보다 앞선다 |
+| `Tech.<Id>.Brief` | 기술 트리에서 고른 기술 아래에 보이는 요점 한 문장(수치 없이). 없으면 `.Desc`를 보인다 |
 | `Task.<Id>.Name`, `.Desc` | [Tasks](tasks.md) |
 | `CityReward.<Reward>.Name`, `.Desc` | [CityRewards](city-rewards.md) |
 | `Tribe.<Id>.Name`, `.Desc` | [Tribes](tribes.md#tribescsv--종족) |

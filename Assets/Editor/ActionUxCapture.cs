@@ -180,6 +180,7 @@ namespace TacticsECS.EditorTools
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
                 canvas.worldCamera = cam;
                 canvas.planeDistance = cam.nearClipPlane + .5f;
+                canvas.sortingOrder += PixelSpriteCatalog.FogOrder + 5000; // 오버레이처럼 맵 스프라이트 위에(Pixel2DVerification.CaptureCamera와 같은 값)
             }
             Call(c, "PositionCamera"); // 캡처 화면 크기에 맞춰 맵 전체를 다시 담는다
             _read = new Texture2D(Width, Height, TextureFormat.RGB24, false);

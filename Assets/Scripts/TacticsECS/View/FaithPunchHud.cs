@@ -25,7 +25,8 @@ namespace TacticsECS
     public class FaithPunchHud : MonoBehaviour
     {
         public const int SortingOrder = 5;
-        private const float Pad = 10f;
+        private const float Pad = 12f;
+        private const float IconInset = 40f;
         private const float CardHeight = 64f;
         private const float ButtonHeight = 44f;
 
@@ -89,29 +90,71 @@ namespace TacticsECS
                 UiKit.Row((RectTransform)card.transform, y, h, Pad - 4f, Pad - 4f);
                 var cost = card.transform.Find("Cost").GetComponent<Text>();
                 cost.color = o.Enabled ? UiKit.TextColor : UiKit.DisabledText;
-                cost.text = LocalizationSystem.F("UI.FaithPunch.CardCost", o.Cost);
+                cost.text = o.Cost.ToString();
+                HudArt.UseNumberFont(cost, 24);
+                Icon(card.transform, "flame", 8f, o.Enabled ? UiKit.TextColor : UiKit.DisabledText);
+                UiKit.Stretch(label.rectTransform, IconInset, 2f, 56f, 2f);
                 y += h + 4f;
             }
             y = Button(LocalizationSystem.T("UI.FaithPunch.Close"), y, true, () => OnCancelClicked?.Invoke());
             Finish(y);
         }
 
-        /// <summary>2단계: 대상 칸을 고르라는 안내와 취소 버튼.</summary>
-        public void ShowTargeting(string hint)
+        /// <summary>2단계: 고른 펀치(이름·비용)와 취소 버튼만 — 대상 칸을 고르라는 말은 길잡이가 한다.</summary>
+        public void ShowTargeting(string name, int cost)
         {
-            float y = Begin(hint, UiKit.TextColor);
+            UiKit.ClearChildren(content);
+            panel.gameObject.SetActive(true);
+            float y = Header(name, cost.ToString(), Pad, true);
             y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
             Finish(y);
         }
 
-        /// <summary>3단계: 확인. summary는 무엇이 어디에 영향을 주는지, costLine은 신앙 변화. canConfirm이 false면 이유(reason)를 보여주고 발동은 막는다.</summary>
-        public void ShowConfirm(string summary, string costLine, bool canConfirm, string reason)
+        /// <summary>3단계: 확인. 머리줄에 펀치 이름과 영향받는 수(affected), 그 아래 신앙 변화(faith → faithAfter) 또는 costLine(신화 유닛 액티브처럼 다른 비용).
+        /// canConfirm이 false면 이유(reason)를 보여주고 발동은 막는다.</summary>
+        public void ShowConfirm(string name, string affected, int faith, int faithAfter, string costLine, bool canConfirm, string reason)
         {
-            float y = Begin(summary, UiKit.TextColor);
-            y = Paragraph(canConfirm ? costLine : reason, y, canConfirm ? UiKit.TextColor : UiKit.EnemyColor);
+            UiKit.ClearChildren(content);
+            panel.gameObject.SetActive(true);
+            float y = Header(name, affected, Pad, false);
+            if (!canConfirm) y = Paragraph(reason, y, UiKit.EnemyColor);
+            else if (!string.IsNullOrEmpty(costLine)) y = Paragraph(costLine, y, UiKit.TextColor);
+            else
+            {
+                var row = UiKit.Text(textPrefab, content, "Faith", 24, TextAnchor.MiddleLeft, UiKit.TextColor);
+                HudArt.UseNumberFont(row, 24);
+                row.supportRichText = true;
+                row.text = $"{faith} → <color=#{ColorUtility.ToHtmlStringRGB(UiKit.EnemyColor)}>{faithAfter}</color>";
+                UiKit.Row(row.rectTransform, y, 28f, Pad + 32f, Pad);
+                Icon(content, "flame", Pad, UiKit.TextColor, y + 14f);
+                y += 28f + 8f;
+            }
             y = Button(LocalizationSystem.T("UI.FaithPunch.Confirm"), y, canConfirm, () => OnConfirmClicked?.Invoke(), primary: true);
             y = Button(LocalizationSystem.T("UI.FaithPunch.Cancel"), y, true, () => OnCancelClicked?.Invoke());
             Finish(y);
+        }
+
+        /// <summary>머리줄: 왼쪽 이름, 오른쪽 값(비용이면 숫자 글꼴과 신앙 아이콘).</summary>
+        private float Header(string name, string value, float y, bool cost)
+        {
+            var title = UiKit.Text(textPrefab, content, "Title", UiKit.TitleText, TextAnchor.MiddleLeft, UiKit.TextColor);
+            title.text = name;
+            UiKit.Row(title.rectTransform, y, 28f, Pad + (cost ? 32f : 0f), Pad + 64f);
+            if (cost) Icon(content, "flame", Pad, UiKit.TextColor, y + 14f);
+            var right = UiKit.Text(textPrefab, content, "Value", cost ? 24 : UiKit.BodyText, TextAnchor.MiddleRight, UiKit.TextColor);
+            if (cost) HudArt.UseNumberFont(right, 24);
+            right.text = value ?? string.Empty;
+            UiKit.Row(right.rectTransform, y, 28f, Pad, Pad);
+            return y + 28f + 8f;
+        }
+
+        /// <summary>아이콘 하나를 parent의 왼쪽(left)에 놓는다. top이 없으면 세로 가운데, 있으면 위에서 그만큼 내려온 곳이 가운데.</summary>
+        private static void Icon(Transform parent, string icon, float left, Color color, float top = -1f)
+        {
+            var rect = (RectTransform)HudArt.PlaceIcon(parent, HudArt.Icon(icon), Vector2.zero, Vector2.zero, color).transform.parent;
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, top < 0f ? 0.5f : 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(left, top < 0f ? 0f : -top);
         }
 
         // ---------- 그리기 도우미 ----------

@@ -39,7 +39,7 @@ namespace TacticsECS
         public const float TopBarHeight = 52f;
         public const float SidePanelWidth = 300f;
         /// <summary>하단 행동 줄(신앙 펀치 · 기술 · 턴 종료)의 턴 종료 버튼.</summary>
-        public static readonly Vector2 EndTurnSize = new Vector2(96f, 44f);
+        public static readonly Vector2 EndTurnSize = new Vector2(44f, 44f);
         /// <summary>같은 묶음 안 부품 사이 간격.</summary>
         public const float ItemGap = 4f;
 
@@ -162,7 +162,10 @@ namespace TacticsECS
                 else if (image.sprite.name == "Button" || image.sprite.name == "Badge") image.color = ButtonColor;
             }
             foreach (var text in root.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+            {
+                if (HudArt.Body != null && text.font != HudArt.Number) text.font = HudArt.Body;
                 if (OnCard(text.transform)) text.color = TextColor;
+            }
         }
 
         /// <summary>부모를 꽉 채운다(left/bottom/right/top 안쪽 여백).</summary>

@@ -340,7 +340,7 @@ namespace TacticsECS
             var node = found.Value;
             int cost = TechSystem.Cost(_nodes, _tech, node, _cityCount);
             detailName.text = LocalizationSystem.F("UI.TechTree.Title", node.Name, node.Tier);
-            detailEffect.text = node.Effect;
+            detailEffect.text = LocalizationSystem.T("Tech." + node.Id + ".Brief", node.Effect); // 요점 한 문장(없으면 전체 설명)
             UiKit.Label(unlockButton).text = LocalizationSystem.F("UI.TechTree.UnlockCost", cost);
 
             bool can = false;

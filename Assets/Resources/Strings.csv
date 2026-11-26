@@ -88,54 +88,79 @@ TileAction.DestroyBuilding.Desc,건물을 없애고 그 인구를 되돌린다. 
 "# 기술 (Techs.csv, TechTree.csv)",,
 Tech.Climbing.Name,등반,Climbing
 Tech.Climbing.Desc,산 타일 진입/이동 가능. 숨겨진 광맥 발견. 산 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Units can enter and move on mountains. Reveals hidden metal. Units on mountains get ×{Rule.Combat.DefenseBonusMultiplier} defense.
+Tech.Climbing.Brief,"산을 오르내리고, 산 위에서 더 단단히 버틴다.",Cross mountains and hold firmer on top of them.
 Tech.Meditation.Name,명상,Meditation
 Tech.Meditation.Desc,산악 신전 건설 가능(별 {Building.MountainTemple.Cost}). 평화주의 과업({Task.Pacifist.Threshold}턴 비공격 → 평화의 제단) 개방.,Mountain Temple ({Building.MountainTemple.Cost} stars). Unlocks the Pacifist task (no attacks for {Task.Pacifist.Threshold} turns → Altar of Peace).
+Tech.Meditation.Brief,산에 신전을 세워 신앙을 모은다.,Raise temples on mountains to gather faith.
 Tech.Mining.Name,채광,Mining
 Tech.Mining.Desc,광산 건설 가능(별 {Building.Mine.Cost} / 광물 위 / 인구 +{Building.Mine.Population}).,Mine ({Building.Mine.Cost} stars / on metal / population +{Building.Mine.Population}).
+Tech.Mining.Brief,광맥 위에 광산을 지어 도시를 키운다.,Build mines on metal to grow your cities.
 Tech.Philosophy.Name,철학,Philosophy
 Tech.Philosophy.Desc,모든 기술 개발 비용 1/{Rule.Tech.LiteracyDivisor} 감소. 현자(사제) 훈련 가능. 천재 과업(기술 전부 → 지혜의 탑) 개방.,All tech costs -1/{Rule.Tech.LiteracyDivisor}. Train Mind Benders. Unlocks the Genius task (all techs → Tower of Wisdom).
+Tech.Philosophy.Brief,모든 기술이 싸지고 현자를 훈련한다.,Makes every tech cheaper and trains Mind Benders.
 Tech.Smithery.Name,제련,Smithery
 Tech.Smithery.Desc,대장간 건설 가능(인접 광산당 인구 +{Building.Forge.PopulationPerAdjacent}). 검사(검투사) 훈련 가능.,Forge (population +{Building.Forge.PopulationPerAdjacent} per adjacent Mine). Train Swordsmen.
+Tech.Smithery.Brief,광산 옆에 대장간을 짓고 검사를 훈련한다.,Build forges beside mines and train Swordsmen.
 Tech.Organization.Name,조직,Organization
 Tech.Organization.Desc,과일 채집 가능(별 {TileAction.HarvestFruit.Cost} / 인구 +{TileAction.HarvestFruit.Population}). 숨겨진 농작물 발견.,Harvest fruit ({TileAction.HarvestFruit.Cost} stars / population +{TileAction.HarvestFruit.Population}). Reveals hidden crops.
+Tech.Organization.Brief,과일을 거두고 숨은 농작물을 찾아낸다.,Harvest fruit and reveal hidden crops.
 Tech.Strategy.Name,방패,Strategy
 Tech.Strategy.Desc,방패병 훈련 가능. (평화 조약은 외교 시스템이 없어 제외),Train Defenders. (Peace treaties are left out — no diplomacy system.)
+Tech.Strategy.Brief,버티는 데 강한 방패병을 훈련한다.,"Train Defenders, built to hold the line."
 Tech.Farming.Name,농사,Farming
 Tech.Farming.Desc,농장 건설 가능(별 {Building.Farm.Cost} / 작물 위 / 인구 +{Building.Farm.Population}).,Farm ({Building.Farm.Cost} stars / on crops / population +{Building.Farm.Population}).
+Tech.Farming.Brief,농작물 위에 농장을 지어 도시를 키운다.,Build farms on crops to grow your cities.
 Tech.Diplomacy.Name,외교,Diplomacy
 Tech.Diplomacy.Desc,"망토 훈련, 대사관 건설 및 수도 시야.","Train Cloaks, establish Embassies and reveal capitals."
+Tech.Diplomacy.Brief,망토를 훈련하고 대사관을 세운다.,Train Cloaks and establish embassies.
 Tech.Construction.Name,건축,Construction
 Tech.Construction.Desc,풍차 건설 가능(인접 농장당 인구 +{Building.Windmill.PopulationPerAdjacent}). 자기 숲 화전 가능(별 {TileAction.BurnForest.Cost} / 숲 -> 작물 평지).,Windmill (population +{Building.Windmill.PopulationPerAdjacent} per adjacent Farm). Burn your forests ({TileAction.BurnForest.Cost} stars / forest → field with crops).
+Tech.Construction.Brief,농장 옆에 풍차를 짓고 숲을 밭으로 태운다.,Build windmills beside farms and burn forest into cropland.
 Tech.Riding.Name,기마,Riding
 Tech.Riding.Desc,기마병 훈련 가능.,Train Riders.
+Tech.Riding.Brief,빠르게 치고 빠지는 기마병을 훈련한다.,"Train Riders, quick to strike and pull back."
 Tech.FreeSpirit.Name,자유 영혼,Free Spirit
 Tech.FreeSpirit.Desc,신전 건설 가능(별 {Building.Temple.Cost}). 자기 유닛 해산 가능(훈련 비용 1/{Rule.Unit.DisbandRefundDivisor} 환급).,Temple ({Building.Temple.Cost} stars). Disband your units (1/{Rule.Unit.DisbandRefundDivisor} of the training cost refunded).
+Tech.FreeSpirit.Brief,신전을 세우고 필요 없는 유닛을 해산한다.,Build temples and disband units you no longer need.
 Tech.Roads.Name,도로,Roads
 Tech.Roads.Desc,"도로(별 {Building.Road.Cost})/다리(별 {Building.Bridge.Cost}) 건설 가능 - 도로끼리 이동 비용 절반, 수도 연결 시 인구 보너스. 교역망 과업(연결 도시 {Task.Network.Threshold} → 대시장) 개방.","Road ({Building.Road.Cost} stars) / Bridge ({Building.Bridge.Cost} stars) — half movement cost between roads, population bonus when connected to the capital. Unlocks the Network task ({Task.Network.Threshold} connected cities → Grand Bazaar)."
+Tech.Roads.Brief,도로와 다리를 지어 유닛이 더 멀리 간다.,Build roads and bridges so units travel farther.
 Tech.Chivalry.Name,기사도,Chivalry
 Tech.Chivalry.Desc,기사 훈련 가능. 자기 건물 파괴 가능.,Train Knights. Destroy your own buildings.
+Tech.Chivalry.Brief,적을 쓰러뜨리며 내달리는 기사를 훈련한다.,"Train Knights, who ride on after every kill."
 Tech.Trade.Name,교역,Trade
 Tech.Trade.Desc,시장 건설 가능(인접 풍차/대장간/제재소 레벨만큼 별/턴). 부 과업(별 {Task.Wealth.Threshold} 보유 → 황제의 무덤) 개방.,Market (stars per turn equal to adjacent Windmill/Forge/Sawmill levels). Unlocks the Wealth task (hold {Task.Wealth.Threshold} stars → Emperor's Tomb).
+Tech.Trade.Brief,공방 건물 옆에 시장을 지어 별을 번다.,Build markets beside production buildings to earn stars.
 Tech.Hunting.Name,사냥,Hunting
 Tech.Hunting.Desc,동물 사냥 가능(별 {TileAction.HuntAnimal.Cost} / 인구 +{TileAction.HuntAnimal.Population}). 숨겨진 동물 발견.,Hunt animals ({TileAction.HuntAnimal.Cost} stars / population +{TileAction.HuntAnimal.Population}). Reveals hidden animals.
+Tech.Hunting.Brief,동물을 사냥해 도시를 키운다.,Hunt animals to grow your cities.
 Tech.Forestry.Name,임업,Forestry
 Tech.Forestry.Desc,벌목장 건설 가능(별 {Building.LumberHut.Cost} / 인구 +{Building.LumberHut.Population}). 자기 숲 벌목 가능(별 +{TileAction.ClearForest.StarsGain}).,Lumber Hut ({Building.LumberHut.Cost} stars / population +{Building.LumberHut.Population}). Clear your forests (stars +{TileAction.ClearForest.StarsGain}).
+Tech.Forestry.Brief,숲에 벌목장을 짓거나 나무를 베어 별을 얻는다.,Build lumber huts in forests or clear trees for stars.
 Tech.Archery.Name,궁술,Archery
 Tech.Archery.Desc,궁수 훈련 가능. 숲 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Train Archers. Units in forests get ×{Rule.Combat.DefenseBonusMultiplier} defense.
+Tech.Archery.Brief,"멀리서 쏘는 궁수를 훈련하고, 숲에서 더 단단히 버틴다.",Train Archers and hold firmer in forests.
 Tech.Mathematics.Name,수학,Mathematics
 Tech.Mathematics.Desc,제재소 건설 가능(인접 벌목장당 인구 +{Building.Sawmill.PopulationPerAdjacent}). 투석기 훈련 가능.,Sawmill (population +{Building.Sawmill.PopulationPerAdjacent} per adjacent Lumber Hut). Train Catapults.
+Tech.Mathematics.Brief,벌목장 옆에 제재소를 짓고 투석기를 훈련한다.,Build sawmills beside lumber huts and train Catapults.
 Tech.Spiritualism.Name,강신술,Spiritualism
 Tech.Spiritualism.Desc,숲 신전 건설 가능(별 {Building.ForestTemple.Cost}). 자기 평지에 숲 생성 가능(별 {TileAction.GrowForest.Cost}).,Forest Temple ({Building.ForestTemple.Cost} stars). Grow forest on your fields ({TileAction.GrowForest.Cost} stars).
+Tech.Spiritualism.Brief,숲에 신전을 세우고 평지에 숲을 기른다.,Raise forest temples and grow new forest on fields.
 Tech.Fishing.Name,낚시,Fishing
 Tech.Fishing.Desc,항구 건설 가능(별 {Building.Port.Cost} / 인구 +{Building.Port.Population} / 들어온 육지 유닛은 뗏목 / 해로 연결). 물고기 낚시 가능. 숨겨진 물고기 발견.,Port ({Building.Port.Cost} stars / population +{Building.Port.Population} / land units entering become rafts / sea connections). Fish. Reveals hidden fish.
+Tech.Fishing.Brief,항구를 지어 바다로 나가고 물고기를 낚는다.,"Build ports to take to the water, and catch fish."
 Tech.Ramming.Name,충파,Ramming
 Tech.Ramming.Desc,"뗏목을 충각선으로 업그레이드 가능(별 {Unit.rammer.Cost}, 자기 영토).","Upgrade rafts to Rammers ({Unit.rammer.Cost} stars, in your territory)."
+Tech.Ramming.Brief,뗏목을 들이받는 충각선으로 바꾼다.,Upgrade rafts into Rammers that crash into ships.
 Tech.Sailing.Name,배 타기,Sailing
 Tech.Sailing.Desc,"원양 타일 진입/이동 가능. 뗏목을 정찰선으로 업그레이드 가능(별 {Unit.scout.Cost}, 시야 반경 {Rule.Vision.ExtendedSightRadius}).","Units can enter and move on ocean. Upgrade rafts to Scouts ({Unit.scout.Cost} stars, sight radius {Rule.Vision.ExtendedSightRadius})."
+Tech.Sailing.Brief,깊은 바다로 나가고 뗏목을 정찰선으로 바꾼다.,Sail the open ocean and upgrade rafts into Scouts.
 Tech.Aquatism.Name,수생학,Aquatism
 Tech.Aquatism.Desc,해양 신전 건설 가능(별 {Building.WaterTemple.Cost}). 근해/원양 타일 유닛 방어력 ×{Rule.Combat.DefenseBonusMultiplier}.,Water Temple ({Building.WaterTemple.Cost} stars). Units on shallow water/ocean get ×{Rule.Combat.DefenseBonusMultiplier} defense.
+Tech.Aquatism.Brief,"바다에 신전을 세우고, 물 위에서 더 단단히 버틴다.",Raise water temples and hold firmer on water.
 Tech.Navigation.Name,항해,Navigation
 Tech.Navigation.Desc,뗏목을 범선으로 업그레이드 가능(별 {Unit.bomber.Cost}). 불가사리(유물) 인양 가능(별 +{Rule.Starfish.Stars}). 숨겨진 불가사리 발견. 깊은 바다를 건너는 항구 연결.,Upgrade rafts to Bombers ({Unit.bomber.Cost} stars). Salvage starfish (stars +{Rule.Starfish.Stars}). Reveals hidden starfish. Ports connect across deep ocean.
+Tech.Navigation.Brief,뗏목을 범선으로 바꾸고 불가사리를 건진다.,Upgrade rafts into Bombers and salvage starfish.
 # 과업 (Tasks.csv),,
 Task.Pacifist.Name,평화주의,Pacifist
 Task.Pacifist.Desc,{Threshold}턴 연속 공격하지 않기(반격은 공격이 아님).,Don't attack for {Threshold} turns in a row (counterattacks don't count).
@@ -394,10 +419,7 @@ UI.Hud.Menu,메뉴,Menu
 UI.Hud.Turn,{0},{0}
 UI.Hud.EnemyTurn,적 차례 {0},Enemy turn {0}
 UI.Hud.Stars,{0},{0}
-UI.Hud.StarsIncome,{0} (+{1}),{0} (+{1})
 UI.Hud.Units,유닛 {0}/{1},Units {0}/{1}
-UI.Hud.Faith,{0}/{1},{0}/{1}
-UI.Hud.FaithIncome,{0}/{1} (+{2}),{0}/{1} (+{2})
 UI.Hud.Punch,신앙 펀치,Faith punch
 UI.Hud.PunchCount,신앙 펀치 {0},Faith punch {0}
 UI.Reward.Title,{0} 레벨업 (Lv {1}),{0} levelled up (Lv {1})
@@ -425,7 +447,6 @@ UI.Title.Goal,상대 도시를 모두 차지하거나 대신전을 완성하면 
 UI.Title.Continue,이어하기,Continue
 UI.Title.ContinueDetail,{0} · {1}턴,{0} · turn {1}
 UI.Title.NewGame,새로하기,New game
-UI.Title.Language,언어: {0},Language: {0}
 UI.Title.ImportPack,표 가져오기,Import tables
 UI.Title.DefaultTables,기본 표,Default tables
 UI.Title.PackDefault,지금: 기본 표,Now: default tables
@@ -437,11 +458,8 @@ UI.Title.Back,뒤로,Back
 UI.Title.PickTribe,종족 고르기,Choose a tribe
 UI.Title.RandomTribe,무작위,Random
 UI.Title.RandomTribeDesc,시작할 때 종족을 무작위로 고릅니다. 상대 종족과 상대 신은 언제나 무작위입니다.,A tribe is picked at random when the game starts. The enemy tribe and god are always random.
-UI.Title.God,신: {0},God: {0}
 UI.Title.RandomGod,무작위,Random
 UI.Title.GodDetail,신 {0}: {1},God {0}: {1}
-UI.Title.MapSize,맵: {0},Map: {0}
-UI.Title.Difficulty,난이도: {0},AI: {0}
 UI.Title.DifficultyDetail,난이도 {0}: {1},Difficulty {0}: {1}
 UI.Title.MapSizeOption,{0} {1}x{1},{0} {1}x{1}
 UI.Title.Start,시작,Start
@@ -548,13 +566,9 @@ FaithPunch.Upheaval.Name,지각 변동,Upheaval
 FaithPunch.Upheaval.Desc,대상 칸의 지형을 바꿉니다: 땅→물→산→땅. 유닛이나 도시가 있는 칸은 안 됩니다.,Changes the target tile: land→water→mountain→land. Not on tiles with units or cities.
 UI.FaithPunch.Title,신앙 펀치,Faith punch
 UI.FaithPunch.NoGod,신을 고르지 않았습니다.,No god selected.
-UI.FaithPunch.CardCost,신앙 {0},Faith {0}
 UI.FaithPunch.Close,닫기,Close
 UI.FaithPunch.Cancel,취소,Cancel
 UI.FaithPunch.Confirm,발동,Cast
-UI.FaithPunch.PickTarget,{0}: 대상 칸을 고르세요. (우클릭/Esc: 취소),{0}: pick a target tile. (right click/Esc: cancel)
-UI.FaithPunch.ConfirmLine,{0} → ({1}:{2}) 영향 {3},{0} → ({1}:{2}) affects {3}
-UI.FaithPunch.CostLine,신앙 −{0} → 남은 {1},Faith −{0} → {1} left
 UI.FaithPunch.NeedFaith,신앙이 모자랍니다.,Not enough faith.
 UI.FaithPunch.NotExplored,아직 탐험하지 않은 칸입니다.,Tile not explored yet.
 UI.FaithPunch.NoEnemy,범위 안에 공격할 적이 없습니다.,No enemy in range.
@@ -633,3 +647,29 @@ UI.UnitMenu.DisembarkDetail,배에서 내려 원래 유닛으로 돌아간다(�
 UI.Event.Plunder,{0} 약탈 — 별 +{1},{0} plundered — stars +{1}
 UI.Log.Grow,{0}(으)로 성장,grew into {0}
 UI.Mythic.Log.Expire,{0}이(가) 지속 시간이 끝나 사라졌습니다.,{0} faded away as its time ran out.
+# 길잡이 · 전투 컷인 · 종족 고르기 줄,,
+UI.Title.LanguageLabel,언어,Language
+UI.Title.GodLabel,신,God
+UI.Title.MapLabel,맵,Map
+UI.Title.DifficultyLabel,난이도,AI
+UI.FaithPunch.Affected,대상 {0},Targets {0}
+UI.CutIn.City,도시,City
+UI.CutIn.Defense,{0} ×{1},{0} ×{1}
+UI.CutIn.Wall,성벽 ×{0},Wall ×{0}
+UI.CutIn.NoCounter,반격 없음,No counter
+UI.CutIn.Frozen,빙결,Frozen
+UI.CutIn.Poisoned,중독,Poisoned
+UI.CutIn.Converted,전향,Converted
+UI.CutIn.Defeated,처치,Defeated
+UI.CutIn.Again,한 번 더,Again
+UI.Guide.Idle,움직일 유닛을 골라요.,Pick a unit to move.
+UI.Guide.EndTurn,할 일을 다 했어요. 턴을 넘겨요.,All done. End the turn.
+UI.Guide.Attack,빨간 칸을 누르면 공격해요.,Tap a red tile to attack.
+UI.Guide.Move,파란 칸을 누르면 이동해요.,Tap a blue tile to move.
+UI.Guide.Spent,이 유닛은 이번 턴에 더 할 일이 없어요.,This unit is done for the turn.
+UI.Guide.Inspect,이 칸에서 할 일을 골라요.,Choose what to do on this tile.
+UI.Guide.EnemyTurn,상대 차례예요.,It's the enemy's turn.
+UI.Guide.Reward,보상을 하나 골라요.,Choose one reward.
+UI.Guide.PunchList,쓸 신앙 펀치를 골라요.,Choose a faith punch.
+UI.Guide.PunchTarget,{0}: 대상 칸을 골라요.,{0}: pick a target tile.
+UI.Guide.PunchConfirm,이대로 발동할지 정해요.,Cast it here?

@@ -57,6 +57,17 @@ Sandbox의 `Pixel2D/SpriteCatalog.csv` 항목으로 다른 파일을 선택할 �
 - 칸끼리·유닛·UI·구름과의 겹침 순서는 [tile](../game/tile.md#표시-순서).
 - 배에 탄 유닛은 `Boat.<배 Id>`만 그린다(배 그림이 한 칸을 채운다). 팀 색은 배에도 들어간다.
 
+## HUD 그림
+`Assets/Resources/Hud` — 표(`SpriteCatalog.csv`)를 거치지 않고 이름으로 바로 읽는 PNG(`View/HudArt`). 가져오기 설정(크기 유지·점 필터·무압축)은 `Editor/HudTextureImport`가 맞춘다.
+| 폴더 | 내용 | 쓰는 곳 |
+|---|---|---|
+| `Icons/<이름>` | HUD 아이콘 한 벌. 흰 그림이라 놓이는 자리의 글자색으로 물든다. 코드에서는 `IconLibrary.Get("hud.<이름>")` | 상단 칩, 행동 줄, 유닛 스탯·행동 버튼, 신앙 펀치, 컷인 |
+| `Tribes/<종족 Id>`, `Gods/<신 Id>` | 종족·신 아이콘(흰 그림). 없는 Id는 `random` | 종족 고르기 |
+| `CutIn/<칸>` | [전투 컷인](../game/session.md#전투-컷인) 배경: `city` `field` `forest` `mountain` `shallow` `ocean`. 게임 픽셀 크기 그대로 두고 화면에서 키운다. 좌우로 이어 붙는다 | 컷인 |
+| `Guide/guide` | 길잡이 그림. 저장소에는 없다(`.gitignore`) — 받은 팩의 단독 재배포 금지 조건 때문에 각자 넣는다. 없으면 말풍선만 나온다 | 길잡이 |
+
+글꼴은 `Assets/Resources/Fonts`(본문 Noto Sans KR Medium, 숫자 Galmuri11 — 둘 다 OFL, 같은 폴더의 `LICENSE.txt`).
+
 ## UI 해상도
 코드: `View/UiScale`, `View/PixelUIScaler`. 그림 생성: `scripts/author_pixel_ui.py`.
 - 캔버스 배율(UI 1단위 = 화면 몇 픽셀, `UiScale.ScaleFactor`)은 "1280x720 화면에 맞춘 배율"(가로·세로 비의 기하평균)과 "실제 크기 배율"(dpi ÷ 160, 1단위 ≈ 1dp) 중 큰 값이다. PC 모니터는 앞의 값(1080p = 1.5), 휴대폰은 뒤의 값이 이긴다. dpi를 모르면 96으로 본다. 모든 HUD 캔버스가 이 규칙 하나를 쓴다.

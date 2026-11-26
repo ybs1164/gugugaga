@@ -128,6 +128,8 @@ namespace TacticsECS
 
         /// <summary>능력치 줄(StatRow.prefab)의 칸 — 프리팹 안 "&lt;이름&gt;Slot"·"&lt;이름&gt;Text"와 아이콘 이름이 같다.</summary>
         public static readonly string[] StatIcons = { "attack", "defense", "move", "range" };
+        /// <summary>StatIcons 칸에 그리는 아이콘(같은 순서).</summary>
+        private static readonly string[] StatHudIcons = { "hud.sword", "hud.shield", "hud.move", "hud.range" };
 
         /// <summary>구조물 정보의 강조색. 표시 전용이라 View가 갖는다.</summary>
         private static readonly Dictionary<string, Color> StructureAccentColors = new Dictionary<string, Color>
@@ -163,8 +165,16 @@ namespace TacticsECS
         private Text _faithText;
         private int _shownFaith = -1;
         // 상단 칩과 하단 행동 줄(프리팹의 상단 막대 칸을 다시 배치한다 — SetupChrome/LayoutChrome).
-        private const float ChipIconInset = 34f;
-        private const float MenuWidth = 60f;
+        private const float ChipIconInset = 40f;
+        private const float MenuWidth = UiKit.TouchSize;
+        private const float GuideWide = 192f, GuideCompact = 96f, GuideShort = 128f, ShortScreen = 540f;
+        private RectTransform _guide, _guideBubble;
+        private RawImage _guidePortrait;
+        private Text _guideText;
+        private string _guideLine;
+        private bool _guideVisible = true;
+        private int _stars, _income, _faith, _faithMax, _faithIncome;
+
         private RectTransform _rankChip, _faithChip, _goldChip, _turnChip, _menuItem, _techItem, _scoreItem;
         private Image _rankIcon, _turnIcon;
         private Button _punchButton;
@@ -229,8 +239,8 @@ namespace TacticsECS
         {
             var slot = (RectTransform)Instantiate(hpRowPrefab.Find("HpSlot"), parent, false);
             slot.name = "IconSlot";
-            if (centered) UiKit.Place(slot, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(24f, 24f));
-            else UiKit.Place(slot, new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(24f, 24f));
+            if (centered) UiKit.Place(slot, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(28f, 28f));
+            else UiKit.Place(slot, new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(28f, 28f));
             var image = slot.GetChild(0).GetComponent<Image>();
             UiKit.SetIcon(image, icon);
             return image;
@@ -239,7 +249,8 @@ namespace TacticsECS
         private static void ChipText(Text text)
         {
             text.alignment = TextAnchor.MiddleLeft;
-            text.fontSize = UiKit.BodyText;
+            text.supportRichText = true;
+            HudArt.UseNumberFont(text, 24);
             UiKit.Stretch(text.rectTransform, ChipIconInset, 0f, 8f, 0f);
         }
 
@@ -258,10 +269,10 @@ namespace TacticsECS
             _faithChip = Item(faithButton.transform); _menuItem = Item(menuButton.transform); _techItem = Item(techButton.transform);
             _scoreItem = Item(scoreText.transform);
             _scoreItem.gameObject.SetActive(false); // 점수는 메뉴 창에서 본다
-            _rankIcon = AddIcon(_rankChip, "victory");
-            AddIcon(_faithChip, "spiritualism");
-            AddIcon(_goldChip, "trade");
-            _turnIcon = AddIcon(_turnChip, "turn");
+            _rankIcon = AddIcon(_rankChip, "hud.crown");
+            AddIcon(_faithChip, "hud.flame");
+            AddIcon(_goldChip, "hud.coins");
+            _turnIcon = AddIcon(_turnChip, "hud.turn");
             ChipText(unitsText); ChipText(_faithText); ChipText(starsText); ChipText(turnText);
             // 신앙 게이지: 칩 바닥의 가는 줄.
             var gauge = (RectTransform)faithFill.parent;
@@ -271,17 +282,86 @@ namespace TacticsECS
             foreach (var chip in new[] { _rankChip, _faithChip, _goldChip, _turnChip, _menuItem, _techItem, (RectTransform)endTurnButton.transform })
                 Tint(chip, UiKit.PanelColor);
             Tint(menuButton, UiKit.PanelColor); Tint(faithButton, UiKit.PanelColor); Tint(techButton, UiKit.PanelColor); Tint(endTurnButton, UiKit.PanelColor);
-            UiKit.Label(endTurnButton).color = UiKit.TextColor;
+            // 메뉴·턴 종료는 아이콘만(이름은 길게 누르면 뜨는 설명에).
+            UiKit.Label(endTurnButton).text = string.Empty;
+            AddIcon((RectTransform)endTurnButton.transform, "hud.ff", true);
+            UiKit.Label(menuButton).text = string.Empty;
+            AddIcon((RectTransform)menuButton.transform, "hud.gear", true);
             // 기술 버튼: 하단 행동 줄로, 아이콘만.
             _techItem.SetParent(safe, false);
             UiKit.Label(techButton).text = string.Empty;
-            AddIcon((RectTransform)techButton.transform, "tech_hub", true);
+            AddIcon((RectTransform)techButton.transform, "hud.tree", true);
             _punchButton = UiKit.Button(buttonPrefab, safe, "PunchButton", LocalizationSystem.T("UI.Hud.Punch"), UiKit.PanelColor, () => OnFaithClicked?.Invoke(), UiKit.BodyText);
             _punchLabel = UiKit.Label(_punchButton);
+            AddIcon((RectTransform)_punchButton.transform, "hud.fist");
+            UiKit.Stretch(_punchLabel.rectTransform, ChipIconInset, 0f, 8f, 0f);
+            SetupGuide();
             inspectorCloseButton.gameObject.SetActive(false); // 선택 해제는 지도의 빈 곳을 누른다
         }
 
         private static float ChipWidth(Text text) => ChipIconInset + Mathf.Ceil(text.preferredWidth) + 10f;
+
+        /// <summary>칩 숫자 뒤의 작은 회색 글자(최대값·턴당 수입).</summary>
+        private static string Small(string text) => $"<size=12><color=#{ColorUtility.ToHtmlStringRGB(UiKit.MutedText)}>{text}</color></size>";
+
+        // ---------- 길잡이 ----------
+
+        /// <summary>길잡이: 게임 속 유닛이 아닌 안내 캐릭터. 넓은 배치는 왼쪽 아래, 좁은 배치는 상단 칩 바로 아래(알림은 그 밑으로) — 아래 시트의 유닛 정보와 따로 있다. 말풍선 한 줄로 지금 할 일을 알려 준다.
+        /// 그림(Resources/Hud/Guide/guide)이 없으면 말풍선만 보인다.</summary>
+        private void SetupGuide()
+        {
+            _guide = UiKit.Spawn(groupPrefab, safe, "Guide");
+            _guide.SetAsFirstSibling(); // 다른 HUD 뒤에
+            var portrait = new GameObject("Portrait", typeof(RectTransform), typeof(RawImage));
+            portrait.transform.SetParent(_guide, false);
+            _guidePortrait = portrait.GetComponent<RawImage>();
+            _guidePortrait.raycastTarget = false;
+            var texture = HudArt.Texture("Guide/guide");
+            if (texture != null) { texture.filterMode = FilterMode.Bilinear; _guidePortrait.texture = texture; }
+            else _guidePortrait.enabled = false;
+            _guideBubble = UiKit.Fill(fillPrefab, _guide, "Bubble", UiKit.PanelColor).rectTransform;
+            _guideBubble.GetComponent<Image>().raycastTarget = false;
+            _guideText = UiKit.Text(textPrefab, _guideBubble, "Line", 14, TextAnchor.MiddleLeft, UiKit.TextColor);
+            _guideText.raycastTarget = false;
+            UiKit.Stretch(_guideText.rectTransform, 12f, 0f, 12f, 0f);
+            _guideBubble.gameObject.SetActive(false);
+        }
+
+        /// <summary>길잡이 말풍선 한 줄(null·빈 줄이면 말풍선을 감춘다).</summary>
+        public void SetGuideLine(string line)
+        {
+            if (_guide == null || line == _guideLine) return;
+            _guideLine = line;
+            _guideText.text = line ?? string.Empty;
+            _guideBubble.gameObject.SetActive(!string.IsNullOrEmpty(line));
+            LayoutGuide(_compact ?? false);
+        }
+
+        public void SetGuideVisible(bool visible)
+        {
+            if (_guide == null || (_guideVisible == visible && _guide.gameObject.activeSelf == (visible && _battlePanelsVisible))) return;
+            _guideVisible = visible;
+            _guide.gameObject.SetActive(visible && _battlePanelsVisible);
+            LayoutGuide(_compact ?? false);
+        }
+
+        private void LayoutGuide(bool compact)
+        {
+            if (_guide == null) return;
+            // 낮은 화면(휴대폰 가로)에서는 넓은 배치라도 작게.
+            float size = compact ? GuideCompact : safe.rect.height > 1f && safe.rect.height < ShortScreen ? GuideShort : GuideWide;
+            bool portrait = _guidePortrait.enabled;
+            float top = UiKit.TopBarHeightFor(compact) + UiKit.Gap;
+            if (compact) UiKit.Place(_guide, new Vector2(0f, 1f), new Vector2(UiKit.Gap, -top), new Vector2(size, size));
+            else UiKit.Place(_guide, Vector2.zero, new Vector2(UiKit.Gap, 0f), new Vector2(size, size));
+            bool shown = _guide.gameObject.activeSelf && (portrait || _guideBubble.gameObject.activeSelf);
+            toastRoot.anchoredPosition = new Vector2(UiKit.Gap, -top - (compact && shown ? size + UiKit.Gap : 0f));
+            UiKit.Place(_guidePortrait.rectTransform, Vector2.zero, Vector2.zero, new Vector2(size, size));
+            float max = SafeWidth() - UiKit.Gap * 2f - (portrait ? size : 0f) - (compact ? 0f : UiKit.SidePanelWidth + UiKit.Gap);
+            float width = Mathf.Min(Mathf.Max(120f, max), Mathf.Ceil(_guideText.preferredWidth) + 26f);
+            float height = Mathf.Max(UiKit.TouchSize, UiKit.PreferredHeight(_guideText, width - 24f) + 24f);
+            UiKit.Place(_guideBubble, Vector2.zero, new Vector2(portrait ? size - 8f : 0f, portrait ? size * 0.5f : UiKit.Gap), new Vector2(width, height));
+        }
 
         /// <summary>상단 칩(왼쪽부터 순위 · 신앙 · 별 · 턴, 오른쪽 끝 메뉴)과 하단 행동 줄(오른쪽 아래: 신앙 펀치 · 기술 · 턴 종료).
         /// 넓은·좁은 배치가 같은 순서이고, 좁은 배치는 행동 줄이 화면 폭을 다 쓴다.</summary>
@@ -300,6 +380,7 @@ namespace TacticsECS
                 x += w + UiKit.ItemGap;
             }
             UiKit.Place(_menuItem, new Vector2(1f, 1f), new Vector2(-UiKit.Gap, -UiKit.Gap), new Vector2(MenuWidth, UiKit.TouchSize));
+            if (_menuItem != menuButton.transform) UiKit.Stretch((RectTransform)menuButton.transform);
 
             float endW = UiKit.EndTurnSize.x, right = UiKit.Gap;
             UiKit.Place((RectTransform)endTurnButton.transform, new Vector2(1f, 0f), new Vector2(-right, UiKit.Gap), new Vector2(endW, UiKit.TouchSize));
@@ -332,12 +413,13 @@ namespace TacticsECS
             if (_compact != compact)
             {
                 _compact = compact;
+                RefreshChipTexts();
                 LayoutChrome(compact);
-                toastRoot.anchoredPosition = new Vector2(UiKit.Gap, -UiKit.TopBarHeightFor(compact) - UiKit.Gap);
                 UiKit.LayoutSheetArea(inspectorArea, compact);
                 LayoutTooltip(compact);
             }
             UiKit.FitSheet(inspectorArea, inspector, _inspectorHeight + 8f, compact);
+            LayoutGuide(compact);
         }
 
         /// <summary>턴 칩: 내 턴은 다른 칩과 같은 흰 칩, 적 턴은 짙은 칩에 "적 차례".</summary>
@@ -363,7 +445,8 @@ namespace TacticsECS
 
         public void SetResources(CityResourceData city, int unitsUsed)
         {
-            starsText.text = city.StarsProduction > 0 ? LocalizationSystem.F("UI.Hud.StarsIncome", city.Stars, city.StarsProduction) : LocalizationSystem.F("UI.Hud.Stars", city.Stars);
+            _stars = city.Stars; _income = city.StarsProduction;
+            RefreshChipTexts();
             LayoutChrome(_compact ?? false);
         }
 
@@ -386,10 +469,19 @@ namespace TacticsECS
 
         public void SetScoreLine(string line) => scoreText.text = line ?? string.Empty;
 
+        /// <summary>별·신앙 칩 글자: 값은 크게, 최대값과 턴당 수입은 작은 회색. 좁은 배치에서는 수입을 뺀다(칩 한 줄에 다 들어가게).</summary>
+        private void RefreshChipTexts()
+        {
+            bool income = _compact != true;
+            starsText.text = _stars + (income && _income > 0 ? Small(" +" + _income) : string.Empty);
+            _faithText.text = _faith + Small("/" + _faithMax + (income && _faithIncome > 0 ? " +" + _faithIncome : string.Empty));
+        }
+
         /// <summary>신앙 칩: 현재/최대(다음 턴 수입), 게이지, 대신전 상태 줄. 값이 바뀌면 칩 아래에 증감을 잠깐 띄운다.</summary>
         public void SetFaith(int current, int max, int income, string status)
         {
-            _faithText.text = income > 0 ? LocalizationSystem.F("UI.Hud.FaithIncome", current, max, income) : LocalizationSystem.F("UI.Hud.Faith", current, max);
+            _faith = current; _faithMax = max; _faithIncome = income;
+            RefreshChipTexts();
             float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
             faithFill.anchorMax = new Vector2(ratio, 1f);
             faithFillImage.color = max > 0 && current >= max ? UiKit.PrimaryColor : UiKit.TextColor; // 가득 차면 포인트 색(더 쌓이지 않는다는 신호)
@@ -430,6 +522,7 @@ namespace TacticsECS
             topBar.gameObject.SetActive(visible);
             toastRoot.gameObject.SetActive(visible);
             ApplyChromeVisibility();
+            if (_guide != null) _guide.gameObject.SetActive(visible && _guideVisible);
             if (!visible) { statusBox.SetActive(false); HideInspector(); }
         }
 
@@ -563,11 +656,12 @@ namespace TacticsECS
 
             // HpRow.prefab: 체력 아이콘 · 숫자 · 막대(HpBarFill/ValueFill).
             var row = UiKit.Row(UiKit.Spawn(hpRowPrefab, inspectorContent, "HpRow"), y, StatRowHeight, InspectorPadding, InspectorPadding);
-            UiKit.SetIcon(row.Find("HpSlot/HpIcon").GetComponent<Image>(), "hp");
+            UiKit.SetIcon(row.Find("HpSlot/HpIcon").GetComponent<Image>(), "hud.heart");
             // 현재 체력은 크게, 최대 체력은 작은 회색으로. 막대 색은 팀.
             var hpText = row.Find("HpText").GetComponent<Text>();
             hpText.supportRichText = true;
-            hpText.text = $"<size={UiKit.TitleText}>{hp}</size><color=#{ColorUtility.ToHtmlStringRGB(UiKit.MutedText)}>/{maxHp}</color>";
+            HudArt.UseNumberFont(hpText, 24);
+            hpText.text = $"{hp}<size=12><color=#{ColorUtility.ToHtmlStringRGB(UiKit.MutedText)}>/{maxHp}</color></size>";
             Tint(row.Find("HpBarFill"), UiKit.LineColor);
             var fill = (RectTransform)row.Find("HpBarFill/ValueFill");
             fill.anchorMax = new Vector2(Mathf.Clamp01(frac), 1f);
@@ -587,12 +681,13 @@ namespace TacticsECS
             float cell = (Mathf.Min(PanelWidth, 420f) - 8f - InspectorPadding * 2f) / StatIcons.Length;
             for (int i = 0; i < StatIcons.Length; i++)
             {
-                var slot = UiKit.Place((RectTransform)statRow.Find(StatIcons[i] + "Slot"), new Vector2(0f, 0.5f), new Vector2(cell * i, 0f), new Vector2(24f, 24f));
-                UiKit.SetIcon(slot.GetChild(0).GetComponent<Image>(), StatIcons[i]);
+                var slot = UiKit.Place((RectTransform)statRow.Find(StatIcons[i] + "Slot"), new Vector2(0f, 0.5f), new Vector2(cell * i, 0f), new Vector2(28f, 28f));
+                UiKit.SetIcon(slot.GetChild(0).GetComponent<Image>(), StatHudIcons[i]);
                 var value = statRow.Find(StatIcons[i] + "Text").GetComponent<Text>();
                 value.text = stats[i].Value;
                 value.color = stats[i].Color;
-                UiKit.Place(value.rectTransform, new Vector2(0f, 0.5f), new Vector2(cell * i + 28f, 0f), new Vector2(cell - 28f, StatRowHeight));
+                HudArt.UseNumberFont(value, 24);
+                UiKit.Place(value.rectTransform, new Vector2(0f, 0.5f), new Vector2(cell * i + 32f, 0f), new Vector2(cell - 32f, StatRowHeight));
             }
             return y + StatRowHeight + 4f;
         }

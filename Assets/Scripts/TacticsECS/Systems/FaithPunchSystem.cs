@@ -88,6 +88,16 @@ namespace TacticsECS
             return units.Count + tiles.Count;
         }
 
+        /// <summary>피해·치유 효과를 받을 유닛(확정 전 미리보기). 같은 유닛은 한 번만.</summary>
+        public static List<int> AffectedUnits(GridWorld grid, EntityWorld world, Team team, FaithPunchRow punch, Vector2Int target)
+        {
+            var units = new HashSet<int>();
+            foreach (var e in Effects(punch))
+                if (e.Effect == FaithEffectKind.Damage || e.Effect == FaithEffectKind.Heal)
+                    units.UnionWith(FaithEffectSystem.Units(grid, world, team, e, target, punch.Range));
+            return new List<int>(units);
+        }
+
         /// <summary>펀치 효과 하나의 크기(기도 보너스 없음).</summary>
         public static int Amount(FaithEffectRow e) => Mathf.RoundToInt(FaithEffectSystem.Strength(e, 0));
 

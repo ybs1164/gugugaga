@@ -17,7 +17,9 @@ namespace TacticsECS
         private CityData?[] _cities;
         private Color[] _teamTints;
         private int[] _levels;
-        private bool[] _fogged;
+        private bool[] _fogged, _occupied;
+        /// <summary>칸 그림은 칸 바닥에서 이만큼 위에 그린다 — 아래 칸 유닛의 체력 막대 자리. 규칙: docs/spec/game/tile.md#겹침</summary>
+        public const float ObjectLift = .0625f;
         private Tilemap _ground, _fog;
         private readonly Dictionary<string, Tile> _tiles = new Dictionary<string, Tile>();
         private static readonly Vector2Int[] Directions = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
@@ -33,7 +35,7 @@ namespace TacticsECS
             _roads = new GameObject[count]; _shores = new GameObject[count];
             _objectKeys = new string[count]; _structures = new string[count];
             _cities = new CityData?[count]; _teamTints = new Color[count]; _levels = new int[count];
-            _fogged = new bool[count];
+            _fogged = new bool[count]; _occupied = new bool[count];
             var layout = new GameObject("PixelGrid").AddComponent<Grid>();
             layout.transform.SetParent(transform, false);
             layout.transform.position = PixelCoordinates.FromLogical(grid.Origin) - new Vector3(grid.TileSize / 2, grid.TileSize / 2, 0);
@@ -171,6 +173,7 @@ namespace TacticsECS
             _objectKeys[i] = key;
             Replace(ref _objects[i], PixelSpriteCatalog.Build(placements, view.transform, level, team, PixelSpriteCatalog.SortOrder(view.transform.position.y)));
             if (rotate) _objects[i].transform.localRotation = Quaternion.Euler(0,0,90);
+            ApplyOccupancy(i);
             ApplyFog(i);
         }
         private static GameObject CreateRoad(GridWorld grid, Vector2Int pos, Transform parent)
@@ -188,6 +191,27 @@ namespace TacticsECS
         }
         private static bool IsHorizontalBridge(GridWorld grid, Vector2Int p) => grid.InBounds(p+Vector2Int.left) && grid.InBounds(p+Vector2Int.right)
             && grid.GetTerrain(p+Vector2Int.left) == TerrainType.Land && grid.GetTerrain(p+Vector2Int.right) == TerrainType.Land;
+        /// <summary>칸 그림이 있는 칸인지(도시·건물·숲·산·자원).</summary>
+        public bool HasObject(Vector2Int p) => _grid != null && _grid.InBounds(p) && _objects[_grid.Index(p)] != null;
+
+        /// <summary>보이는 유닛이 서 있는 칸(occupied)의 칸 그림을 반 크기로 왼쪽 위에 붙인다. 유닛이 떠나면 원래 크기.</summary>
+        public void RefreshOccupancy(ICollection<Vector2Int> occupied)
+        {
+            for (int i = 0; i < _occupied.Length; i++)
+            {
+                bool on = occupied.Contains(new Vector2Int(i % _grid.Width, i / _grid.Width));
+                if (_occupied[i] == on) continue;
+                _occupied[i] = on;
+                ApplyOccupancy(i);
+            }
+        }
+        private void ApplyOccupancy(int i)
+        {
+            if (_objects[i] == null) return;
+            bool half = _occupied[i];
+            _objects[i].transform.localScale = half ? new Vector3(.5f,.5f,1) : Vector3.one;
+            _objects[i].transform.localPosition = half ? new Vector3(-.25f,.25f,0) : new Vector3(0,ObjectLift,0);
+        }
         public void RefreshFog(GridWorld grid, Team viewer)
         {
             for (int y = 0; y < grid.Height; y++)
@@ -215,6 +239,7 @@ namespace TacticsECS
         public void ClearHighlights() { foreach (var tile in _tileViews) tile.SetHighlight(TileView.TileHighlight.None); }
         public void HighlightMove(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Move); }
         public void HighlightSelected(Vector2Int p) { if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Selected); }
+        public void HighlightArea(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Area); }
         public void HighlightAttack(IEnumerable<Vector2Int> tiles) { foreach (var p in tiles) if (_grid.InBounds(p)) _tileViews[_grid.Index(p)].SetHighlight(TileView.TileHighlight.Attack); }
     }
 }

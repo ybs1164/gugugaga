@@ -5,10 +5,11 @@ namespace TacticsECS
     /// <summary>Shared ground colour and the tile's range/selection frame; no per-frame update.</summary>
     public class TileView : MonoBehaviour
     {
-        public enum TileHighlight { None, Move, Attack, Selected }
+        public enum TileHighlight { None, Move, Attack, Selected, Area }
         private static readonly Color SelectedColor = new Color(1f,.86f,.3f);
         private static readonly Color MoveColor = new Color(.24f,.55f,1f);
         private static readonly Color AttackColor = new Color(1f,.3f,.37f);
+        private static readonly Color AreaColor = new Color(.94f,.647f,.227f); // 신앙 펀치 범위(포인트 색)
         private GameObject _frame; // 칸 테두리: 선택 노랑 · 이동 파랑 · 공격 빨강
         public Vector2Int GridPos { get; private set; }
         public TerrainType Terrain { get; private set; }
@@ -47,7 +48,8 @@ namespace TacticsECS
             }
             if (_frame != null && _highlight != TileHighlight.None)
             {
-                var color = _highlight == TileHighlight.Move ? MoveColor : _highlight == TileHighlight.Attack ? AttackColor : SelectedColor;
+                var color = _highlight == TileHighlight.Move ? MoveColor : _highlight == TileHighlight.Attack ? AttackColor
+                    : _highlight == TileHighlight.Area ? AreaColor : SelectedColor;
                 foreach (var edgeRenderer in _frame.GetComponentsInChildren<SpriteRenderer>(true)) edgeRenderer.color = color;
             }
             if (_frame != null) _frame.SetActive(!_fogged && _highlight != TileHighlight.None);
